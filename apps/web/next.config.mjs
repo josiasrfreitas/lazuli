@@ -1,5 +1,7 @@
 const DEFAULT_IMAGE_QUALITY = 75;
 const LOGIN_IMAGE_QUALITY = 90;
+const REFERRER_POLICY = "Referrer-Policy";
+const NO_REFERRER = "no-referrer";
 
 /** @type {import("next").NextConfig} */
 const config = {
@@ -8,6 +10,22 @@ const config = {
   devIndicators: false,
   serverExternalPackages: ["@hatchet-dev/typescript-sdk"],
   allowedDevOrigins: ["*.lazuli.localhost"],
+  async headers() {
+    return [
+      {
+        source: "/login",
+        headers: [{ key: REFERRER_POLICY, value: NO_REFERRER }],
+      },
+      {
+        source: "/cadastrar-senha",
+        headers: [{ key: REFERRER_POLICY, value: NO_REFERRER }],
+      },
+      {
+        source: "/api/auth/reset-password/:token",
+        headers: [{ key: REFERRER_POLICY, value: NO_REFERRER }],
+      },
+    ];
+  },
   images: {
     qualities: [DEFAULT_IMAGE_QUALITY, LOGIN_IMAGE_QUALITY],
   },

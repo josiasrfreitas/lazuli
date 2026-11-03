@@ -1,14 +1,56 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { DataTablePage, TableFilterChips } from "@lazuli/ui";
+import { parseAsInteger, parseAsString, useQueryStates, useQueryState } from "nuqs";
+import { Button, DataTablePage } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { classListQueryInput } from "./class-list-model";
 import { classFilterFields } from "./class-filter-fields";
 import { ClassFilters } from "./class-list-filters";
 import { ClassListTable } from "./class-list-table";
 import { ClassCreateDialog } from "./create-dialog";
-export function ClassesPage(): ReactElement {
+import { ClassOrganizationPage } from "~/features/class-organization/page";
+import styles from "~/features/class-organization/organization.module.css";
+
+export function ClassesPage({
+  organizationEnabled = false,
+}: {
+  organizationEnabled?: boolean;
+}): ReactElement {
+  const [section, setSection] = useQueryState("secao", parseAsString.withDefault("lista"));
+  return (
+    <div data-page-scroll="internal" className={styles.classesArea}>
+      {organizationEnabled && (
+        <nav className={styles.areaTabs} aria-label="Área de turmas">
+          <Button
+            size="sm"
+            variant={section === "lista" ? "secondary" : "ghost"}
+            aria-pressed={section === "lista"}
+            onClick={() => void setSection("lista")}
+          >
+            Turmas
+          </Button>
+          <Button
+            size="sm"
+            variant={section === "organizacao" ? "secondary" : "ghost"}
+            aria-pressed={section === "organizacao"}
+            onClick={() => void setSection("organizacao")}
+          >
+            Organização
+          </Button>
+        </nav>
+      )}
+      <div className={styles.classesContent}>
+        {organizationEnabled && section === "organizacao" ? (
+          <ClassOrganizationPage />
+        ) : (
+          <ClassListing />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClassListing(): ReactElement {
   const [params, setParams] = useQueryStates({
     busca: parseAsString.withDefault(""),
     tipo: parseAsString,
@@ -42,7 +84,6 @@ export function ClassesPage(): ReactElement {
         }
       >
         <div className="flex h-full min-h-0 flex-col gap-2">
-          <TableFilterChips fields={fields} />
           <div className="min-h-0 flex-1">
             <ClassListTable
               data={query.data}

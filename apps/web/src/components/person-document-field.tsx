@@ -5,6 +5,7 @@ import { detectPersonDocument } from "@lazuli/validators";
 type Props = {
   name: string;
   requiredCpf?: boolean;
+  required?: boolean;
   value: string;
   error?: string | undefined;
   onChange: (document: { documentType: "CPF" | "RG" | undefined; documentNumber: string }) => void;
@@ -16,11 +17,13 @@ export function PersonDocumentField({
   error,
   onChange,
   requiredCpf = false,
+  required = false,
 }: Props): ReactElement {
   return (
     <Field name={name}>
-      <Label>{requiredCpf ? "CPF" : "CPF ou RG (opcional)"}</Label>
+      <Label>{documentLabel(requiredCpf, required)}</Label>
       <Input
+        aria-required={required || requiredCpf || undefined}
         autoComplete="off"
         inputMode={requiredCpf ? "numeric" : undefined}
         invalid={Boolean(error)}
@@ -33,4 +36,9 @@ export function PersonDocumentField({
       {error && <FieldError match>{error}</FieldError>}
     </Field>
   );
+}
+
+function documentLabel(cpfOnly: boolean, required: boolean): string {
+  if (cpfOnly) return "CPF";
+  return required ? "CPF ou RG" : "CPF ou RG (opcional)";
 }

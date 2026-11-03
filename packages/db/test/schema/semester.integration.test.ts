@@ -23,7 +23,7 @@ void describe("semester schema", () => {
   });
   void it("rejects a semester whose start date is after its end date", async () => {
     const observedConstraint1 = await expectConstraintRejection(
-      database.semester.create({
+      database.period.create({
         data: { name: `${TEST_PREFIX}inverted`, startDate: FIRST_END, endDate: FIRST_START },
       }),
       ORDER_CONSTRAINT,
@@ -31,11 +31,11 @@ void describe("semester schema", () => {
     assert.equal(observedConstraint1.includes(ORDER_CONSTRAINT), true);
   });
   void it("rejects a semester that overlaps an existing one", async () => {
-    await database.semester.create({
+    await database.period.create({
       data: { name: `${TEST_PREFIX}base`, startDate: FIRST_START, endDate: FIRST_END },
     });
     const observedConstraint2 = await expectConstraintRejection(
-      database.semester.create({
+      database.period.create({
         data: {
           name: `${TEST_PREFIX}overlap`,
           startDate: new Date("2026-06-01"),
@@ -52,22 +52,22 @@ void describe("semester schema", () => {
   });
 });
 async function cleanDatabase(database: DatabaseClient): Promise<void> {
-  await database.semester.deleteMany({
+  await database.period.deleteMany({
     where: { name: { startsWith: TEST_PREFIX } },
   });
 }
 async function allowAdjacentSemesters(database: DatabaseClient): Promise<number> {
-  await database.semester.create({
+  await database.period.create({
     data: { name: `${TEST_PREFIX}first-half`, startDate: FIRST_START, endDate: FIRST_END },
   });
-  await database.semester.create({
+  await database.period.create({
     data: {
       name: `${TEST_PREFIX}second-half`,
       startDate: new Date("2026-08-01"),
       endDate: new Date("2026-12-20"),
     },
   });
-  return database.semester.count({ where: { name: { startsWith: TEST_PREFIX } } });
+  return database.period.count({ where: { name: { startsWith: TEST_PREFIX } } });
 }
 async function expectConstraintRejection(
   action: Promise<unknown>,

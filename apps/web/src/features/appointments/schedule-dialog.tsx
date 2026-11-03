@@ -1,5 +1,6 @@
 "use client";
 import type { JSX as ReactJSX, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowRight, CalendarCheck, CalendarClock, CheckCircle2, X } from "lucide-react";
 import {
   Field,
@@ -45,6 +46,7 @@ function StudentSelector({ input, draft, data }: ScheduleModel): ReactJSX.Elemen
           update((current) => ({
             ...current,
             student,
+            purpose: current.purpose === "PPT_COMPLEMENT" ? "MAKEUP" : current.purpose,
             teacherSelection: undefined,
             coverages: [],
           }));
@@ -54,6 +56,7 @@ function StudentSelector({ input, draft, data }: ScheduleModel): ReactJSX.Elemen
           update((current) => ({
             ...current,
             student: null,
+            purpose: current.purpose === "PPT_COMPLEMENT" ? "MAKEUP" : current.purpose,
             teacherSelection: undefined,
             coverages: [],
           }))
@@ -68,7 +71,11 @@ function StudentSelector({ input, draft, data }: ScheduleModel): ReactJSX.Elemen
   );
 }
 
-function PurposeChoice({ input, draft }: Pick<ScheduleModel, "input" | "draft">): ReactJSX.Element {
+function PurposeChoice({
+  input,
+  draft,
+  data,
+}: Pick<ScheduleModel, "input" | "draft" | "data">): ReactJSX.Element {
   if (input.previous)
     return (
       <p className="text-sm text-muted-foreground">
@@ -77,6 +84,7 @@ function PurposeChoice({ input, draft }: Pick<ScheduleModel, "input" | "draft">)
     );
   return (
     <PurposeField
+      allowPptComplement={Boolean(data.activePptEnrollment)}
       value={draft.values.purpose}
       onChange={(purpose) => {
         draft.change("purpose", purpose);
@@ -130,7 +138,7 @@ function DetailsContext(model: ScheduleModel): ReactJSX.Element {
     <div className={styles.context}>
       <StudentSelector {...model} />
       <div className={styles.choices}>
-        <PurposeChoice input={model.input} draft={model.draft} />
+        <PurposeChoice input={model.input} draft={model.draft} data={model.data} />
         <KindChoice draft={model.draft} />
       </div>
       {model.draft.values.student && (
@@ -281,6 +289,19 @@ function DetailsStep(model: ScheduleModel): ReactJSX.Element {
   );
 }
 
+export function ScheduleNatureFields(model: ScheduleModel): ReactJSX.Element {
+  return (
+    <>
+      <DetailsContext {...model} />
+      <DetailsNotices {...model} />
+    </>
+  );
+}
+
+export function ScheduleNotesFields(model: ScheduleModel): ReactJSX.Element {
+  return <DetailsNotes input={model.input} draft={model.draft} />;
+}
+
 type MeetingHandlers = {
   onTeacherChange: (value: SearchSelectOption | null) => void;
   onDateChange: (value: string) => void;
@@ -331,12 +352,14 @@ function meetingHandlers({ draft }: ScheduleModel): MeetingHandlers {
   };
 }
 
-function MeetingStep({
+export function ScheduleMeetingStep({
   model,
   actions,
+  renderSidebar,
 }: {
   model: ScheduleModel;
   actions: ReactNode;
+  renderSidebar?: ((fields: ReactNode) => ReactNode) | undefined;
 }): ReactJSX.Element {
   const { input, draft, data } = model;
   const values = draft.values;
@@ -348,6 +371,7 @@ function MeetingStep({
   return (
     <ClassMeetingStep
       actions={actions}
+      renderSidebar={renderSidebar}
       durationMinutes={durationMinutes}
       kind={values.kind}
       studentId={values.student?.id ?? ""}
@@ -378,8 +402,20 @@ function ScheduleForm({
   actions: ReactNode;
 }): ReactJSX.Element {
   const classStep = model.draft.values.step === "schedule";
+  const form = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!classStep) return;
+    const frame = requestAnimationFrame(() => {
+      form.current
+        ?.querySelector<HTMLElement>("input:not([disabled]), button:not([disabled])")
+        ?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [classStep]);
   return (
     <form
+      key={model.draft.values.step}
+      ref={form}
       id="appointment-schedule"
       noValidate
       onSubmit={(event) => {
@@ -388,7 +424,11 @@ function ScheduleForm({
       }}
       className={classStep ? styles.scheduleLayout : styles.layout}
     >
-      {classStep ? <MeetingStep model={model} actions={actions} /> : <DetailsStep {...model} />}
+      {classStep ? (
+        <ScheduleMeetingStep model={model} actions={actions} />
+      ) : (
+        <DetailsStep {...model} />
+      )}
       {!classStep && <div className="flex flex-wrap justify-end gap-3">{actions}</div>}
     </form>
   );
@@ -437,6 +477,7 @@ function ScheduleDialogFrame(model: ScheduleModel): ReactJSX.Element {
     <TaskDialog
       size={classStep ? "extra-wide" : "wide"}
       layout={classStep ? "appointment-calendar" : "appointment"}
+      scheduleFrame
       compactHeader={classStep}
       {...(classStep ? { bodyLayout: "calendar" as const } : {})}
       title={input.previous ? "Reagendar atendimento" : "Agendar atendimento"}

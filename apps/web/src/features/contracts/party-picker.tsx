@@ -117,7 +117,7 @@ export function PartyPicker({
   return (
     <Field name={`${kind}Search`}>
       <Label>{createMode ? `Nome do ${label.toLowerCase()}` : label}</Label>
-      <div className={showAdornment && endAdornment ? "relative [&_input]:pr-11" : "relative"}>
+      <div className={pickerClass({ showAdornment, endAdornment, value, draftValue })}>
         <PickerInput
           {...{
             kind,
@@ -143,4 +143,14 @@ export function PartyPicker({
       <FieldError match={Boolean(error)}>{error}</FieldError>
     </Field>
   );
+}
+
+function pickerClass({
+  showAdornment,
+  endAdornment,
+  value,
+  draftValue,
+}: Pick<PartyPickerProps, "showAdornment" | "endAdornment" | "value" | "draftValue">): string {
+  if (!showAdornment || !endAdornment) return "relative";
+  return value || draftValue ? "relative pr-11" : "relative [&_input]:pr-11";
 }

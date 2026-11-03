@@ -23,29 +23,14 @@ const eligible: SemesterEligibility = {
   plan: {
     scheduleType: "REGULAR",
     sharedStageId: "C2",
-    format: "ONLINE",
     teacherReady: true,
     active: true,
-    slots: [{ weekday: "MONDAY", startTime: "18:00", endTime: "19:00" }],
-  },
-  availability: {
-    confirmed: true,
-    validUntil: "2027-01-04",
-    formats: ["ONLINE"],
-    slots: [{ weekday: "MONDAY", startTime: "18:00", endTime: "19:00" }],
   },
 };
-void it("accepts exact availability boundaries and a pedagogically confirmed next stage", () => {
+void it("accepts a pedagogically confirmed next stage without time preferences", () => {
   assert.deepEqual(semesterPlacementBlockers(eligible), []);
 });
-void it("blocks expired availability, missing teacher, and unconfirmed academic progression independently", () => {
-  assert.deepEqual(
-    semesterPlacementBlockers({
-      ...eligible,
-      availability: { ...eligible.availability!, validUntil: "2027-01-03" },
-    }),
-    ["Disponibilidade vence antes da entrada"],
-  );
+void it("blocks missing teacher and unconfirmed academic progression independently", () => {
   assert.deepEqual(
     semesterPlacementBlockers({ ...eligible, plan: { ...eligible.plan!, teacherReady: false } }),
     ["Professor pendente na data de entrada"],

@@ -1,3 +1,4 @@
+import { currentScholarshipContractWhere } from "./scholarship.js";
 import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import type { Weekday } from "@lazuli/domain";
@@ -60,6 +61,7 @@ const studentPageSelect = {
   id: true,
   fullName: true,
   status: true,
+  contracts: { where: {}, select: { id: true }, take: 1 },
   phone: true,
   birthDate: true,
   enrollments: {
@@ -98,6 +100,7 @@ function currentEnrollmentFilter(now: Date): Prisma.EnrollmentWhereInput {
 function pageSelect(now: Date): typeof studentPageSelect {
   return {
     ...studentPageSelect,
+    contracts: { ...studentPageSelect.contracts, where: currentScholarshipContractWhere(now) },
     enrollments: { ...studentPageSelect.enrollments, where: currentEnrollmentFilter(now) },
   };
 }

@@ -4,6 +4,7 @@ import { FormSection } from "@lazuli/ui";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { draftReceipts, paymentDraftError } from "./draft";
 import type { PaymentFormState } from "./logic";
+import { PaymentInterest } from "./payment-interest";
 
 export function PaymentSummary({ state }: { state: PaymentFormState }): ReactJSX.Element {
   const totals = paymentTotals(state);
@@ -17,7 +18,7 @@ export function PaymentSummary({ state }: { state: PaymentFormState }): ReactJSX
     >
       {state.draft.items.length === 0 ? (
         <p className="text-caption text-muted-foreground">
-          Adicione parcelas para conferir os valores do recebimento.
+          Adicione cobranças para conferir os valores do recebimento.
         </p>
       ) : (
         <PaymentSummaryDetails state={state} totals={totals} />
@@ -65,20 +66,19 @@ function PaymentSummaryDetails({
   return (
     <>
       <dl className="grid gap-2 text-caption" aria-live="polite">
-        <div className="flex justify-between gap-3">
-          <dt className="text-muted-foreground">Parcelas selecionadas</dt>
-          <dd className="font-numeric font-medium">{state.draft.items.length}</dd>
-        </div>
-        <div className="flex justify-between gap-3">
-          <dt className="text-muted-foreground">Recebimentos</dt>
-          <dd className="font-numeric font-medium">{receiptCount}</dd>
-        </div>
-        {ready && interest > 0 && (
+        {state.draft.items.length > 1 && (
           <div className="flex justify-between gap-3">
-            <dt className="text-muted-foreground">Novos juros</dt>
-            <dd className="shrink-0 font-numeric">{money(interest)}</dd>
+            <dt className="text-muted-foreground">Cobranças selecionadas</dt>
+            <dd className="font-numeric font-medium">{state.draft.items.length}</dd>
           </div>
         )}
+        {receiptCount > 1 && (
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground">Recebimentos</dt>
+            <dd className="font-numeric font-medium">{receiptCount}</dd>
+          </div>
+        )}
+        {ready && interest > 0 && <InterestSummary state={state} interest={interest} />}
         {ready && discount > 0 && (
           <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Desconto por pontualidade</dt>
@@ -92,11 +92,31 @@ function PaymentSummaryDetails({
           </dd>
         </div>
       </dl>
-      <p className="text-caption text-muted-foreground">
-        As parcelas estão agrupadas por recebimento. Data e forma de pagamento se aplicam a todo o
-        lote.
-      </p>
+      {state.draft.items.length > 1 && (
+        <p className="text-caption text-muted-foreground">
+          As cobranças estão agrupadas por recebimento. Data e forma de pagamento se aplicam a todo
+          o lote.
+        </p>
+      )}
     </>
+  );
+}
+
+function InterestSummary({
+  state,
+  interest,
+}: {
+  state: PaymentFormState;
+  interest: number;
+}): ReactJSX.Element {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1">
+      <dt className="text-muted-foreground">Novos juros</dt>
+      <dd className="shrink-0 font-numeric">{money(interest)}</dd>
+      <dd className="col-span-full text-muted-foreground">
+        <PaymentInterest state={state} />
+      </dd>
+    </div>
   );
 }
 

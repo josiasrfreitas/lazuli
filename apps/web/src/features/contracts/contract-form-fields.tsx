@@ -1,4 +1,5 @@
 "use client";
+import { ContractScholarshipFields } from "./contract-scholarship-fields";
 import { ContractMaterialSection } from "./contract-material-section";
 
 import type { ReactElement } from "react";
@@ -6,6 +7,7 @@ import { Button, CurrencyInput, Field, FieldError, FormRow, Label } from "@lazul
 import { UserMinus, UserPlus } from "lucide-react";
 import { formatBRLFromCents } from "~/lib/format";
 import { maskPhoneBR } from "~/lib/masks";
+import { PersonDocumentField } from "~/components/person-document-field";
 import type { ContractFields } from "./contract-form-model";
 import { PaymentSection } from "./contract-payment-section";
 import { TextField } from "./contract-text-field";
@@ -17,6 +19,7 @@ const CENTS_PER_REAL = 100;
 
 export type FormProps = {
   maskedDates?: boolean;
+  separateScholarship?: boolean;
   fields: ContractFields;
   errors: Partial<Record<keyof ContractFields, string>>;
   offer:
@@ -24,7 +27,6 @@ export type FormProps = {
         tuitionCeilingCents: number;
         maximumDiscountPct: number;
         punctualityDiscountPct: number;
-        interestRatePctDaily: number;
         interestRatePctMonthly: number;
         cancellationFeePct: number;
       }
@@ -38,17 +40,21 @@ export type FormProps = {
     installments: Array<{ sequenceNumber: number; amountCents: number; dueDate: string }>;
   } | null;
   onMonthlyAmountBlur?: (() => void) | undefined;
+  allowEnrollmentFee?: boolean;
   change: (name: keyof ContractFields, value: string) => void;
 };
 
 type StudentProps = Pick<FormProps, "fields" | "errors" | "change">;
 
-function GuardianFields({ fields, errors, change }: StudentProps): ReactElement {
+function GuardianFields(props: StudentProps): ReactElement {
+  const { fields, change } = props;
   const open = fields.studentGuardianMode === "create";
   const toggle = (): void => {
     change("studentGuardianMode", open ? "" : "create");
     if (!open) return;
     change("studentGuardianName", "");
+    change("studentGuardianDocumentType", "");
+    change("studentGuardianDocumentNumber", "");
     change("studentGuardianPhone", "");
     change("studentGuardianEmail", "");
   };
@@ -58,80 +64,114 @@ function GuardianFields({ fields, errors, change }: StudentProps): ReactElement 
         {open ? <UserMinus aria-hidden="true" /> : <UserPlus aria-hidden="true" />}
         {open ? "Remover responsável" : "Adicionar responsável"}
       </Button>
-      {open && (
-        <div className="space-y-3">
-          <TextField
-            name="studentGuardianName"
-            label="Nome do responsável"
-            placeholder="Nome completo do responsável"
-            value={fields.studentGuardianName}
-            error={errors.studentGuardianName}
-            onChange={(value) => change("studentGuardianName", value)}
-          />
-          <FormRow columns={2}>
-            <TextField
-              name="studentGuardianPhone"
-              label="Telefone (opcional)"
-              placeholder="(00) 00000-0000"
-              value={fields.studentGuardianPhone}
-              error={errors.studentGuardianPhone}
-              onChange={(value) => change("studentGuardianPhone", maskPhoneBR(value))}
-            />
-            <TextField
-              name="studentGuardianEmail"
-              label="Email (opcional)"
-              placeholder="nome@exemplo.com"
-              value={fields.studentGuardianEmail}
-              error={errors.studentGuardianEmail}
-              onChange={(value) => change("studentGuardianEmail", value)}
-            />
-          </FormRow>
-        </div>
-      )}
+      {open && <GuardianInputs {...props} />}
     </>
   );
 }
 
-function ContractStudentField(props: StudentProps): ReactElement {
+function GuardianInputs({ fields, errors, change }: StudentProps): ReactElement {
+  return (
+    <div className="space-y-3">
+      <FormRow columns={2}>
+        <TextField
+          name="studentGuardianName"
+          label="Nome do responsável"
+          placeholder="Nome completo do responsável"
+          value={fields.studentGuardianName}
+          error={errors.studentGuardianName}
+          onChange={(value) => change("studentGuardianName", value)}
+        />
+        <PersonDocumentField
+          name="studentGuardianDocumentNumber"
+          required
+          value={fields.studentGuardianDocumentNumber}
+          error={errors.studentGuardianDocumentNumber}
+          onChange={(document) => {
+            change("studentGuardianDocumentNumber", document.documentNumber);
+            change("studentGuardianDocumentType", document.documentType ?? "");
+          }}
+        />
+      </FormRow>
+      <FormRow columns={2}>
+        <TextField
+          name="studentGuardianPhone"
+          label="Telefone (opcional)"
+          placeholder="(00) 00000-0000"
+          value={fields.studentGuardianPhone}
+          error={errors.studentGuardianPhone}
+          onChange={(value) => change("studentGuardianPhone", maskPhoneBR(value))}
+        />
+        <TextField
+          name="studentGuardianEmail"
+          label="Email (opcional)"
+          placeholder="nome@exemplo.com"
+          value={fields.studentGuardianEmail}
+          error={errors.studentGuardianEmail}
+          onChange={(value) => change("studentGuardianEmail", value)}
+        />
+      </FormRow>
+    </div>
+  );
+}
+
+export function ContractStudentField(props: StudentProps): ReactElement {
   const { fields, errors, change } = props;
   return (
     <div className="space-y-3">
       <FormRow columns={fields.studentMode === "create" ? 2 : 1}>
-        <PartyPicker
-          kind="student"
-          createMode={fields.studentMode === "create"}
-          draftName={fields.studentDraftName}
-          value={
-            fields.studentMode === "existing" && fields.studentId
-              ? { id: fields.studentId, label: fields.studentName }
-              : null
-          }
-          onChange={(option) => {
-            if (option) change("studentMode", "existing");
-            change("studentId", option?.id ?? "");
-            change("studentName", option?.label ?? "");
-          }}
-          onClear={() => {
-            change("studentMode", "existing");
-            change("studentId", "");
-            change("studentName", "");
-          }}
-          onSearchChange={(query) => change("studentDraftName", query)}
-          onCreate={(query) => {
-            change("studentMode", "create");
-            change("studentDraftName", query.trim());
-          }}
-          error={fields.studentMode === "create" ? errors.studentDraftName : errors.studentId}
-        />
+        <StudentPartyPicker {...props} />
         {fields.studentMode === "create" && <PersonDocument {...props} kind="student" />}
       </FormRow>
       {fields.studentMode === "create" && (
         <>
+          <div className="max-w-40">
+            <TextField
+              name="studentBirthDate"
+              label="Nascimento"
+              placeholder="dd/mm/aaaa"
+              date
+              maskedDate
+              value={fields.studentBirthDate}
+              error={errors.studentBirthDate}
+              onChange={(value) => change("studentBirthDate", value)}
+            />
+          </div>
           <InlinePersonFields {...props} kind="student" />
           <GuardianFields {...props} />
         </>
       )}
     </div>
+  );
+}
+
+function StudentPartyPicker({ fields, errors, change }: StudentProps): ReactElement {
+  return (
+    <PartyPicker
+      kind="student"
+      createMode={fields.studentMode === "create"}
+      draftName={fields.studentDraftName}
+      value={
+        fields.studentMode === "existing" && fields.studentId
+          ? { id: fields.studentId, label: fields.studentName }
+          : null
+      }
+      onChange={(option) => {
+        if (option) change("studentMode", "existing");
+        change("studentId", option?.id ?? "");
+        change("studentName", option?.label ?? "");
+      }}
+      onClear={() => {
+        change("studentMode", "existing");
+        change("studentId", "");
+        change("studentName", "");
+      }}
+      onSearchChange={(query) => change("studentDraftName", query)}
+      onCreate={(query) => {
+        change("studentMode", "create");
+        change("studentDraftName", query.trim());
+      }}
+      error={fields.studentMode === "create" ? errors.studentDraftName : errors.studentId}
+    />
   );
 }
 
@@ -147,7 +187,7 @@ function PartiesSection({ fields, errors, change }: FormProps): ReactElement {
   );
 }
 
-function TermFields({ fields, errors, change, maskedDates }: FormProps): ReactElement {
+export function TermFields({ fields, errors, change, maskedDates }: FormProps): ReactElement {
   return (
     <>
       <TextField
@@ -184,12 +224,19 @@ function TermFields({ fields, errors, change, maskedDates }: FormProps): ReactEl
   );
 }
 
-function PriceFields({ fields, errors, change, onMonthlyAmountBlur }: FormProps): ReactElement {
+export function PriceFields({
+  fields,
+  errors,
+  change,
+  onMonthlyAmountBlur,
+}: FormProps): ReactElement {
   const [reais, centavos] = fields.monthlyAmount.replace(",", ".").split(".");
   const amount = Number(reais) * CENTS_PER_REAL + Number(centavos?.padEnd(2, "0") ?? 0);
   return (
     <Field name="monthlyAmount">
-      <Label>Mensalidade acordada</Label>
+      <Label>
+        {fields.scholarshipMode === "NONE" ? "Mensalidade acordada" : "Mensalidade antes da bolsa"}
+      </Label>
       <CurrencyInput
         name="monthlyAmount"
         autoComplete="off"
@@ -206,6 +253,27 @@ function PriceFields({ fields, errors, change, onMonthlyAmountBlur }: FormProps)
   );
 }
 
+export function EnrollmentFeeField({ fields, errors, change }: FormProps): ReactElement {
+  const cents = Math.round(Number(fields.enrollmentFee.replace(",", ".")) * CENTS_PER_REAL);
+  return (
+    <Field name="enrollmentFee" className="max-w-56">
+      <Label>Taxa de matrícula</Label>
+      <CurrencyInput
+        name="enrollmentFee"
+        autoComplete="off"
+        placeholder="R$ 0,00"
+        size="sm"
+        invalid={Boolean(errors.enrollmentFee)}
+        value={fields.enrollmentFee && Number.isSafeInteger(cents) ? cents : null}
+        onValueChange={(value) =>
+          change("enrollmentFee", value === null ? "" : (value / CENTS_PER_REAL).toFixed(2))
+        }
+      />
+      {errors.enrollmentFee && <FieldError match>{errors.enrollmentFee}</FieldError>}
+    </Field>
+  );
+}
+
 export function ConditionsSection(props: FormProps): ReactElement {
   const { offer } = props;
   return (
@@ -214,15 +282,23 @@ export function ConditionsSection(props: FormProps): ReactElement {
         <TermFields {...props} />
         <PriceFields {...props} />
       </FormRow>
+      {props.allowEnrollmentFee !== false && <EnrollmentFeeField {...props} />}
+      {!props.separateScholarship && <ContractScholarshipFields {...props} />}
       {offer && (
-        <p className="text-caption text-muted-foreground">
-          Teto {formatBRLFromCents(offer.tuitionCeilingCents)} · desconto máximo{" "}
-          {offer.maximumDiscountPct.toLocaleString("pt-BR")}% · pontualidade{" "}
-          {offer.punctualityDiscountPct.toLocaleString("pt-BR")}% · juros{" "}
-          {offer.interestRatePctDaily.toLocaleString("pt-BR")}% ao dia e{" "}
-          {offer.interestRatePctMonthly.toLocaleString("pt-BR")}% ao mês · multa rescisória{" "}
-          {offer.cancellationFeePct.toLocaleString("pt-BR")}%
-        </p>
+        <details className="text-caption text-muted-foreground">
+          <summary className="cursor-pointer">Condições financeiras da escola</summary>
+          <p className="mt-2">
+            Teto {formatBRLFromCents(offer.tuitionCeilingCents)} · desconto máximo{" "}
+            {offer.maximumDiscountPct.toLocaleString("pt-BR")}% · pontualidade{" "}
+            {(props.fields.scholarshipMode === "NONE"
+              ? offer.punctualityDiscountPct
+              : 0
+            ).toLocaleString("pt-BR")}
+            % · juros {offer.interestRatePctMonthly.toLocaleString("pt-BR")}% ao mês, proporcional
+            aos dias (base de 30 dias) · multa rescisória{" "}
+            {offer.cancellationFeePct.toLocaleString("pt-BR")}%
+          </p>
+        </details>
       )}
     </div>
   );
@@ -233,7 +309,7 @@ export function ContractFormFields(props: FormProps): ReactElement {
     <>
       <PartiesSection {...props} />
       <ConditionsSection {...props} />
-      <ContractMaterialSection {...props} />
+      <ContractMaterialSection {...props} required />
       <PaymentSection {...props} />
     </>
   );

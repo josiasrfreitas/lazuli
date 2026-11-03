@@ -13,8 +13,11 @@
 @import "./components/pencil-loader.css";
 @import "./components/command-menu.css";
 @import "./components/popover.css";
+@import "./components/toast.css";
+@import "./components/dialog.css";
 @import "./components/typewriter-loader.css";
 @import "./components/file-upload.css";
+@import "./components/table-motion.css";
 
 @custom-variant dark (&:is(.dark *));
 

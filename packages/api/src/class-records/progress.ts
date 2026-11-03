@@ -1,6 +1,7 @@
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import type { ClassRecordSnapshot } from "@lazuli/validators";
 import { notFound } from "../trpc/errors.js";
+import { pendingClassRecordCutoff } from "./pending-policy.js";
 import {
   canRead,
   dateOnly,
@@ -22,6 +23,7 @@ type StageProgressResult = {
     attendanceRecorded: boolean;
     content: ClassRecordSnapshot["sharedContent"];
   }[];
+  pendingCount: number;
   today: string;
   latest: { date: string; page: number | null; reference: string | null } | null;
 };
@@ -48,25 +50,29 @@ export async function classStageProgress(
     include: recordSessionInclude,
     orderBy: [{ date: "desc" }, { startTime: "desc" }, { id: "desc" }],
   });
-  const rows = sessions
-    .filter((session) => canRead(context, session))
-    .map((session) => {
-      const state = progressState(session, context.now);
-      const content =
-        state === "RECORDED" ? (storedSnapshot(session)?.sharedContent ?? null) : null;
-      return {
-        id: session.id,
-        date: dateOnly(session.date),
-        startTime: timeOnly(session.startTime),
-        endTime: timeOnly(session.endTime),
-        state,
-        attendanceRecorded: Boolean(session.attendanceConfirmedAt || session.classRecord),
-        content,
-      };
-    });
+  const visible = sessions.filter((session) => canRead(context, session));
+  const cutoff = pendingClassRecordCutoff(context.now);
+  const pendingCount = visible.filter(
+    (session) =>
+      progressState(session, context.now) === "PENDING" && sessionEndInstant(session) <= cutoff,
+  ).length;
+  const rows = visible.map((session) => {
+    const state = progressState(session, context.now);
+    const content = state === "RECORDED" ? (storedSnapshot(session)?.sharedContent ?? null) : null;
+    return {
+      id: session.id,
+      date: dateOnly(session.date),
+      startTime: timeOnly(session.startTime),
+      endTime: timeOnly(session.endTime),
+      state,
+      attendanceRecorded: Boolean(session.attendanceConfirmedAt || session.classRecord),
+      content,
+    };
+  });
   const latest = rows.find((row) => (row.content?.pageFrom ?? null) !== null);
   return {
     rows,
+    pendingCount,
     today,
     latest: latest?.content
       ? {

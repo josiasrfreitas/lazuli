@@ -1,9 +1,11 @@
+import { changeOccurrenceStatus } from "./status.js";
 import {
   z,
   civilDateSchema,
   occurrenceCreateSchema,
   occurrenceLinkSchema,
   occurrenceUpdateSchema,
+  occurrenceStatusChangeSchema,
   interventionCreateSchema,
   interventionFollowUpSchema,
   interventionLinkSchema,
@@ -45,6 +47,13 @@ const context = (ctx: Context & { staffUser: StaffUser }): FollowUpContext => ({
   now: ctx.now ?? new Date(),
 });
 export const occurrencesRouter = router({
+  changeStatus: adminProcedure
+    .input(occurrenceStatusChangeSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        changeOccurrenceStatus({ ...context(ctx), database }, input),
+      ),
+    ),
   list: staffProcedure
     .input(pedagogicalListSchema)
     .query(({ ctx, input }) => listOccurrences(context(ctx), input)),

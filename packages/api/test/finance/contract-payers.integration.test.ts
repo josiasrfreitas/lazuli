@@ -34,7 +34,12 @@ void it("persists typed documents and contacts, reuses a payer for siblings, and
     finance(tx, ADMIN.id).createMonthlyContract({
       ...values,
       commandId: randomUUID(),
-      newPayer: { name: payer.name },
+      newPayer: {
+        name: payer.name,
+        documentType: "RG",
+        documentNumber: "98.765.432-X",
+        phone: "(11) 99876-5432",
+      },
     }),
   );
   assert.notEqual(homonym.payer.id, payer.id);
@@ -50,7 +55,7 @@ void it("persists typed documents and contacts, reuses a payer for siblings, and
   const empty = await db.payer.findUniqueOrThrow({ where: { id: homonym.payer.id } });
   assert.deepEqual(
     [empty.documentType, empty.documentNumber, empty.phone, empty.email],
-    [null, null, null, null],
+    ["RG", "98.765.432-X", "(11) 99876-5432", null],
   );
 });
 
@@ -106,9 +111,17 @@ void it("creates a new student and guardian atomically with the payer and contra
     newStudent: {
       fullName: studentName,
       birthDate: new Date("2015-03-15T00:00:00.000Z"),
+      documentType: "RG" as const,
+      documentNumber: "new-contract-student",
+      phone: "(11) 99999-7777",
       guardian: {
         mode: "create" as const,
-        input: { fullName: guardianName, phone: "(11) 99999-8888" },
+        input: {
+          fullName: guardianName,
+          documentType: "RG" as const,
+          documentNumber: "new-contract-guardian",
+          phone: "(11) 99999-8888",
+        },
       },
     },
   };
@@ -146,7 +159,14 @@ void it("creates a new student and guardian atomically with the payer and contra
   assert.equal(await db.student.count({ where: { fullName: studentName } }), 1);
   assert.equal(await db.guardian.count({ where: { fullName: guardianName } }), 1);
   assert.equal(await db.contract.count({ where: { commandId: input.commandId } }), 1);
-  assert.equal(await db.order.count({ where: { contractId: contract.id } }), 1);
+  assert.deepEqual(
+    await db.order.findMany({
+      where: { contractId: contract.id },
+      select: { kind: true },
+      orderBy: { kind: "asc" },
+    }),
+    [{ kind: "TUITION" }, { kind: "MATERIAL" }],
+  );
   assert.equal(
     await db.installment.count({ where: { order: { contractId: contract.id } } }),
     INSTALLMENTS,

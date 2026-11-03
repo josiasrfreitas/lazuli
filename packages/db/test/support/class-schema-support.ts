@@ -62,7 +62,7 @@ async function cleanCatalogRows(
   database: DatabaseClient,
   fixture: ClassSchemaFixtureConfig,
 ): Promise<void> {
-  await database.semester.deleteMany({
+  await database.period.deleteMany({
     where: { name: { startsWith: fixture.testPrefix } },
   });
   await database.stage.deleteMany({
@@ -137,7 +137,7 @@ export async function seedCatalog(
       sequence: 1,
     },
   });
-  const semester = await database.semester.create({
+  const semester = await database.period.create({
     data: {
       name: fixture.semesterName,
       startDate: fixture.semesterStartDate,

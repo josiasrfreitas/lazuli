@@ -14,7 +14,7 @@ import { badRequest, notFound } from "../trpc/errors.js";
 import { activityTransaction } from "../activity/record.js";
 import { leadSubject } from "../activity/subjects.js";
 import { dateToTimeString, timeStringToDate } from "../classes/time.js";
-import { lockTeacher } from "../teachers/availability.js";
+import { assertTeacherEligible, lockTeacher } from "../teachers/availability.js";
 import { dateOnly, lockCandidate, readCandidate } from "./candidates.js";
 import { admissionStages } from "./catalog.js";
 import { placementFileBytes } from "./placement-file-bytes.js";
@@ -111,6 +111,7 @@ export async function schedulePlacement({
       throw badRequest("Identificador de agendamento já utilizado.");
     return { id: existing.id };
   }
+  await assertTeacherEligible({ database, teacherId: values.teacherId, date: values.date });
   await assertPlacementScheduleAvailable({ database, values, now, candidateId: candidate.id });
   await database.admissionCandidate.update({
     where: { id: candidate.id },
@@ -125,6 +126,7 @@ export async function schedulePlacement({
       id: values.id,
       candidateId: candidate.id,
       kind: "PLACEMENT",
+      teacherId: values.teacherId,
       format: values.format,
       date: new Date(values.date),
       startTime: timeStringToDate(values.startTime),
@@ -191,7 +193,12 @@ async function placementVisit(
 
 function assertEditable(visit: Awaited<ReturnType<typeof placementVisit>>, now: Date): void {
   if (
-    visit.candidate.status !== "WAITING" ||
+    (visit.candidate.status !== "WAITING" &&
+      !(
+        visit.candidate.status === "ENROLLED" &&
+        visit.candidate.studentId &&
+        !visit.assessment?.stageId
+      )) ||
     visit.status === "CANCELLED" ||
     visit.status === "ABSENT"
   )

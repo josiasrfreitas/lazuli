@@ -17,7 +17,6 @@ import {
   ADJUSTMENT_BELOW_ZERO_MESSAGE,
   CANCELLED_ORDER_INSTALLMENT_MESSAGE,
   CONTRACT_OPERATION_UNAVAILABLE_MESSAGE,
-  DEFAULT_INTEREST_RATE_PCT_MONTHLY,
   DISCOUNT_REASON_REQUIRED_MESSAGE,
   INSTALLMENT_ALREADY_WAIVED_MESSAGE,
   INSTALLMENT_NOT_FOUND_MESSAGE,
@@ -247,6 +246,5 @@ function snapshotInstallmentLedger(
     adjustments: installment.adjustments,
     allocations: installment.allocations,
     now: new Date(),
-    interestRatePctMonthly: DEFAULT_INTEREST_RATE_PCT_MONTHLY,
   });
 }

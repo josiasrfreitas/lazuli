@@ -28,7 +28,6 @@ export async function returnToReview(
       enrollmentId: null,
       entryActionId: null,
       sourceExitActionId: null,
-      availabilityId: null,
     },
   });
   await database.activityEvent.create({

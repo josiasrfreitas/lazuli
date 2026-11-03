@@ -26,6 +26,12 @@ import type { StudentProfile } from "./logic";
 import styles from "./student-registration.module.css";
 
 export type RegistrationEditTarget = "student" | "guardian" | "address" | "notes";
+export const REGISTRATION_EDIT_TITLES: Record<RegistrationEditTarget, string> = {
+  student: "Dados do aluno",
+  guardian: "Responsável pelo aluno",
+  address: "Endereço do aluno",
+  notes: "Anotações sobre o aluno",
+};
 type EditorProps = {
   profile: StudentProfile;
   target: RegistrationEditTarget;
@@ -42,12 +48,6 @@ type EditorModel = {
   saving: boolean;
   change: (key: string, value: string) => void;
   save: () => Promise<void>;
-};
-const TITLES = {
-  student: "Dados do aluno",
-  guardian: "Responsável",
-  address: "Endereço",
-  notes: "Observações",
 };
 const ADDRESS_FIELDS = [
   "street",
@@ -152,7 +152,21 @@ function validateFieldValues(
     if (birthDate) person.birthDate = birthDate;
     else errors.birthDate = "Informe uma data válida.";
   }
+  Object.assign(errors, requiredEditorErrors(values));
   if (values.documentNumber && !values.documentType) errors.documentType = "Escolha CPF ou RG.";
+  return errors;
+}
+
+function requiredEditorErrors(values: Record<string, string>): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const [field, message] of [
+    ["documentNumber", "Informe o CPF ou RG."],
+    ["birthDate", "Informe o nascimento."],
+  ] as const) {
+    if (field in values && !values[field]?.trim()) errors[field] = message;
+  }
+  if ("phone" in values && !values.phone?.trim() && !values.email?.trim())
+    errors.phone = "Informe telefone ou e-mail.";
   return errors;
 }
 
@@ -267,7 +281,6 @@ export function RegistrationEditor(props: EditorProps): ReactElement {
         void save();
       }}
     >
-      <h3 className={styles.sectionTitle}>Editar {TITLES[target].toLocaleLowerCase("pt-BR")}</h3>
       <EditorFields
         target={target}
         saving={saving}
@@ -312,7 +325,7 @@ function editorFieldNames(target: RegistrationEditTarget): string[] {
 function EditorFields(props: EditorFieldsProps): ReactElement {
   return (
     <fieldset disabled={props.saving} className={styles.editFields}>
-      <legend className="sr-only">{TITLES[props.target]}</legend>
+      <legend className="sr-only">{REGISTRATION_EDIT_TITLES[props.target]}</legend>
       {editorFieldNames(props.target).map((key) =>
         key === "documentType" ? (
           <DocumentTypeField key={key} {...props} />
@@ -375,6 +388,7 @@ function EditorTextField({
     >
       <Label htmlFor={`registration-${name}`}>{FIELDS[name]![0]}</Label>
       <Input
+        aria-required={["fullName", "birthDate", "documentNumber"].includes(name) || undefined}
         id={`registration-${name}`}
         name={name}
         autoComplete="off"
@@ -398,12 +412,13 @@ function EditorTextField({
 function EditorNotesField({ values, onChange }: EditorFieldsProps): ReactElement {
   return (
     <Field className="registration-edit-field" data-wide="true">
-      <Label htmlFor="registration-notes">Observações</Label>
+      <Label htmlFor="registration-notes">Anotações</Label>
       <Textarea
         id="registration-notes"
         name="notes"
         autoComplete="off"
-        placeholder="Informações relevantes para o cadastro"
+        placeholder="Preferências, combinados com o aluno ou responsável e informações para o próximo contato"
+        rows={7}
         value={values.notes ?? ""}
         onChange={(event) => onChange("notes", event.target.value)}
       />

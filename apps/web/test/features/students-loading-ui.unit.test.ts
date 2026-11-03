@@ -19,7 +19,7 @@ import {
 
 const PAGE_SIZE = 10;
 const LARGE_PAGE_SIZE = 25;
-const FACT_COLUMN_COUNT = 3;
+const FACT_COLUMN_COUNT = 2;
 const TABLE_ROW: StudentListRow = {
   id: "11111111-1111-4111-8111-111111111111",
   fullName: "Ana Beatriz Rocha",
@@ -147,7 +147,7 @@ void test("first load keeps header and filter controls", () => {
   assert.doesNotMatch(controlsMarkup, /data-slot="inline-skeleton"/u);
 });
 
-void test("selected student filter fields render removable chips", () => {
+void test("selected student filter fields expose an active-filter menu and clear action", () => {
   const fields = studentFilterFields({
     filters: { ...filters, teacherIds: [TABLE_ROW.id] },
     classOptions: [],
@@ -161,8 +161,9 @@ void test("selected student filter fields render removable chips", () => {
   });
   const markup = renderToStaticMarkup(createElement(TableFilterChips, { fields }));
 
-  assert.match(markup, /Professor: João Silva/u);
-  assert.match(markup, /Remover filtro Professor/u);
+  assert.match(markup, /Filtros ativos · 1/u);
+  assert.match(markup, /aria-haspopup="dialog"/u);
+  assert.match(markup, /aria-label="Limpar todos os filtros"/u);
 });
 
 void test("fixed student columns and fact tones survive a static class declaration", () => {
@@ -186,9 +187,10 @@ void test("fixed student columns and fact tones survive a static class declarati
   const neutralFactsMarkup = studentRowMarkup(NEUTRAL_FACTS_ROW);
   const emptyFactsMarkup = studentRowMarkup(EMPTY_FACTS_ROW);
 
+  assert.match(tableMarkup, /w-\[25%\]/u);
   assert.match(tableMarkup, /w-\[30%\]/u);
   assert.match(tableMarkup, /w-\[17%\]/u);
-  assert.equal((tableMarkup.match(/w-\[15%\]/gu) ?? []).length, FACT_COLUMN_COUNT);
+  assert.equal((tableMarkup.match(/w-\[10%\]/gu) ?? []).length, FACT_COLUMN_COUNT);
   assert.match(
     flaggedFactsMarkup,
     /<td class="[^"]*text-destructive[^"]*"[^>]*><span[^>]*>50%<\/span><\/td>/u,

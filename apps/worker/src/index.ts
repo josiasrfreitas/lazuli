@@ -1,3 +1,4 @@
+import { startStudentHealthRefresh } from "./student-health.js";
 import { processAssessmentFile } from "@lazuli/worker-handlers/assessment-files";
 import { processStudentDocument } from "@lazuli/worker-handlers/student-documents";
 import { startAssessmentRecovery } from "./assessment-recovery.js";
@@ -40,6 +41,34 @@ async function processEnrollmentActions(): Promise<void> {
 }
 async function start(): Promise<void> {
   const hatchet = await getHatchetClient();
+  const worker = await createWorker(hatchet);
+  const timer = setInterval(() => void processEnrollmentActions(), ENROLLMENT_POLL_MS);
+  const stopRecovery = startAssessmentRecovery();
+  const stopHealth = startStudentHealthRefresh();
+  let stopping = false;
+  const shutdown = (): void => {
+    if (stopping) return;
+    stopping = true;
+    clearInterval(timer);
+    stopRecovery();
+    stopHealth();
+    void worker.stop();
+  };
+  for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, shutdown);
+  void processEnrollmentActions();
+  log("starting sessions-generate worker (1 slot)");
+  try {
+    await runWithReadiness(worker);
+  } finally {
+    clearInterval(timer);
+    stopRecovery();
+    stopHealth();
+    await db.$disconnect();
+  }
+}
+async function createWorker(
+  hatchet: Awaited<ReturnType<typeof getHatchetClient>>,
+): Promise<Awaited<ReturnType<Awaited<ReturnType<typeof getHatchetClient>>["worker"]>>> {
   const sessions = hatchet.task<SessionsGeneratePayload, GenerationResult>({
     name: SESSIONS_GENERATE_WORKFLOW,
     retries: 0,
@@ -67,26 +96,7 @@ async function start(): Promise<void> {
     workflows: [sessions, files, documents],
     handleKill: false,
   });
-  const timer = setInterval(() => void processEnrollmentActions(), ENROLLMENT_POLL_MS);
-  const stopRecovery = startAssessmentRecovery();
-  let stopping = false;
-  const shutdown = (): void => {
-    if (stopping) return;
-    stopping = true;
-    clearInterval(timer);
-    stopRecovery();
-    void worker.stop();
-  };
-  for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, shutdown);
-  void processEnrollmentActions();
-  log("starting sessions-generate worker (1 slot)");
-  try {
-    await runWithReadiness(worker);
-  } finally {
-    clearInterval(timer);
-    stopRecovery();
-    await db.$disconnect();
-  }
+  return worker;
 }
 async function processStudentDocumentPayload(
   input: StudentDocumentPayload,

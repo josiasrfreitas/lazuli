@@ -62,7 +62,7 @@ function registerCompositionTest(): void {
     const result = await db.$transaction((tx) =>
       finance(tx, ADMIN.id).batchReconcile({
         date: new Date(),
-        method: "BOLETO",
+        method: "PIX",
         installmentIds,
       }),
     );

@@ -128,23 +128,26 @@ export async function occurrenceDetail(
   OccurrenceRow & {
     related: OccurrenceRow[];
     interventions: InterventionRow[];
+    statusChanges: Array<{
+      id: string;
+      createdAt: Date;
+      fromStatus: OccurrenceRow["status"];
+      toStatus: OccurrenceRow["status"];
+      conclusion: string | null;
+      author: { id: string; name: string };
+    }>;
     canEdit: boolean;
     canOrganize: boolean;
   }
 > {
   const row = await loadOccurrence(context, id);
-  const [relations, interventions] = await Promise.all([
-    context.database.occurrenceRelation.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          { fromId: id, to: occurrenceScope(context) },
-          { toId: id, from: occurrenceScope(context) },
-        ],
-      },
-      include: { from: { include: occurrenceInclude }, to: { include: occurrenceInclude } },
-      orderBy: { createdAt: "asc" },
+  const [statusChanges, relations, interventions] = await Promise.all([
+    context.database.occurrenceStatusChange.findMany({
+      where: { occurrenceId: id },
+      include: { author: { select: { id: true, name: true } } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
+    occurrenceRelations(context, id),
     context.database.pedagogicalIntervention.findMany({
       where: {
         ...interventionScope(context),
@@ -155,11 +158,36 @@ export async function occurrenceDetail(
   ]);
   return {
     ...row,
+    statusChanges,
     related: relations.map((link) => (link.fromId === id ? link.to : link.from)),
     interventions,
     canEdit: context.staffUser.role !== "TEACHER" || row.recordedById === context.staffUser.id,
     canOrganize: context.staffUser.role !== "TEACHER",
   };
+}
+
+function occurrenceRelations(
+  context: FollowUpContext,
+  id: string,
+): Promise<
+  Prisma.OccurrenceRelationGetPayload<{
+    include: {
+      from: { include: typeof occurrenceInclude };
+      to: { include: typeof occurrenceInclude };
+    };
+  }>[]
+> {
+  return context.database.occurrenceRelation.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { fromId: id, to: occurrenceScope(context) },
+        { toId: id, from: occurrenceScope(context) },
+      ],
+    },
+    include: { from: { include: occurrenceInclude }, to: { include: occurrenceInclude } },
+    orderBy: { createdAt: "asc" },
+  });
 }
 export async function interventionDetail(
   context: FollowUpContext,

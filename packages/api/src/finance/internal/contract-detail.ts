@@ -1,7 +1,12 @@
 import { deriveInstallmentLedger } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import { TRPCError } from "@trpc/server";
-import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import {
+  contractSelect,
+  toRow,
+  renegotiatedInstallmentAmount,
+  type ContractListRow,
+} from "./contracts-select.js";
 import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
 const detailSelect = { ...contractSelect, punctualityDiscountPct: true } as const;
@@ -19,6 +24,7 @@ type CalendarRow = {
 type Material = NonNullable<Order["material"]>;
 type MaterialView = Pick<
   Material,
+  | "scholarshipAgreement"
   | "name"
   | "items"
   | "stageId"
@@ -30,7 +36,7 @@ type MaterialView = Pick<
   | "cardFeeCents"
   | "quotedInstallments"
   | "quotedInstallmentCents"
-> & { cashDiscountPct: number; cardFeePct: number | null };
+> & { scholarshipPct: number; cashDiscountPct: number; cardFeePct: number | null };
 type OrderView = {
   id: string;
   kind: Order["kind"];
@@ -87,7 +93,12 @@ function projectOrder(input: {
     id: order.id,
     kind: order.kind,
     cancelled: Boolean(order.cancelledAt),
-    totalCents: order.principalAmountCents,
+    totalCents:
+      order.principalAmountCents +
+      order.installments.reduce(
+        (sum, row) => sum + renegotiatedInstallmentAmount(row) - row.amountCents,
+        0,
+      ),
     material: order.material ? projectMaterial(order.material) : null,
     installments: order.installments.map((entry) =>
       projectInstallment({ entry, order, now, calendar }),
@@ -98,6 +109,8 @@ function projectOrder(input: {
 function projectMaterial(material: Material): MaterialView {
   return {
     name: material.name,
+    scholarshipPct: Number(material.scholarshipPct),
+    scholarshipAgreement: material.scholarshipAgreement,
     items: material.items,
     stageId: material.stageId,
     stageCode: material.stageCode,
@@ -124,16 +137,21 @@ function projectInstallment(input: {
     ...entry,
     orderCancelledAt: order.cancelledAt,
     now,
-    interestRatePctMonthly: 0,
   });
   const dueDate = toDateOnlyString(entry.dueDate);
   if (!order.cancelledAt)
-    addToCalendar({ calendar, dueDate, kind: order.kind, amountCents: entry.amountCents, ledger });
+    addToCalendar({
+      calendar,
+      dueDate,
+      kind: order.kind,
+      amountCents: renegotiatedInstallmentAmount(entry),
+      ledger,
+    });
   return {
     id: entry.id,
     sequence: entry.sequenceNumber,
     dueDate,
-    amountCents: entry.amountCents,
+    amountCents: renegotiatedInstallmentAmount(entry),
     balanceCents: ledger.collectibleRemainingCents,
     paidCents: ledger.paidAmountCents,
     status: ledger.status,

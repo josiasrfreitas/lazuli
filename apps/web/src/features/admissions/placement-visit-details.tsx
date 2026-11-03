@@ -85,12 +85,13 @@ type PlacementMutations = {
 
 function usePlacementMutations(): PlacementMutations {
   const utils = trpc.useUtils();
-  const refresh = (): Promise<[void, void, void, void]> =>
+  const refresh = (): Promise<void[]> =>
     Promise.all([
       utils.admissions.invalidate(),
       utils.classRecords.invalidate(),
       utils.students.pendingActions.invalidate(),
       utils.teacherWorkspace.invalidate(),
+      utils.dashboard.invalidate(),
     ]);
   const download = trpc.admissions.placementDownload.useMutation();
   const result = trpc.admissions.placementResult.useMutation({ onSuccess: refresh });

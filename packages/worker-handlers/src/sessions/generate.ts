@@ -7,7 +7,7 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 
 type SessionGenerationDatabase = Pick<
   Prisma.TransactionClient,
-  "class" | "semester" | "schoolClosedDay" | "classSession"
+  "class" | "period" | "schoolClosedDay" | "classSession"
 >;
 
 type SessionGenerationClass = {
@@ -122,7 +122,7 @@ function scopeWhere(payload: SessionsGeneratePayload): { id?: string; semesterId
 }
 
 async function loadSemesterWindows(database: SessionGenerationDatabase): Promise<SemesterWindow[]> {
-  return database.semester.findMany({
+  return database.period.findMany({
     where: { deletedAt: null },
     select: { id: true, name: true, startDate: true, endDate: true },
   });

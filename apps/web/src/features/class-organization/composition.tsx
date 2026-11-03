@@ -1,40 +1,33 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
-import type { ClassPlan, OrganizationAction, SemesterBoard } from "./model";
+import type { ClassPlan, OrganizationAction, OrganizationBoard } from "./model";
 import { useCompositionModel } from "./composition-model";
-import {
-  CompositionHeader,
-  LeavingNote,
-  CompositionList,
-  CompositionFooter,
-} from "./composition-sections";
+import { CompositionMenu, LeavingNote, CompositionFooter } from "./composition-sections";
+import { ClassRoster } from "./class-roster";
 import styles from "./organization.module.css";
 
 export function Composition({
   plan,
   board,
-  onBack,
   onAction,
   onFeedback,
 }: {
   plan: ClassPlan;
-  board: SemesterBoard;
-  onBack: () => void;
+  board: OrganizationBoard;
   onAction: (action: OrganizationAction) => void;
   onFeedback: (message: string) => void;
 }): ReactJSX.Element {
   const model = useCompositionModel({ plan, board, onFeedback });
   return (
-    <aside className={styles.panel} aria-label={`Alunos de ${plan.name}`}>
-      <CompositionHeader plan={plan} ended={model.ended} onBack={onBack} onAction={onAction} />
+    <section className={styles.classExpansion} aria-label={`Alunos de ${plan.name}`}>
       <LeavingNote leaving={model.leaving} total={model.rows.length} />
-      <CompositionList
+      <ClassRoster
         rows={model.rows}
         leads={model.leads}
         board={board}
         ended={model.ended}
-        onBack={onBack}
         onAction={onAction}
+        tools={<CompositionMenu plan={plan} ended={model.ended} onAction={onAction} />}
       />
       {model.error && (
         <p role="alert" className={styles.error}>
@@ -49,6 +42,6 @@ export function Composition({
         onPublish={model.onPublish}
         onAction={onAction}
       />
-    </aside>
+    </section>
   );
 }

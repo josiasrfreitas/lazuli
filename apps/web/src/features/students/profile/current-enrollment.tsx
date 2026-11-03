@@ -6,7 +6,6 @@ import { ArrowUpRight, CalendarDays, ChevronDown, GraduationCap } from "lucide-r
 import { Button } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";
 import type { StudentEnrollment, StudentProfile } from "./logic";
-import { StudentContactSummary } from "./student-identity";
 import { EnrollmentAttendance } from "./enrollment-attendance";
 import { EnrollmentGradeAverage } from "./enrollment-grade-average";
 
@@ -27,7 +26,7 @@ export function CurrentEnrollment({
       <div className="grid gap-5 px-5 py-4 lg:grid-cols-2 lg:gap-8">
         <div className="grid content-start gap-3">
           <EnrollmentHeading enrollment={enrollment} today={today} />
-          <EnrollmentSchedule enrollment={enrollment} />
+          <EnrollmentSchedule enrollment={enrollment} studentId={profile.id} />
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 pt-2">
             <Button
               variant="link"
@@ -55,9 +54,6 @@ export function CurrentEnrollment({
             studentName={profile.contact.fullName}
           />
         </div>
-      </div>
-      <div className="border-t border-border/60 bg-background/15 px-5 py-3">
-        <StudentContactSummary profile={profile} />
       </div>
     </article>
   );
@@ -96,20 +92,27 @@ const DAYS: Record<string, string> = {
   SATURDAY: "Sáb",
   SUNDAY: "Dom",
 };
-function EnrollmentSchedule({ enrollment }: { enrollment: StudentEnrollment }): ReactElement {
+function EnrollmentSchedule({
+  enrollment,
+  studentId,
+}: {
+  enrollment: StudentEnrollment;
+  studentId: string;
+}): ReactElement {
+  const back = encodeURIComponent(`/alunos/${studentId}`);
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
         <Link
           className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-interactive hover:underline sm:min-h-0 sm:text-sm"
-          href={`/turmas/${enrollment.class.id}`}
+          href={`/turmas/${enrollment.class.id}?voltar=${back}`}
         >
           {enrollment.class.name} <ArrowUpRight aria-hidden="true" className="size-3.5" />
         </Link>
         {enrollment.class.teacher && (
           <Link
             className="inline-flex min-h-11 items-center gap-2 text-base text-muted-foreground hover:text-foreground sm:min-h-0 sm:text-sm"
-            href={`/professores/${enrollment.class.teacher.id}`}
+            href={`/professores/${enrollment.class.teacher.id}?voltar=${back}`}
           >
             <GraduationCap aria-hidden="true" className="size-4 shrink-0 text-icon" />
             {enrollment.class.teacher.name}
@@ -230,7 +233,7 @@ function planningHref({
   studentId: string;
 }): string {
   if (enrollment.class.scheduleType === "REGULAR")
-    return `/turmas/${enrollment.class.id}?secao=planejamento`;
+    return `/turmas/${enrollment.class.id}?secao=planejamento&voltar=${encodeURIComponent(`/alunos/${studentId}`)}`;
   const progress = enrollment.progress.find(
     (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
   );

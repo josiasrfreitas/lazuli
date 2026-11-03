@@ -1,6 +1,11 @@
 import { materialPriceVersion } from "./material-price-version.js";
 import { createHash } from "node:crypto";
-import { addCalendarMonths, materialPriceQuote } from "@lazuli/domain";
+import {
+  addCalendarMonths,
+  materialPriceQuote,
+  materialScholarshipQuote,
+  materialInstallmentPlan,
+} from "@lazuli/domain";
 import type { FinanceSettings, Prisma } from "@lazuli/db";
 import type { AddContractMaterialInput, ContractMaterialInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
@@ -13,6 +18,7 @@ const ISO_YEAR_END_INDEX = 4;
 const MONTHS_PER_YEAR = 12;
 const ISO_MONTH_START_INDEX = 5;
 const ISO_MONTH_END_INDEX = 7;
+const FULL_SCHOLARSHIP_PCT = 100;
 
 // Explicit scope until the SGF catalog supplies a durable language attribute.
 const ENGLISH_TRACKS = [
@@ -27,7 +33,6 @@ type MaterialStage = { id: string; name: string; internalCode: string };
 type MaterialPrice = {
   quote: ReturnType<typeof materialPriceQuote>;
   cash: boolean;
-  total: number;
   cardFeePct: number;
 };
 
@@ -41,8 +46,9 @@ export async function materialOrderData(input: {
 }): Promise<Prisma.OrderCreateWithoutContractInput> {
   const { database, material, settings, firstDueDate, staffUserId } = input;
   const orderedStages = await materialStages(database, material.stageIds);
-  const { quote, cash, total, cardFeePct } = quotedMaterial(material, settings);
-  const receivableCents = quote.cashCents;
+  const { quote, cash, cardFeePct } = quotedMaterial(material, settings);
+  const scholarship = scholarshipQuote(quote, { material, cardFeePct });
+  const receivableCents = scholarship.receivableCents;
   return {
     kind: "MATERIAL",
     principalAmountCents: receivableCents,
@@ -51,22 +57,48 @@ export async function materialOrderData(input: {
     dueDay: Number(
       (input.scheduleAnchor?.date ?? firstDueDate).slice(ISO_DAY_START_INDEX, ISO_DATE_LENGTH),
     ),
-    installmentCount: 1,
+    installmentCount: receivableCents > 0 ? 1 : 0,
     createdBy: { connect: { id: staffUserId } },
     updatedBy: { connect: { id: staffUserId } },
     material: {
-      create: materialCreateData({ orderedStages, material, quote, cash, total, cardFeePct }),
+      create: materialCreateData({ orderedStages, material, quote, cash, cardFeePct }),
     },
     installments: {
-      create: {
-        sequenceNumber: 1,
-        amountCents: receivableCents,
-        dueDate: toDateOnly(firstDueDate),
-        createdById: staffUserId,
-        updatedById: staffUserId,
-      },
+      create:
+        receivableCents > 0
+          ? [
+              {
+                sequenceNumber: 1,
+                amountCents: receivableCents,
+                dueDate: toDateOnly(firstDueDate),
+                createdById: staffUserId,
+                updatedById: staffUserId,
+              },
+            ]
+          : [],
     },
   };
+}
+
+function scholarshipQuote(
+  quote: ReturnType<typeof materialPriceQuote>,
+  { material, cardFeePct }: { material: ContractMaterialInput; cardFeePct: number },
+): ReturnType<typeof materialScholarshipQuote> {
+  try {
+    return materialScholarshipQuote({
+      quote,
+      payment: material.payment,
+      scholarshipPct: material.scholarshipPct ?? 0,
+      cardFeePct,
+      priceOverrideCents: material.priceOverrideCents,
+    });
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: error instanceof Error ? error.message : "Confira os valores da bolsa de material.",
+      cause: error,
+    });
+  }
 }
 
 async function materialStages(
@@ -128,7 +160,7 @@ function quotedMaterial(material: ContractMaterialInput, settings: FinanceSettin
       code: "PRECONDITION_FAILED",
       message: "O material está sem valor de cobrança. Revise o preço em Ajustes.",
     });
-  return { quote, cash, total, cardFeePct };
+  return { quote, cash, cardFeePct };
 }
 
 function materialCreateData(input: {
@@ -136,12 +168,21 @@ function materialCreateData(input: {
   material: ContractMaterialInput;
   quote: ReturnType<typeof materialPriceQuote>;
   cash: boolean;
-  total: number;
   cardFeePct: number;
 }): Prisma.MaterialOrderCreateWithoutOrderInput {
-  const { orderedStages, material, quote, cash, total, cardFeePct } = input;
+  const { orderedStages, material, quote, cash, cardFeePct } = input;
   const stage = orderedStages[0]!;
-  const receivableCents = quote.cashCents;
+  const scholarship = scholarshipQuote(quote, { material, cardFeePct });
+  let installments;
+  try {
+    installments = materialInstallmentPlan(scholarship.chargedCents, material.installmentCount);
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: error instanceof Error ? error.message : "Confira o parcelamento do material.",
+      cause: error,
+    });
+  }
   return {
     stage: { connect: { id: stage.id } },
     name: orderedStages.map((item) => item.name).join(" + "),
@@ -157,12 +198,15 @@ function materialCreateData(input: {
     category: material.category,
     payment: material.payment,
     listPriceCents: quote.totalCents,
+    priceOverrideCents: material.priceOverrideCents ?? null,
     cashDiscountPct: 0,
-    chargedAmountCents: total,
+    chargedAmountCents: scholarship.chargedCents,
+    scholarshipPct: material.scholarshipPct ?? 0,
+    scholarshipAgreement: material.scholarshipAgreement?.trim() || null,
     cardFeePct: cash ? 0 : cardFeePct,
-    cardFeeCents: cash ? 0 : quote.totalCents - receivableCents,
-    quotedInstallments: quote.installments,
-    quotedInstallmentCents: quote.installmentCents,
+    cardFeeCents: scholarship.feeCents,
+    quotedInstallments: installments.installmentCount,
+    quotedInstallmentCents: installments.installmentCents,
   };
 }
 
@@ -223,7 +267,9 @@ async function materialContract(
       orders: { where: { kind: "TUITION", deletedAt: null, cancelledAt: null }, take: 1 },
     },
   });
-  const first = contract?.orders[0]?.firstDueDate;
+  const first =
+    contract?.orders[0]?.firstDueDate ??
+    (Number(contract?.scholarshipPct) === FULL_SCHOLARSHIP_PCT ? contract?.startsOn : null);
   if (!contract || !first)
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -236,18 +282,32 @@ async function materialContract(
       MONTHS_PER_YEAR +
     Number(values.firstDueDate.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX)) -
     Number(anchor.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX));
-  if (monthDistance < 0 || addCalendarMonths(anchor, monthDistance) !== values.firstDueDate)
+  assertMaterialDueDate({ anchor, monthDistance, firstDueDate: values.firstDueDate });
+  return { contractId: contract.id, anchor, monthDistance };
+}
+
+function assertMaterialDueDate({
+  anchor,
+  monthDistance,
+  firstDueDate,
+}: {
+  anchor: string;
+  monthDistance: number;
+  firstDueDate: string;
+}): void {
+  if (monthDistance < 0 || addCalendarMonths(anchor, monthDistance) !== firstDueDate)
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "O material deve seguir o dia de vencimento do contrato.",
     });
-  return { contractId: contract.id, anchor, monthDistance };
 }
 
 const materialOptionsSelect = {
   id: true,
   name: true,
   internalCode: true,
+  sequence: true,
+  trackId: true,
   track: { select: { name: true, ageGroup: true, productLine: { select: { name: true } } } },
 } satisfies Prisma.StageSelect;
 

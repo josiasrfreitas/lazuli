@@ -72,29 +72,29 @@ void it("persists one audited agreement on concurrent retry and preserves princi
       .toSorted((left, right) => left.amount - right.amount),
     [
       { type: "CORRECTION", amount: -500, charges: true },
-      { type: "INTEREST", amount: 1000, charges: false },
+      { type: "INTEREST", amount: 667, charges: false },
     ],
   );
   const history = await finance(db, ADMIN.id).treatmentHistory(contract.studentId);
   assert.equal(history[0]?.reason, command.reason);
   assert.equal(history[0]?.actorId, ADMIN.id);
   assert.equal(history[0]?.actorName, ADMIN.name);
-  assert.equal(history[0]?.previousChargesCents, 1000);
-  assert.equal(history[0]?.previousBalanceCents, 101_000);
+  assert.equal(history[0]?.previousChargesCents, 667);
+  assert.equal(history[0]?.previousBalanceCents, 100_667);
   assert.equal(history[0]?.previousDueDate.toISOString().slice(0, 10), "2026-01-31");
-  const before = await paymentCommand({ ...item, date: "2026-02-15", amountCents: 20_500 });
+  const before = await paymentCommand({ ...item, date: "2026-02-15", amountCents: 20_167 });
   await confirmPaymentCommand(before);
   const later = await paymentCommand({ ...item, date: "2026-02-25" });
-  // 1000 charges accrued before suspension, 500 forgiven, 500 paid with the partial receipt.
-  // The remaining 80,000 principal accrues five days at 0.1% after February 20: 400.
-  assert.equal(later.receipts[0]?.amountCents, 80_400);
+  // 667 cents accrued before suspension, 500 forgiven, 167 paid with the partial receipt.
+  // Five days on 80,000 cents at 2%/30, carrying earlier fractions: 266 new cents.
+  assert.equal(later.receipts[0]?.amountCents, 80_266);
   await confirmPaymentCommand(later);
   const summary = await finance(db, ADMIN.id).studentSummary({
     studentId: contract.studentId,
     now: new Date("2026-02-25T12:00:00Z"),
   });
   assert.equal(summary.outstandingCents, 0);
-  assert.equal(summary.receivedCents, 100_900);
+  assert.equal(summary.receivedCents, 100_433);
   const persistedHistory = await finance(db, ADMIN.id).treatmentHistory(contract.studentId);
   assert.equal(persistedHistory.length, 1);
   await assert.rejects(confirm({ ...command, reason: "Outra negociação" }), /outra tratativa/);

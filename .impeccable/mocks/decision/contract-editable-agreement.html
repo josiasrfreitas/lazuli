@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contrato — esboço de acordo editável</title>
+<style>
+:root{color-scheme:dark;--canvas:#12151d;--surface:#1b2029;--field:#171c24;--text:#e9edf6;--muted:#a9b3c1;--line:#404956;--primary:#305985;--primary-hover:#3c6b9d;--accent:#d8ad4a;--focus:#d8ad4a}
+*{box-sizing:border-box}
+html,body{margin:0;width:1440px;height:900px;overflow:hidden}
+body{background:var(--canvas);color:var(--text);font:16px/1.35 Cambria,Georgia,serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button,input,select,summary{outline-offset:4px;caret-color:var(--accent)}
+:focus-visible{outline:2px solid var(--focus)}
+::selection{background:var(--primary);color:var(--text)}
+.canvas{height:900px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px}
+.modal{width:940px;background:var(--surface);border-radius:12px;box-shadow:0 24px 70px #0008;overflow:hidden}
+.heading{padding:22px 28px 17px;display:flex;align-items:flex-start;justify-content:space-between}
+h1,h2,p{margin:0}
+h1{font-size:24px;line-height:1.2;font-weight:600}
+h2{font-size:20px;line-height:1.2;font-weight:600}
+.subtitle{margin-top:5px;color:var(--muted);font-size:14px}
+.close{border:0;background:transparent;width:28px;height:28px;color:var(--muted);display:grid;place-items:center}
+.close:hover{color:var(--text)}
+.close svg{width:18px;height:18px}
+.registration{display:flex;align-items:center;gap:13px;padding:10px 28px;border-bottom:1px solid var(--line);color:var(--muted);font-size:14px}
+.registration svg{width:11px;height:11px;color:var(--muted)}
+.registration [aria-current]{color:var(--text);font-weight:600}
+.agreement-row{display:grid;grid-template-columns:230px 1fr auto;align-items:center;padding:17px 28px;border-bottom:1px solid var(--line)}
+.row-detail{display:flex;flex-direction:column;gap:3px}
+.secondary{font-size:14px;color:var(--muted)}
+.number{font-family:Calibri,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+.edit,.text-button{border:0;background:transparent;padding:5px 0;color:var(--muted);font-size:14px;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line)}
+.edit:hover,.text-button:hover{color:var(--text);text-decoration-color:currentColor}
+.material{padding:20px 28px 18px;border-bottom:1px solid var(--line)}
+.section-heading{display:flex;align-items:center;justify-content:space-between}
+.editing{font-size:14px;color:var(--accent)}
+.book-fields{margin-top:16px;display:grid;grid-template-columns:minmax(0,1fr) 115px;gap:16px;align-items:end}
+.field{display:flex;flex-direction:column;gap:6px}
+.readonly-value{display:flex;align-items:center;height:37px;padding:7px 0;color:var(--text)}
+label,legend{font-size:14px;color:var(--muted)}
+select,input[type="number"]{height:37px;border:1px solid var(--line);border-radius:5px;background:var(--field);padding:7px 11px}
+select{padding-right:26px}
+.add-book{height:37px;font-size:14px;border:1px solid var(--line);border-radius:5px;background:transparent}
+.add-book:hover{background:var(--field)}
+.payment-fields{display:grid;grid-template-columns:230px 250px 1fr;gap:16px;margin-top:16px;align-items:end}
+fieldset{border:0;padding:0;margin:0;min-width:0}
+legend{padding:0;margin-bottom:6px}
+.payment-options{display:flex;gap:8px;height:37px}
+.payment-option{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:5px;padding:7px 11px;color:var(--text);font-size:16px;cursor:pointer}
+.payment-option:has(input:checked){background:var(--field);border-color:var(--primary-hover)}
+input[type="radio"]{margin:0;width:14px;height:14px;accent-color:var(--primary-hover)}
+.material-value{text-align:right;line-height:1.25;padding-bottom:2px}
+.material-value .number{display:block;font-size:20px;margin-top:4px}
+.settlement{display:flex;justify-content:space-between;gap:24px;margin-top:14px;font-size:14px;color:var(--muted)}
+details{margin-top:14px;font-size:14px;color:var(--muted)}
+summary{display:flex;align-items:center;gap:7px;cursor:pointer;list-style:none;width:max-content}
+summary::-webkit-details-marker{display:none}
+summary svg{height:12px;width:12px;transition:transform .15s}
+details[open] summary svg{transform:rotate(90deg)}
+.scholarship{display:flex;align-items:center;gap:10px;margin-top:12px}
+.scholarship input{width:90px}
+.review{padding:17px 28px;display:flex;align-items:center;justify-content:space-between}
+.review h2{font-size:20px}
+.review .secondary{margin-top:4px}
+.contract-total{text-align:right}
+.contract-total .number{font-size:24px;line-height:1.2;display:block;margin-top:3px}
+.actions{display:flex;align-items:center;gap:22px;padding:16px 28px 20px;border-top:1px solid var(--line)}
+.back{border:0;background:transparent;color:var(--muted);padding:8px 0;font-size:16px}
+.back:hover{color:var(--text)}
+.save{margin-left:auto}
+.primary{height:40px;padding:0 20px;background:var(--primary);border:0;border-radius:5px;color:var(--text);font-size:16px}
+.primary:hover{background:var(--primary-hover)}
+.caption{font-size:14px;color:var(--muted);opacity:.8}
+</style>
+</head>
+<body>
+<main class="canvas">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="contract-title">
+    <header class="heading">
+      <div><h1 id="contract-title">Contrato</h1><p class="subtitle">Aluno de exemplo <span aria-hidden="true">·</span> Dados ilustrativos</p></div>
+      <button class="close" type="button" aria-label="Fechar cadastro"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
+    </header>
+    <nav class="registration" aria-label="Etapas do cadastro">
+      <span>Aluno</span><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" aria-hidden="true"><path d="m4 2 4 4-4 4"/></svg>
+      <span>Endereço</span><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" aria-hidden="true"><path d="m4 2 4 4-4 4"/></svg>
+      <span>Pedagógico</span><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" aria-hidden="true"><path d="m4 2 4 4-4 4"/></svg>
+      <span aria-current="step">Contrato</span>
+    </nav>
+    <form aria-label="Acordos do contrato">
+      <section class="agreement-row" aria-labelledby="payer-title">
+        <h2 id="payer-title">Responsável e vigência</h2>
+        <div class="row-detail"><span>Responsável de exemplo</span><span class="secondary number">29/10/2026 a 29/10/2027</span></div>
+        <button type="button" class="edit" aria-label="Editar responsável e vigência">Editar</button>
+      </section>
+      <section class="agreement-row" aria-labelledby="tuition-title">
+        <h2 id="tuition-title">Mensalidades</h2>
+        <div class="row-detail"><span><span class="number">12 × R$ 250,00</span></span><span class="secondary">Sem bolsa · Sem taxa de matrícula</span></div>
+        <button type="button" class="edit" aria-label="Editar mensalidades">Editar</button>
+      </section>
+      <section class="material" aria-labelledby="material-title">
+        <div class="section-heading"><h2 id="material-title">Material</h2><span class="editing">Em edição</span></div>
+        <div class="book-fields">
+          <div class="field"><label for="book">Livro · Faixa Adulto</label><select id="book" name="book"><option>TEENSTATION-1</option></select></div>
+          <button class="add-book" type="button">Incluir livro</button>
+        </div>
+        <div class="payment-fields">
+          <fieldset><legend>Pagamento</legend><div class="payment-options">
+            <label class="payment-option"><input type="radio" name="payment" value="cash">À vista</label>
+            <label class="payment-option"><input type="radio" name="payment" value="card" checked>Cartão</label>
+          </div></fieldset>
+          <div class="field"><label for="installments">Parcelamento da tabela</label><output class="number readonly-value" id="installments" name="installments">6 × R$ 136,00</output></div>
+          <div class="material-value"><span class="secondary">Total cobrado do aluno</span><strong class="number">R$ 816,00</strong></div>
+        </div>
+        <div class="settlement"><span>Sem bolsa aplicada ao material</span><span>Líquido para repasse: <span class="number">R$ 734,40</span></span></div>
+        <details>
+          <summary><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" aria-hidden="true"><path d="m4 2 4 4-4 4"/></svg>Bolsa do material (opcional)</summary>
+          <div class="scholarship"><label for="scholarship">Bolsa (%)</label><input class="number" id="scholarship" name="scholarship" type="number" min="0" max="100" value="0"></div>
+        </details>
+      </section>
+      <section aria-labelledby="review-title">
+        <div class="review">
+          <div><h2 id="review-title">Conferência do acordo</h2><p class="secondary">Mensalidades <span class="number">R$ 3.000,00</span> · Material <span class="number">R$ 816,00</span></p></div>
+          <div class="contract-total"><span class="secondary">Total para o responsável</span><strong class="number">R$ 3.816,00</strong></div>
+        </div>
+        <footer class="actions">
+          <button class="back" type="button">Voltar</button>
+          <button class="text-button save" type="button">Salvar sem contrato</button>
+          <button class="primary" type="button">Conferir contrato</button>
+        </footer>
+      </section>
+    </form>
+  </section>
+  <p class="caption">Esboço · acordo contínuo com edição contextual</p>
+</main>
+</body>
+</html>

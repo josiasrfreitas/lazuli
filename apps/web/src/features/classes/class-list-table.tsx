@@ -35,7 +35,7 @@ export function ClassListTable({
     <DataTable
       label="Turmas"
       onRowClick={(row) => router.push(`/turmas/${row.id}?voltar=${back}`)}
-      columns={classColumns(params)}
+      columns={classColumns(params, data?.rows)}
       state={tableState(data, {
         error: isError,
         filtered: Boolean(

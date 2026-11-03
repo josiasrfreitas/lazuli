@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { after, it } from "node:test";
 import { db } from "@lazuli/db";
 import type { StudentCompletionInput } from "@lazuli/validators";
@@ -16,9 +17,17 @@ for (const mode of ["skip", "contract"] as const) {
     const student = {
       fullName: `${PREFIX}${mode} beneficiary`,
       birthDate: new Date("2015-03-15T00:00:00.000Z"),
+      documentType: "RG" as const,
+      documentNumber: randomUUID(),
+      phone: "11999997777",
       guardian: {
         mode: "create" as const,
-        input: { fullName: `${PREFIX}${mode} guardian`, phone: "11999998888" },
+        input: {
+          fullName: `${PREFIX}${mode} guardian`,
+          documentType: "RG" as const,
+          documentNumber: randomUUID(),
+          phone: "11999998888",
+        },
       },
     };
     const values: StudentCompletionInput =
@@ -72,8 +81,8 @@ for (const mode of ["skip", "contract"] as const) {
       assert.equal(persisted.contracts.length, 1);
       const contract = persisted.contracts[0];
       assert.ok(contract);
-      assert.equal(contract.orders.length, 1);
-      const order = contract.orders[0];
+      assert.equal(contract.orders.length, 2);
+      const order = contract.orders.find((item) => item.kind === "TUITION");
       assert.ok(order);
       assert.equal(order.principalAmountCents, 100_000);
       assert.deepEqual(

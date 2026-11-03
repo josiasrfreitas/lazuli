@@ -5,6 +5,7 @@ import {
   type SetStateAction,
   type RefObject,
   type ReactElement,
+  useEffect,
   useRef,
   useState,
   type FormEvent,
@@ -34,11 +35,7 @@ import { trpc } from "~/lib/trpc";
 import { dateLabel, todayInSchool } from "./format";
 import { TeacherPicker } from "./teacher-picker";
 
-export function AssignmentDialog({
-  classId,
-  classCode,
-  onClose,
-}: AssignmentDialogInput): ReactElement {
+export function AssignmentDialog(props: AssignmentDialogInput): ReactElement {
   const today = todayInSchool();
   const [date, setDate] = useState(dateLabel(today));
   const [selected, setSelected] = useState<SearchSelectOption | null>(null);
@@ -48,14 +45,18 @@ export function AssignmentDialog({
   const utils = trpc.useUtils();
   const save = trpc.teachers.assignClass.useMutation({
     onSuccess: async () => {
-      await Promise.all([utils.classes.invalidate(), utils.teachers.invalidate()]);
-      onClose();
+      await Promise.all([
+        utils.classes.invalidate(),
+        utils.teachers.invalidate(),
+        utils.dashboard.invalidate(),
+      ]);
+      props.onClose();
     },
     onError: (cause) => setError(cause.message),
   });
   const submit = (event: FormEvent<HTMLFormElement>): void =>
     submitAssignment(event, {
-      classId,
+      classId: props.classId,
       save,
       date,
       today,
@@ -67,10 +68,10 @@ export function AssignmentDialog({
   return (
     <AssignmentContent
       saveIsPending={save.isPending}
-      onClose={onClose}
+      onClose={props.onClose}
       popup={popup}
       first={first}
-      classCode={classCode}
+      classCode={props.classCode}
       submit={submit}
       date={date}
       setDate={setDate}
@@ -172,51 +173,61 @@ type AssignmentContentProps = {
   selected: SearchSelectOption | null;
 };
 function AssignmentContent(props: AssignmentContentProps): ReactElement {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(true);
+  }, []);
   return (
     <Dialog
-      open
+      open={open}
       onOpenChange={(open) => {
         if (!open && !props.saveIsPending) props.onClose();
       }}
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent ref={props.popup} initialFocus={props.first}>
+        <DialogContent data-class-dialog-motion ref={props.popup} initialFocus={props.first}>
           <DialogHeader>
             <DialogTitle>Trocar docente da turma</DialogTitle>
             <DialogDescription>
               {props.classCode} · a nova atribuição vale a partir da data escolhida.
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="my-5">
-            <form id="assignment-form" noValidate onSubmit={props.submit} className="grid gap-4">
-              <FormSection
-                title="Nova responsabilidade"
-                description="Os responsáveis e registros anteriores à vigência permanecem no histórico."
-              >
-                <AssignmentFields
-                  first={props.first}
-                  date={props.date}
-                  setDate={props.setDate}
-                  setSelected={props.setSelected}
-                  setError={props.setError}
-                  error={props.error}
-                  today={props.today}
-                  selected={props.selected}
-                  saveIsPending={props.saveIsPending}
-                />
-              </FormSection>
-              {props.error && <Alert variant="destructive">{props.error}</Alert>}
-              <p className="text-caption text-muted-foreground">
-                A cobertura será atualizada para os encontros deste período. Uma coincidência de
-                horário impede a confirmação.
-              </p>
-            </form>
-          </DialogBody>
+          <AssignmentForm {...props} />
           <AssignmentFooter onClose={props.onClose} saveIsPending={props.saveIsPending} />
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function AssignmentForm(props: AssignmentContentProps): ReactElement {
+  return (
+    <DialogBody className="my-5">
+      <form id="assignment-form" noValidate onSubmit={props.submit} className="grid gap-4">
+        <FormSection
+          title="Nova responsabilidade"
+          description="Os responsáveis e registros anteriores à vigência permanecem no histórico."
+        >
+          <AssignmentFields
+            first={props.first}
+            date={props.date}
+            setDate={props.setDate}
+            setSelected={props.setSelected}
+            setError={props.setError}
+            error={props.error}
+            today={props.today}
+            selected={props.selected}
+            saveIsPending={props.saveIsPending}
+          />
+        </FormSection>
+        {props.error && <Alert variant="destructive">{props.error}</Alert>}
+        <p className="text-caption text-muted-foreground">
+          A cobertura será atualizada para os encontros deste período. Uma coincidência de horário
+          impede a confirmação.
+        </p>
+      </form>
+    </DialogBody>
   );
 }
 

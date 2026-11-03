@@ -169,6 +169,7 @@ export function StudentDocumentDeleteButton({
           utils.studentDocuments.list.invalidate(),
           utils.studentDocuments.photo.invalidate(),
           utils.studentDocuments.status.invalidate(),
+          utils.dashboard.invalidate(),
         ]);
       }}
     />

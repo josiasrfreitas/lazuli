@@ -47,17 +47,20 @@ export type FinanceDatabase = Pick<
   | "installment"
   | "installmentAdjustment"
   | "installmentAgreement"
+  | "paymentMethod"
   | "paymentEntry"
   | "paymentAllocation"
   | "student"
   | "financeSettings"
   | "contract"
+  | "contractRenegotiation"
   | "enrollment"
   | "enrollmentAction"
   | "pedagogicalProgress"
   | "class"
   | "stage"
-  | "semester"
+  | "semesterPlacement"
+  | "period"
   | "track"
   | "user"
 >;
@@ -70,14 +73,6 @@ export function toDateOnlyString(value: Date): string {
 
 export function toDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
-}
-
-export const DEFAULT_INTEREST_RATE_PCT_MONTHLY = 1;
-
-export function loadInterestRatePctMonthly(database: FinanceDatabase): Promise<number> {
-  // Existing orders have no contractual rate snapshot. Keep their historical preview stable.
-  void database;
-  return Promise.resolve(DEFAULT_INTEREST_RATE_PCT_MONTHLY);
 }
 
 export function sortStrings(values: string[]): string[] {

@@ -6,11 +6,7 @@ import type { QueryResult } from "~/lib/trpc";
 import { NarrativeField } from "~/features/shared/task-form";
 import type { PedagogyDraft } from "./pedagogy-step";
 import { pedagogyIntake } from "./pedagogy-step";
-import {
-  PedagogyAvailability,
-  PedagogyEntryFields,
-  PedagogyStageField,
-} from "./pedagogy-step-fields";
+import { PedagogyEntryFields, PedagogyStageField } from "./pedagogy-step-fields";
 import type { PedagogySemester } from "./use-pedagogy-semester";
 
 type OptionsQuery = QueryResult<RouterOutputs["classes"]["formOptions"]>;
@@ -33,17 +29,16 @@ export function PedagogyStepForm(props: FormProps): ReactJSX.Element {
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     try {
-      if (
-        !draft.semesterId ||
-        (draft.semesterId !== semester.currentId && draft.semesterId !== semester.nextId)
-      ) {
-        setSemesterError("Escolha o semestre atual ou o próximo para a entrada.");
+      if (!draft.semesterId || draft.semesterId !== semester.currentId) {
+        setSemesterError(
+          "A entrada exige um período vigente. Para uma entrada futura, cadastre um lead.",
+        );
         return;
       }
       pedagogyIntake(draft);
       onSubmit();
     } catch {
-      setError("Revise os horários: informe início e fim válidos para cada dia.");
+      setError("Revise o semestre e o estágio informados.");
     }
   };
   return (
@@ -54,18 +49,16 @@ export function PedagogyStepForm(props: FormProps): ReactJSX.Element {
         </Alert>
       )}
       <PedagogyStepEntry {...props} />
-      <PedagogyAvailability slots={draft.slots} onChange={(slots) => set({ slots })} />
       <NarrativeField
         name="intake-notes"
         label="Preferências e combinados · opcional"
-        placeholder="Ex.: prefere o fim da tarde; pode começar em fevereiro"
+        placeholder="Preferências para a entrada no período vigente"
         rows={2}
         value={draft.notes}
         onChange={(notes) => set({ notes })}
       />
       <p className="text-caption text-muted-foreground">
-        O aluno entrará na fila de acomodação do semestre escolhido. A turma será definida em
-        Organização de turmas.
+        A entrada é no período vigente. Pessoas aguardando uma turma futura permanecem como leads.
       </p>
     </form>
   );
@@ -81,12 +74,10 @@ function PedagogyStepEntry(props: FormProps): ReactJSX.Element {
       semesterError={semesterError}
       periodsPending={semester.periods.isPending}
       periodsFailed={Boolean(semester.periods.error)}
-      format={draft.format}
       onSemesterChange={(semesterId) => {
         set({ semesterId });
         setSemesterError("");
       }}
-      onFormatChange={(format) => set({ format })}
       stage={<StageSelection {...props} />}
     />
   );

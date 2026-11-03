@@ -18,7 +18,7 @@ not rewrite history.
 | [0001 Runtime topology](0001-runtime-topology.md)                                                                   | Accepted   | D-0001                 |
 | [0002 Typed BFF and package boundaries](0002-typed-bff-and-package-boundaries.md)                                   | Accepted   | D-0002                 |
 | [0003 Background-work boundary](0003-background-work-boundary.md)                                                   | Accepted   | D-0004                 |
-| [0004 Staff authentication](0004-staff-authentication.md)                                                           | Accepted   | D-0005                 |
+| [0004 Staff authentication](0004-staff-authentication.md)                                                           | Superseded | D-0005                 |
 | [0005 Academic and commercial calendar separation](0005-separate-academic-and-commercial-calendars.md)              | Accepted   | D-0008, D-0011         |
 | [0006 Class modality axes](0006-model-class-modality-as-independent-axes.md)                                        | Accepted   | D-0021                 |
 | [0007 Derived receivables ledger](0007-model-receivables-as-a-payer-scoped-derived-ledger.md)                       | Accepted   | D-0025, D-0028, D-0032 |
@@ -40,6 +40,9 @@ not rewrite history.
 | [0023 Remove mutation testing](0023-remove-mutation-testing.md)                                                     | Accepted   | None                   |
 | [0024 Rebuild development data through one seed](0024-rebuild-development-data-through-one-seed.md)                 | Accepted   | None                   |
 | [0025 AWS for managed infrastructure](0025-use-aws-for-managed-infrastructure.md)                                   | Accepted   | None                   |
+
+| [0026 Email and password staff authentication](0026-email-password-staff-authentication.md) | Accepted | None |
+| [0027 One prorated monthly interest calculator](0027-use-one-prorated-monthly-interest-calculator.md) | Accepted | None |
 
 The archived register's complete disposition is: extracted — D-0001, D-0002, D-0003, D-0004,
 D-0005, D-0008, D-0021, D-0025, D-0028, D-0030 through D-0034, and D-0037; universal AGENTS rule

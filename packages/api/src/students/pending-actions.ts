@@ -110,6 +110,8 @@ export async function readStudentPendingActions(
     hasContract: student.contracts.length > 0,
     placement: pendingPlacement(lead),
   });
+  const placementItem = items.find((item) => item.type === "PLACEMENT");
+  if (placementItem) updatePlacementAction(placementItem, lead);
   return {
     items,
     enrollment: student.enrollments[0] ?? null,
@@ -124,6 +126,19 @@ export async function readStudentPendingActions(
         }
       : null,
   };
+}
+
+function updatePlacementAction(
+  item: PendingResult["items"][number],
+  lead: PendingStudent["admissionCandidates"][number] | null,
+): void {
+  const assessment = lead?.visits[0]?.assessment;
+  const correctionPending = Boolean(assessment && !assessment.stageId);
+  item.title = correctionPending ? "Nivelamento a corrigir" : "Nivelamento pendente";
+  item.description = correctionPending
+    ? "Corrija a prova e defina o estágio de entrada. Depois, você poderá escolher uma turma para este aluno."
+    : "Conclua o nivelamento para definir o estágio de entrada. Depois, você poderá escolher uma turma para este aluno.";
+  item.action.label = correctionPending ? "Corrigir nivelamento" : "Abrir nivelamento";
 }
 
 function pendingPlacement(
@@ -154,4 +169,27 @@ async function loadPendingStudent(
   });
   if (!student) throw notFound("Aluno não encontrado.");
   return student;
+}
+
+/** Reuse the intake rule so an unresolved placement never becomes a class-choice task. */
+export async function studentsAwaitingPlacement(
+  database: Prisma.TransactionClient,
+): Promise<string[]> {
+  const students = await database.student.findMany({
+    where: {
+      deletedAt: null,
+      status: "ACTIVE",
+      enrollments: { none: { deletedAt: null } },
+      admissionCandidates: {
+        some: { deletedAt: null, status: { not: "ARCHIVED" }, englishExperience: "SOME" },
+      },
+    },
+    select: { id: true, admissionCandidates: pendingStudentSelect.admissionCandidates },
+  });
+  return students
+    .filter((student) => {
+      const placement = pendingPlacement(student.admissionCandidates[0] ?? null);
+      return placement && !placement.completed;
+    })
+    .map((student) => student.id);
 }

@@ -51,7 +51,7 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
   if (teacher.teacherProfile?.departureDate)
     throw badRequest("Saída já programada para este professor.");
   await assertNoPendingIntroduction(input);
-  const semester = await input.database.semester.findFirst({
+  const semester = await input.database.period.findFirst({
     where: { deletedAt: null, endDate: { gte: new Date(input.effectiveDate) } },
     orderBy: { endDate: "desc" },
     select: { endDate: true },

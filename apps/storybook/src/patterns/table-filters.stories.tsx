@@ -3,7 +3,6 @@ import { useState, type ReactElement } from "react";
 import { CalendarDays, CircleCheck, GraduationCap, UsersRound } from "lucide-react";
 import {
   DataTablePage,
-  TableFilterChips,
   TableFilters,
   type RemoteOptionsResult,
   type TableFilterField,
@@ -29,7 +28,7 @@ const STUDENT_OPTIONS: TableFilterOption[] = [
   { id: "inactive", label: "Inativo" },
 ];
 const CLASS_OPTIONS: TableFilterOption[] = [
-  { id: "class-a", label: "Inglês A1 · manhã" },
+  { id: "class-a", label: "Teenstation 1 · segunda e quarta · 08:00 às 09:15" },
   { id: "class-b", label: "Inglês B1 · noite" },
 ];
 const TEACHER_OPTIONS: TableFilterOption[] = [
@@ -46,8 +45,10 @@ type DemoState = {
   setSearch: (id: string, value: string) => void;
 };
 
-function useDemoState(): DemoState {
-  const [selected, setSelected] = useState<Record<string, string[]>>({});
+function useDemoState(active: boolean): DemoState {
+  const [selected, setSelected] = useState<Record<string, string[]>>(
+    active ? { situations: ["active"], classes: ["class-a"], teachers: ["teacher-a"] } : {},
+  );
   const [ranges, setRanges] = useState<Record<string, { from: string; to: string }>>({});
   const [searches, setSearches] = useState<Record<string, string>>({});
   return {
@@ -91,7 +92,10 @@ function remoteField({
     selected,
     selectedOptions: options.filter((option) => selected.includes(option.id)),
     search,
-    result: remoteResult(search, options),
+    result:
+      id === "classes" && search.trim() === ""
+        ? { status: "ready", query: "", options, hasMore: false }
+        : remoteResult(search, options),
     onSearchChange: (value) => state.setSearch(id, value),
     onChange: (values) => state.setSelected(id, values),
     onClear: () => state.setSelected(id, []),
@@ -161,8 +165,14 @@ function studentFields(state: DemoState): TableFilterField[] {
   ];
 }
 
-function Demo({ kind }: { kind: "installments" | "students" }): ReactElement {
-  const state = useDemoState();
+function Demo({
+  kind,
+  active = false,
+}: {
+  kind: "installments" | "students";
+  active?: boolean;
+}): ReactElement {
+  const state = useDemoState(active);
   const title = kind === "installments" ? "Parcelas" : "Alunos";
   const fields = kind === "installments" ? installmentFields(state) : studentFields(state);
   const clearAll = (): void => {
@@ -175,7 +185,6 @@ function Demo({ kind }: { kind: "installments" | "students" }): ReactElement {
         controls={<TableFilters fields={fields} onClearAll={clearAll} />}
       >
         <div className="space-y-3">
-          <TableFilterChips fields={fields} />
           <div className="rounded-lg border border-border bg-card p-4 text-muted-foreground">
             Experimente selecionar, combinar e remover filtros.
           </div>
@@ -187,3 +196,5 @@ function Demo({ kind }: { kind: "installments" | "students" }): ReactElement {
 
 export const Parcelas: Story = { render: () => <Demo kind="installments" /> };
 export const Alunos: Story = { render: () => <Demo kind="students" /> };
+
+export const FiltrosAtivos: Story = { render: () => <Demo kind="students" active /> };

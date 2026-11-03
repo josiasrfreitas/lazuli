@@ -71,3 +71,18 @@ export type PedagogicalList = z.infer<typeof pedagogicalListSchema>;
 export type OccurrenceCreate = z.infer<typeof occurrenceCreateSchema>;
 export type InterventionCreate = z.infer<typeof interventionCreateSchema>;
 export type InterventionFollowUp = z.infer<typeof interventionFollowUpSchema>;
+
+export const occurrenceStatusSchema = z.enum(["OPEN", "FOLLOWING_UP", "CLOSED"]);
+export const occurrenceStatusChangeSchema = z
+  .object({
+    id,
+    expectedVersion: z.number().int().min(0),
+    status: occurrenceStatusSchema,
+    conclusion: z.string().trim().max(MAX_ACCOUNT_LENGTH).default(""),
+  })
+  .strict()
+  .refine(
+    (input) => input.status !== "CLOSED" || input.conclusion.length >= MIN_DESCRIPTION_LENGTH,
+    { path: ["conclusion"], message: "Registre uma breve conclusão para encerrar a ocorrência." },
+  );
+export type OccurrenceStatusChange = z.infer<typeof occurrenceStatusChangeSchema>;

@@ -1,13 +1,18 @@
 import { useState, type ReactElement } from "react";
-import { Handshake, TriangleAlert } from "lucide-react";
+import { Handshake, FilePenLine, Ellipsis } from "lucide-react";
 import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import { CheckCircle2 } from "lucide-react";
 import {
   Button,
   DataTable,
-  Tabs,
-  TabsList,
-  TabsTab,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   type DataTableState,
   type TablePaginationConfig,
 } from "@lazuli/ui";
@@ -17,9 +22,10 @@ import { useStudentFinance, type StudentFinanceState } from "./finance-logic";
 import { financeColumns, type FinanceRow } from "./finance-columns";
 import { FinanceOverview } from "./finance-overview";
 import { visibleFinanceContracts } from "./finance-contract-terms";
-import { ContractTerminationDialog } from "./contract-termination-dialog";
+import { ContractRenegotiationDialog } from "./contract-renegotiation-dialog";
 import { formatDateOnlyBR } from "~/lib/format";
 import type { StudentProfile } from "./logic";
+import styles from "./finance-overview.module.css";
 
 export function StudentFinanceSection({
   id,
@@ -29,7 +35,7 @@ export function StudentFinanceSection({
   profile?: StudentProfile | undefined;
 }): ReactElement {
   const state = useStudentFinance(id);
-  const [terminationId, setTerminationId] = useState<string | null>(null);
+  const [contractId, setContractId] = useState<string | null>(null);
   const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
   return (
     <div className="grid min-w-0 gap-6">
@@ -38,15 +44,12 @@ export function StudentFinanceSection({
         <FinanceHeading
           state={state}
           onTreat={() => setTreatmentIds([])}
-          onTerminate={setTerminationId}
+          onManageContract={setContractId}
         />
         <FinanceTable state={state} onTreat={(row) => setTreatmentIds([row.installmentId])} />
       </section>
-      {terminationId && (
-        <ContractTerminationDialog
-          contractId={terminationId}
-          onClose={() => setTerminationId(null)}
-        />
+      {contractId && (
+        <ContractRenegotiationDialog contractId={contractId} onClose={() => setContractId(null)} />
       )}
       {treatmentIds && (
         <TreatmentDialog
@@ -72,57 +75,109 @@ export function StudentFinanceSection({
 function FinanceHeading({
   state,
   onTreat,
-  onTerminate,
+  onManageContract,
 }: {
   state: StudentFinanceState;
   onTreat: () => void;
-  onTerminate: (contractId: string) => void;
+  onManageContract: (contractId: string) => void;
 }): ReactElement {
-  const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <FinanceHeadingCopy filter={state.filter} />
-      <div className="flex flex-wrap items-center gap-3">
-        {contracts.map((contract) => (
-          <Button
-            key={contract.id}
-            variant="destructive-ghost"
-            size="sm"
-            onClick={() => onTerminate(contract.id)}
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <FinanceManagementActions
+          state={state}
+          onTreat={onTreat}
+          onManageContract={onManageContract}
+        />
+        <div className="w-40">
+          <Select
+            value={state.filter}
+            onValueChange={(value) => {
+              if (value) state.setFilter(value);
+            }}
           >
-            <TriangleAlert aria-hidden="true" /> Rescindir contrato
-            {contracts.length > 1 && contract.startsOn
-              ? ` · ${formatDateOnlyBR(contract.startsOn)}`
-              : ""}
-          </Button>
-        ))}
-        <Button variant="ghost" size="sm" onClick={onTreat}>
-          <Handshake aria-hidden="true" /> Negociar parcelas
-        </Button>
-        <Tabs value={state.filter} onValueChange={state.setFilter}>
-          <TabsList aria-label="Filtrar parcelas">
-            <TabsTab value="overdue">
-              Pendências{state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}
-            </TabsTab>
-            <TabsTab value="all">Todas</TabsTab>
-            <TabsTab value="paid">Pagas</TabsTab>
-          </TabsList>
-        </Tabs>
+            <SelectTrigger size="sm" aria-label="Filtrar cobranças">
+              <SelectValue>{financeFilterLabel(state)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="overdue">
+                Pendências{state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}
+              </SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="paid">Pagas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );
 }
 
+function financeFilterLabel(state: StudentFinanceState): string {
+  if (state.filter === "overdue")
+    return `Pendências${state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}`;
+  return state.filter === "paid" ? "Pagas" : "Todas";
+}
+
+function FinanceManagementActions({
+  state,
+  onTreat,
+  onManageContract,
+}: {
+  state: StudentFinanceState;
+  onTreat: () => void;
+  onManageContract: (id: string) => void;
+}): ReactElement {
+  const [open, setOpen] = useState(false);
+  const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
+        <Ellipsis aria-hidden="true" /> Outras ações
+      </PopoverTrigger>
+      <PopoverContent align="end" size="menu" showArrow={false}>
+        <div className={styles.management}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setOpen(false);
+              onTreat();
+            }}
+          >
+            <Handshake aria-hidden="true" /> Negociar parcelas
+          </Button>
+          {contracts.map((contract) => (
+            <Button
+              key={contract.id}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                onManageContract(contract.id);
+              }}
+            >
+              <FilePenLine aria-hidden="true" /> Renegociar / rescindir
+              {contracts.length > 1 && contract.startsOn
+                ? ` · ${formatDateOnlyBR(contract.startsOn)}`
+                : ""}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function FinanceHeadingCopy({ filter }: { filter: StudentFinanceState["filter"] }): ReactElement {
-  let description = "Todas as cobranças vinculadas a este aluno, com seus saldos atuais.";
-  if (filter === "overdue")
-    description =
-      "Vencimentos mais antigos primeiro. Registre o recebimento para quitar a pendência.";
+  let description = "Mensalidades, material e demais cobranças do aluno.";
+  if (filter === "overdue") description = "Vencimentos mais antigos primeiro.";
   else if (filter === "paid") description = "Cobranças quitadas deste aluno.";
   return (
     <div>
       <h2 id="student-charges-heading" className="font-display text-xl font-semibold text-heading">
-        {filter === "overdue" ? "Fila de pendências" : "Histórico de cobranças"}
+        {filter === "overdue" ? "Cobranças em atraso" : "Cobranças"}
       </h2>
       <p className="mt-1 text-caption text-muted-foreground">{description}</p>
     </div>
@@ -159,7 +214,7 @@ function FinanceTable({
     );
   return (
     <DataTable
-      label={state.filter === "overdue" ? "Cobranças que precisam de ação" : "Parcelas do aluno"}
+      label={state.filter === "overdue" ? "Cobranças que precisam de ação" : "Cobranças do aluno"}
       columns={financeColumns({
         onReceive: state.setPayment,
         priorityId: state.filter === "overdue" ? state.data?.rows[0]?.installmentId : undefined,
@@ -167,10 +222,10 @@ function FinanceTable({
       })}
       state={financeTableState(state)}
       onRetry={() => void state.query.refetch()}
-      errorTitle="Não foi possível carregar as parcelas"
+      errorTitle="Não foi possível carregar as cobranças"
       empty={{
         title: "Nenhuma cobrança vinculada",
-        description: "As parcelas de contratos e pedidos deste aluno aparecerão aqui.",
+        description: "As mensalidades, materiais e demais cobranças deste aluno aparecerão aqui.",
       }}
       updating={state.query.isFetching && !state.query.isPending}
       pagination={financePagination(state)}
@@ -190,7 +245,7 @@ function financePagination(state: StudentFinanceState): TablePaginationConfig {
     page: state.page,
     pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
     onPageChange: state.setPage,
-    itemLabel: { singular: "parcela", plural: "parcelas" },
+    itemLabel: { singular: "cobrança", plural: "cobranças" },
   };
   return state.data
     ? { ...common, pageCount: Math.max(1, state.data.pageCount), totalItems: state.data.total }

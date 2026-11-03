@@ -1,4 +1,4 @@
-import type { Semester } from "../../packages/db/src/index.js";
+import type { Period } from "../../packages/db/src/index.js";
 import type { TransactionClient } from "../../packages/db/src/client.js";
 import {
   addDays,
@@ -27,7 +27,7 @@ const ISO_MINUTE_END_INDEX = 16;
 export async function organizationSemester(
   database: TransactionClient,
   input: { authoredAt: Date; adminId: string },
-): Promise<Semester> {
+): Promise<Period> {
   const { authoredAt, adminId } = input;
   const current = await database.class.findUniqueOrThrow({
     where: { id: stableUuid(["class", "MWYA"]) },
@@ -37,7 +37,7 @@ export async function organizationSemester(
   const year = startDate.getUTCFullYear();
   const half = startDate.getUTCMonth() < SECOND_HALF_START_MONTH ? 1 : 2;
   const name = `${year}.${half}`;
-  const semester = await database.semester.create({
+  const semester = await database.period.create({
     data: {
       id: organizationId("window", { semesterName: name, key: "semester" }),
       name,
@@ -69,7 +69,7 @@ export async function organizationSemester(
 /** A published group is operational; a draft never reserves a teacher or creates sessions. */
 type PublishedClassInput = {
   database: TransactionClient;
-  semester: Semester;
+  semester: Period;
   group: OrganizationGroup;
   teacherId: string;
   stageId: string | null;
@@ -170,7 +170,7 @@ async function materializePublishedSessions(input: PublishedClassInput, id: stri
   });
   const [closures, semesters] = await Promise.all([
     database.schoolClosedDay.findMany({ where: { deletedAt: null }, select: { date: true } }),
-    database.semester.findMany({
+    database.period.findMany({
       where: { deletedAt: null },
       select: { id: true, name: true, startDate: true, endDate: true },
     }),

@@ -129,3 +129,26 @@
     gap: 1rem;
   }
 }
+
+.stepTransition {
+  animation: intake-step-arrive 220ms var(--lz-ease-standard) both;
+}
+.documentLayout :global([data-intake-body]) {
+  animation: intake-step-arrive 220ms var(--lz-ease-standard) both;
+}
+@keyframes intake-step-arrive {
+  from {
+    opacity: 0.65;
+    transform: translateX(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stepTransition,
+  .documentLayout :global([data-intake-body]) {
+    animation: none;
+  }
+}

@@ -47,3 +47,12 @@ also activates the row. Header, loading, empty, and error rows remain noninterac
 For a list beside its detail, pass `selectedRowId` with the ID of the open row. The shared table
 owns the whole-row background, inset outline and `aria-selected`; changing selection remains
 controlled through `onRowClick`. Focus feedback stays distinct from the persistent selection.
+
+`TableFilters` includes the compact “Filtros ativos” disclosure and its clear-all control.
+Do not render a second `TableFilterChips` row above results. The disclosure opens on hover
+or activation and portals its removable selections without changing the table's height.
+
+Table frames share a short entrance; skeleton rows and busy tables share the diagonal loading
+sweep. Keep initial loading inside `DataTable` (or `TableSkeleton` for existing composed tables)
+instead of replacing the frame with a spinner. Reduced-motion preferences retain static loading
+placeholders, and background refreshes preserve readable rows and pagination.

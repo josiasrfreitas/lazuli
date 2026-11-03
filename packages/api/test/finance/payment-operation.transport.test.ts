@@ -20,7 +20,7 @@ void it("serializes a real preview and safely retries a confirmed receipt throug
   const preview = (await query.json()) as {
     result: { data: { json: Array<{ line: { quote: { settlementCents: number } } }> } };
   };
-  assert.equal(preview.result.data.json[0]?.line.quote.settlementCents, 101_000);
+  assert.equal(preview.result.data.json[0]?.line.quote.settlementCents, 100_667);
   assert.equal(
     await db.paymentAllocation.count({ where: { installmentId: item.installmentId } }),
     0,
@@ -37,7 +37,7 @@ void it("serializes a real preview and safely retries a confirmed receipt throug
   const replay = ((await retry.json()) as Result).result.data.json[0];
   assert.deepEqual(replay, receipt);
   assert.equal(receipt?.date, "2026-02-10T00:00:00.000Z");
-  assert.equal(receipt?.amountCents, 101_000);
+  assert.equal(receipt?.amountCents, 100_667);
   assert.equal(
     await db.paymentAllocation.count({ where: { installmentId: item.installmentId } }),
     1,

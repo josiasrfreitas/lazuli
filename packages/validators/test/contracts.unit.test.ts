@@ -9,6 +9,14 @@ import {
 
 const VALID_INPUT = {
   commandId: "00000000-0000-4000-8000-000000000001",
+  material: {
+    stageIds: ["00000000-0000-4000-8000-000000000004"],
+    category: "ADULT",
+    payment: "CASH",
+    installmentCount: 1,
+    quoteVersion: "a".repeat(64),
+    expectedTotalCents: 73440,
+  },
   studentId: "00000000-0000-4000-8000-000000000002",
   payerId: "00000000-0000-4000-8000-000000000003",
   agreedOn: "2026-03-15",
@@ -25,6 +33,31 @@ const TOO_LONG_QUERY_LENGTH = 81;
 const TOO_LONG_QUERY = "a".repeat(TOO_LONG_QUERY_LENGTH);
 
 void describe("monthly contract input", () => {
+  void it("accepts an optional enrollment fee on an initial contract and keeps renewals free", () => {
+    assert.equal(
+      createMonthlyContractInputSchema.parse({ ...VALID_INPUT, enrollmentFeeCents: 12_500 })
+        .enrollmentFeeCents,
+      12_500,
+    );
+    assert.equal(
+      createMonthlyContractInputSchema.parse({
+        ...VALID_INPUT,
+        renewedFromId: VALID_INPUT.commandId,
+        enrollmentFeeCents: 0,
+      }).enrollmentFeeCents,
+      0,
+    );
+    const renewal = createMonthlyContractInputSchema.safeParse({
+      ...VALID_INPUT,
+      renewedFromId: VALID_INPUT.commandId,
+      enrollmentFeeCents: 12_500,
+    });
+    assert.equal(renewal.success, false);
+    assert.deepEqual(
+      renewal.error?.issues.map((issue) => issue.path.join(".")),
+      ["enrollmentFeeCents"],
+    );
+  });
   void it("accepts civil dates, the full duration and price limits, and four decimal places", () => {
     const parsed = createMonthlyContractInputSchema.parse({
       ...VALID_INPUT,
@@ -144,9 +177,25 @@ void describe("inline contract payer input", () => {
   for (const document of [
     {},
     { documentType: null, documentNumber: null },
+    { documentType: "RG" },
+  ]) {
+    void it(`requires the payer document for ${JSON.stringify(document)}`, () => {
+      const { payerId: _payerId, ...contract } = VALID_INPUT;
+      const result = createMonthlyContractInputSchema.safeParse({
+        ...contract,
+        newPayer: { name: "Maria", phone: "123", ...document },
+      });
+      assert.equal(result.success, false);
+      assert.deepEqual(
+        result.error.issues.map((issue) => issue.path),
+        [["newPayer", "documentNumber"]],
+      );
+    });
+  }
+
+  for (const document of [
     { documentType: "CPF", documentNumber: "123.456.789-00" },
     { documentType: "RG", documentNumber: "12.345.678-X" },
-    { documentType: "RG" },
   ]) {
     void it(`accepts an inline payer with ${JSON.stringify(document)}`, () => {
       const { payerId: _payerId, ...contract } = VALID_INPUT;
@@ -172,17 +221,17 @@ void it("normalizes document text and reports errors at fields the contract form
   const { payerId: _payerId, ...contract } = VALID_INPUT;
   const parsed = createMonthlyContractInputSchema.parse({
     ...contract,
-    newPayer: { name: "Maria", documentType: "RG", documentNumber: " 123 " },
+    newPayer: { name: "Maria", phone: "123", documentType: "RG", documentNumber: " 123 " },
   });
   assert.equal(parsed.newPayer?.documentNumber, "123");
   const blank = createMonthlyContractInputSchema.safeParse({
     ...contract,
-    newPayer: { name: "Maria", documentType: "RG", documentNumber: " " },
+    newPayer: { name: "Maria", phone: "123", documentType: "RG", documentNumber: " " },
   });
   assert.equal(blank.success, false);
   assert.deepEqual(
-    blank.error?.issues.map(({ path, message }) => ({ path, message })),
-    [{ path: ["newPayer", "documentNumber"], message: "Informe o número do documento." }],
+    [...new Set(blank.error?.issues.map(({ path }) => path.join(".")))],
+    ["newPayer.documentNumber"],
   );
   const missing = createMonthlyContractInputSchema.safeParse(contract);
   assert.deepEqual(
@@ -191,7 +240,7 @@ void it("normalizes document text and reports errors at fields the contract form
   );
   const untyped = createMonthlyContractInputSchema.safeParse({
     ...contract,
-    newPayer: { name: "Maria", documentNumber: "123" },
+    newPayer: { name: "Maria", phone: "123", documentNumber: "123" },
   });
   assert.deepEqual(
     untyped.error?.issues.map(({ path, message }) => ({ path, message })),

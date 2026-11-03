@@ -11,28 +11,13 @@ import {
 } from "../../src/features/admissions/enrollment-model.js";
 import { trialVisitInput } from "../../src/features/admissions/trial-visit-input.js";
 
-void it("saves Brazilian lead dates as civil dates and preserves distinct weekly windows", () => {
-  const draft = {
+void it("saves lead details without time preferences", () => {
+  const result = parseCandidateDraft({
     ...initialCandidateDraft(),
     fullName: "Ana Silva",
-    phone: "(82) 99999-1234",
-    availableUntil: "31/12/2026",
-    availability: [
-      { weekday: "MONDAY" as const, startTime: "14:00", endTime: "18:00" },
-      { weekday: "WEDNESDAY" as const, startTime: "08:00", endTime: "12:00" },
-    ],
-  };
-  const result = parseCandidateDraft(draft);
+    phone: "82999991234",
+  });
   assert.equal(result.success, true);
-  assert.equal(result.data.availableUntil, "2026-12-31");
-  assert.deepEqual(result.data.availability, [
-    { weekday: "MONDAY", startTime: "14:00", endTime: "18:00" },
-    { weekday: "WEDNESDAY", startTime: "08:00", endTime: "12:00" },
-  ]);
-  const invalid = parseCandidateDraft({ ...draft, availableUntil: "31/02/2026" });
-  assert.equal(invalid.success, false);
-  if (invalid.success) throw new Error("Invalid calendar date was accepted");
-  assert.equal(invalid.error.issues[0]?.path[0], "availableUntil");
 });
 const enrollment: EnrollmentDraft = {
   mode: "create",

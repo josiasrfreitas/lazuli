@@ -35,7 +35,7 @@ export async function seedDevData(
 ): Promise<void> {
   const { todayIso, resolveClassName } = input;
   const semesterSeed = currentSemesterSeed(todayIso);
-  const semester = await database.semester.create({
+  const semester = await database.period.create({
     data: {
       name: semesterSeed.name,
       startDate: utcDate(semesterSeed.startIso),

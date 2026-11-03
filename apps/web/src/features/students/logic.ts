@@ -168,7 +168,7 @@ export function useStudentFilterOptions(
 ): QueryResult<Array<{ id: string; label: string }>> {
   return trpc.students.listFilterOptions.useQuery(
     { kind, search },
-    { enabled: search.trim().length > 0 },
+    { enabled: kind === "class" || search.trim().length > 0 },
   );
 }
 

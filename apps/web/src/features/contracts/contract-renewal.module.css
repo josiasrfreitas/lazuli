@@ -1,0 +1,83 @@
+.loading {
+  composes: surface from "../students/profile/student-loading.module.css";
+}
+.loading :global([data-slot="inline-skeleton"]) {
+  animation: renewal-breathe 2.4s ease-in-out infinite;
+}
+.skeletonField:nth-child(even) :global([data-slot="inline-skeleton"]) {
+  animation-delay: -0.8s;
+}
+@keyframes renewal-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.ready {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  animation: renewal-ready 240ms ease-out;
+}
+.feedback {
+  display: grid;
+  gap: 1rem;
+  margin-block: auto;
+  justify-items: start;
+}
+.skeletonFields {
+  display: grid;
+  gap: 1.75rem;
+}
+.skeletonGroup {
+  display: grid;
+  gap: 1rem;
+}
+.skeletonGroup h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--heading);
+}
+.skeletonRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.skeletonField {
+  display: grid;
+  gap: 0.5rem;
+}
+@keyframes renewal-ready {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 44rem) {
+  .skeletonSummary > div:last-child {
+    display: none;
+  }
+  .skeletonSummary > div:first-child {
+    display: block;
+    padding: 0;
+  }
+  .skeletonSummary h2 {
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ready {
+    animation-duration: 80ms;
+  }
+  .loading :global([data-slot="inline-skeleton"]) {
+    animation: none;
+  }
+}

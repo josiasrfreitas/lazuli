@@ -15,6 +15,17 @@ import {
 import styles from "./intake-schedule.module.css";
 
 export const studentDialogClassName = `w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:max-w-2xl ${styles.studentDialog}`;
+type IntakeHeadingProps = {
+  continuing: boolean;
+  step: "student" | "address" | "pedagogy" | "contract";
+  name: string;
+  hasEnrollment: boolean;
+  hasClass: boolean;
+  hasContract?: boolean;
+  compact?: boolean;
+  avatar?: ReactNode;
+  onStepChange: (step: "student" | "address" | "pedagogy" | "contract") => void;
+};
 
 function stepIndex(step: "student" | "address" | "pedagogy" | "contract"): number {
   const CONTRACT_STEP_INDEX = 3;
@@ -30,18 +41,18 @@ export function IntakeDialogHeading({
   name,
   hasEnrollment,
   hasClass,
+  hasContract = false,
   compact = false,
   avatar,
-}: {
-  continuing: boolean;
-  step: "student" | "address" | "pedagogy" | "contract";
-  name: string;
-  hasEnrollment: boolean;
-  hasClass: boolean;
-  compact?: boolean;
-  avatar?: ReactNode;
-}): ReactJSX.Element {
-  const description = intakeDialogDescription({ continuing, step, name, hasEnrollment });
+  onStepChange,
+}: IntakeHeadingProps): ReactJSX.Element {
+  const description = intakeDialogDescription({
+    continuing,
+    step,
+    name,
+    hasEnrollment,
+    hasContract,
+  });
   return (
     <div
       className={styles.dialogHeading}
@@ -57,11 +68,16 @@ export function IntakeDialogHeading({
       </div>
       <Stepper
         steps={[
-          { label: "Aluno" },
-          { label: "Endereço" },
+          { label: "Aluno", completed: false },
+          { label: "Endereço", completed: false },
           { label: "Pedagógico", completed: hasClass },
-          { label: "Contrato" },
+          { label: "Contrato", completed: hasContract, disabled: hasContract },
         ]}
+        onStepChange={(index) =>
+          onStepChange(
+            (["student", "address", "pedagogy", "contract"] as const)[index] ?? "student",
+          )
+        }
         activeIndex={stepIndex(step)}
         label="Entrada do aluno"
       />
@@ -74,11 +90,13 @@ function intakeDialogDescription({
   step,
   name,
   hasEnrollment,
+  hasContract,
 }: {
   continuing: boolean;
   step: "student" | "address" | "pedagogy" | "contract";
   name: string;
   hasEnrollment: boolean;
+  hasContract: boolean;
 }): string {
   if (step === "student")
     return continuing
@@ -86,6 +104,8 @@ function intakeDialogDescription({
       : "Busque um lead ou preencha os dados do aluno.";
   if (step === "address")
     return "Busque o endereço do aluno e confira os dados. Você também pode preencher manualmente.";
+  if (step === "pedagogy" && hasContract)
+    return "Confira a turma e conclua o cadastro. O contrato já está cadastrado.";
   if (step === "pedagogy")
     return hasEnrollment
       ? "Confira a turma definida para este aluno e continue para o contrato."

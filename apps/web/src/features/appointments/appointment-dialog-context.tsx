@@ -2,7 +2,7 @@ import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { ClassRecordTrigger } from "~/features/class-records/class-record-trigger";
 import { CalendarDays, History, MapPin, UserRound } from "lucide-react";
-import { DialogDescription, DialogHeader, DialogTitle } from "@lazuli/ui";
+import { Button, DialogDescription, DialogHeader, DialogTitle } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";
 import { AppointmentBadge, purposes, type Appointment } from "./shared";
 import { AppointmentAccount } from "./appointment-account";
@@ -19,9 +19,11 @@ const stamp = (value: string | Date): string =>
 export function AppointmentDialogHeader({
   data,
   admin,
+  onOpenLesson,
 }: {
   data: Appointment;
   admin: boolean;
+  onOpenLesson?: ((id: string) => void) | undefined;
 }): ReactJSX.Element {
   const row = data.snapshot;
   return (
@@ -41,12 +43,18 @@ export function AppointmentDialogHeader({
         </div>
         <DialogDescription>{purposes[row.purpose]}</DialogDescription>
       </div>
-      <AppointmentFacts row={row} />
+      <AppointmentFacts row={row} onOpenLesson={onOpenLesson} />
     </DialogHeader>
   );
 }
 
-function AppointmentFacts({ row }: { row: Appointment["snapshot"] }): ReactJSX.Element {
+function AppointmentFacts({
+  row,
+  onOpenLesson,
+}: {
+  row: Appointment["snapshot"];
+  onOpenLesson: ((id: string) => void) | undefined;
+}): ReactJSX.Element {
   return (
     <dl className={styles.facts}>
       <div>
@@ -69,27 +77,40 @@ function AppointmentFacts({ row }: { row: Appointment["snapshot"] }): ReactJSX.E
         </dt>
         <dd>{row.teacher?.name ?? "A definir"}</dd>
       </div>
-      <div>
-        <dt>
-          <MapPin aria-hidden="true" />
-          Encontro
-        </dt>
-        <dd>
-          {row.format === "IN_PERSON" ? "Presencial" : "Online"}
-          <span className={styles.factDetail}>
-            {" "}
-            ·{" "}
-            {row.targetClassSessionId ? (
-              <ClassRecordTrigger sessionId={row.targetClassSessionId}>
-                {row.targetClassName} · Abrir aula
-              </ClassRecordTrigger>
-            ) : (
-              "Individual"
-            )}
-          </span>
-        </dd>
-      </div>
+      <AppointmentMeetingFact row={row} onOpenLesson={onOpenLesson} />
     </dl>
+  );
+}
+
+function AppointmentMeetingFact({
+  row,
+  onOpenLesson,
+}: {
+  row: Appointment["snapshot"];
+  onOpenLesson: ((id: string) => void) | undefined;
+}): ReactJSX.Element {
+  let lesson: ReactJSX.Element | string = "Individual";
+  if (row.targetClassSessionId) {
+    lesson = onOpenLesson ? (
+      <Button variant="link" size="sm" onClick={() => onOpenLesson(row.targetClassSessionId!)}>
+        {row.targetClassName} · Abrir aula
+      </Button>
+    ) : (
+      <ClassRecordTrigger sessionId={row.targetClassSessionId}>
+        {row.targetClassName} · Abrir aula
+      </ClassRecordTrigger>
+    );
+  }
+  return (
+    <div>
+      <dt>
+        <MapPin aria-hidden="true" /> Encontro
+      </dt>
+      <dd>
+        {row.format === "IN_PERSON" ? "Presencial" : "Online"}
+        <span className={styles.factDetail}> · {lesson}</span>
+      </dd>
+    </div>
   );
 }
 

@@ -15,15 +15,6 @@ import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import { compactMoney } from "./contract-closings-model";
 import type { Analytics } from "./revenue-chart";
 
-const METHOD_LABELS = new Map([
-  ["PIX", "Pix"],
-  ["CASH", "Dinheiro"],
-  ["TRANSFER", "Transferência"],
-  ["CARD", "Cartão"],
-  ["CHEQUE", "Cheque"],
-  ["BOLETO", "Boleto"],
-  ["OTHER", "Outros"],
-]);
 const COLORS = ["var(--info)", "var(--success)", "var(--warning)", "var(--muted-foreground)"];
 const AXIS_PROPS = {
   tick: { fill: "var(--muted-foreground)", fontSize: 12 },
@@ -52,10 +43,7 @@ export function DistributionDetails({ data }: { data: Analytics }): ReactElement
   );
 }
 function PaymentMethodsChart({ data }: { data: Analytics }): ReactElement {
-  const methods = data.methods.map((row) => ({
-    ...row,
-    label: METHOD_LABELS.get(row.method) ?? row.method,
-  }));
+  const methods = data.methods;
   return (
     <section className="min-w-0 border-t border-border pt-4" aria-labelledby="methods-title">
       <h3 id="methods-title" className="font-semibold text-heading">

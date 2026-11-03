@@ -140,6 +140,22 @@
   font-size: var(--lz-text-caption);
 }
 
+@media (min-width: 36rem) {
+  .file-upload[data-compact][data-layout="inline"] {
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    column-gap: 1rem;
+  }
+
+  .file-upload[data-compact][data-layout="inline"] .file-upload__files {
+    min-width: 0;
+  }
+
+  .file-upload[data-compact][data-layout="inline"] .file-upload__error {
+    grid-column: 1 / -1;
+  }
+}
+
 .file-upload__file {
   display: flex;
   align-items: center;

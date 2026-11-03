@@ -36,7 +36,7 @@ export async function cleanDatabase(database: DatabaseClient): Promise<void> {
   });
   await database.student.deleteMany({ where: { fullName: { startsWith: TEST_PREFIX } } });
   await database.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
-  await database.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await database.period.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await database.stage.deleteMany({
     where: { track: { productLine: { key: { startsWith: CATALOG_KEY_PREFIX } } } },
   });
@@ -116,7 +116,7 @@ async function seedCatalog(database: DatabaseClient): Promise<string> {
 }
 
 async function seedSemester(database: DatabaseClient): Promise<string> {
-  const semester = await database.semester.create({
+  const semester = await database.period.create({
     data: {
       name: `${TEST_PREFIX}2035.1`,
       startDate: new Date("2035-02-01T00:00:00.000Z"),

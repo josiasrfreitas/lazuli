@@ -25,7 +25,7 @@ void it("uses the school's date across midnight and carries a six-month series a
   assert.equal(january.previousThrough, "2025-12-12");
 });
 void it("compares completed months in full, including leap February", () => {
-  const period = homePeriod(new Date("2024-05-10T15:00:00Z"), "2024-03");
+  const period = homePeriod(new Date("2024-05-10T15:00:00Z"), { requestedMonth: "2024-03" });
   assert.equal(period.through, "2024-03-31");
   assert.equal(period.previousThrough, "2024-02-29");
   assert.equal(period.partial, false);

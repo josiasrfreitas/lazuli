@@ -16,7 +16,6 @@ loadEnvironment({ path: new URL("../../../.env", import.meta.url), quiet: true }
 const AUTH_FLOW_PREFIX = "auth-flow-";
 const HTTP_OK = 200;
 const HTTP_FOUND = 302;
-const HTTP_UNAUTHORIZED = 401;
 const MILLISECONDS_PER_SECOND = 1000;
 const SIGN_IN_MAGIC_LINK_PATH = "/api/auth/sign-in/magic-link";
 const SIGN_OUT_PATH = "/api/auth/sign-out";
@@ -92,7 +91,7 @@ function registerUnknownEmailMagicLinkTest(context: AuthFlowContext): void {
     const response = await requestMagicLink(context, email);
     const user = await db.user.findUnique({ where: { email } });
 
-    assert.equal(response.status, HTTP_UNAUTHORIZED);
+    assert.equal(response.status, HTTP_OK);
     assert.equal(context.deliveries.length, 0);
     assert.equal(user, null);
   });
@@ -109,7 +108,7 @@ function registerDisabledStaffMagicLinkTest(context: AuthFlowContext): void {
 
     const response = await requestMagicLink(context, email);
 
-    assert.equal(response.status, HTTP_UNAUTHORIZED);
+    assert.equal(response.status, HTTP_OK);
     assert.equal(context.deliveries.length, 0);
   });
 }

@@ -57,7 +57,6 @@ function loadedFinanceFields(
   | "tuitionCeilingCents"
   | "maximumDiscountPct"
   | "punctualityDiscountPct"
-  | "interestRatePctDaily"
   | "interestRatePctMonthly"
   | "cancellationFeePct"
 > {
@@ -65,8 +64,7 @@ function loadedFinanceFields(
     tuitionCeilingCents: amount(row?.tuitionCeilingCents),
     maximumDiscountPct: number(row?.maximumDiscountPct),
     punctualityDiscountPct: number(row?.punctualityDiscountPct ?? 0),
-    interestRatePctDaily: number(row?.interestRatePctDaily),
-    interestRatePctMonthly: number(row?.interestRatePctMonthly),
+    interestRatePctMonthly: number(row?.interestRatePctMonthly ?? 2),
     cancellationFeePct: number(row?.cancellationFeePct),
   };
 }
@@ -170,7 +168,6 @@ export function validateSettings(
     tuitionCeilingCents: Math.round(decimal(fields.tuitionCeilingCents) * CENTS_PER_REAL),
     maximumDiscountPct: decimal(fields.maximumDiscountPct),
     punctualityDiscountPct: decimal(fields.punctualityDiscountPct),
-    interestRatePctDaily: decimal(fields.interestRatePctDaily),
     interestRatePctMonthly: decimal(fields.interestRatePctMonthly),
     cancellationFeePct: decimal(fields.cancellationFeePct),
     childMaterialInstallments: decimal(fields.childMaterialInstallments),

@@ -1,5 +1,5 @@
 import { FINANCE_DUE_DAY_FIFTEENTH } from "@lazuli/domain";
-import { db, PaymentMethod } from "@lazuli/db";
+import { db } from "@lazuli/db";
 
 import { caller, createPayer, createStudent, DEFAULT_ORDER_INPUT } from "./finance-test-support.js";
 
@@ -51,7 +51,7 @@ export async function allocatePaymentToInstallment(input: {
       payerId: input.payerId,
       date: PAYMENT_DATE,
       amountCents: input.amountCents,
-      method: PaymentMethod.PIX,
+      method: "PIX",
     },
   });
   await db.paymentAllocation.create({

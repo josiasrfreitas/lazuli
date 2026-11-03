@@ -17,6 +17,7 @@ const LOCK_RETRY_MS = 50,
   LOCK_ID_LENGTH = 20,
   HEALTH_RETRY_MS = 250;
 const POSTGRES_CONTAINER = "lazuli-postgres";
+const PSQL_STOP_ON_ERROR = "ON_ERROR_STOP=1";
 const BUCKET_OWNERSHIP_OBJECT = ".lazuli-workspace-ownership.json";
 
 function sqlLiteral(value) {
@@ -252,7 +253,7 @@ export async function ensureDatabase({ root, workspace, output }) {
         "-d",
         "postgres",
         "-v",
-        "ON_ERROR_STOP=1",
+        PSQL_STOP_ON_ERROR,
         "-c",
         `CREATE DATABASE ${workspace.resources.database}`,
       ],
@@ -264,7 +265,7 @@ export async function ensureDatabase({ root, workspace, output }) {
       command: "docker",
       arguments_: psqlArguments(workspace.resources.database, [
         "-v",
-        "ON_ERROR_STOP=1",
+        PSQL_STOP_ON_ERROR,
         "-c",
         `CREATE SCHEMA IF NOT EXISTS lazuli_local; CREATE TABLE IF NOT EXISTS lazuli_local.workspace_ownership (singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton), ownership_token text NOT NULL, workspace_identity text NOT NULL, technical_path text NOT NULL); INSERT INTO lazuli_local.workspace_ownership (singleton, ownership_token, workspace_identity, technical_path) VALUES (true, ${sqlLiteral(workspace.ownershipToken)}, ${sqlLiteral(workspace.identity)}, ${sqlLiteral(workspace.initialTechnicalPath)}) ON CONFLICT (singleton) DO NOTHING`,
       ]),
@@ -305,14 +306,42 @@ async function completeDatabaseInitialization({ root, workspace, journalPath, ou
   ) {
     output("Finalizing completed database initialization...");
   } else {
+    const hasFixtures =
+      runWorkspaceCommand({
+        command: "docker",
+        arguments_: psqlArguments(workspace.resources.database, [
+          "-v",
+          PSQL_STOP_ON_ERROR,
+          "-tAc",
+          'SELECT EXISTS (SELECT 1 FROM "Semester")',
+        ]),
+        root,
+        capture: true,
+        capability: "partial database initialization inspection",
+      }).trim() === "t";
+    if (hasFixtures) {
+      const error = new Error(
+        "database initialization is incomplete, but school data already exists; fixtures were not replayed",
+      );
+      error.code = "PARTIAL_DATABASE_INITIALIZATION";
+      throw error;
+    }
     output("Loading database fixtures...");
-    runWorkspaceCommand({
-      command: "pnpm",
-      arguments_: ["-F", "@lazuli/db", "exec", "prisma", "db", "seed"],
-      root,
-      capability: "database initialization",
-      environment: { LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY },
-    });
+    try {
+      runWorkspaceCommand({
+        command: "pnpm",
+        arguments_: ["-F", "@lazuli/db", "exec", "prisma", "db", "seed"],
+        root,
+        capability: "database initialization",
+        environment: { LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY },
+      });
+    } catch (error_) {
+      const error = new Error("database fixture loading failed and may have left partial data", {
+        cause: error_,
+      });
+      error.code = "PARTIAL_DATABASE_INITIALIZATION";
+      throw error;
+    }
   }
   await atomicJson(journalPath, {
     database: workspace.resources.database,
@@ -359,5 +388,7 @@ export function observeBucket(root, bucket) {
 export async function databaseInitializationStatus(root) {
   const journal = await readJournal(root);
   if (journal === null) return "not pending";
-  return journal.status === "pending" ? "incomplete (retry setup full)" : "complete";
+  return journal.status === "pending"
+    ? "incomplete (setup can resume only before fixture loading; a failed seed requires pnpm seed)"
+    : "complete";
 }

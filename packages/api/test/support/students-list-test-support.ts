@@ -123,7 +123,7 @@ export async function cleanStudentsListFixture(): Promise<void> {
   await cleanFinanceOrdersDatabase(PREFIX);
   await db.guardian.deleteMany({ where: { fullName: { startsWith: PREFIX } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: PREFIX } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: PREFIX } } });
+  await db.period.deleteMany({ where: { name: { startsWith: PREFIX } } });
   await db.stage.deleteMany({ where: { track: { productLine: { key: CATALOG_KEY } } } });
   await db.track.deleteMany({ where: { productLine: { key: CATALOG_KEY } } });
   await db.productLine.deleteMany({ where: { key: CATALOG_KEY } });
@@ -174,7 +174,7 @@ async function seedCatalog(): Promise<string> {
 }
 
 async function seedSemester(): Promise<string> {
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: { name: `${PREFIX}sem`, startDate: SEMESTER_START, endDate: SEMESTER_END },
     select: { id: true },
   });

@@ -8,7 +8,13 @@ import { ArrowLeft } from "lucide-react";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { ContractMaterialSection } from "./contract-material-section";
-import { emptyContractFields, type ContractFields } from "./contract-form-model";
+import {
+  emptyContractFields,
+  materialInstallmentCount,
+  materialPriceInput,
+  scholarshipInput,
+  type ContractFields,
+} from "./contract-form-model";
 
 const ISO_YEAR_LENGTH = 4;
 const MONTHS_PER_YEAR = 12;
@@ -17,6 +23,8 @@ const ISO_MONTH_LENGTH = 7;
 type MaterialProps = {
   contractId: string;
   firstDueDate: string;
+  studentId?: string;
+  suggestedStageId?: string | null;
   onPendingChange: (pending: boolean) => void;
   onClose: () => void;
   onSaved: () => void;
@@ -60,13 +68,14 @@ function materialValidationMessage(dueDate: string): string {
     : "Escolha um mês a partir do primeiro vencimento do contrato.";
 }
 
-function useMaterialFields(firstDueDate: string): MaterialFieldsState {
+function useMaterialFields(firstDueDate: string, studentId: string): MaterialFieldsState {
   const today = toDateOnlySaoPaulo(new Date());
   const [month, setMonth] = useState(
     (today.localeCompare(firstDueDate) > 0 ? today : firstDueDate).slice(0, ISO_MONTH_LENGTH),
   );
   const [fields, setFields] = useState<ContractFields>({
     ...emptyContractFields,
+    studentId,
     materialPayment: "INSTALLMENTS",
   });
   const [errors, setErrors] = useState<MaterialErrors>({});
@@ -90,20 +99,14 @@ function useMaterialSubmission(
   function submit(): void {
     if (submitting.current) return;
     const { fields, dueDate } = state;
-    const parsed = addContractMaterialInputSchema.safeParse({
+    const parsed = parseMaterialSubmission({
+      fields,
+      dueDate,
       commandId: commandId.current,
       contractId,
-      firstDueDate: dueDate,
-      material: {
-        stageIds: fields.materialStageIds.split(","),
-        quoteVersion: fields.materialQuoteVersion,
-        category: fields.materialCategory,
-        payment: fields.materialPayment,
-        expectedTotalCents: fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
-      },
     });
     if (!parsed.success) {
-      state.setErrors(invalidMaterialFields(fields));
+      state.setErrors(materialParseErrors(fields, parsed.error.issues));
       setError(materialValidationMessage(dueDate));
       return;
     }
@@ -112,6 +115,8 @@ function useMaterialSubmission(
     onPendingChange(true);
     mutation.mutate(parsed.data, {
       onSuccess: () => {
+        void utils.students.invalidate();
+        void utils.finance.studentMaterials.invalidate();
         onPendingChange(false);
         onSaved();
         onClose();
@@ -129,6 +134,50 @@ function useMaterialSubmission(
   return { error, submit, pending: mutation.isPending };
 }
 
+function parseMaterialSubmission({
+  fields,
+  dueDate,
+  commandId,
+  contractId,
+}: {
+  fields: ContractFields;
+  dueDate: string;
+  commandId: string;
+  contractId: string;
+}): ReturnType<typeof addContractMaterialInputSchema.safeParse> {
+  return addContractMaterialInputSchema.safeParse({
+    commandId,
+    contractId,
+    firstDueDate: dueDate,
+    material: {
+      ...scholarshipInput(fields, true),
+      ...materialPriceInput(fields),
+      stageIds: fields.materialStageIds.split(","),
+      quoteVersion: fields.materialQuoteVersion,
+      category: fields.materialCategory,
+      payment: fields.materialPayment,
+      installmentCount: materialInstallmentCount(fields),
+      expectedTotalCents: fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
+    },
+  });
+}
+
+function materialParseErrors(
+  fields: ContractFields,
+  issues: Array<{ path: PropertyKey[]; message: string }>,
+): MaterialErrors {
+  const errors = invalidMaterialFields(fields);
+  for (const issue of issues) {
+    if (issue.path[1] === "priceOverrideCents")
+      errors.materialCustomPrice = "Informe um valor válido maior que zero.";
+    if (issue.path[1] === "installmentCount") errors.materialInstallments = issue.message;
+    if (issue.path[1] === "scholarshipPct") errors.materialScholarshipPct = issue.message;
+    if (issue.path[1] === "scholarshipAgreement")
+      errors.materialScholarshipAgreement = issue.message;
+  }
+  return errors;
+}
+
 function MaterialReceiptFields({
   firstDueDate,
   state,
@@ -136,6 +185,13 @@ function MaterialReceiptFields({
   firstDueDate: string;
   state: MaterialFieldsState;
 }): ReactJSX.Element {
+  if (state.fields.materialScholarshipMode === "FULL") {
+    return (
+      <p className="text-sm text-muted-foreground">
+        O material será registrado como adquirido, sem gerar cobrança.
+      </p>
+    );
+  }
   return (
     <section
       className="grid min-w-0 gap-3 border-t border-border pt-4"
@@ -168,16 +224,26 @@ function MaterialInputs({
   firstDueDate,
   state,
   pending,
+  suggestedStageId,
 }: {
+  suggestedStageId: string | null | undefined;
   firstDueDate: string;
   state: MaterialFieldsState;
   pending: boolean;
 }): ReactJSX.Element {
   return (
-    <fieldset disabled={pending} className="grid items-start gap-8 md:grid-cols-2">
+    <fieldset
+      disabled={pending}
+      className={
+        state.fields.materialScholarshipMode === "FULL"
+          ? "mx-auto grid w-full max-w-2xl items-start gap-6"
+          : "grid items-start gap-8 md:grid-cols-2"
+      }
+    >
       <div className="min-w-0">
         <ContractMaterialSection
           required
+          suggestedStageId={suggestedStageId}
           fields={{
             ...state.fields,
             firstDueDate: state.dueDate ? formatDateOnlyBR(state.dueDate) : "",
@@ -186,7 +252,9 @@ function MaterialInputs({
           change={state.change}
         />
       </div>
-      <MaterialReceiptFields firstDueDate={firstDueDate} state={state} />
+      {state.fields.materialScholarshipMode !== "FULL" && (
+        <MaterialReceiptFields firstDueDate={firstDueDate} state={state} />
+      )}
     </fieldset>
   );
 }
@@ -201,7 +269,7 @@ function MaterialActions({
   return (
     <DialogFooter>
       <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={onClose}>
-        <ArrowLeft aria-hidden="true" /> Voltar aos itens
+        <ArrowLeft aria-hidden="true" /> Voltar
       </Button>
       <Button type="submit" form="contract-material-form" size="sm" disabled={pending}>
         {pending ? "Salvando…" : "Adicionar material"}
@@ -211,7 +279,7 @@ function MaterialActions({
 }
 
 export function AddContractMaterial(props: MaterialProps): ReactJSX.Element {
-  const state = useMaterialFields(props.firstDueDate);
+  const state = useMaterialFields(props.firstDueDate, props.studentId ?? "");
   const submission = useMaterialSubmission(props, state);
   const body = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -231,6 +299,7 @@ export function AddContractMaterial(props: MaterialProps): ReactJSX.Element {
         >
           <MaterialInputs
             firstDueDate={props.firstDueDate}
+            suggestedStageId={props.suggestedStageId}
             state={state}
             pending={submission.pending}
           />

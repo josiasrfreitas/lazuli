@@ -22,20 +22,16 @@ export type {
   Payer,
   PaymentAllocation,
   PaymentEntry,
+  PaymentMethod,
   PedagogicalProgress,
   ProductLine,
   SchoolClosedDay,
-  Semester,
+  Period,
   Stage,
   Student,
   Track,
 } from "./generated/prisma/client.js";
-export {
-  ArtifactKind,
-  InstallmentAdjustmentType,
-  OrderKind,
-  PaymentMethod,
-} from "./generated/prisma/enums.js";
+export { ArtifactKind, InstallmentAdjustmentType, OrderKind } from "./generated/prisma/enums.js";
 export { getDatabaseUrl, getWorkspaceInitializationKey } from "./config.js";
 
 /** Shared shape for domain entities under decision 0011. */
@@ -45,3 +41,6 @@ export type UUIDEntity = {
   updatedAt: Date;
   deletedAt: Date | null;
 };
+
+export { readStudentHealth } from "./student-health.js";
+export { computeEnrollmentPercentInWindow } from "./attendance-percent.js";

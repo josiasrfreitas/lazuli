@@ -50,7 +50,6 @@ type PriorContract = Prisma.ContractGetPayload<Record<string, never>>;
 type ReadySettings = FinanceSettings & {
   tuitionCeilingCents: number;
   maximumDiscountPct: NonNullable<FinanceSettings["maximumDiscountPct"]>;
-  interestRatePctDaily: NonNullable<FinanceSettings["interestRatePctDaily"]>;
   interestRatePctMonthly: NonNullable<FinanceSettings["interestRatePctMonthly"]>;
   cancellationFeePct: NonNullable<FinanceSettings["cancellationFeePct"]>;
 };
@@ -87,6 +86,15 @@ async function readyTerms(input: {
     assertContractParties(database, values),
   ]);
   const prior = await renewalPrior(database, values);
+  if (!prior && !values.material) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Inclua o material para criar um novo contrato.",
+    });
+  }
+  if (prior && (values.enrollmentFeeCents ?? 0) > 0) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "A rematrícula é gratuita." });
+  }
   const settings = priorSettings(schoolSettings, prior);
   assertReadySettings(settings);
   if (
@@ -158,8 +166,8 @@ function priorSettings(
         ...schoolSettings,
         tuitionCeilingCents: prior.tuitionCeilingCents,
         maximumDiscountPct: prior.maximumDiscountPct,
-        punctualityDiscountPct: prior.punctualityDiscountPct!,
-        interestRatePctDaily: prior.interestRatePctDaily,
+        punctualityDiscountPct:
+          prior.standardPunctualityDiscountPct ?? prior.punctualityDiscountPct!,
         interestRatePctMonthly: prior.interestRatePctMonthly,
         cancellationFeePct: prior.cancellationFeePct,
       }
@@ -172,7 +180,6 @@ function assertReadySettings(settings: FinanceSettings | null): asserts settings
     settings.tuitionCeilingCents === null ||
     settings.maximumDiscountPct === null ||
     settings.punctualityDiscountPct === null ||
-    settings.interestRatePctDaily === null ||
     settings.interestRatePctMonthly === null ||
     settings.cancellationFeePct === null
   ) {
@@ -214,17 +221,9 @@ type PersistContractInput = {
 };
 
 async function persistContract(input: PersistContractInput): Promise<ContractListRow> {
-  const { database, values, staffUserId, terms } = input;
+  const { database, values, terms } = input;
   const { settings, preview } = terms;
-  const material = values.material
-    ? await materialOrderData({
-        database,
-        material: values.material,
-        settings,
-        firstDueDate: values.firstDueDate,
-        staffUserId,
-      })
-    : null;
+  const orders = await contractOrders(input);
   const contract = await database.contract.create({
     data: {
       commandId: values.commandId,
@@ -236,23 +235,79 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       startsOn: toDateOnly(values.startsOn),
       durationMonths: values.durationMonths,
       endsOn: toDateOnly(preview.endsOn),
-      monthlyAmountCents: values.monthlyAmountCents,
+      monthlyAmountCents: preview.chargedMonthlyCents,
+      baseMonthlyAmountCents: values.monthlyAmountCents,
+      scholarshipPct: values.scholarshipPct ?? 0,
+      scholarshipAgreement: values.scholarshipAgreement?.trim() || null,
       tuitionCeilingCents: settings.tuitionCeilingCents,
       maximumDiscountPct: settings.maximumDiscountPct,
-      punctualityDiscountPct: Number(settings.punctualityDiscountPct),
-      interestRatePctDaily: settings.interestRatePctDaily,
+      punctualityDiscountPct:
+        (values.scholarshipPct ?? 0) > 0 ? 0 : Number(settings.punctualityDiscountPct),
+      standardPunctualityDiscountPct: settings.punctualityDiscountPct,
       interestRatePctMonthly: settings.interestRatePctMonthly,
       cancellationFeePct: settings.cancellationFeePct,
-      orders: {
-        create: [
-          tuitionOrderData({ values, preview, staffUserId }),
-          ...(material ? [material] : []),
-        ],
-      },
+      orders: { create: orders },
     },
     select: contractSelect,
   });
   return toRow(contract);
+}
+
+async function contractOrders(
+  input: PersistContractInput,
+): Promise<Prisma.OrderCreateWithoutContractInput[]> {
+  const {
+    database,
+    values,
+    staffUserId,
+    terms: { settings, preview },
+  } = input;
+  const enrollmentFee = values.enrollmentFeeCents
+    ? enrollmentFeeOrderData({ values, staffUserId })
+    : null;
+  const material = values.material
+    ? await materialOrderData({
+        database,
+        material: values.material,
+        settings,
+        firstDueDate: values.firstDueDate,
+        staffUserId,
+      })
+    : null;
+  return [
+    ...(preview.principalAmountCents > 0
+      ? [tuitionOrderData({ values, preview, staffUserId })]
+      : []),
+    ...(enrollmentFee ? [enrollmentFee] : []),
+    ...(material ? [material] : []),
+  ];
+}
+
+function enrollmentFeeOrderData(input: {
+  values: CreateMonthlyContractInput;
+  staffUserId: string;
+}): Prisma.OrderCreateWithoutContractInput {
+  const { values, staffUserId } = input;
+  const dueDate = toDateOnly(values.agreedOn);
+  return {
+    kind: "ENROLLMENT_FEE",
+    principalAmountCents: values.enrollmentFeeCents!,
+    startDate: dueDate,
+    dueDay: Number(values.agreedOn.slice(DUE_DAY_START, DUE_DAY_END)),
+    firstDueDate: dueDate,
+    installmentCount: 1,
+    createdBy: { connect: { id: staffUserId } },
+    updatedBy: { connect: { id: staffUserId } },
+    installments: {
+      create: {
+        sequenceNumber: 1,
+        amountCents: values.enrollmentFeeCents!,
+        dueDate,
+        createdById: staffUserId,
+        updatedById: staffUserId,
+      },
+    },
+  };
 }
 
 function tuitionOrderData(input: {
@@ -384,7 +439,6 @@ export async function readContractOffer(database: FinanceDatabase): Promise<{
   tuitionCeilingCents: number;
   maximumDiscountPct: number;
   punctualityDiscountPct: number;
-  interestRatePctDaily: number;
   interestRatePctMonthly: number;
   cancellationFeePct: number;
 } | null> {
@@ -393,7 +447,6 @@ export async function readContractOffer(database: FinanceDatabase): Promise<{
     !row ||
     row.tuitionCeilingCents === null ||
     row.maximumDiscountPct === null ||
-    row.interestRatePctDaily === null ||
     row.interestRatePctMonthly === null ||
     row.cancellationFeePct === null
   )
@@ -402,7 +455,6 @@ export async function readContractOffer(database: FinanceDatabase): Promise<{
     tuitionCeilingCents: row.tuitionCeilingCents,
     maximumDiscountPct: Number(row.maximumDiscountPct),
     punctualityDiscountPct: Number(row.punctualityDiscountPct),
-    interestRatePctDaily: Number(row.interestRatePctDaily),
     interestRatePctMonthly: Number(row.interestRatePctMonthly),
     cancellationFeePct: Number(row.cancellationFeePct),
   };

@@ -1,5 +1,5 @@
 "use client";
-import { RefreshCw } from "lucide-react";
+import { ArrowLeft, Pencil, RefreshCw } from "lucide-react";
 import { useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import {
   Alert,
@@ -13,8 +13,10 @@ import { trpc } from "~/lib/trpc";
 import { SelectControl } from "~/features/classes/form-controls";
 import { formatDateOnlyBR } from "~/lib/format";
 import { AssessmentSummary, AssessmentStatusBadge } from "./assessment-summary";
-import { AssessmentLoading } from "./assessment-loading";
+import { StudentProgressLoading } from "./student-progress-loading";
 import type { Assessment } from "./shared";
+import { AcademicProgressChart } from "./progress-chart";
+import styles from "./student-progress.module.css";
 
 export function StudentAcademicProgress({
   studentId,
@@ -34,7 +36,7 @@ export function StudentAcademicProgress({
     <>
       <DialogHeader>
         <div className="flex flex-wrap items-center gap-3">
-          <DialogTitle className="text-base">
+          <DialogTitle>
             {active ? `Avaliações · ${active.stage.name}` : "Avaliações do estágio"}
           </DialogTitle>
           {active && <AssessmentStatusBadge data={active} />}
@@ -79,7 +81,7 @@ function AssessmentDialogBody({ children }: { children: ReactNode }): ReactEleme
       ref={viewport}
       className={`flex-auto ${scrollable ? "overflow-y-auto" : "overflow-y-hidden"}`}
     >
-      <div ref={content} className="min-w-0 pt-3">
+      <div ref={content} className="min-w-0 pt-5">
         {children}
       </div>
     </DialogBody>
@@ -101,7 +103,7 @@ function StudentAssessmentBody({
   onRetry: () => void;
   onSelect: (value: string) => void;
 }): ReactElement {
-  if (pending) return <AssessmentLoading />;
+  if (pending) return <StudentProgressLoading />;
   if (error)
     return (
       <Alert variant="destructive">
@@ -119,12 +121,52 @@ function StudentAssessmentBody({
       </p>
     );
   return (
-    <AssessmentSummary
+    <StudentAssessmentViews
       key={active.progressId}
-      data={active}
-      showHeading={false}
-      selector={<StageSelector rows={rows} active={active} onChange={onSelect} />}
+      active={active}
+      rows={rows}
+      onSelect={onSelect}
     />
+  );
+}
+
+function StudentAssessmentViews({
+  active,
+  rows,
+  onSelect,
+}: {
+  active: Assessment;
+  rows: Assessment[];
+  onSelect: (value: string) => void;
+}): ReactElement {
+  const [editing, setEditing] = useState(false);
+  const panelId = useId();
+  return (
+    <div className="grid min-w-0 gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <StageSelector rows={rows} active={active} onChange={onSelect} />
+        <Button
+          variant={editing ? "secondary" : "primary"}
+          onClick={() => setEditing(!editing)}
+          aria-controls={panelId}
+        >
+          {editing ? <ArrowLeft aria-hidden="true" /> : <Pencil aria-hidden="true" />}
+          {editing ? "Voltar ao gráfico" : "Editar notas"}
+        </Button>
+      </div>
+      <div
+        id={panelId}
+        key={editing ? "edit" : "view"}
+        className={styles.panel}
+        data-view={editing ? "edit" : "view"}
+      >
+        {editing ? (
+          <AssessmentSummary data={active} showHeading={false} chart={false} />
+        ) : (
+          <AcademicProgressChart data={active} prominent />
+        )}
+      </div>
+    </div>
   );
 }
 

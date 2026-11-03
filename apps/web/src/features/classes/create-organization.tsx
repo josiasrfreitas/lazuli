@@ -92,7 +92,7 @@ function SemesterAndStage(props: ClassFieldsProps): ReactElement {
     <FormRow columns={2}>
       <SelectControl
         name="semesterId"
-        label="Semestre"
+        label="Período"
         value={draft.semesterId}
         onChange={(value) => change("semesterId", value)}
         choices={options.semesters.map((item) => ({ value: item.id, label: item.name }))}

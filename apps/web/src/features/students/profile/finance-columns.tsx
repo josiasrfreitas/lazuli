@@ -1,4 +1,4 @@
-import { DollarSign, Handshake } from "lucide-react";
+import { BookOpen, DollarSign, GraduationCap, Handshake } from "lucide-react";
 import type { ReactElement } from "react";
 import { Badge, Button, type DataTableColumn } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
@@ -7,9 +7,15 @@ import { installmentVm, businessDate, originLabel } from "~/features/installment
 export type FinanceRow = FinanceInstallmentRow & { id: string };
 const COLUMNS: DataTableColumn<FinanceRow>[] = [
   {
+    id: "kind",
+    header: "Tipo",
+    width: "standard",
+    cell: (row) => <ChargeKind row={row} />,
+  },
+  {
     id: "origin",
     header: "Cobrança / pagador",
-    width: "wide",
+    width: "medium",
     cell: (row) => <InstallmentIdentity row={row} />,
   },
   {
@@ -21,7 +27,7 @@ const COLUMNS: DataTableColumn<FinanceRow>[] = [
   {
     id: "amount",
     header: "Valor / saldo",
-    width: "standard",
+    width: "narrow",
     numeric: true,
     cell: (row) => <InstallmentAmounts row={row} />,
   },
@@ -46,7 +52,7 @@ export function financeColumns({
     {
       id: "action",
       header: <span className="sr-only">Ações</span>,
-      width: "wide",
+      width: "medium",
       cell: (row) =>
         row.collectibleBalanceCents > 0 ? (
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -54,7 +60,7 @@ export function financeColumns({
               size="sm"
               variant={row.installmentId === priorityId ? "primary" : "secondary"}
               onClick={() => onReceive(row)}
-              aria-label={`Receber parcela ${row.sequenceNumber} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
+              aria-label={`Receber ${row.origin === "MATERIAL" ? "material" : `parcela ${row.sequenceNumber}`} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
             >
               <DollarSign aria-hidden="true" /> Receber
             </Button>
@@ -63,7 +69,7 @@ export function financeColumns({
                 size="sm"
                 variant="ghost"
                 onClick={() => onTreat(row)}
-                aria-label={`Negociar ou suspender parcela ${row.sequenceNumber}`}
+                aria-label={`Negociar ou suspender ${row.origin === "MATERIAL" ? "cobrança de material" : `parcela ${row.sequenceNumber}`}`}
               >
                 <Handshake aria-hidden="true" /> Negociar
               </Button>
@@ -78,17 +84,20 @@ function queueColumns(): DataTableColumn<FinanceRow>[] {
     {
       id: "due",
       header: "Tempo em atraso",
-      width: "standard",
+      width: "medium",
       cell: (row) => (
         <div className="grid gap-1">
-          <span className="font-medium text-destructive">{row.overdueDays} dias em atraso</span>
-          <span className="text-caption text-muted-foreground">
+          <span className="whitespace-nowrap font-medium text-destructive">
+            {row.overdueDays} dias em atraso
+          </span>
+          <span className="whitespace-nowrap text-caption text-muted-foreground">
             Venceu em {formatDateOnlyBR(row.dueDate)}
           </span>
         </div>
       ),
     },
     COLUMNS[0]!,
+    COLUMNS[1]!,
     {
       id: "balance",
       header: "Saldo a receber",
@@ -112,16 +121,8 @@ function queueColumns(): DataTableColumn<FinanceRow>[] {
 function InstallmentIdentity({ row }: { row: FinanceRow }): ReactElement {
   return (
     <div className="grid gap-1">
-      <span className="font-medium">
-        {originLabel(row.origin)}
-        {row.origin !== "MATERIAL" && (
-          <>
-            {" "}
-            · {row.sequenceNumber}/{row.scheduleTotal}
-          </>
-        )}
-      </span>
-      <span className="text-caption text-muted-foreground">{row.payer.name}</span>
+      <span className="font-medium">{row.material?.name ?? row.payer.name}</span>
+      {row.material && <span className="text-caption text-muted-foreground">{row.payer.name}</span>}
       {row.beneficiaries.length > 1 && (
         <span className="text-caption text-muted-foreground">
           Compartilhada entre {row.beneficiaries.length} alunos · valor integral
@@ -129,6 +130,25 @@ function InstallmentIdentity({ row }: { row: FinanceRow }): ReactElement {
       )}
     </div>
   );
+}
+function ChargeKind({ row }: { row: FinanceRow }): ReactElement {
+  const material = row.origin === "MATERIAL";
+  const Icon = material ? BookOpen : GraduationCap;
+  return (
+    <div className="grid gap-1">
+      <span className="flex items-center gap-2 font-medium">
+        <Icon className="size-4 shrink-0 text-icon" aria-hidden="true" />
+        {originLabel(row.origin)}
+      </span>
+      <span className="text-caption text-muted-foreground">{chargeKindDetail(row)}</span>
+    </div>
+  );
+}
+function chargeKindDetail(row: FinanceRow): string {
+  if (row.origin === "MATERIAL") return "Cobrança única · repasse";
+  return row.origin === "TUITION"
+    ? `Parcela ${row.sequenceNumber} de ${row.scheduleTotal}`
+    : "Cobrança única";
 }
 function InstallmentAmounts({ row }: { row: FinanceRow }): ReactElement {
   return (

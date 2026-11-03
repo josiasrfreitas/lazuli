@@ -7,6 +7,10 @@ This is the starting point for current Lazuli frontend work. Historical frontend
 
 These rules apply to product UI and disposable prototypes.
 
+Browser validation uses Orca's embedded browser through the `orca-cli` skill and CLI.
+Use the workspace's running development server. If Orca validation is unavailable, report the
+blocker; switching browser tooling requires an explicit user request.
+
 - **Explore before choosing.** A workshop must offer meaningfully different directions so the
   user can choose or combine them. For UI workshops, use three structurally different alternatives
   by default: vary layout, information hierarchy, or interaction flow, not merely colors or copy.

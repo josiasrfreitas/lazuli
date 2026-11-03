@@ -966,7 +966,7 @@ it("keeps database initialization pending after seed failure and resumes it", as
   );
 
   assert.equal(failed.status, 1);
-  assert.match(failed.stderr, /database initialization.*docker compose ps.*workspace:setup full/su);
+  assert.match(failed.stderr, /database fixture loading failed.*Back up local data.*pnpm seed/su);
   assert.equal(pending.status, "pending");
   assert.equal(resumed.status, 0, resumed.stderr);
   assert.equal(complete.status, "complete");
@@ -1067,7 +1067,10 @@ it("reports observed full resources and incomplete database initialization witho
   assert.match(result.stdout, /Profile.*full/u);
   assert.match(result.stdout, /Database.*exists/su);
   assert.match(result.stdout, /Bucket.*exists/su);
-  assert.match(result.stdout, /incomplete \(retry setup full\)/u);
+  assert.match(
+    result.stdout,
+    /incomplete \(setup can resume only before fixture loading; a failed seed requires pnpm seed\)/u,
+  );
   assert.doesNotMatch(infraLog, /compose up/u);
 });
 

@@ -218,9 +218,10 @@
 }
 .lz-calendar-selected-range .lz-calendar-background-label {
   display: block;
-  padding: 6px 8px;
+  padding: 2px 4px;
   font-size: var(--lz-text-caption);
   font-weight: 600;
+  white-space: nowrap;
 }
 .lz-calendar-state {
   position: absolute;

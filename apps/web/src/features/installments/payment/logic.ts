@@ -1,9 +1,12 @@
 "use client";
-import { useEffect, useReducer, useRef, useState, type Dispatch } from "react";
+import { useEffect, useReducer, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { FinanceInstallmentRow, PaymentOperationInput } from "@lazuli/validators";
+import type { RouterOutputs } from "@lazuli/api";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { parseDateBR } from "~/lib/masks";
 import { businessDate } from "../view-model";
+import { usePaymentConfirmation } from "./use-payment-confirmation";
+import type { PaymentProofDrafts } from "./payment-proof";
 import {
   paymentDateLabel,
   draftReceipts,
@@ -16,6 +19,9 @@ import {
 } from "./draft";
 
 export type PaymentFormState = {
+  methods: RouterOutputs["finance"]["paymentMethods"];
+  methodsLoading: boolean;
+  methodsError: boolean;
   draft: PaymentDraft;
   dispatch: Dispatch<DraftAction>;
   preview: PreviewRow[];
@@ -23,57 +29,209 @@ export type PaymentFormState = {
   error: string | null;
   submitting: boolean;
   uncertain: boolean;
+  registered: boolean;
+  uploading: boolean;
+  proofs: PaymentProofDrafts;
+  setProof: (receiptId: string, file: File | undefined) => void;
+  setProofError: (receiptId: string, message: string) => void;
+  attachItemProof: (item: PaymentDraft["items"][number], file: File) => void;
+  finish: () => void;
   revision: number;
   submit: () => void;
   refresh: () => void;
   isSubmitting: () => boolean;
 };
-export function usePaymentForm(input: {
+type PaymentFormInput = {
   rows: FinanceInstallmentRow[];
   onRegistered: () => void;
-}): PaymentFormState {
+};
+export function usePaymentForm(input: PaymentFormInput): PaymentFormState {
   const [draft, dispatch] = useReducer(paymentDraftReducer, input.rows, seedDraft);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const query = usePaymentPreview(draft);
+  const methods = trpc.finance.paymentMethods.useQuery();
   const confirmation = usePaymentConfirmation(input.onRegistered);
+  const proofEditor = usePaymentProofEditor(confirmation.locked, setError);
   useIncomingRows({ rows: input.rows, dispatch, locked: confirmation.locked });
-  const change: Dispatch<DraftAction> = (action) => {
-    if (confirmation.locked) return;
-    setError(null);
-    dispatch(action);
-  };
-  const submit = (): void => {
-    if (confirmation.isSubmitting()) return;
-    const problem = confirmation.uncertain ? null : paymentDraftError(draft, query.data ?? []);
-    if (problem || (!confirmation.uncertain && (query.isFetching || query.isError))) {
-      setError(problem ?? "Aguarde o cálculo da prévia.");
-      setRevision((value) => value + 1);
-      return;
-    }
-    confirmation.send(buildCommand(draft, query.data ?? []));
-  };
+  const change = paymentDraftDispatch({ locked: confirmation.locked, setError, dispatch });
+  const submit = createPaymentSubmit({
+    draft,
+    proofs: proofEditor.proofs,
+    methods: methods.data ?? [],
+    preview: query.data ?? [],
+    previewPending: query.isFetching || query.isError,
+    confirmation,
+    setError,
+    setRevision,
+  });
   return {
+    methods: methods.data ?? [],
+    methodsLoading: methods.isPending,
+    methodsError: methods.isError,
     draft,
     dispatch: change,
     preview: query.data ?? [],
     loading: query.isFetching,
-    error:
-      error ??
-      confirmation.error ??
-      (query.isError ? "Não foi possível calcular a prévia. Tente novamente." : null),
+    error: paymentFormError({
+      error,
+      confirmationError: confirmation.error,
+      previewError: query.isError,
+    }),
     submitting: confirmation.submitting,
     uncertain: confirmation.uncertain,
+    registered: confirmation.registered,
+    uploading: confirmation.uploading,
+    proofs: proofEditor.proofs,
+    setProof: proofEditor.setProof,
+    setProofError: proofEditor.setProofError,
+    attachItemProof: createAttachItemProof({ confirmation, proofEditor, change }),
+    finish: confirmation.finish,
     revision,
     submit,
     isSubmitting: confirmation.isSubmitting,
-    refresh: () => {
+    refresh: paymentRefresh({ setError, confirmation, query, methods }),
+  };
+}
+
+function createAttachItemProof({
+  confirmation,
+  proofEditor,
+  change,
+}: {
+  confirmation: ReturnType<typeof usePaymentConfirmation>;
+  proofEditor: ReturnType<typeof usePaymentProofEditor>;
+  change: Dispatch<DraftAction>;
+}): PaymentFormState["attachItemProof"] {
+  return (item, file) => {
+    if (confirmation.locked) return;
+    const receiptId = crypto.randomUUID();
+    proofEditor.setProofError(item.receiptId, "");
+    change({ type: "split", id: item.row.installmentId, receiptId });
+    proofEditor.setProof(receiptId, file);
+  };
+}
+
+function paymentDraftDispatch({
+  locked,
+  setError,
+  dispatch,
+}: {
+  locked: boolean;
+  setError: (error: string | null) => void;
+  dispatch: Dispatch<DraftAction>;
+}): Dispatch<DraftAction> {
+  return (action) => {
+    if (locked) return;
+    setError(null);
+    dispatch(action);
+  };
+}
+
+function paymentFormError({
+  error,
+  confirmationError,
+  previewError,
+}: {
+  error: string | null;
+  confirmationError: string | null;
+  previewError: boolean;
+}): string | null {
+  return (
+    error ??
+    confirmationError ??
+    (previewError ? "Não foi possível calcular a prévia. Tente novamente." : null)
+  );
+}
+
+function paymentRefresh({
+  setError,
+  confirmation,
+  query,
+  methods,
+}: {
+  setError: (error: string | null) => void;
+  confirmation: ReturnType<typeof usePaymentConfirmation>;
+  query: ReturnType<typeof usePaymentPreview>;
+  methods: ReturnType<typeof trpc.finance.paymentMethods.useQuery>;
+}): () => void {
+  return () => {
+    setError(null);
+    confirmation.clearError();
+    void query.refetch();
+    void methods.refetch();
+  };
+}
+
+function usePaymentProofEditor(
+  locked: boolean,
+  setError: (error: string | null) => void,
+): Pick<PaymentFormState, "proofs" | "setProof" | "setProofError"> {
+  const [proofs, setProofs] = useState<PaymentProofDrafts>({});
+  return {
+    proofs,
+    setProof: (receiptId, file) => {
+      if (locked) return;
       setError(null);
-      confirmation.clearError();
-      void query.refetch();
+      setProofs((current) => ({
+        ...current,
+        [receiptId]: { id: crypto.randomUUID(), file, error: "" },
+      }));
+    },
+    setProofError: (receiptId, message) => {
+      if (locked) return;
+      setProofs((current) => ({
+        ...current,
+        [receiptId]: {
+          id: current[receiptId]?.id ?? crypto.randomUUID(),
+          file: current[receiptId]?.file,
+          error: message,
+        },
+      }));
     },
   };
 }
+
+type PaymentSubmitParams = {
+  draft: PaymentDraft;
+  proofs: PaymentProofDrafts;
+  methods: RouterOutputs["finance"]["paymentMethods"];
+  preview: PreviewRow[];
+  previewPending: boolean;
+  confirmation: ReturnType<typeof usePaymentConfirmation>;
+  setError: (error: string | null) => void;
+  setRevision: Dispatch<SetStateAction<number>>;
+};
+
+function createPaymentSubmit(params: PaymentSubmitParams): () => void {
+  const { draft, proofs, preview, previewPending, confirmation, setError, setRevision } = params;
+  return () => {
+    if (confirmation.isSubmitting()) return;
+    const problem = paymentSubmitProblem(params);
+    if (problem || (!confirmation.uncertain && !confirmation.registered && previewPending)) {
+      setError(problem ?? "Aguarde o cálculo da prévia.");
+      setRevision((value) => value + 1);
+      return;
+    }
+    confirmation.send(buildCommand(draft, preview), proofs);
+  };
+}
+
+function paymentSubmitProblem({
+  draft,
+  proofs,
+  methods,
+  preview,
+  confirmation,
+}: PaymentSubmitParams): string | null {
+  if (confirmation.uncertain || confirmation.registered) return null;
+  const methodError = methods.some((method) => method.code === draft.method)
+    ? null
+    : "Selecione uma forma de pagamento disponível.";
+  const proofError = draft.items.map((item) => proofs[item.receiptId]?.error).find(Boolean);
+  return proofError || methodError || paymentDraftError(draft, preview);
+}
+
 function usePaymentPreview(draft: PaymentDraft): QueryResult<PreviewRow[]> {
   const date = parseDateBR(draft.date);
   return trpc.finance.previewPayments.useQuery(
@@ -91,56 +249,6 @@ function usePaymentPreview(draft: PaymentDraft): QueryResult<PreviewRow[]> {
     },
   );
 }
-type Confirmation = {
-  send: (command: PaymentOperationInput) => void;
-  locked: boolean;
-  submitting: boolean;
-  uncertain: boolean;
-  error: string | null;
-  isSubmitting: () => boolean;
-  clearError: () => void;
-};
-function usePaymentConfirmation(onRegistered: () => void): Confirmation {
-  const utils = trpc.useUtils();
-  const pending = useRef(false);
-  const attempt = useRef<PaymentOperationInput | null>(null);
-  const [uncertain, setUncertain] = useState(false);
-  const mutation = trpc.finance.confirmPayments.useMutation({
-    onSuccess: () => {
-      pending.current = false;
-      attempt.current = null;
-      setUncertain(false);
-      void utils.finance.invalidate();
-      onRegistered();
-    },
-    onError: (error) => {
-      pending.current = false;
-      const rejected =
-        error.data?.code === "BAD_REQUEST" ||
-        error.data?.code === "CONFLICT" ||
-        error.data?.code === "FORBIDDEN";
-      if (rejected) attempt.current = null;
-      setUncertain(!rejected);
-    },
-  });
-  return {
-    locked: mutation.isPending || uncertain,
-    submitting: mutation.isPending,
-    uncertain,
-    error: uncertain
-      ? "Não foi possível confirmar o resultado. Verifique o registro antes de alterar o recebimento."
-      : (mutation.error?.message ?? null),
-    isSubmitting: () => pending.current,
-    clearError: () => mutation.reset(),
-    send: (command) => {
-      if (pending.current) return;
-      pending.current = true;
-      attempt.current ??= command;
-      mutation.mutate(attempt.current);
-    },
-  };
-}
-
 export function usePaymentSearch(input: {
   search: string;
   page: number;

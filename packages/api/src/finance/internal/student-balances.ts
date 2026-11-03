@@ -1,6 +1,6 @@
 import { deriveInstallmentLedger } from "@lazuli/domain";
 
-import { loadInterestRatePctMonthly, type FinanceDatabase } from "./shared.js";
+import type { FinanceDatabase } from "./shared.js";
 
 /**
  * Per-student roll-up of the derived ledger, for listings that show one finance
@@ -38,7 +38,6 @@ export async function studentOverdueTotals(input: {
     return [];
   }
 
-  const interestRatePctMonthly = await loadInterestRatePctMonthly(input.database);
   const beneficiaries = await loadBeneficiaries(input.database, input.values.studentIds);
 
   return input.values.studentIds.map((studentId) => {
@@ -46,18 +45,14 @@ export async function studentOverdueTotals(input: {
     let overdueCents = 0;
 
     for (const link of links) {
-      overdueCents += sumOverdueCents({ link, now: input.values.now, interestRatePctMonthly });
+      overdueCents += sumOverdueCents({ link, now: input.values.now });
     }
 
     return { studentId, hasActiveOrder: links.length > 0, overdueCents };
   });
 }
 
-function sumOverdueCents(input: {
-  link: LoadedBeneficiary;
-  now: Date;
-  interestRatePctMonthly: number;
-}): number {
+function sumOverdueCents(input: { link: LoadedBeneficiary; now: Date }): number {
   let overdueCents = 0;
 
   for (const installment of input.link.order.installments) {
@@ -65,8 +60,6 @@ function sumOverdueCents(input: {
       ...installment,
       orderCancelledAt: input.link.order.cancelledAt,
       now: input.now,
-      interestRatePctMonthly:
-        input.link.order.kind === "MATERIAL" ? 0 : input.interestRatePctMonthly,
     });
 
     if (ledger.status === "OVERDUE") {

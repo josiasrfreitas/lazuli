@@ -9,6 +9,11 @@ import {
   callHttpQuery,
   ensureAdminUser,
 } from "../support/finance-test-support.js";
+import {
+  cleanContractMaterialFixture,
+  contractMaterialFixture,
+  TEST_MATERIAL_SETTINGS,
+} from "../support/contract-material-fixture.js";
 
 const PREFIX = "P05 contract transport ";
 const OK_STATUS = 200;
@@ -18,10 +23,10 @@ const financeSettings = {
   tuitionCeilingCents: 25_000,
   maximumDiscountPct: 20,
   punctualityDiscountPct: 20,
-  interestRatePctDaily: 0.1,
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 0,
+  ...TEST_MATERIAL_SETTINGS,
 };
 type PaymentResponse = {
   result: {
@@ -40,6 +45,7 @@ async function cleanup(): Promise<void> {
     select: { id: true },
   });
   const ids = contracts.map((row) => row.id);
+  await cleanContractMaterialFixture(db, { prefix: PREFIX, contractIds: ids });
   const orders = await db.order.findMany({
     where: { contractId: { in: ids } },
     select: { id: true },
@@ -86,6 +92,7 @@ async function createThroughHttp(): Promise<void> {
       firstDueDate: "2026-03-31",
       monthlyAmountCents: 25_000,
       punctualityDiscountPct: 20,
+      material: await contractMaterialFixture(db, PREFIX),
     },
   });
   assert.equal(response.status, OK_STATUS);
@@ -144,7 +151,7 @@ async function createThroughHttp(): Promise<void> {
   assert.equal(await db.contract.count({ where: { commandId: overflowCommandId } }), 0);
   const listResponse = await callHttpQuery({
     path: "finance.listContracts",
-    body: { page: 1 },
+    body: { page: 1, payerId: payer.id },
     now: new Date("2026-04-30T03:00:00Z"),
   });
   assert.equal(listResponse.status, OK_STATUS);
@@ -223,6 +230,7 @@ async function paysContractThroughHttp(): Promise<void> {
       firstDueDate: "2026-03-31",
       monthlyAmountCents: 25_000,
       punctualityDiscountPct: 20,
+      material: await contractMaterialFixture(db, PREFIX),
     },
   });
   assert.equal(creation.status, OK_STATUS);
@@ -234,7 +242,8 @@ async function paysContractThroughHttp(): Promise<void> {
       orders: { include: { installments: { orderBy: { sequenceNumber: "asc" } } } },
     },
   });
-  const installmentId = contract.orders[0]?.installments[0]?.id ?? "";
+  const installmentId =
+    contract.orders.find((order) => order.kind === "TUITION")?.installments[0]?.id ?? "";
   const request = {
     commandId: randomUUID(),
     payerId: contract.payerId,

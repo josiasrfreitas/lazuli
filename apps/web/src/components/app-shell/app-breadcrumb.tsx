@@ -4,8 +4,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { StaffRole } from "@lazuli/auth/server";
-import { safeTeacherReturn } from "~/features/teachers/format";
-import { navBreadcrumbFor, navReturnFor, type NavBreadcrumb } from "./nav-items";
+import { navBreadcrumbFor, navReturnFor } from "./nav-items";
 
 export function AppBreadcrumb({ role }: AppBreadcrumbInput): ReactNode {
   const pathname = usePathname();
@@ -17,22 +16,7 @@ export function AppBreadcrumb({ role }: AppBreadcrumbInput): ReactNode {
     return null;
   }
 
-  const teacherDetail = pathname.startsWith(TEACHER_DETAIL_PREFIX);
-  const returnHref = breadcrumbReturn({
-    pathname,
-    back: params.get(BACK_QUERY_PARAMETER),
-    parentHref: parent?.href,
-  });
-
-  if (parent)
-    return (
-      <ReturnBreadcrumb
-        returnHref={returnHref}
-        parent={parent}
-        teacherDetail={teacherDetail}
-        breadcrumb={breadcrumb}
-      />
-    );
+  if (parent) return <ReturnBreadcrumb parent={parent} />;
   return (
     <nav aria-label="Breadcrumb">
       <ol className="flex items-center gap-2 text-caption">
@@ -50,29 +34,10 @@ export function AppBreadcrumb({ role }: AppBreadcrumbInput): ReactNode {
 
 type AppBreadcrumbInput = { role: StaffRole };
 
-function breadcrumbReturn({
-  pathname,
-  back,
-  parentHref,
-}: BreadcrumbReturnInput): string | undefined {
-  const teacherDetail = pathname.startsWith(TEACHER_DETAIL_PREFIX);
-  const teacherReturn = pathname.startsWith("/turmas/") && back?.startsWith(TEACHER_DETAIL_PREFIX);
-  return teacherDetail || teacherReturn ? safeTeacherReturn(back) : parentHref;
-}
-
 const BACK_QUERY_PARAMETER = "voltar";
 
-type BreadcrumbReturnInput = {
-  pathname: string;
-  back: string | null;
-  parentHref: string | undefined;
-};
-
 type ReturnBreadcrumbProps = {
-  returnHref: string | undefined;
   parent: { href: string; label: string };
-  teacherDetail: boolean;
-  breadcrumb: NavBreadcrumb;
 };
 function ReturnBreadcrumb(props: ReturnBreadcrumbProps): ReactElement {
   return (
@@ -80,25 +45,21 @@ function ReturnBreadcrumb(props: ReturnBreadcrumbProps): ReactElement {
       <ol className="flex min-w-0 items-center gap-3 text-caption">
         <li className="min-w-0">
           <Link
-            href={props.returnHref ?? props.parent.href}
+            href={props.parent.href}
             aria-label={`Voltar para ${props.parent.label}`}
             className="flex min-h-11 items-center gap-2 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus"
           >
             <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
-            <span className="truncate">
-              {props.teacherDetail ? props.breadcrumb.section : props.parent.label}
-            </span>
+            <span className="truncate">{props.parent.label}</span>
           </Link>
         </li>
         <li aria-hidden="true" className="hidden text-border-strong sm:block">
           <ChevronRight className="size-3.5" />
         </li>
         <li aria-current="page" className="hidden font-semibold sm:block">
-          {props.teacherDetail ? props.breadcrumb.page : "Detalhes"}
+          Detalhes
         </li>
       </ol>
     </nav>
   );
 }
-
-const TEACHER_DETAIL_PREFIX = "/professores/";

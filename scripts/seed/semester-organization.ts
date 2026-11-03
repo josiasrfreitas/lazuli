@@ -1,16 +1,14 @@
 import { seedStudentIndex } from "./student-fixtures.js";
-import type { Semester } from "../../packages/db/src/index.js";
+import type { Period } from "../../packages/db/src/index.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { DEV_ADMIN, DEV_TEACHERS } from "../../packages/db/src/seed-dev-data.js";
-import { addDays, isoOf, utcDate } from "../../packages/db/src/seed-dev-support.js";
+import { isoOf } from "../../packages/db/src/seed-dev-support.js";
 import { classScheduleSlotsInputSchema } from "../../packages/validators/src/class.js";
 import { recordActivity } from "../../packages/api/src/activity/record.js";
 import { readSemester } from "../../packages/api/src/semester-organization/queries.js";
 import type { OrganizationContext } from "../../packages/api/src/semester-organization/data.js";
 import {
   ORGANIZATION_GROUPS,
-  availabilityProfile,
-  availabilitySlots,
   organizationId,
   organizationInstant,
   type OrganizationGroup,
@@ -33,16 +31,14 @@ import {
 
 const AUTHORING_DAYS = {
   planned: 14,
-  availability: 7,
+
   proposed: 6,
   revised: 4,
   published: 2,
 } as const;
 const EXPECTED_PROPOSALS = 32;
-const AVAILABILITY_DURATION_DAYS = 45;
 const PUBLICATION_TIMEOUT_MS = 30_000;
 const TERMINAL_STAGE_STUDENT = seedStudentIndex("school-student-76");
-const ONLINE_ONLY_STUDENT = seedStudentIndex("school-student-224");
 const REVISED_AFTERNOON_STUDENT = seedStudentIndex("school-student-135");
 const REVISED_SCHEDULE_STUDENT = seedStudentIndex("occupancy-T2A-6");
 type OrganizationEntry = { index: number; group: OrganizationGroup | null };
@@ -51,7 +47,7 @@ type OrganizationSeed = {
   todayIso: string;
   staffUser: OrganizationContext["staffUser"];
   dates: { [K in keyof typeof AUTHORING_DAYS]: Date };
-  semester: Semester;
+  semester: Period;
   teachers: Map<string, string>;
   entries: OrganizationEntry[];
   subjects: Map<number, PlacementSubject>;
@@ -81,7 +77,7 @@ async function organizationContext(
   });
   const dates = {
     planned: organizationInstant(todayIso, AUTHORING_DAYS.planned),
-    availability: organizationInstant(todayIso, AUTHORING_DAYS.availability),
+
     proposed: organizationInstant(todayIso, AUTHORING_DAYS.proposed),
     revised: organizationInstant(todayIso, AUTHORING_DAYS.revised),
     published: organizationInstant(todayIso, AUTHORING_DAYS.published),
@@ -173,7 +169,6 @@ async function proposeOrganizationStudent(
   const { database, staffUser, dates, semester, subjects } = state;
   const { index, group } = entry;
   const subject = subjects.get(index)!;
-  await confirmOrganizationAvailability(state, { index, group, subject });
   // One draft changes group later; its initial intention remains in revision 1.
   const initialGroup = index === REVISED_AFTERNOON_STUDENT ? "ppt-b" : group?.key;
   const placementId = organizationId("placement", {
@@ -209,70 +204,14 @@ async function proposeOrganizationStudent(
   await recordOrganizationProposal(context, { semesterName: semester.name, subject, version: 1 });
 }
 
-async function confirmOrganizationAvailability(
-  state: OrganizationSeed,
-  entry: OrganizationEntry & { subject: PlacementSubject },
-): Promise<void> {
-  const { database, staffUser, dates, semester } = state;
-  const { index, group, subject } = entry;
-  const profile = availabilityProfile(index);
-  if (profile !== "UNKNOWN") {
-    const validUntil = availabilityExpiry(state, profile);
-    const formats =
-      index === ONLINE_ONLY_STUDENT ? ["ONLINE" as const] : [group?.format ?? "IN_PERSON"];
-    await database.studentAvailability.create({
-      data: {
-        id: organizationId("availability", { semesterName: semester.name, key: subject.key }),
-        studentId: subject.student.id,
-        semesterId: semester.id,
-        confirmed: true,
-        validUntil,
-        formats,
-        slots: availabilitySlots(index, group),
-        recordedById: staffUser.id,
-        notes: availabilityNotes(profile),
-        createdAt: dates.availability,
-        updatedAt: dates.availability,
-      },
-    });
-    await recordActivity(database, {
-      context: { staffUser, now: dates.availability },
-      action: "semesterOrganization.confirmAvailability",
-      details: {
-        subject: { type: "student", id: subject.student.id, name: subject.student.fullName },
-        description: `Disponibilidade de ${semester.name} confirmada até ${isoOf(validUntil)}.`,
-        deduplicationKey: `seed/semester-availability/${semester.name}/${subject.key}`,
-      },
-    });
-  }
-}
-
-function availabilityExpiry(
-  state: OrganizationSeed,
-  profile: ReturnType<typeof availabilityProfile>,
-): Date {
-  if (profile === "EXPIRED") return addDays(utcDate(state.todayIso), -1);
-  if (profile === "EXPIRES_BEFORE_ENTRY") return addDays(state.semester.startDate, -1);
-  return addDays(state.semester.startDate, AVAILABILITY_DURATION_DAYS);
-}
-function availabilityNotes(profile: ReturnType<typeof availabilityProfile>): string {
-  if (profile === "EXPIRED")
-    return "Contato anterior já venceu; confirmar novamente para organizar a entrada.";
-  if (profile === "EXPIRES_BEFORE_ENTRY")
-    return "Família confirmou somente até o fim do semestre atual; renovar para a entrada futura.";
-  if (profile === "INCOMPATIBLE")
-    return "Disponibilidade informada pelo aluno ou responsável; conciliar a proposta sem ampliar esta confirmação.";
-  return "Disponibilidade confirmada especificamente para a entrada no próximo semestre.";
-}
-
 async function reviseOrganizationStudent(state: OrganizationSeed, index: number): Promise<void> {
   const { database, staffUser, dates, semester, subjects, entries } = state;
   const subject = subjects.get(index)!;
   const group = entries.find((row) => row.index === index)!.group!;
   const reason =
     index === REVISED_AFTERNOON_STUDENT
-      ? "Ajustar a intenção para a primeira faixa da tarde; a confirmação ainda precisa cobrir a data de entrada."
-      : "Horário informado não cobre a turma proposta; manter em rascunho até conciliar a disponibilidade e o docente.";
+      ? "Ajustar a intenção para a primeira faixa da tarde; revise a data de entrada."
+      : "Manter a proposta em rascunho até revisar a turma e o docente.";
   await database.$transaction(async (transaction) => {
     const context = { database: transaction, staffUser, now: dates.revised };
     const placementId = organizationId("placement", {
@@ -318,7 +257,7 @@ async function publishEligibleGroups(state: OrganizationSeed): Promise<void> {
     publishedGroups += 1;
   }
   process.stdout.write(
-    `Semester organization loaded: 8 plans, 32 proposals, 30 availability confirmations, ${published} future publications in ${publishedGroups} future classes.\n`,
+    `Semester organization loaded: 8 plans, 32 proposals, ${published} future publications in ${publishedGroups} future classes.\n`,
   );
 }
 
@@ -358,10 +297,6 @@ async function publishOrganizationGroup(
           entryDate: semester.startDate,
           subject,
           classId: classroom.id,
-          availabilityId: organizationId("availability", {
-            semesterName: semester.name,
-            key: subject.key,
-          }),
         });
       await recordPublishedGroup(context, { classroom, semester, selected, planId });
     },
@@ -371,7 +306,7 @@ async function publishOrganizationGroup(
 
 async function assertGroupPublication(
   context: OrganizationContext,
-  input: SelectedGroup & { semester: Semester },
+  input: SelectedGroup & { semester: Period },
 ): Promise<void> {
   const { selected, semester, group } = input;
   const board = await readSemester(context, semester.id);
@@ -381,7 +316,7 @@ async function assertGroupPublication(
         row.id === organizationId("placement", { semesterName: semester.name, key: subject.key }),
     ),
   );
-  if (eligible.some((row) => !row || row.blockers.length > 0 || !row.availability))
+  if (eligible.some((row) => !row || row.blockers.length > 0))
     throw new Error(
       `Semester seed publication violates the live eligibility contract for group ${group.key}.`,
     );
@@ -391,7 +326,7 @@ async function recordPublishedGroup(
   context: OrganizationContext,
   input: {
     classroom: { id: string; portalClassName: string };
-    semester: Semester;
+    semester: Period;
     selected: PlacementSubject[];
     planId: string;
   },

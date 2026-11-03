@@ -16,6 +16,8 @@ import {
   ScheduleCalendar,
   Stepper,
 } from "@lazuli/ui";
+import { trpc } from "~/lib/trpc";
+import { SelectControl } from "~/features/classes/form-controls";
 import { MeetingDateField } from "~/features/appointments/form-fields";
 import { TimeField } from "~/features/shared/time-field";
 import { DiscardRegistrationDialog } from "~/features/shared/discard-registration-dialog";
@@ -44,7 +46,7 @@ export function PlacementScheduleView({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className="h-[85dvh] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[1224px]"
+          className="h-[85dvh] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] md:w-[calc(100vw-2rem)] md:max-w-[1224px]"
           initialFocus={() => document.querySelector("#appointment-date")}
         >
           <DialogHeader className="flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -89,8 +91,8 @@ function ScheduleForm({
   return (
     <form id="placement-schedule" noValidate onSubmit={submit} className={styles.form}>
       <p className="text-caption text-muted-foreground">
-        Clique ou arraste na agenda para escolher o horário. A prova não exige professor no
-        agendamento.
+        Clique ou arraste na agenda para escolher o horário da prova. Escolha também quem fará a
+        correção.
       </p>
       <ScheduleCalendarSection {...{ props, state, calendar, validation, actions }} />
       <ScheduleFooter {...{ props, state, calendar, validation, actions }} />
@@ -114,7 +116,7 @@ function ScheduleCalendarSection({
 }: ScheduleViewProps): ReactJSX.Element {
   const { now, setView } = state;
   const { calendarWindow, blocked, events } = calendar;
-  const { selection, ready, times } = validation;
+  const { selection, selectionError, times } = validation;
   const { navigate, selectRange } = actions;
   return (
     <div className={styles.calendar}>
@@ -132,8 +134,8 @@ function ScheduleCalendarSection({
         onViewChange={setView}
         emptyMessage="Escolha um horário para a prova de nivelamento."
         rangeSelection={{
-          clickDurationMinutes: 30,
-          value: ready ? selection : null,
+          clickDurationMinutes: 40,
+          value: selectionError ? null : selection,
           minimum: now,
           blocked,
           getError: validation.intervalError,
@@ -155,6 +157,7 @@ function ScheduleFooter({
   return (
     <div className={styles.footer}>
       <ScheduleFields {...{ props, state, calendar, validation, actions }} />
+      <CorrectionTeacher state={state} actions={actions} />
       <ScheduleButtons {...{ props, state, calendar, validation, actions }} />
     </div>
   );
@@ -202,6 +205,44 @@ function ScheduleFields({ state, calendar, actions }: ScheduleViewProps): ReactJ
         options={{ IN_PERSON: "Na escola", ONLINE: "Online" }}
         onChange={(value) => change("format", value as (typeof draft)["format"])}
       />
+    </fieldset>
+  );
+}
+
+function CorrectionTeacher({
+  state,
+  actions,
+}: Pick<ScheduleViewProps, "state" | "actions">): ReactJSX.Element {
+  const teachers = trpc.teachers.options.useQuery({
+    date: parseDateBR(state.draft.date) ?? state.now.date,
+    search: "",
+  });
+  return (
+    <fieldset disabled={actions.pending} className={styles.correction}>
+      <SelectControl
+        name="placement-teacher"
+        label="Professor responsável pela correção"
+        value={state.draft.teacherId}
+        onChange={(id) => actions.change("teacherId", id)}
+        choices={(teachers.data ?? []).map((teacher) => ({
+          value: teacher.id,
+          label: teacher.name,
+        }))}
+        error={actions.errors.fields.teacherId}
+      />
+      <p className="text-caption text-muted-foreground">
+        Responsável por corrigir a prova, não por aplicá-la.
+      </p>
+      {teachers.isPending && (
+        <p role="status" className="text-caption">
+          Carregando professores…
+        </p>
+      )}
+      {teachers.isError && (
+        <Button variant="ghost" size="sm" onClick={() => void teachers.refetch()}>
+          Tentar carregar professores novamente
+        </Button>
+      )}
     </fieldset>
   );
 }

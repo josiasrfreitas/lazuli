@@ -16,6 +16,9 @@ export type ContractFields = {
   materialStageIds: string;
   materialCategory: string;
   materialPayment: string;
+  materialInstallments: string;
+  materialPriceMode: string;
+  materialCustomPrice: string;
   materialTotal: string;
   materialQuoteVersion: string;
   paymentPlan: string;
@@ -28,12 +31,15 @@ export type ContractFields = {
   payerEmail: string;
   studentMode: string;
   studentDraftName: string;
+  studentBirthDate: string;
   studentDocumentType: string;
   studentDocumentNumber: string;
   studentPhone: string;
   studentEmail: string;
   studentGuardianMode: string;
   studentGuardianName: string;
+  studentGuardianDocumentType: string;
+  studentGuardianDocumentNumber: string;
   studentGuardianPhone: string;
   studentGuardianEmail: string;
   studentId: string;
@@ -44,12 +50,22 @@ export type ContractFields = {
   endsOn: string;
   firstDueDate: string;
   monthlyAmount: string;
+  enrollmentFee: string;
+  materialScholarshipMode: string;
+  materialScholarshipPct: string;
+  materialScholarshipAgreement: string;
+  scholarshipMode: string;
+  scholarshipPct: string;
+  scholarshipAgreement: string;
 };
 
 export const emptyContractFields: ContractFields = {
-  materialStageIds: ",",
+  materialStageIds: "",
   materialCategory: "",
-  materialPayment: "NONE",
+  materialPayment: "CASH",
+  materialInstallments: "6",
+  materialPriceMode: "REFERENCE",
+  materialCustomPrice: "",
   materialTotal: "",
   materialQuoteVersion: "",
   paymentPlan: "common",
@@ -62,12 +78,15 @@ export const emptyContractFields: ContractFields = {
   payerEmail: "",
   studentMode: "existing",
   studentDraftName: "",
+  studentBirthDate: "",
   studentDocumentType: "",
   studentDocumentNumber: "",
   studentPhone: "",
   studentEmail: "",
   studentGuardianMode: "",
   studentGuardianName: "",
+  studentGuardianDocumentType: "",
+  studentGuardianDocumentNumber: "",
   studentGuardianPhone: "",
   studentGuardianEmail: "",
   studentId: "",
@@ -78,9 +97,17 @@ export const emptyContractFields: ContractFields = {
   endsOn: "",
   firstDueDate: "",
   monthlyAmount: "",
+  enrollmentFee: "0",
+  materialScholarshipMode: "NONE",
+  materialScholarshipPct: "",
+  materialScholarshipAgreement: "",
+  scholarshipMode: "NONE",
+  scholarshipPct: "",
+  scholarshipAgreement: "",
 };
 
 export function paymentPlanLabel(count: number, uniformAmountCents: number | null): string {
+  if (count === 0) return "Sem parcelas de mensalidade";
   return uniformAmountCents === null
     ? `${count} parcelas · valores variáveis`
     : `${count} × ${formatBRLFromCents(uniformAmountCents)}`;
@@ -95,7 +122,7 @@ export function suggestMonthlyAmount(
   return fields.monthlyAmount === monthlyAmount ? fields : { ...fields, monthlyAmount };
 }
 
-function durationFromDates(fields: ContractFields): number {
+export function durationFromDates(fields: ContractFields): number {
   const start = parseDateBR(fields.firstDueDate);
   const end = parseDateBR(fields.endsOn);
   if (!start || !end) return Number.NaN;
@@ -107,25 +134,30 @@ function durationFromDates(fields: ContractFields): number {
 
 function studentInput(fields: ContractFields): object {
   if (fields.studentMode === "existing") return { studentId: fields.studentId };
-  const guardian =
-    fields.studentGuardianMode === "create"
-      ? {
-          mode: "create",
-          input: {
-            fullName: fields.studentGuardianName,
-            phone: fields.studentGuardianPhone.trim() || undefined,
-            email: fields.studentGuardianEmail.trim() || undefined,
-          },
-        }
-      : undefined;
+  const birthDate = parseDateBR(fields.studentBirthDate);
   return {
     newStudent: {
       fullName: fields.studentDraftName,
+      birthDate: birthDate ? new Date(`${birthDate}T00:00:00.000Z`) : undefined,
       documentType: fields.studentDocumentType || undefined,
       documentNumber: fields.studentDocumentNumber.trim() || undefined,
       phone: fields.studentPhone.trim() || undefined,
       email: fields.studentEmail.trim() || undefined,
-      guardian,
+      guardian: guardianInput(fields),
+    },
+  };
+}
+
+function guardianInput(fields: ContractFields): object | undefined {
+  if (fields.studentGuardianMode !== "create") return undefined;
+  return {
+    mode: "create",
+    input: {
+      fullName: fields.studentGuardianName,
+      documentType: fields.studentGuardianDocumentType || undefined,
+      documentNumber: fields.studentGuardianDocumentNumber.trim() || undefined,
+      phone: fields.studentGuardianPhone.trim() || undefined,
+      email: fields.studentGuardianEmail.trim() || undefined,
     },
   };
 }
@@ -144,29 +176,37 @@ function payerInput(fields: ContractFields): object {
 }
 
 export function contractInputFromFields(
-  fields: ContractFields,
-  command: string | { commandId: string; newStudent: z.input<typeof studentCreateInputSchema> },
+  ...[fields, command, renewedFromId]: [
+    ContractFields,
+    string | { commandId: string; newStudent: z.input<typeof studentCreateInputSchema> },
+    string?,
+  ]
 ): ReturnType<typeof createMonthlyContractInputSchema.safeParse> {
   const commandId = typeof command === "string" ? command : command.commandId;
   const beneficiary =
     typeof command === "string" ? studentInput(fields) : { newStudent: command.newStudent };
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
+    ...(renewedFromId ? { renewedFromId } : {}),
     ...(fields.materialPayment === "NONE"
       ? {}
       : {
           material: {
+            ...scholarshipInput(fields, true),
+            ...materialPriceInput(fields),
             stageIds: fields.materialStageIds.split(","),
             quoteVersion: fields.materialQuoteVersion,
             category: fields.materialCategory,
             payment: fields.materialPayment,
+            installmentCount: materialInstallmentCount(fields),
             expectedTotalCents:
               fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
           },
         }),
-    ...(fields.paymentPlan === "special"
+    ...(fields.paymentPlan === "special" && fields.scholarshipMode !== "FULL"
       ? { installmentCount: Number(fields.installmentCount) }
       : {}),
+    ...scholarshipInput(fields),
     ...beneficiary,
     ...payerInput(fields),
     agreedOn: parseDateBR(fields.agreedOn),
@@ -174,6 +214,13 @@ export function contractInputFromFields(
     durationMonths: durationFromDates(fields),
     firstDueDate: parseDateBR(fields.firstDueDate),
     monthlyAmountCents: Math.round(Number(fields.monthlyAmount.replace(",", ".")) * CENTS_PER_REAL),
+    ...(fields.enrollmentFee.trim()
+      ? {
+          enrollmentFeeCents: Math.round(
+            Number(fields.enrollmentFee.replace(",", ".")) * CENTS_PER_REAL,
+          ),
+        }
+      : {}),
   });
   return parsed;
 }
@@ -203,4 +250,42 @@ export function previewContractInput(
   } catch {
     return null;
   }
+}
+
+export function materialInstallmentCount(fields: ContractFields): number {
+  return fields.materialPayment === "CASH" || fields.materialScholarshipMode === "FULL"
+    ? 1
+    : Number(fields.materialInstallments);
+}
+
+export function materialPriceInput(fields: ContractFields): { priceOverrideCents?: number } {
+  return fields.materialPriceMode === "CUSTOM"
+    ? {
+        priceOverrideCents: fields.materialCustomPrice.trim()
+          ? Math.round(Number(fields.materialCustomPrice.replace(",", ".")) * CENTS_PER_REAL)
+          : Number.NaN,
+      }
+    : {};
+}
+
+export function scholarshipInput(
+  fields: ContractFields,
+  material = false,
+): { scholarshipPct?: number; scholarshipAgreement?: string } {
+  const mode = material ? fields.materialScholarshipMode : fields.scholarshipMode;
+  if (mode === "NONE") return {};
+  const percent = Number(
+    (material ? fields.materialScholarshipPct : fields.scholarshipPct).replace(",", "."),
+  );
+  return {
+    scholarshipPct: scholarshipPercent(mode, percent),
+    scholarshipAgreement: material
+      ? fields.materialScholarshipAgreement
+      : fields.scholarshipAgreement,
+  };
+}
+
+function scholarshipPercent(mode: string, percent: number): number {
+  if (mode === "FULL") return CENTS_PER_REAL;
+  return percent > 0 && percent < CENTS_PER_REAL ? percent : Number.NaN;
 }

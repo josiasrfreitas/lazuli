@@ -77,23 +77,6 @@ export const semesterPlacementSchema = semesterScopeSchema
     notes: z.string().trim().max(MAX_NOTES_LENGTH).default(""),
   })
   .strict();
-export const studentAvailabilitySchema = semesterScopeSchema
-  .extend({
-    studentId: id,
-    previousId: id.nullable(),
-    validUntil: calendarDateSchema,
-    formats: z.array(classFormatSchema).min(1).max(2),
-    slots: z.array(classScheduleSlotInputSchema).min(1).max(MAX_SLOTS),
-    notes: z.string().trim().max(MAX_NOTES_LENGTH).default(""),
-  })
-  .strict();
-export const invalidateAvailabilitySchema = semesterScopeSchema
-  .extend({
-    studentId: id,
-    previousId: id,
-    reason: z.string().trim().min(MIN_REASON_LENGTH).max(MAX_NOTES_LENGTH),
-  })
-  .strict();
 export const publishSemesterSchema = z
   .object({
     planId: id,
@@ -117,5 +100,4 @@ export const withdrawSemesterSchema = z
   .strict();
 export type SemesterPlanInput = z.infer<typeof semesterPlanSchema>;
 export type SemesterPlacementInput = z.infer<typeof semesterPlacementSchema>;
-export type StudentAvailabilityInput = z.infer<typeof studentAvailabilitySchema>;
 export type PublishSemesterInput = z.infer<typeof publishSemesterSchema>;

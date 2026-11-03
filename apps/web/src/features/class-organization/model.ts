@@ -1,35 +1,33 @@
+import { confirmationLabels } from "./confirmation";
 import { formatDateOnlyBR } from "~/lib/format";
-import { availabilityCovers } from "@lazuli/domain";
 import {
   type ClassPlan,
   type Placement,
-  type SemesterBoard,
-} from "~/features/semester-organization/shared";
+  type OrganizationBoard,
+} from "~/features/class-organization/shared";
 
 const ISO_DATE_LENGTH = 10;
 const MILLISECONDS_PER_DAY = 86_400_000;
 const OCCUPANCY_LEVELS = { underfilled: 4, good: 8 } as const;
 const RENEWAL_WARNING_DAYS = 45;
 
-export type { ClassPlan, Placement, SemesterBoard } from "~/features/semester-organization/shared";
+export type { ClassPlan, Placement, OrganizationBoard } from "~/features/class-organization/shared";
 export type OrganizationAction =
   | { kind: "plan"; plan?: ClassPlan; group?: PendingGroup }
   | { kind: "placement"; studentId: string; row?: Placement; planId?: string }
-  | { kind: "availability"; studentId: string }
   | { kind: "move" | "decline"; rows: Placement[]; planId?: string }
   | { kind: "continuity"; row: Placement }
   | { kind: "planStatus"; plan: ClassPlan; open: boolean }
   | { kind: "history" | "withdraw"; row: Placement }
-  | { kind: "renew"; contractId: string }
   | { kind: "closure"; date?: string }
-  | { kind: "holidays" | "period" | "newSemester" | "student" | "findStudent" };
-export const rowsFor = (board: SemesterBoard, planId: string): Placement[] =>
+  | { kind: "holidays" | "period" | "newSemester" | "findStudent" };
+export const rowsFor = (board: OrganizationBoard, planId: string): Placement[] =>
   board.placements.filter((row) => row.planId === planId && !row.declinedAt);
 export type PendingGroup = {
   stageId: string;
   stageCode: string;
   rows: Placement[];
-  leads: SemesterBoard["waitingLeads"];
+  leads: OrganizationBoard["waitingLeads"];
 };
 export const isPending = (row: Placement): boolean =>
   !row.declinedAt &&
@@ -54,24 +52,11 @@ function occupancyState(count: number): Omit<ReturnType<typeof occupancy>, "coun
   return { tone: "success", label: "Boa ocupação" };
 }
 
-export function continuityLabel(
-  row: Placement,
-  board: SemesterBoard,
-):
-  | "Possível saída"
-  | "Troca de turma"
-  | "Continua na turma"
-  | "Continuidade prevista · contrato"
-  | "A conversar" {
-  if (row.continuity === "LEAVING" || row.declinedAt) return "Possível saída";
-  if (row.continuity === "CHANGE") return "Troca de turma";
-  if (row.continuity === "STAY") return "Continua na turma";
-  if (row.nextPeriodCovered) return "Continuidade prevista · contrato";
-  if (row.periodCovered && new Date(board.semester.startDate) > new Date())
-    return "Continuidade prevista · contrato";
-  return "A conversar";
+export function continuityLabel(row: Placement, _board: OrganizationBoard): string {
+  return confirmationLabels[row.confirmation];
 }
-export function leavingFor(board: SemesterBoard, plan: ClassPlan): Placement[] {
+
+export function leavingFor(board: OrganizationBoard, plan: ClassPlan): Placement[] {
   return board.placements.filter(
     (row) =>
       (row.continuity === "LEAVING" || row.declinedAt) &&
@@ -81,16 +66,10 @@ export function leavingFor(board: SemesterBoard, plan: ClassPlan): Placement[] {
 }
 export function compatible(row: Placement, plan: ClassPlan): boolean {
   return (
-    plan.active &&
-    (plan.scheduleType === "PERSONALIZED" || plan.sharedStageId === row.stageId) &&
-    Boolean(
-      row.availability?.confirmed &&
-      row.availability.formats.includes(plan.format) &&
-      availabilityCovers(row.availability.slots, plan.slots),
-    )
+    plan.active && (plan.scheduleType === "PERSONALIZED" || plan.sharedStageId === row.stageId)
   );
 }
-export function suggestedPlans(row: Placement, board: SemesterBoard): ClassPlan[] {
+export function suggestedPlans(row: Placement, board: OrganizationBoard): ClassPlan[] {
   return board.plans
     .filter((plan) => compatible(row, plan))
     .toSorted(
@@ -99,7 +78,7 @@ export function suggestedPlans(row: Placement, board: SemesterBoard): ClassPlan[
         Number(left.sourceClassId === row.sourceClassId),
     );
 }
-export function changeLabel(row: Placement, board: SemesterBoard): string {
+export function changeLabel(row: Placement, board: OrganizationBoard): string {
   if (row.declinedAt) return "Não continuará";
   if (!row.planId) return "Sem turma";
   if (!row.sourceClassId) return "Nova entrada";

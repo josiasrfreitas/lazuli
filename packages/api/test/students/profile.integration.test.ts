@@ -84,6 +84,9 @@ function registerMinorValidationTest(): void {
       caller().students.create({
         fullName: `${TEST_PREFIX}Minor Without Guardian`,
         birthDate: MINOR_BIRTH_DATE_OBJECT,
+        documentType: "RG",
+        documentNumber: "minor-without-guardian",
+        phone: "82911110001",
       }),
       /Responsavel obrigatorio para alunos menores de idade/,
     );
@@ -94,15 +97,20 @@ function registerMinorValidationTest(): void {
       caller().students.create({
         fullName: `${TEST_PREFIX}Minor Guardian Without Contact`,
         birthDate: MINOR_BIRTH_DATE_OBJECT,
+        documentType: "RG",
+        documentNumber: "minor-guardian-without-contact",
+        phone: "82911110002",
         guardian: {
           mode: "create",
           input: {
             fullName: `${TEST_PREFIX}Guardian Without Contact`,
             relationship: "Mae",
+            documentType: "RG",
+            documentNumber: "guardian-without-contact",
           },
         },
       }),
-      /Informe telefone ou email do responsavel para alunos menores de idade/,
+      /Informe telefone ou e-mail do responsável/,
     );
   });
 }
@@ -112,6 +120,9 @@ function registerMinorGuardianTest(): void {
     const created = await caller().students.create({
       fullName: `${TEST_PREFIX}Minor With Guardian`,
       birthDate: MINOR_BIRTH_DATE_OBJECT,
+      documentType: "RG",
+      documentNumber: "minor-with-guardian",
+      phone: "82911110003",
       address: {
         street: "Rua GRE-20 Shared",
         number: "45",
@@ -126,6 +137,8 @@ function registerMinorGuardianTest(): void {
         input: {
           fullName: `${TEST_PREFIX}Guardian Shared`,
           relationship: "Mae",
+          documentType: "RG",
+          documentNumber: "guardian-shared",
           phone: "82977770000",
         },
       },
@@ -184,6 +197,9 @@ async function createUpdateTarget(): Promise<{ id: string }> {
   return caller().students.create({
     fullName: `${TEST_PREFIX}Update Target`,
     birthDate: MINOR_BIRTH_DATE_OBJECT,
+    documentType: "RG",
+    documentNumber: "update-target",
+    phone: "82911110004",
     address: {
       street: "Rua GRE-20 Original",
       number: "789",
@@ -197,6 +213,8 @@ async function createUpdateTarget(): Promise<{ id: string }> {
       input: {
         fullName: `${TEST_PREFIX}Original Guardian`,
         relationship: "Pai",
+        documentType: "RG",
+        documentNumber: "original-guardian",
         phone: "82911110000",
         address: {
           street: "Rua GRE-20 Guardian Original",

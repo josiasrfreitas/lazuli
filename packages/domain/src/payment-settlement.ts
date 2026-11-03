@@ -1,13 +1,14 @@
-import { addCalendarMonths, priceAfterDiscountCents } from "./monthly-contract.js";
+import { priceAfterDiscountCents } from "./monthly-contract.js";
 
 const RATE_SCALE = 10_000;
 const PERCENT = 100;
 const ROUNDING_DIVISOR = 2n;
-const DENOMINATOR = BigInt(RATE_SCALE * PERCENT);
+const DAYS_PER_INTEREST_MONTH = 30;
+const DENOMINATOR = BigInt(RATE_SCALE * PERCENT * DAYS_PER_INTEREST_MONTH);
 const MILLISECONDS_PER_DAY = 86_400_000;
+const ZERO_INTEREST = 0n;
 
-type InterestTotals = { daily: bigint; monthly: bigint };
-type InterestTerms = { dueDate: string; dailyPct: number; monthlyPct: number };
+type InterestTerms = { dueDate: string; monthlyPct: number };
 
 function roundedInterest(value: bigint): number {
   return Number((value + DENOMINATOR / ROUNDING_DIVISOR) / DENOMINATOR);
@@ -18,21 +19,13 @@ function accrueInterest(input: {
   from: string;
   through: string;
   principalCents: number;
-}): InterestTotals {
+}): bigint {
   const { terms, through, principalCents } = input;
   let from = input.from;
   if (from < terms.dueDate) from = terms.dueDate;
-  if (through <= from) return { daily: 0n, monthly: 0n };
+  if (through <= from) return ZERO_INTEREST;
   const days = (Date.parse(through) - Date.parse(from)) / MILLISECONDS_PER_DAY;
-  let anniversaries = 0;
-  for (let month = 1; addCalendarMonths(terms.dueDate, month) <= through; month++) {
-    if (addCalendarMonths(terms.dueDate, month) > from) anniversaries++;
-  }
-  const principal = BigInt(principalCents);
-  return {
-    daily: principal * BigInt(Math.round(terms.dailyPct * RATE_SCALE)) * BigInt(days),
-    monthly: principal * BigInt(Math.round(terms.monthlyPct * RATE_SCALE)) * BigInt(anniversaries),
-  };
+  return BigInt(principalCents) * BigInt(Math.round(terms.monthlyPct * RATE_SCALE)) * BigInt(days);
 }
 
 export type SettlementPayment = { date: string; amountCents: number; recordedAt?: string };
@@ -58,8 +51,7 @@ export type SettlementQuote = {
 };
 type AccrualState = {
   principal: number;
-  daily: bigint;
-  monthly: bigint;
+  interest: bigint;
   paidInterest: number;
   date: string;
   charges: number;
@@ -99,11 +91,71 @@ function discountAvailable(input: SettlementInput, paid: number): number {
   return input.nominalCents - discounted;
 }
 
-function interestThroughDate(input: SettlementInput): { total: number; outstanding: number } {
+export type SettlementInterestPeriod = {
+  from: string;
+  through: string;
+  days: number;
+  principalCents: number;
+  dailyInterestCents: number;
+};
+
+/** Explains the same dated principal history used by the settlement calculator. */
+export function settlementInterestDetails(input: SettlementInput): {
+  monthlyPct: number;
+  dailyPct: number;
+  overdueDays: number;
+  postedInterestCents: number;
+  accruedInterestCents: number;
+  periods: SettlementInterestPeriod[];
+} {
+  const periods: SettlementInterestPeriod[] = [];
+  const accrued = interestThroughDate(input, periods);
+  return {
+    monthlyPct: input.terms.monthlyPct,
+    dailyPct: input.terms.monthlyPct / DAYS_PER_INTEREST_MONTH,
+    overdueDays: Math.max(
+      0,
+      (Date.parse(input.effectiveDate) - Date.parse(input.terms.dueDate)) / MILLISECONDS_PER_DAY,
+    ),
+    postedInterestCents: input.postedInterestCents,
+    accruedInterestCents: accrued.total,
+    periods,
+  };
+}
+
+function recordInterestPeriod(
+  ...[periods, state, through, monthlyPct]: [
+    SettlementInterestPeriod[] | undefined,
+    AccrualState,
+    string,
+    number,
+  ]
+): void {
+  const from = state.date > state.dueDate ? state.date : state.dueDate;
+  if (!periods || through <= from || state.principal <= 0 || monthlyPct <= 0) return;
+  const days = (Date.parse(through) - Date.parse(from)) / MILLISECONDS_PER_DAY;
+  const previous = periods.at(-1);
+  if (previous?.through === from && previous.principalCents === state.principal) {
+    previous.through = through;
+    previous.days += days;
+    return;
+  }
+  periods.push({
+    from,
+    through,
+    days,
+    principalCents: state.principal,
+    dailyInterestCents: (state.principal * monthlyPct) / PERCENT / DAYS_PER_INTEREST_MONTH,
+  });
+}
+
+function interestThroughDate(
+  input: SettlementInput,
+  periods?: SettlementInterestPeriod[],
+): { total: number; outstanding: number } {
   let state: AccrualState = {
     principal: input.nominalCents,
-    daily: 0n,
-    monthly: 0n,
+    interest: 0n,
     paidInterest: 0,
     date: input.terms.dueDate,
     dueDate: input.terms.dueDate,
@@ -111,6 +163,7 @@ function interestThroughDate(input: SettlementInput): { total: number; outstandi
   };
   for (const fact of orderedFacts(input)) {
     if (fact.date > input.effectiveDate) throw new Error("Pagamento anterior a fato já efetivado.");
+    recordInterestPeriod(periods, state, fact.date, input.terms.monthlyPct);
     state = applyHistoricalFact({ state, fact, terms: input.terms });
   }
   const increment = accrueInterest({
@@ -119,9 +172,8 @@ function interestThroughDate(input: SettlementInput): { total: number; outstandi
     through: input.effectiveDate,
     principalCents: state.principal,
   });
-  const total =
-    roundedInterest(state.daily + increment.daily) +
-    roundedInterest(state.monthly + increment.monthly);
+  recordInterestPeriod(periods, state, input.effectiveDate, input.terms.monthlyPct);
+  const total = roundedInterest(state.interest + increment);
   return { total, outstanding: total + state.charges - state.paidInterest };
 }
 
@@ -137,33 +189,30 @@ function applyHistoricalFact(input: {
     through: fact.date,
     principalCents: state.principal,
   });
-  const daily = state.daily + increment.daily;
-  const monthly = state.monthly + increment.monthly;
+  const interest = state.interest + increment;
   if (fact.kind === "suspension") {
-    return { ...state, daily, monthly, date: fact.date, dueDate: fact.newDueDate };
+    return { ...state, interest, date: fact.date, dueDate: fact.newDueDate };
   }
   if (fact.kind === "charge") {
-    return { ...state, daily, monthly, date: fact.date, charges: state.charges + fact.amountCents };
+    return { ...state, interest, date: fact.date, charges: state.charges + fact.amountCents };
   }
   if (fact.kind === "adjustment") {
     return {
       ...state,
       principal: Math.max(0, state.principal + fact.amountCents),
-      daily,
-      monthly,
+      interest,
       date: fact.date,
     };
   }
   const unpaidInterest = Math.max(
     0,
-    roundedInterest(daily) + roundedInterest(monthly) + state.charges - state.paidInterest,
+    roundedInterest(interest) + state.charges - state.paidInterest,
   );
   const interestPaid = Math.min(fact.amountCents, unpaidInterest);
   return {
     ...state,
     principal: Math.max(0, state.principal - (fact.amountCents - interestPaid)),
-    daily,
-    monthly,
+    interest,
     paidInterest: state.paidInterest + interestPaid,
     date: fact.date,
   };

@@ -32,7 +32,6 @@ export async function captureLead(
       id: values.id,
       ...fields,
       recordedById: input.recordedById,
-      availabilityConfirmedAt: null,
     },
     select: { id: true },
   });

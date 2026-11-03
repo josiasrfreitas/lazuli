@@ -40,6 +40,18 @@ void describe("soft-delete read filter", () => {
 
     assert.equal(result, arguments_);
   });
+
+  void it("does not filter Better Auth rate-limit records", async () => {
+    const arguments_ = { where: { key: "login-attempt" } };
+    const result = await softDeleteExtension.query.$allModels.$allOperations({
+      model: "RateLimit",
+      operation: "findMany",
+      args: arguments_,
+      query: (queryArguments) => Promise.resolve(queryArguments),
+    });
+
+    assert.equal(result, arguments_);
+  });
 });
 
 void it("does not inject soft deletion into immutable financial treatment history", async () => {

@@ -36,6 +36,8 @@ void describe("students API over the tRPC HTTP boundary", () => {
         fullName: `${HTTP_TEST_PREFIX}Adult`,
         birthDate: ADULT_BIRTH_DATE,
         phone: "82955550000",
+        documentType: "RG",
+        documentNumber: "router-transport-adult",
       },
     });
     const created = (await createResponse.json()) as { result: { data: { json: { id: string } } } };

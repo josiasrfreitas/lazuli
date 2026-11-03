@@ -159,6 +159,7 @@ export {
 export type { ArtifactKind, ArtifactStatus, GetArtifactOutput } from "./reports.js";
 export { detectPersonDocument } from "./person-document.js";
 export {
+  MAX_THIRD_PARTY_NAME_LENGTH,
   paymentPreviewSchema,
   paymentOperationSchema,
   type PaymentPreviewInput,
@@ -236,6 +237,9 @@ export {
   occurrenceCreateSchema,
   occurrenceLinkSchema,
   occurrenceUpdateSchema,
+  occurrenceStatusSchema,
+  occurrenceStatusChangeSchema,
+  type OccurrenceStatusChange,
   interventionCreateSchema,
   interventionFollowUpSchema,
   interventionLinkSchema,
@@ -260,4 +264,6 @@ export * from "./appointments.js";
 export * from "./semester-organization.js";
 
 export * from "./contract-termination.js";
+export * from "./contract-renegotiation.js";
+export * from "./payment-proof.js";
 export { teachingProgramImportSchema, trackAgeGroupSchema } from "./teaching-program.js";

@@ -31,6 +31,7 @@ export const placementScheduleSchema = z
   .object({
     id: z.string().uuid(),
     candidateId: z.string().uuid(),
+    teacherId: z.string().uuid("Escolha o professor responsável pela correção."),
     date: civilDateSchema,
     startTime: timeOfDaySchema,
     endTime: timeOfDaySchema,

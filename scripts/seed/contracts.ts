@@ -1,8 +1,14 @@
+import { createHash } from "node:crypto";
 import { finance } from "../../packages/api/src/finance/index.js";
 import { priceAfterDiscountCents } from "../../packages/domain/src/monthly-contract.js";
+import {
+  INITIAL_MATERIAL_PRICING,
+  materialPriceQuote,
+} from "../../packages/domain/src/material-pricing.js";
 import type { DatabaseClient, TransactionClient } from "../../packages/db/src/client.js";
 import {
   DEV_ADMIN,
+  DEV_CLASSES,
   DEV_STUDENTS,
   type DevStudentSeed,
 } from "../../packages/db/src/seed-dev-data.js";
@@ -80,15 +86,23 @@ const PAYMENT_METHOD_STRIDE = 3;
 const PAYMENT_METHODS = [
   "PIX",
   "PIX",
-  "CARD",
+  "RECURRING_CREDIT",
   "PIX",
-  "TRANSFER",
+  "DEBIT",
   "PIX",
-  "CARD",
+  "RECURRING_CREDIT",
   "PIX",
   "CASH",
   "PIX",
 ] as const;
+const MATERIAL_TRACKS = [
+  "Adultos / English Main",
+  "Adultos / Speed",
+  "Infantil",
+  "Teens Connect",
+  "Teens Legacy",
+  "Teenstation Legacy",
+];
 
 /** Allocated students have independent annual contracts; sibling contracts may share a payer. */
 export async function seedContracts(database: DatabaseClient, todayIso: string): Promise<void> {
@@ -140,6 +154,7 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
     },
   });
   const { agreedOn, firstDueDate } = contractDates(input);
+  const material = await seedContractMaterial(transaction, student);
   const contract = await finance(transaction, adminId).createMonthlyContract({
     commandId: stableUuid(["dev-contract", student.key]),
     studentId: stableUuid(["student", student.key]),
@@ -149,8 +164,80 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
     durationMonths: CONTRACT_MONTHS,
     firstDueDate,
     monthlyAmountCents: MONTHLY_PRICES[selectionIndex % MONTHLY_PRICES.length]!,
+    material,
   });
   await seedPayments(transaction, { ...input, contractId: contract.id, payerId });
+}
+
+async function seedContractMaterial(
+  database: TransactionClient,
+  student: DevStudentSeed,
+): Promise<{
+  stageIds: string[];
+  category: "CHILD" | "ADULT";
+  payment: "CASH";
+  installmentCount: number;
+  quoteVersion: string;
+  expectedTotalCents: number;
+  scholarshipPct: number;
+  scholarshipAgreement: string;
+}> {
+  const code = seededStageCode(student);
+  const stage = await database.stage.findFirst({
+    where: {
+      internalCode: code,
+      deletedAt: null,
+      track: {
+        deletedAt: null,
+        name: { in: MATERIAL_TRACKS },
+        productLine: { deletedAt: null, status: "ACTIVE" },
+      },
+    },
+    select: { id: true, track: { select: { ageGroup: true } } },
+  });
+  if (!stage) throw new Error(`No material stage ${code} for seeded student ${student.key}.`);
+  const category = stage.track.ageGroup;
+  const price = seedMaterialPrice(category);
+  return {
+    stageIds: [stage.id],
+    category,
+    payment: "CASH",
+    installmentCount: 1,
+    quoteVersion: price.quoteVersion,
+    expectedTotalCents: price.cashCents,
+    // Keep the existing tuition/payment scenarios while recording a valid book acquisition.
+    scholarshipPct: 100,
+    scholarshipAgreement: "Material concedido no cenário financeiro de desenvolvimento",
+  };
+}
+
+function seedMaterialPrice(category: "CHILD" | "ADULT"): {
+  quoteVersion: string;
+  cashCents: number;
+} {
+  const installments =
+    category === "CHILD"
+      ? INITIAL_MATERIAL_PRICING.childMaterialInstallments
+      : INITIAL_MATERIAL_PRICING.adultMaterialInstallments;
+  const installmentCents =
+    category === "CHILD"
+      ? INITIAL_MATERIAL_PRICING.childMaterialInstallmentCents
+      : INITIAL_MATERIAL_PRICING.adultMaterialInstallmentCents;
+  const cardFeePct = INITIAL_MATERIAL_PRICING.materialCardFeePct;
+  const quote = materialPriceQuote({ installments, installmentCents, cardFeePct });
+  const quoteVersion = createHash("sha256")
+    .update(JSON.stringify(["single-receipt-v1", installments, installmentCents, cardFeePct]))
+    .digest("hex");
+  return { quoteVersion, cashCents: quote.cashCents };
+}
+
+function seededStageCode(student: DevStudentSeed): string {
+  const enrollment = student.enrollments[0]!;
+  const code =
+    enrollment.stageInternalCode ??
+    DEV_CLASSES.find((classSeed) => classSeed.key === enrollment.classKey)?.stageInternalCode;
+  if (!code) throw new Error(`No stage code for seeded student ${student.key}.`);
+  return code;
 }
 
 function closingMonthOffsets(students: readonly DevStudentSeed[]): number[] {

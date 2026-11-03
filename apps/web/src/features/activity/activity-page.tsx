@@ -20,7 +20,6 @@ import {
   PencilLoader,
   TimelineSkeleton,
   TableFilters,
-  TableFilterChips,
   type TableFilterField,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -201,7 +200,6 @@ function ActivityFilters({ model }: { model: ActivityModel }): ReactElement {
           onClearAll={() => void setParams({ periodo: "ALL", area: null, autor: null })}
         />
       </div>
-      <TableFilterChips fields={fields} />
     </div>
   );
 }

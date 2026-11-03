@@ -8,7 +8,7 @@ import {
   type MakeupCoverageInput,
   type z,
 } from "@lazuli/validators";
-import type { SearchSelectOption } from "@lazuli/ui";
+import type { CalendarInterval, SearchSelectOption } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { parseDateBR } from "~/lib/masks";
 import { formatDateOnlyBR } from "~/lib/format";
@@ -17,6 +17,8 @@ import { today, useAppointmentRefresh, type Absence } from "./shared";
 
 export type ScheduleDialogProps = {
   student?: { id: string; name: string };
+  initialDate?: string;
+  initialSelection?: CalendarInterval | undefined;
   source?: Absence;
   previous?: AppointmentSnapshot;
   onClose: () => void;
@@ -123,12 +125,13 @@ function initialCoverages(
 function initialDetails({
   source,
   previous,
+  initialDate,
 }: ScheduleDialogProps): Pick<DraftValues, "purpose" | "date" | "planned" | "notes" | "coverages"> {
   const coverages = initialCoverages(source, previous);
   if (!previous)
     return {
       purpose: "MAKEUP",
-      date: formatDateOnlyBR(today()),
+      date: formatDateOnlyBR(initialDate ?? today()),
       planned: "",
       notes: "",
       coverages,
@@ -152,6 +155,13 @@ function initialDraft(input: ScheduleDialogProps): DraftValues {
     ...initialPeople(input),
     ...initialMeeting(input.previous),
     ...initialDetails(input),
+    ...(input.initialSelection
+      ? {
+          date: formatDateOnlyBR(input.initialSelection.date),
+          startTime: input.initialSelection.startTime,
+          endTime: input.initialSelection.endTime,
+        }
+      : {}),
   };
 }
 
@@ -159,7 +169,7 @@ function useScheduleDraft(input: ScheduleDialogProps): DraftState {
   const [values, update] = useState(() => initialDraft(input));
   const validation = useValidation();
   function change<K extends keyof DraftValues>(key: K, value: DraftValues[K]): void {
-    update((current) => ({ ...current, [key]: value }));
+    update((current) => (current[key] === value ? current : { ...current, [key]: value }));
   }
   return { values, update, change, validation };
 }
@@ -391,19 +401,25 @@ function validateDetails({
   input,
   draft,
   values,
+  detailsStep,
 }: {
   input: ScheduleDialogProps;
   draft: DraftState;
   values: AppointmentInput;
+  detailsStep: "complete" | "nature";
 }): boolean {
   if (
     !draft.validation.validateFields(appointmentScheduleSchema, {
       values,
-      fields: ["studentId", "purpose", "enrollmentId", "plannedContent", "notes", "coverages"],
+      fields:
+        detailsStep === "nature"
+          ? ["studentId", "purpose", "enrollmentId", "coverages"]
+          : ["studentId", "purpose", "enrollmentId", "plannedContent", "notes", "coverages"],
     })
   )
     return false;
   if (
+    detailsStep === "complete" &&
     input.previous &&
     !draft.validation.validate(appointmentRescheduleSchema.pick({ reason: true }), {
       reason: draft.values.reason,
@@ -413,11 +429,10 @@ function validateDetails({
   return true;
 }
 
-function useScheduleSubmission({
-  input,
-  draft,
-  data,
-}: Pick<ScheduleModel, "input" | "draft" | "data">): ScheduleSubmission {
+function useScheduleSubmission(
+  { input, draft, data }: Pick<ScheduleModel, "input" | "draft" | "data">,
+  detailsStep: "complete" | "nature",
+): ScheduleSubmission {
   const refresh = useAppointmentRefresh();
   const saved = async (): Promise<void> => {
     await refresh();
@@ -430,7 +445,7 @@ function useScheduleSubmission({
     if (pending || data.unavailable) return;
     const values = appointmentDraft({ input, draft, data });
     if (draft.values.step === "details") {
-      if (!validateDetails({ input, draft, values })) return;
+      if (!validateDetails({ input, draft, values, detailsStep })) return;
       draft.update((current) => ({ ...current, selectionReady: false, step: "schedule" }));
       return;
     }
@@ -450,9 +465,12 @@ function useScheduleSubmission({
   return { pending, error: schedule.error?.message ?? reschedule.error?.message, submit };
 }
 
-export function useScheduleModel(input: ScheduleDialogProps): ScheduleModel {
+export function useScheduleModel(
+  input: ScheduleDialogProps,
+  detailsStep: "complete" | "nature" = "complete",
+): ScheduleModel {
   const draft = useScheduleDraft(input);
   const data = useScheduleData(input, draft);
-  const submission = useScheduleSubmission({ input, draft, data });
+  const submission = useScheduleSubmission({ input, draft, data }, detailsStep);
   return { input, draft, data, submission };
 }

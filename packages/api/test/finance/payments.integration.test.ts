@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 
-import { db, InstallmentAdjustmentType, PaymentMethod } from "@lazuli/db";
+import { db, InstallmentAdjustmentType } from "@lazuli/db";
 
 import {
   ENTRY_OVER_ALLOCATION_MESSAGE,
@@ -222,7 +222,7 @@ function registerInstallmentOverAllocationError(): void {
         payerId: payer.id,
         date: PAYMENT_DATE,
         amountCents: EXISTING_PAYMENT_CENTS,
-        method: PaymentMethod.PIX,
+        method: "PIX",
       },
     });
     await db.paymentAllocation.create({

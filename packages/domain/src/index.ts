@@ -4,6 +4,12 @@
  */
 
 export const DOMAIN_PACKAGE = "@lazuli/domain" as const;
+export {
+  calculateStudentHealth,
+  STUDENT_HEALTH_WEIGHTS,
+  type StudentHealthIndicator,
+  type StudentHealthInput,
+} from "./student-health.js";
 
 export { resolveSemesterForDate, SemesterBucketError } from "./semester.js";
 export type { SemesterBucketErrorCode, SemesterWindow } from "./semester.js";
@@ -88,6 +94,7 @@ export {
 } from "./contract-status.js";
 export {
   quoteSettlement,
+  settlementInterestDetails,
   type SettlementInput,
   type SettlementQuote,
 } from "./payment-settlement.js";
@@ -115,11 +122,6 @@ export { planningBand } from "./planning-band.js";
 
 export * from "./student-attendance.js";
 export {
-  availabilityCovers,
-  availabilityIsCurrent,
-  type AvailabilityWindow,
-} from "./admission-availability.js";
-export {
   ACADEMIC_COMPETENCES,
   ACADEMIC_PASS_SCORE,
   ACADEMIC_MAX_SCORE,
@@ -144,7 +146,12 @@ export { type StudentSettlement } from "./student-finance.js";
 export { normalizeSearch } from "./search.js";
 
 export * from "./contract-termination.js";
-export { INITIAL_MATERIAL_PRICING, materialPriceQuote } from "./material-pricing.js";
+export {
+  INITIAL_MATERIAL_PRICING,
+  materialPriceQuote,
+  materialScholarshipQuote,
+  materialInstallmentPlan,
+} from "./material-pricing.js";
 export { materialReminderState, stageMaterialAttention } from "./material-reminder.js";
 export {
   TEACHING_HOUR_MINUTES,
@@ -155,6 +162,7 @@ export {
   type TeachingProgramImport,
 } from "./teaching-program.js";
 export { studentPendingActions, type PendingAction } from "./pending-actions.js";
+export { contractReduction, type ContractReductionLine } from "./contract-reduction.js";
 
 export { extractIdentityDocument } from "./identity-extraction/extract.js";
 export type {
@@ -164,3 +172,15 @@ export type {
   FieldCandidate,
   DocumentFamily,
 } from "./identity-extraction/types.js";
+
+export {
+  periodConfirmation,
+  preconfirmationThrough,
+  type PeriodConfirmation,
+} from "./period-confirmation.js";
+
+export {
+  LOW_HEALTH_SCORE,
+  HEALTH_RECOVERY_MS,
+  nextHealthPendingState,
+} from "./student-health-pending.js";

@@ -17,7 +17,8 @@ type ScheduleType = "REGULAR" | "PERSONALIZED";
 export type IntakeInput =
   | RouterInputs["students"]["enrollNew"]
   | RouterInputs["students"]["resumeIntake"];
-type Confirmation = { input: IntakeInput; items: string[] } | null;
+export type BlockingItem = { label: string; step: IntakeStep; field?: string };
+type Confirmation = { input?: IntakeInput; items: string[]; blocking: BlockingItem[] } | null;
 
 export type EnrollmentIdentity = {
   addressPending: boolean;
@@ -97,10 +98,10 @@ export type EnrollmentFlow = {
   busy: RefObject<boolean>;
 };
 
-export function useEnrollmentFlow(): EnrollmentFlow {
+export function useEnrollmentFlow(initialStep: IntakeStep = "student"): EnrollmentFlow {
   const [error, setError] = useState("");
   const [capturingLead, setCapturingLead] = useState(false);
-  const [step, setStep] = useState<IntakeStep>("student");
+  const [step, setStep] = useState<IntakeStep>(initialStep);
   const [visitedContract, setVisitedContract] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [dirty, setDirty] = useState(false);

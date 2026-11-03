@@ -24,6 +24,7 @@ import {
   studentSetStatusInputSchema,
   studentUpdateContactProcedureInputSchema,
   studentUpdateNotesInputSchema,
+  civilDateSchema,
   STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
   z,
 } from "@lazuli/validators";
@@ -35,10 +36,35 @@ import { setStudentStatus } from "./status.js";
 import { readStudentPedagogy } from "./pedagogy.js";
 import { readStudentAttendanceHistory } from "./attendance-history.js";
 import { completeStudent } from "./completion.js";
+import { readStudentHealth } from "./health.js";
+import { readStudentAgenda } from "./agenda.js";
 
 const FILTER_OPTION_LIMIT = 50;
+const MAX_AGENDA_DAYS = 31;
+const DAY_MS = 86_400_000;
 
 export const studentsRouter = router({
+  health: adminProcedure
+    .input(studentIdInputSchema)
+    .query(({ ctx, input }) =>
+      readStudentHealth({ database: ctx.db, id: input.id, now: ctx.now ?? new Date() }),
+    ),
+  agenda: adminProcedure
+    .input(
+      studentIdInputSchema
+        .extend({ from: civilDateSchema, to: civilDateSchema })
+        .refine(
+          ({ from, to }) =>
+            to >= from && Date.parse(to) - Date.parse(from) <= MAX_AGENDA_DAYS * DAY_MS,
+          { message: "Escolha um período de até 31 dias." },
+        ),
+    )
+    .query(({ ctx, input }) =>
+      readStudentAgenda(
+        { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
+        input,
+      ),
+    ),
   resumeIntake: adminProcedure.input(studentIntakeResumeSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.resumeIntake",
@@ -204,7 +230,9 @@ export const studentsRouter = router({
     ),
   byId: adminProcedure
     .input(studentIdInputSchema)
-    .query(({ ctx, input }) => readStudentProfile({ database: ctx.db, id: input.id })),
+    .query(({ ctx, input }) =>
+      readStudentProfile({ database: ctx.db, id: input.id, now: ctx.now ?? new Date() }),
+    ),
   search: adminProcedure
     .input(studentSearchInputSchema)
     .query(({ ctx, input }) => searchStudents({ database: ctx.db, values: input })),

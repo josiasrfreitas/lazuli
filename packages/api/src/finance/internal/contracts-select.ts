@@ -22,6 +22,9 @@ export type ContractListRow = {
   startsOn: string;
   endsOn: string;
   monthlyAmountCents: number;
+  baseMonthlyAmountCents: number;
+  scholarshipPct: number;
+  scholarshipAgreement: string | null;
   principalAmountCents: number;
   materialAmountCents: number;
   materials: Array<{
@@ -48,6 +51,9 @@ export const contractSelect = {
   startsOn: true,
   endsOn: true,
   monthlyAmountCents: true,
+  baseMonthlyAmountCents: true,
+  scholarshipPct: true,
+  scholarshipAgreement: true,
   payer: { select: { id: true, name: true } },
   student: {
     select: {
@@ -86,7 +92,10 @@ export const contractSelect = {
           amountCents: true,
           dueDate: true,
           waivedAt: true,
-          adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
+          adjustments: {
+            where: { deletedAt: null },
+            select: { amountCents: true, renegotiationId: true },
+          },
           allocations: {
             where: { deletedAt: null, paymentEntry: { deletedAt: null } },
             select: { amountCents: true },
@@ -119,11 +128,26 @@ function academicPlacements(
 }
 
 function uniformInstallmentAmount(order: SelectedContract["orders"][number]): number | null {
-  const firstAmount = order.installments[0]?.amountCents ?? null;
+  const firstAmount = order.installments[0]
+    ? renegotiatedInstallmentAmount(order.installments[0])
+    : null;
   return order.installments.length === order.installmentCount &&
-    order.installments.every((row) => row.amountCents === firstAmount)
+    order.installments.every((row) => renegotiatedInstallmentAmount(row) === firstAmount)
     ? firstAmount
     : null;
+}
+
+export function renegotiatedInstallmentAmount(row: {
+  amountCents: number;
+  adjustments: { amountCents: number; renegotiationId?: string | null }[];
+}): number {
+  return (
+    row.amountCents +
+    row.adjustments.reduce(
+      (sum, adjustment) => sum + (adjustment.renegotiationId ? adjustment.amountCents : 0),
+      0,
+    )
+  );
 }
 
 export function toRow(row: SelectedContract, now = new Date()): ContractListRow {
@@ -131,6 +155,8 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
   const materialOrders = row.orders.filter(
     (entry) => entry.kind === "MATERIAL" && !entry.cancelledAt,
   );
+  const amounts = contractAmounts(order, materialOrders);
+  const tuition = tuitionDetails({ order, row, now });
   return {
     id: row.id,
     payer: row.payer,
@@ -143,7 +169,65 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     startsOn: toDateOnlyString(row.startsOn!),
     endsOn: toDateOnlyString(row.endsOn!),
     monthlyAmountCents: row.monthlyAmountCents!,
-    principalAmountCents: order.principalAmountCents,
+    baseMonthlyAmountCents: row.baseMonthlyAmountCents ?? row.monthlyAmountCents!,
+    scholarshipPct: Number(row.scholarshipPct),
+    scholarshipAgreement: row.scholarshipAgreement,
+    ...amounts,
+    ...tuition,
+    ...(row.terminatedAt ? { status: "CANCELADO" as const } : {}),
+    serviceStatus: contractServiceStatus(row, now),
+  };
+}
+
+function tuitionDetails({
+  order,
+  row,
+  now,
+}: {
+  order: SelectedContract["orders"][number] | undefined;
+  row: SelectedContract;
+  now: Date;
+}): Pick<
+  ContractListRow,
+  | "installmentCount"
+  | "uniformInstallmentAmountCents"
+  | "firstDueDate"
+  | "status"
+  | "paymentProgress"
+  | "financialSummary"
+> {
+  return {
+    installmentCount: order?.installmentCount ?? 0,
+    uniformInstallmentAmountCents: order ? uniformInstallmentAmount(order) : null,
+    firstDueDate: toDateOnlyString(order?.firstDueDate ?? row.startsOn!),
+    ...orderFinancialSummary(order, now),
+  };
+}
+
+function orderFinancialSummary(
+  order: SelectedContract["orders"][number] | undefined,
+  now: Date,
+): ReturnType<typeof deriveContractFinancialSummary> {
+  return deriveContractFinancialSummary({
+    cancelledAt: order?.cancelledAt ?? null,
+    installments: order?.installments ?? [],
+    now,
+    installmentCount: order?.installmentCount ?? 0,
+  });
+}
+
+function contractAmounts(
+  order: SelectedContract["orders"][number] | undefined,
+  materialOrders: SelectedContract["orders"],
+): Pick<ContractListRow, "principalAmountCents" | "materialAmountCents" | "materials"> {
+  return {
+    principalAmountCents:
+      (order?.principalAmountCents ?? 0) +
+      (order?.installments ?? []).reduce(
+        (sum, installment) =>
+          sum + renegotiatedInstallmentAmount(installment) - installment.amountCents,
+        0,
+      ),
     materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
     materials: materialOrders.map((entry) => ({
       id: entry.id,
@@ -152,33 +236,48 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
       count: entry.installmentCount ?? entry.installments.length,
       installmentCents: uniformInstallmentAmount(entry),
     })),
-    installmentCount: order.installmentCount!,
-    uniformInstallmentAmountCents: uniformInstallmentAmount(order),
-    firstDueDate: toDateOnlyString(order.firstDueDate!),
-    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount! }),
-    ...(row.terminatedAt ? { status: "CANCELADO" as const } : {}),
-    serviceStatus: row.terminatedAt
-      ? "ENDED"
-      : deriveContractServiceStatus({
-          startsOn: toDateOnlyString(row.startsOn!),
-          endsOn: toDateOnlyString(row.endsOn!),
-          now,
-        }),
   };
 }
 
-function requiredTuitionOrder(row: SelectedContract): SelectedContract["orders"][number] {
+function contractServiceStatus(row: SelectedContract, now: Date): ContractListRow["serviceStatus"] {
+  if (row.terminatedAt) return "ENDED";
+  return deriveContractServiceStatus({
+    startsOn: toDateOnlyString(row.startsOn!),
+    endsOn: toDateOnlyString(row.endsOn!),
+    now,
+  });
+}
+
+function requiredTuitionOrder(
+  row: SelectedContract,
+): SelectedContract["orders"][number] | undefined {
   const order = row.orders.find((entry) => entry.kind === "TUITION");
-  if (
-    !order ||
-    !row.agreedOn ||
-    !row.startsOn ||
-    !row.endsOn ||
-    row.monthlyAmountCents === null ||
-    !order.firstDueDate ||
-    order.installmentCount === null
-  ) {
-    throw new Error("Contrato mensal incompleto.");
-  }
+  if (!order && isFreeScholarship(row)) return undefined;
+  if (!order || !completeTuition(row, order)) throw new Error("Contrato mensal incompleto.");
   return order;
+}
+
+const FULL_SCHOLARSHIP_PCT = 100;
+function isFreeScholarship(row: SelectedContract): boolean {
+  return Boolean(
+    Number(row.scholarshipPct) === FULL_SCHOLARSHIP_PCT &&
+    row.monthlyAmountCents === 0 &&
+    row.agreedOn &&
+    row.startsOn &&
+    row.endsOn,
+  );
+}
+
+function completeTuition(
+  row: SelectedContract,
+  order: SelectedContract["orders"][number],
+): boolean {
+  return Boolean(
+    row.agreedOn &&
+    row.startsOn &&
+    row.endsOn &&
+    row.monthlyAmountCents !== null &&
+    order.firstDueDate &&
+    order.installmentCount !== null,
+  );
 }

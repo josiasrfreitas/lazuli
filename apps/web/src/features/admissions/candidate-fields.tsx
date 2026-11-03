@@ -1,9 +1,8 @@
 "use client";
 import { normalizeSearch } from "@lazuli/domain";
 import { useState, type ReactElement } from "react";
-import { Plus, X } from "lucide-react";
+
 import {
-  Button,
   Field,
   FieldError,
   FormRow,
@@ -14,10 +13,10 @@ import {
   SegmentedControlItem,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { maskDateBR, maskPhoneBR, maskTime24 } from "~/lib/masks";
-import { SelectControl, TextControl } from "~/features/classes/form-controls";
+import { maskPhoneBR } from "~/lib/masks";
+import { TextControl } from "~/features/classes/form-controls";
 import { StudentLink } from "./student-link";
-import { weekdays } from "./labels";
+
 import type { CandidateDraft, CandidateFieldsProps } from "./candidate-model";
 
 export function CandidateContactFields(props: CandidateFieldsProps): ReactElement {
@@ -138,7 +137,7 @@ function ContactContextFields({ draft, change }: CandidateFieldsProps): ReactEle
     </FormRow>
   );
 }
-export function CandidateAvailabilityFields(props: CandidateFieldsProps): ReactElement {
+export function CandidateCourseFields(props: CandidateFieldsProps): ReactElement {
   const { draft, change, errors } = props;
   return (
     <>
@@ -147,7 +146,6 @@ export function CandidateAvailabilityFields(props: CandidateFieldsProps): ReactE
         onChange={(value) => change("stageId", value)}
         error={errors.stageId}
       />
-      <WeeklyAvailability {...props} />
       <TextControl
         name="notes"
         label="Observações"
@@ -155,75 +153,6 @@ export function CandidateAvailabilityFields(props: CandidateFieldsProps): ReactE
         value={draft.notes ?? ""}
         onChange={(value) => change("notes", value)}
       />
-    </>
-  );
-}
-function WeeklyAvailability(props: CandidateFieldsProps): ReactElement {
-  const { draft, change, errors } = props;
-  return (
-    <FormSection
-      title="Disponibilidade semanal"
-      action={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            change("availability", [
-              ...draft.availability,
-              { weekday: "MONDAY", startTime: "", endTime: "" },
-            ])
-          }
-        >
-          <Plus />
-          Horário
-        </Button>
-      }
-    >
-      <p className="text-caption text-muted-foreground">
-        Informe os períodos em que a pessoa pode estudar.
-      </p>
-      <AvailabilityRows {...props} />
-      <div className="max-w-48">
-        <TextControl
-          name="availableUntil"
-          label="Horários confirmados até"
-          placeholder="dd/mm/aaaa"
-          inputMode="numeric"
-          value={draft.availableUntil}
-          onChange={(value) => change("availableUntil", maskDateBR(value))}
-          error={errors.availableUntil}
-        />
-      </div>
-    </FormSection>
-  );
-}
-function AvailabilityRows({ draft, change, errors }: CandidateFieldsProps): ReactElement {
-  return (
-    <>
-      {draft.availability.map((slot, index) => (
-        <AvailabilityRow
-          key={index}
-          index={index}
-          slot={slot}
-          errors={errors}
-          onChange={(value) =>
-            change(
-              "availability",
-              draft.availability.map((item, position) => (position === index ? value : item)),
-            )
-          }
-          onRemove={
-            draft.availability.length > 1
-              ? () =>
-                  change(
-                    "availability",
-                    draft.availability.filter((_unused, position) => position !== index),
-                  )
-              : undefined
-          }
-        />
-      ))}
     </>
   );
 }
@@ -266,60 +195,5 @@ function StageField({
       </p>
       <FieldError match={Boolean(error)}>{error}</FieldError>
     </Field>
-  );
-}
-type AvailabilityRowProps = {
-  slot: CandidateDraft["availability"][number];
-  index: number;
-  errors: Record<string, string>;
-  onChange: (value: CandidateDraft["availability"][number]) => void;
-  onRemove?: (() => void) | undefined;
-};
-export function AvailabilityRow({
-  slot,
-  index,
-  errors,
-  onChange,
-  onRemove,
-}: AvailabilityRowProps): ReactElement {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_5rem_5rem_auto] items-end gap-2">
-      <SelectControl
-        name={`availability.${index}.weekday`}
-        label="Dia"
-        value={slot.weekday}
-        choices={weekdays}
-        onChange={(value) => onChange({ ...slot, weekday: value as typeof slot.weekday })}
-      />
-      <TextControl
-        name={`availability.${index}.startTime`}
-        label="Das"
-        placeholder="08:00"
-        inputMode="numeric"
-        value={slot.startTime}
-        onChange={(value) => onChange({ ...slot, startTime: maskTime24(value) })}
-        error={errors[`availability.${index}.startTime`]}
-      />
-      <TextControl
-        name={`availability.${index}.endTime`}
-        label="Até"
-        placeholder="12:00"
-        inputMode="numeric"
-        value={slot.endTime}
-        onChange={(value) => onChange({ ...slot, endTime: maskTime24(value) })}
-        error={errors[`availability.${index}.endTime`]}
-      />
-      {onRemove && (
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          aria-label={`Remover horário ${index + 1}`}
-          onClick={onRemove}
-        >
-          <X />
-        </Button>
-      )}
-    </div>
   );
 }

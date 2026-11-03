@@ -194,7 +194,7 @@ async function assertClassExistsForGeneration(
 async function assertSemesterExistsForGeneration(
   input: AssertSemesterExistsForGenerationInput,
 ): Promise<void> {
-  const existing = await input.database.semester.findUnique({
+  const existing = await input.database.period.findUnique({
     where: { id: input.semesterId },
     select: { id: true },
   });
@@ -251,7 +251,7 @@ type ArchiveClassInput = {
   id: string;
 };
 type AssertGenerationScopeExistsInput = {
-  database: Pick<ClassDatabase, "class" | "semester">;
+  database: Pick<ClassDatabase, "class" | "period">;
   classId?: string;
   semesterId?: string;
 };
@@ -260,7 +260,7 @@ type AssertClassExistsForGenerationInput = {
   classId: string;
 };
 type AssertSemesterExistsForGenerationInput = {
-  database: Pick<ClassDatabase, "semester">;
+  database: Pick<ClassDatabase, "period">;
   semesterId: string;
 };
 type RecordInitialTeacherInput = {

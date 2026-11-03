@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
 import { db, Prisma } from "@lazuli/db";
+import { HOME_GROUPS, HOME_PREVIEW_SIZE } from "../../src/dashboard/home-model.js";
 import {
   caller,
   ADMIN,
   TEACHER,
+  OTHER_TEACHER,
   TEST_PREFIX,
   cleanDashboardDatabase,
   ensureDashboardUsers,
@@ -61,7 +63,74 @@ void it("lists only active undeleted students and keeps pagination counts exact"
   assert.ok(own);
   assert.deepEqual(own.action, { kind: "link", href: `/alunos/${own.id}` });
 });
-void it("treats upcoming membership as allocated, and ended membership as needing a class", async () => {
+void it("keeps one departure item until every affected class has a successor", async () => {
+  const catalog = await seedDashboardCatalog();
+  const first = await seedClass({ code: "Departure first", teacherId: TEACHER.id, ...catalog });
+  const second = await seedClass({ code: "Departure second", teacherId: TEACHER.id, ...catalog });
+  await seedClass({ code: "Other teacher", teacherId: OTHER_TEACHER.id, ...catalog });
+  await db.teacherProfile.create({
+    data: { userId: TEACHER.id, departureDate: new Date("2084-03-25") },
+  });
+
+  const early = await caller(ADMIN, new Date("2084-03-09T18:00:00Z")).dashboard.pending({
+    kind: "coverage",
+    page: 1,
+  });
+  assert.equal(
+    early.items.some((item) => item.id === `teacher:${TEACHER.id}`),
+    false,
+  );
+
+  const pending = await caller(ADMIN, NOW).dashboard.pending({ kind: "coverage", page: 1 });
+  const item = pending.items.find((row) => row.id === `teacher:${TEACHER.id}`);
+  assert.ok(item);
+  assert.equal(item.detail, "2 turmas precisam de professor");
+  assert.equal(item.date, "2084-03-25");
+  assert.deepEqual(item.action, {
+    kind: "link",
+    href: `/turmas?professor=${TEACHER.id}&estado=ACTIVE`,
+  });
+
+  const afterDeparture = new Date("2084-03-26T18:00:00Z");
+  const filtered = await caller(ADMIN, afterDeparture).classes.list({
+    teacherIds: [TEACHER.id],
+    statuses: ["ACTIVE"],
+  });
+  assert.deepEqual(filtered.rows.map((row) => row.id).toSorted(), [first, second].toSorted());
+  const options = await caller(ADMIN, afterDeparture).classes.formOptions();
+  assert.equal(
+    options.filterTeachers.some((teacher) => teacher.id === TEACHER.id),
+    true,
+  );
+
+  await db.classTeacherAssignment.create({
+    data: { classId: first, teacherId: OTHER_TEACHER.id, effectiveDate: new Date("2084-03-25") },
+  });
+  const partial = await caller(ADMIN, afterDeparture).dashboard.pending({
+    kind: "coverage",
+    page: 1,
+  });
+  assert.equal(
+    partial.items.find((row) => row.id === `teacher:${TEACHER.id}`)?.detail,
+    "1 turma precisa de professor",
+  );
+  await db.classTeacherAssignment.create({
+    data: { classId: second, teacherId: OTHER_TEACHER.id, effectiveDate: new Date("2084-03-25") },
+  });
+  const resolved = await caller(ADMIN, afterDeparture).dashboard.pending({
+    kind: "coverage",
+    page: 1,
+  });
+  assert.equal(
+    resolved.items.some((row) => row.id === `teacher:${TEACHER.id}`),
+    false,
+  );
+  await assert.rejects(
+    caller(TEACHER, NOW).dashboard.pending({ kind: "coverage", page: 1 }),
+    /FORBIDDEN/u,
+  );
+});
+void it("keeps future and historical enrollments out of first-allocation work across semester rollover", async () => {
   const catalog = await seedDashboardCatalog();
   const classId = await seedClass({ code: "Home Enrollment", teacherId: TEACHER.id, ...catalog });
   const studentId = await seedStudent({ suffix: "Home enrollment", createdAt: NOW });
@@ -101,13 +170,74 @@ void it("treats upcoming membership as allocated, and ended membership as needin
     });
   });
   const ended = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
-  assert.equal(ended.total, future.total + 1);
+  assert.equal(ended.total, future.total);
   assert.equal(
     ended.items.some((item) => item.id === studentId),
+    false,
+  );
+  const unallocated = await seedStudent({ suffix: "Home first allocation", createdAt: NOW });
+  const rollover = await caller(ADMIN, new Date("2084-07-01T03:00:00Z")).dashboard.pending({
+    kind: "students",
+    page: 1,
+    pageSize: 12,
+  });
+  assert.equal(rollover.total, future.total + 1);
+  assert.equal(
+    rollover.items.some((item) => item.id === studentId),
+    false,
+  );
+  assert.equal(
+    rollover.items.some((item) => item.id === unallocated),
     true,
   );
   await cleanHomeEnrollments();
 });
+void it("excludes a proposed destination and restores the queue when the proposal is removed", async () => {
+  const catalog = await seedDashboardCatalog();
+  const stage = await db.stage.findUniqueOrThrow({ where: { id: catalog.stageId } });
+  const studentId = await seedStudent({ suffix: "Home proposed destination", createdAt: NOW });
+  const before = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
+  const plan = await db.semesterClassPlan.create({
+    data: {
+      semesterId: catalog.semesterId,
+      name: `${TEST_PREFIX}First class`,
+      scheduleType: "REGULAR",
+      format: "IN_PERSON",
+      sharedStageId: stage.id,
+      slots: [],
+      recordedById: ADMIN.id,
+    },
+  });
+  const placement = await db.semesterPlacement.create({
+    data: {
+      semesterId: catalog.semesterId,
+      studentId,
+      trackId: stage.trackId,
+      mode: "ENTRY",
+      planId: plan.id,
+      recordedById: ADMIN.id,
+    },
+  });
+  try {
+    const proposed = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
+    assert.equal(proposed.total, before.total - 1);
+    assert.equal(
+      proposed.items.some((item) => item.id === studentId),
+      false,
+    );
+    await db.semesterPlacement.update({ where: { id: placement.id }, data: { planId: null } });
+    const restored = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
+    assert.equal(restored.total, before.total);
+    assert.equal(
+      restored.items.some((item) => item.id === studentId),
+      true,
+    );
+  } finally {
+    await db.semesterPlacement.delete({ where: { id: placement.id } });
+    await db.semesterClassPlan.delete({ where: { id: plan.id } });
+  }
+});
+
 void it("does not confuse confirmed attendance with the completed class record or flag unfinished lessons", async () => {
   const catalog = await seedDashboardCatalog();
   const classId = await seedClass({ code: "Home Records", teacherId: TEACHER.id, ...catalog });
@@ -173,7 +303,10 @@ void it("composes the school overview and keeps unallocated cash distinct from a
     const home = await caller(ADMIN, NOW).dashboard.home();
     assert.equal(home.today, "2084-03-10");
     assert.equal(home.canViewFinance, true);
-    assert.equal(home.groups.length, 9);
+    assert.deepEqual(
+      home.groups.map((group) => group.kind),
+      HOME_GROUPS,
+    );
     assert.equal(
       home.groups
         .find((group) => group.kind === "contracts")
@@ -306,7 +439,7 @@ void it("orders unpublished placements by effective entry before pagination, inc
     const home = await caller(ADMIN, NOW).dashboard.home();
     const preview = home.groups.find((group) => group.kind === "semester");
     assert.equal(preview?.total, 15);
-    assert.equal(preview?.items.length, 3);
+    assert.equal(preview?.items.length, HOME_PREVIEW_SIZE);
     assert.deepEqual(
       preview?.items.slice(0, 2).map((item) => [item.id, item.timing]),
       [
@@ -369,21 +502,23 @@ void it("dates correction and allocation waits from received work rather than th
     }
     const placement = await caller(ADMIN, NOW).dashboard.pending({ kind: "placement", page: 1 });
     assert.deepEqual(
-      placement.items.map((item) => item.id),
-      [visits[1], visits[0]],
+      placement.items.filter((item) => candidateIds.includes(item.id)).map((item) => item.id),
+      [candidateIds[1], candidateIds[0]],
     );
-    assert.equal(placement.items[0]?.date, "2084-03-06");
-    assert.deepEqual(placement.items[0]?.timing, {
+    const oldestCorrection = placement.items.find((item) => item.id === candidateIds[1]);
+    assert.equal(oldestCorrection?.date, "2084-03-06");
+    assert.deepEqual(oldestCorrection?.timing, {
       kind: "waiting",
       since: "2084-03-07T02:30:00.000Z",
     });
     const allocation = await caller(ADMIN, NOW).dashboard.pending({ kind: "allocation", page: 1 });
     assert.deepEqual(
-      allocation.items.map((item) => item.id),
+      allocation.items.filter((item) => candidateIds.includes(item.id)).map((item) => item.id),
       [candidateIds[1], candidateIds[0]],
     );
-    assert.equal(allocation.items[0]?.date, "2084-03-07");
-    assert.deepEqual(allocation.items[0]?.timing, {
+    const oldestAllocation = allocation.items.find((item) => item.id === candidateIds[1]);
+    assert.equal(oldestAllocation?.date, "2084-03-07");
+    assert.deepEqual(oldestAllocation?.timing, {
       kind: "waiting",
       since: "2084-03-08T02:30:00.000Z",
     });

@@ -7,7 +7,7 @@ import {
   type ReceivablesSnapshot,
 } from "@lazuli/domain";
 
-import { loadInterestRatePctMonthly, toDateOnlyString, type FinanceDatabase } from "./shared.js";
+import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
 type LoadedReceivablesInstallment = {
   id: string;
@@ -96,7 +96,6 @@ async function loadDerivedReceivablesInstallments(
   database: FinanceDatabase,
   now: Date = new Date(),
 ): Promise<DerivedReceivablesInstallment[]> {
-  const interestRatePctMonthly = await loadInterestRatePctMonthly(database);
   const installments = await loadActiveOrderInstallments(database);
 
   return installments.map((installment) => {
@@ -109,10 +108,6 @@ async function loadDerivedReceivablesInstallments(
       adjustments: installment.adjustments,
       allocations: installment.allocations,
       now,
-      interestRatePctMonthly:
-        installment.order.kind !== "MATERIAL" && installment.order.contract === null
-          ? interestRatePctMonthly
-          : 0,
     });
 
     return {

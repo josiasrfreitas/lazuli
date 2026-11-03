@@ -36,7 +36,7 @@ export function StudentAssessmentsDialog({
       />
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="h-160 md:max-w-5xl">
+        <DialogContent className="md:max-w-5xl" data-student-dialog-motion>
           <StudentAcademicProgress
             studentId={studentId}
             studentName={studentName}

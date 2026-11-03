@@ -1,0 +1,32 @@
+.action {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  animation: renewal-action-enter var(--lz-duration-slow) var(--lz-ease-standard) both;
+}
+
+@keyframes renewal-action-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action {
+    animation: renewal-action-fade var(--lz-duration-fast) ease-out both;
+  }
+
+  @keyframes renewal-action-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

@@ -9,20 +9,31 @@ type Stub<T> = { [K in keyof T]?: T[K] extends object ? Stub<T[K]> : T[K] };
 type SavedInput = Parameters<Context["persistence"]["persist"]>[0];
 type Scenario = {
   request: ReturnType<typeof createRequestSave>;
-  confirmations: { items: string[]; input: { allowPending: boolean } }[];
+  confirmations: {
+    items: string[];
+    blocking: { label: string; step: string; field?: string }[];
+    input?: { allowPending: boolean };
+  }[];
   persisted: SavedInput[];
   errors: string[];
   context: Context;
 };
 function scenario(step: "student" | "pedagogy" | "contract", complete = false): Scenario {
-  const confirmations: { items: string[]; input: { allowPending: boolean } }[] = [];
+  const confirmations: Scenario["confirmations"] = [];
   const persisted: SavedInput[] = [];
   const errors: string[] = [];
   const context = {
     identity: {
       state: {
         ...initialNewStudentState,
-        fields: { ...initialNewStudentState.fields, fullName: "Maria Silva" },
+        fields: {
+          ...initialNewStudentState.fields,
+          fullName: "Maria Silva",
+          birthDate: "01/05/1990",
+          documentType: "RG",
+          documentNumber: "1234567",
+          phone: "82999990000",
+        },
       },
       selectedId: "",
       stageId: null,
@@ -56,6 +67,7 @@ function scenario(step: "student" | "pedagogy" | "contract", complete = false): 
         persisted.push(value);
       },
     },
+    today: "2026-10-29",
     existingStudentId: complete ? "09444c84-c30d-4c2f-9827-29428c489e81" : undefined,
   } as Stub<Context> as Context;
   return { request: createRequestSave(context), confirmations, persisted, errors, context };
@@ -69,7 +81,7 @@ for (const step of ["student", "pedagogy", "contract"] as const) {
       "Definir a turma na etapa pedagógica.",
       "Concluir o contrato. Os dados do contrato em rascunho não serão salvos.",
     ]);
-    assert.equal(state.confirmations[0]?.input.allowPending, true);
+    assert.equal(state.confirmations[0]?.input?.allowPending, true);
     assert.deepEqual(state.persisted, []);
     assert.deepEqual(state.errors, [""]);
   });
@@ -82,10 +94,10 @@ void it("closing a complete registration still requires confirmation", () => {
   assert.deepEqual(state.persisted, []);
 });
 
-void it("keeps ordinary save restricted to the contract step", () => {
+void it("offers review from any step", () => {
   const state = scenario("student");
-  assert.equal(state.request(false), false);
-  assert.deepEqual(state.confirmations, []);
+  assert.equal(state.request(false), true);
+  assert.equal(state.confirmations.length, 1);
   assert.deepEqual(state.persisted, []);
 });
 
@@ -97,20 +109,15 @@ void it("cannot prepare a pending save while a mutation is running", () => {
   assert.deepEqual(state.persisted, []);
 });
 
-void it("closing an invalid draft does not publish validation errors or change steps", () => {
+void it("lists incomplete identity as blocking while allowing deferred items", () => {
   const state = scenario("pedagogy");
-  const reported: (boolean | undefined)[] = [];
-  state.context.navigation.validateStudent = (reportErrors) => {
-    reported.push(reportErrors);
-    return false;
-  };
-  state.context.flow.setStep = () => {
-    throw new Error("Closing must preserve the current step");
-  };
-  assert.equal(state.request(false, true), false);
-  assert.deepEqual(reported, [false]);
-  assert.deepEqual(state.errors, []);
-  assert.deepEqual(state.confirmations, []);
+  state.context.identity.state.fields.fullName = "";
+  assert.equal(state.request(false, true), true);
+  assert.equal(state.confirmations[0]?.blocking[0]?.field, "fullName");
+  assert.equal(state.confirmations[0]?.blocking[0]?.step, "student");
+  assert.equal(state.confirmations[0]?.items.length, 2);
+  assert.equal(state.confirmations[0]?.input, undefined);
+  assert.deepEqual(state.persisted, []);
 });
 
 void it("closing a partial address permits optional empty fields", () => {
@@ -127,12 +134,4 @@ void it("closing a partial address permits optional empty fields", () => {
   assert.equal(state.request(false, true), true);
   assert.equal(state.confirmations.length, 1);
   assert.deepEqual(state.errors, [""]);
-});
-
-void it("closing does not surface schema errors as a global required-field alert", () => {
-  const state = scenario("student");
-  state.context.identity.state.fields.fullName = "";
-  assert.equal(state.request(false, true), false);
-  assert.deepEqual(state.errors, []);
-  assert.deepEqual(state.confirmations, []);
 });

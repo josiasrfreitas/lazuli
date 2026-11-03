@@ -1,4 +1,5 @@
 import { sessionEndInstant, saoPauloDateOnly } from "@lazuli/domain";
+import type { Prisma } from "@lazuli/db";
 import type { classRecordListSchema, z } from "@lazuli/validators";
 import { classRecordSnapshotSchema } from "@lazuli/validators";
 import {
@@ -26,14 +27,16 @@ const HISTORY_PAGE_SIZE = 20;
 
 export async function listClassRecords(
   context: RecordContext,
-  input: z.infer<typeof classRecordListSchema>,
+  input: z.infer<typeof classRecordListSchema> & { scope?: Prisma.ClassSessionWhereInput },
 ): Promise<SessionSummary[]> {
+  const { scope } = input;
   const sessions = await context.database.classSession.findMany({
     where: {
       deletedAt: null,
       class: { deletedAt: null },
       date: { gte: new Date(input.from), lte: new Date(input.to) },
       ...(input.classId ? { classId: input.classId } : {}),
+      ...(scope ? { AND: [scope] } : {}),
     },
     include: recordSessionInclude,
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],

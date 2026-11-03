@@ -19,7 +19,6 @@ export const financeSettingsInputSchema = z
     tuitionCeilingCents: z.number().int().positive(),
     maximumDiscountPct: percentage,
     punctualityDiscountPct: percentage.optional(),
-    interestRatePctDaily: percentage,
     interestRatePctMonthly: percentage,
     cancellationFeePct: percentage,
     // Legacy clients may still submit the previous single-price field.

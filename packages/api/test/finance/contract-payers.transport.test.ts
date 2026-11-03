@@ -31,7 +31,14 @@ void it("recovers concurrent submissions and exposes the single contract in the 
   assert.deepEqual(results[1]!.result.data.json, first);
   assert.equal(await db.payer.count({ where: { name: body.newPayer.name } }), 1);
   assert.equal(await db.contract.count({ where: { commandId: body.commandId } }), 1);
-  assert.equal(await db.order.count({ where: { contractId: first.id } }), 1);
+  assert.deepEqual(
+    await db.order.findMany({
+      where: { contractId: first.id },
+      select: { kind: true },
+      orderBy: { kind: "asc" },
+    }),
+    [{ kind: "TUITION" }, { kind: "MATERIAL" }],
+  );
   assert.equal(
     await db.installment.count({ where: { order: { contractId: first.id } } }),
     INSTALLMENTS,

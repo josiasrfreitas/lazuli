@@ -151,7 +151,7 @@ async function cleanDatabase(): Promise<void> {
     where: { student: { fullName: { startsWith: TEST_PREFIX } } },
   });
   await db.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await db.period.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: CATALOG_KEY } } },
   });
@@ -266,7 +266,7 @@ async function createStageFixture(suffix: string): Promise<{ id: string }> {
 
 async function createClassFixture(suffix: string): Promise<{ id: string }> {
   const { endDate, startDate } = semesterDatesForSuffix(suffix);
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: {
       name: `${TEST_PREFIX}Semester ${suffix}`,
       startDate,

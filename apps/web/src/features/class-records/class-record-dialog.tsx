@@ -2,7 +2,7 @@
 
 import { useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
 import Link from "next/link";
-import { ArrowUpRight, ClipboardCheck, Pencil, X } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ClipboardCheck, Pencil, X } from "lucide-react";
 import {
   Alert,
   Badge,
@@ -31,10 +31,12 @@ export function ClassRecordDialog({
   id,
   onClose,
   initialEditing = false,
+  embedded = false,
 }: {
   id: string;
   onClose: () => void;
   initialEditing?: boolean;
+  embedded?: boolean;
 }): ReactElement {
   const me = trpc.me.useQuery();
   const teacher = me.data?.role === "TEACHER";
@@ -47,6 +49,31 @@ export function ClassRecordDialog({
     { sessionId: id },
     { retry: false, refetchInterval: 30_000 },
   );
+  const panel = (
+    <ClassRecordPanel
+      id={id}
+      teacher={teacher}
+      data={query.data}
+      pending={query.isPending}
+      error={query.error}
+      retry={() => void query.refetch()}
+      declarations={attendance.data?.declarations ?? query.data?.declarations}
+      editor={editor}
+      onClose={onClose}
+      embedded={embedded}
+    />
+  );
+  if (embedded) return panel;
+  return <ClassRecordDialogShell editor={editor} panel={panel} />;
+}
+
+function ClassRecordDialogShell({
+  editor,
+  panel,
+}: {
+  editor: EditorControls;
+  panel: ReactElement;
+}): ReactElement {
   return (
     <Dialog
       open
@@ -56,17 +83,12 @@ export function ClassRecordDialog({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <ClassRecordPanel
-          id={id}
-          teacher={teacher}
-          data={query.data}
-          pending={query.isPending}
-          error={query.error}
-          retry={() => void query.refetch()}
-          declarations={attendance.data?.declarations ?? query.data?.declarations}
-          editor={editor}
-          onClose={onClose}
-        />
+        <DialogContent
+          className="md:max-w-6xl md:w-[calc(100%-2rem)]"
+          showCloseButton={!editor.editorState.pending}
+        >
+          {panel}
+        </DialogContent>
       </DialogPortal>
     </Dialog>
   );
@@ -82,6 +104,7 @@ type PanelProps = {
   declarations: ClassRecord["declarations"] | undefined;
   editor: EditorControls;
   onClose: () => void;
+  embedded: boolean;
 };
 function ClassRecordPanel({
   id,
@@ -93,19 +116,29 @@ function ClassRecordPanel({
   declarations,
   editor,
   onClose,
+  embedded,
 }: PanelProps): ReactElement {
   return (
-    <DialogContent
-      className="md:max-w-6xl md:w-[calc(100%-2rem)]"
-      showCloseButton={!editor.editorState.pending}
-    >
+    <>
+      {embedded && (
+        <div className="mb-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={editor.requestClose}
+            disabled={editor.editorState.pending}
+          >
+            <ArrowLeft aria-hidden="true" /> Voltar à agenda
+          </Button>
+        </div>
+      )}
       <ClassRecordHeader data={data} pending={pending} />
       <ClassRecordBody {...{ id, teacher, data, pending, error, retry, declarations, editor }} />
       <ClassRecordActions data={data} teacher={teacher} editor={editor} />
       {editor.discard && (
         <DiscardRegistrationDialog onKeep={() => editor.setDiscard(false)} onDiscard={onClose} />
       )}
-    </DialogContent>
+    </>
   );
 }
 

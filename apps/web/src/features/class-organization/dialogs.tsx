@@ -1,21 +1,18 @@
 "use client";
-import { useState, type JSX as ReactJSX } from "react";
-import { ClassPlanForm, SemesterForm } from "~/features/semester-organization/plan-form";
-import { PlacementForm } from "~/features/semester-organization/placement-form";
-import { AvailabilityForm } from "~/features/semester-organization/availability-form";
-import { ReasonDialog, PlacementHistory } from "~/features/semester-organization/action-dialogs";
-import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
-import { NewStudentDialog } from "~/features/students/new-student/new-student-dialog";
-import type { OrganizationAction, Placement, SemesterBoard } from "./model";
+import { type JSX as ReactJSX } from "react";
+import { ClassPlanForm, SemesterForm } from "~/features/class-organization/plan-form";
+import { PlacementForm } from "~/features/class-organization/placement-form";
+import { ReasonDialog, PlacementHistory } from "~/features/class-organization/action-dialogs";
+import { dateOnly } from "~/features/class-organization/shared";
+import type { OrganizationAction, OrganizationBoard } from "./model";
 import { ClosureForm, PeriodForm, HolidayForm } from "./calendar-forms";
-import { RenewalDialog } from "./renewal";
 import { ContinuityDialog, PlanStatusDialog } from "./continuity";
 import { FindStudent } from "./find-student-dialog";
 import { MovementForm } from "./movement-dialog";
 
 export type OrganizationDialogProps = {
   action: OrganizationAction;
-  board: SemesterBoard;
+  board: OrganizationBoard;
   onAction: (action: OrganizationAction) => void;
   onClose: () => void;
   onSemester: (id: string) => void;
@@ -25,17 +22,15 @@ export type OrganizationDialogProps = {
 type Props = OrganizationDialogProps;
 
 export function OrganizationDialogs(props: Props): ReactJSX.Element {
-  const [invalidate, setInvalidate] = useState<string | null>(null);
-  const refresh = useOrganizationRefresh();
   return (
-    renderStudentDialogs(props, refresh) ??
+    renderStudentDialogs(props) ??
     renderPlanDialogs(props) ??
-    renderPlacementDialogs(props, { invalidate, setInvalidate }) ??
+    renderPlacementDialogs(props) ??
     renderCalendarDialogs(props) ?? <></>
   );
 }
 
-function renderStudentDialogs(props: Props, refresh: () => Promise<void>): ReactJSX.Element | null {
+function renderStudentDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose, onAction } = props;
   switch (action.kind) {
     case "continuity": {
@@ -43,37 +38,8 @@ function renderStudentDialogs(props: Props, refresh: () => Promise<void>): React
         <ContinuityDialog row={action.row} board={board} onClose={onClose} onAction={onAction} />
       );
     }
-    case "renew": {
-      return (
-        <RenewalDialog
-          contractId={action.contractId}
-          onClose={onClose}
-          onSaved={() =>
-            props.onFeedback(
-              "Contrato renovado com os termos revisados. A alocação pedagógica permanece independente.",
-            )
-          }
-        />
-      );
-    }
     case "findStudent": {
       return <FindStudent board={board} onClose={onClose} onAction={onAction} />;
-    }
-    case "student": {
-      return (
-        <NewStudentDialog
-          open
-          initialSemesterId={board.semester.id}
-          onOpenChange={(open) => {
-            if (!open) onClose();
-          }}
-          onCreated={() => {
-            void refresh();
-            onClose();
-            props.onFeedback("Aluno cadastrado. A intenção pedagógica já aparece na organização.");
-          }}
-        />
-      );
     }
     default: {
       return null;
@@ -114,10 +80,7 @@ function renderPlanDialogs(props: Props): ReactJSX.Element | null {
   }
 }
 
-function renderPlacementDialogs(
-  props: Props,
-  state: { invalidate: string | null; setInvalidate: (id: string) => void },
-): ReactJSX.Element | null {
+function renderPlacementDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose } = props;
   switch (action.kind) {
     case "placement": {
@@ -137,16 +100,6 @@ function renderPlacementDialogs(
     case "history": {
       return <PlacementHistory row={action.row} onClose={onClose} />;
     }
-    case "availability": {
-      return (
-        <AvailabilityDialog
-          studentId={action.studentId}
-          board={board}
-          onClose={onClose}
-          state={state}
-        />
-      );
-    }
     case "move":
     case "decline": {
       return <MovementForm {...props} rows={action.rows} decline={action.kind === "decline"} />;
@@ -155,36 +108,6 @@ function renderPlacementDialogs(
       return null;
     }
   }
-}
-
-function AvailabilityDialog({
-  studentId,
-  board,
-  onClose,
-  state,
-}: {
-  studentId: string;
-  board: SemesterBoard;
-  onClose: () => void;
-  state: { invalidate: string | null; setInvalidate: (id: string) => void };
-}): ReactJSX.Element {
-  const row = availabilitySubject(board, studentId);
-  return state.invalidate && row ? (
-    <ReasonDialog
-      action="invalidate"
-      row={row}
-      previousId={state.invalidate}
-      board={board}
-      onClose={onClose}
-    />
-  ) : (
-    <AvailabilityForm
-      studentId={studentId}
-      board={board}
-      onClose={onClose}
-      onInvalidate={state.setInvalidate}
-    />
-  );
 }
 
 function renderCalendarDialogs(props: Props): ReactJSX.Element | null {
@@ -205,17 +128,4 @@ function renderCalendarDialogs(props: Props): ReactJSX.Element | null {
       return null;
     }
   }
-}
-
-function availabilitySubject(
-  board: SemesterBoard,
-  studentId: string,
-): Pick<Placement, "id" | "version" | "studentId" | "studentName"> | undefined {
-  const intent = board.intents.find((item) => item.studentId === studentId);
-  return (
-    board.placements.find((item) => item.studentId === studentId) ??
-    (intent
-      ? { id: intent.id, version: 0, studentId: intent.studentId, studentName: intent.studentName }
-      : undefined)
-  );
 }

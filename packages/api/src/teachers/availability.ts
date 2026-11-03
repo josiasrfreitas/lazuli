@@ -82,7 +82,7 @@ export async function assertClassTeacherAvailable(
   input: AssertClassTeacherAvailableInput,
 ): Promise<void> {
   await lockTeacher(input.database, input.teacherId);
-  const semester = await input.database.semester.findUnique({ where: { id: input.semesterId } });
+  const semester = await input.database.period.findUnique({ where: { id: input.semesterId } });
   if (!semester) throw badRequest("Semestre não encontrado.");
   await assertTeacherEligible({
     database: input.database,

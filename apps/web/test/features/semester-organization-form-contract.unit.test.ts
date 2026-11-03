@@ -3,11 +3,11 @@ import { it } from "node:test";
 import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SlotFields } from "../../src/features/semester-organization/slot-fields.js";
+import { SlotFields } from "../../src/features/class-organization/slot-fields.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-void it("gives every planned-class and availability interval distinct labelled, masked time controls", () => {
+void it("gives every planned-class interval distinct labelled, masked time controls", () => {
   const markup = renderToStaticMarkup(
     createElement(SlotFields, {
       slots: [

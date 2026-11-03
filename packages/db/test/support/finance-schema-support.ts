@@ -1,5 +1,5 @@
 import type { createDbClient } from "../../src/client.js";
-import { OrderKind, PaymentMethod } from "../../src/generated/prisma/enums.js";
+import { OrderKind } from "../../src/generated/prisma/enums.js";
 
 export const TEST_PREFIX = "GRE-42 ";
 export const START_DATE = new Date("2026-01-01T00:00:00.000Z");
@@ -203,7 +203,7 @@ async function createPaymentEntry(
     data: {
       amountCents: PAYMENT_AMOUNT_CENTS,
       date: EVENT_DATE,
-      method: PaymentMethod.PIX,
+      method: "PIX",
       payerId,
     },
     select: { id: true },

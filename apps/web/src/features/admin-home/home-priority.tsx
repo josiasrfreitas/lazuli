@@ -21,12 +21,12 @@ function figureContent(work: WorkPriority): {
 } {
   const timing = work.group.items[0]?.timing;
   const total = work.group.total;
-  if (timing?.kind === "meeting")
+  if (timing?.kind === "departure")
     return {
-      figure: timing.startTime,
-      label: `Aula de ${formatWorkDate(timing.date)}`,
-      isDate: true,
-      countLabel: total === 1 ? "aula sem professor" : "aulas sem professor",
+      figure: total.toLocaleString("pt-BR"),
+      label: "Professores com turmas a reatribuir",
+      isDate: false,
+      countLabel: "",
     };
   if (timing?.kind === "entry")
     return {
@@ -56,7 +56,10 @@ export function PriorityWork(props: PriorityProps): ReactElement {
     >
       <div className={styles.priorityMain}>
         <PriorityFigure work={work} />
-        <PriorityBody {...props} direct={first?.timing?.kind === "meeting" ? first : undefined} />
+        <PriorityBody
+          {...props}
+          direct={work.group.kind === "coverage" && work.group.total === 1 ? first : undefined}
+        />
       </div>
       {first && <PriorityCases {...props} />}
     </article>
@@ -83,7 +86,7 @@ function PriorityBody({
   open,
 }: PriorityProps & { direct: HomeItem | undefined }): ReactElement {
   const outcome =
-    work.state === "date-passed"
+    work.group.kind === "semester" && work.state === "date-passed"
       ? "A entrada precisa de uma data atual ou futura. Confira as datas e as turmas propostas."
       : WORK_COPY[work.group.kind].outcome;
   return (
@@ -98,12 +101,6 @@ function PriorityBody({
           {work.action}
           <ArrowRight aria-hidden="true" />
         </Button>
-        {direct && work.group.total > 1 && (
-          <button type="button" className={styles.textAction} onClick={() => select(work.group)}>
-            Ver as {work.group.total} aulas
-            <ArrowUpRight aria-hidden="true" />
-          </button>
-        )}
       </div>
     </div>
   );

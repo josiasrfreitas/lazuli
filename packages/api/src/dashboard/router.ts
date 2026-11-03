@@ -7,7 +7,11 @@ import { readAdminHome, readHomeBusiness } from "./home.js";
 import { adminProcedure, router, teacherProcedure } from "../trpc/init.js";
 import { readAdminDashboardMetrics, readTeacherHome } from "./data.js";
 
+import { readPendingLessons } from "./home-lessons.js";
+import { readOverdueContracts } from "../finance/internal/overdue-contracts.js";
+
 const MAX_HOME_PAGE = 100_000;
+const MAX_HOME_PAGE_SIZE = 12;
 const homePeriodInput = z
   .object({
     month: z
@@ -31,6 +35,7 @@ export const dashboardRouter = router({
       z.object({
         kind: z.enum(HOME_GROUPS),
         page: z.number().int().min(1).max(MAX_HOME_PAGE).default(1),
+        pageSize: z.number().int().min(1).max(MAX_HOME_PAGE_SIZE).default(MAX_HOME_PAGE_SIZE),
         period: z.enum(["all", "recent", "history"]).default("all"),
       }),
     )
@@ -42,6 +47,13 @@ export const dashboardRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" });
       return readHomePending(ctx.db, { ...input, now: ctx.now ?? new Date() });
     }),
+  pendingLessons: adminProcedure.query(({ ctx }) =>
+    readPendingLessons(ctx.db, ctx.now ?? new Date()),
+  ),
+  overdueContracts: adminProcedure.query(({ ctx }) => {
+    if (!canAccess(ctx.staffUser.role, "finance")) throw new TRPCError({ code: "FORBIDDEN" });
+    return readOverdueContracts(ctx.db, ctx.now ?? new Date());
+  }),
   business: adminProcedure.input(homePeriodInput).query(({ ctx, input }) => {
     if (!canAccess(ctx.staffUser.role, "finance")) throw new TRPCError({ code: "FORBIDDEN" });
     return readHomeBusiness({

@@ -1,7 +1,8 @@
 import type { Prisma } from "@lazuli/db";
-import { responsibleTeacherId, saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
+import { saoPauloDateOnly } from "@lazuli/domain";
+import { readCoverage as readDepartureCoverage } from "./home-coverage.js";
 import { meetingsBetween, meetingKey, type TeacherMeeting } from "../teachers/schedule.js";
-import { COVERAGE_DAYS, dateOnly, linkItem, plusDays, type HomeItem } from "./home-model.js";
+import { dateOnly, linkItem, type HomeItem } from "./home-model.js";
 
 const TIME_START = 11;
 const TIME_END = 16;
@@ -39,33 +40,7 @@ export async function readCoverage(
   database: Prisma.TransactionClient,
   now: Date,
 ): Promise<HomeItem[]> {
-  const today = saoPauloDateOnly(now);
-  const meetings = await meetingsBetween({
-    database,
-    from: today,
-    through: plusDays(today, COVERAGE_DAYS),
-    now,
-  });
-  return meetings
-    .filter(
-      (row) => !row.cancelled && responsibleTeacherId(row) === null && sessionEndInstant(row) > now,
-    )
-    .toSorted(
-      (left, right) =>
-        left.date.localeCompare(right.date) ||
-        left.startTime.localeCompare(right.startTime) ||
-        meetingKey(left).localeCompare(meetingKey(right)),
-    )
-    .map((row) =>
-      linkItem({
-        id: meetingKey(row),
-        title: row.className,
-        detail: `${row.startTime} · Definir professor ou substituição`,
-        href: `/turmas/${row.classId}`,
-        date: row.date,
-        timing: { kind: "meeting", date: row.date, startTime: row.startTime, endTime: row.endTime },
-      }),
-    );
+  return readDepartureCoverage(database, now);
 }
 export async function readHomeAgenda(
   database: Prisma.TransactionClient,

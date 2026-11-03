@@ -1,10 +1,4 @@
-import type {
-  SemesterPlanInput,
-  SemesterPlacementInput,
-  StudentAvailabilityInput,
-  z,
-  invalidateAvailabilitySchema,
-} from "@lazuli/validators";
+import type { SemesterPlanInput, SemesterPlacementInput } from "@lazuli/validators";
 import { classScheduleSlotsInputSchema } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { recordActivity } from "../activity/record.js";
@@ -97,9 +91,15 @@ function assertPlanSchedule(input: SemesterPlanInput, previous: ClassPlan | null
   }
 }
 
-async function linkPlanLeads(
+export async function linkPlanLeads(
   context: OrganizationContext,
-  { input, planId }: { input: SemesterPlanInput; planId: string },
+  {
+    input,
+    planId,
+  }: {
+    input: Pick<SemesterPlanInput, "leadIds" | "scheduleType" | "format" | "sharedStageId">;
+    planId: string;
+  },
 ): Promise<void> {
   for (const id of [...new Set(input.leadIds ?? [])].toSorted()) {
     await lockCandidate(context.database, id);
@@ -131,21 +131,13 @@ export async function savePlacement(
   const effectiveDate = placementEffectiveDate(context, { input, semester });
   await lockStudentEnrollment(context.database, input.studentId);
   const { student, previous, source, trackId } = await placementRelations(context, input);
-  const data = {
-    semesterId: input.semesterId,
-    studentId: input.studentId,
-    planId: input.planId,
-    stageId: input.stageId,
+  const data = placementWriteData(context, {
+    input,
+    effectiveDate,
     trackId,
-    sourceEnrollmentId: source?.enrollmentId ?? null,
-    sourceProgressId: source?.id ?? null,
-    mode: input.mode,
-    effectiveDate: new Date(effectiveDate),
-    declinedAt: null,
-    declinedReason: null,
-    notes: input.notes || null,
-    recordedById: context.staffUser.id,
-  };
+    source,
+    previous,
+  });
   const row = previous
     ? await context.database.semesterPlacement.update({
         where: { id: previous.id },
@@ -164,14 +156,50 @@ export async function savePlacement(
   return { id: row.id };
 }
 
+function placementWriteData(
+  context: OrganizationContext,
+  {
+    input,
+    effectiveDate,
+    trackId,
+    source,
+    previous,
+  }: {
+    input: SemesterPlacementInput;
+    effectiveDate: string;
+    trackId: string;
+    source: SourceProgress | null;
+    previous: Placement | null;
+  },
+): Prisma.SemesterPlacementUncheckedCreateInput {
+  return {
+    semesterId: input.semesterId,
+    studentId: input.studentId,
+    planId: input.planId,
+    stageId: input.stageId,
+    trackId,
+    sourceEnrollmentId: source?.enrollmentId ?? null,
+    sourceProgressId: source?.id ?? null,
+    mode: input.mode,
+    effectiveDate: new Date(effectiveDate),
+    ...(previous?.continuity === "CHANGE" && input.planId && input.planId !== previous.planId
+      ? { continuity: "UNDECIDED" as const, continuityReason: null }
+      : {}),
+    declinedAt: null,
+    declinedReason: null,
+    notes: input.notes || null,
+    recordedById: context.staffUser.id,
+  };
+}
+
 type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
 type Student = Prisma.StudentGetPayload<Prisma.StudentDefaultArgs>;
 type SourceProgress = Prisma.PedagogicalProgressGetPayload<{ include: { stage: true } }>;
-type Semester = Prisma.SemesterGetPayload<Prisma.SemesterDefaultArgs>;
+type Period = Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
 
 function placementEffectiveDate(
   context: OrganizationContext,
-  { input, semester }: { input: SemesterPlacementInput; semester: Semester },
+  { input, semester }: { input: SemesterPlacementInput; semester: Period },
 ): string {
   const effectiveDate =
     input.effectiveDate ??
@@ -279,86 +307,4 @@ function assertPlacementSource(input: SemesterPlacementInput, source: SourceProg
   if (input.mode !== "ENTRY" && !source) throw badRequest("Selecione o percurso de origem.");
   if (input.mode === "ENTRY" && source)
     throw badRequest("Entrada nova não deve ter um percurso de origem.");
-}
-
-async function availabilityOwner(
-  context: OrganizationContext,
-  input: { semesterId: string; studentId: string; previousId: string | null },
-): Promise<{
-  student: Student;
-  previous: Prisma.StudentAvailabilityGetPayload<Prisma.StudentAvailabilityDefaultArgs> | null;
-}> {
-  await lockSemester(context, input.semesterId);
-  await lockStudentEnrollment(context.database, input.studentId);
-  const student = await context.database.student.findUnique({ where: { id: input.studentId } });
-  if (!student) throw notFound("Aluno não encontrado.");
-  const previous = await context.database.studentAvailability.findFirst({
-    where: { studentId: input.studentId, semesterId: input.semesterId },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  });
-  if ((previous?.id ?? null) !== input.previousId)
-    throw badRequest("A disponibilidade mudou. Atualize a página antes de confirmar.");
-  return { student, previous };
-}
-export async function confirmAvailability(
-  context: OrganizationContext,
-  input: StudentAvailabilityInput,
-): Promise<{ id: string }> {
-  const { student, previous } = await availabilityOwner(context, input);
-  if (input.validUntil < saoPauloDateOnly(context.now))
-    throw badRequest("A validade da confirmação não pode estar no passado.");
-  const row = await context.database.studentAvailability.create({
-    data: {
-      semesterId: input.semesterId,
-      studentId: input.studentId,
-      validUntil: new Date(input.validUntil),
-      formats: [...new Set(input.formats)],
-      slots: input.slots,
-      notes: input.notes || null,
-      recordedById: context.staffUser.id,
-      createdAt: new Date(
-        Math.max(context.now.getTime(), (previous?.createdAt.getTime() ?? 0) + 1),
-      ),
-    },
-  });
-  await recordActivity(context.database, {
-    context,
-    action: "semesterOrganization.confirmAvailability",
-    details: {
-      subject: { type: "student", id: student.id, name: student.fullName },
-      description: `Disponibilidade confirmada até ${input.validUntil.split("-").toReversed().join("/")}.`,
-    },
-  });
-  return { id: row.id };
-}
-export async function invalidateAvailability(
-  context: OrganizationContext,
-  input: z.infer<typeof invalidateAvailabilitySchema>,
-): Promise<{ id: string }> {
-  const { student, previous } = await availabilityOwner(context, input);
-  if (!previous?.confirmed) throw badRequest("Esta disponibilidade já está invalidada.");
-  const row = await context.database.studentAvailability.create({
-    data: {
-      studentId: input.studentId,
-      semesterId: input.semesterId,
-      confirmed: false,
-      validUntil: previous.validUntil,
-      formats: previous.formats,
-      slots: previous.slots ?? [],
-      notes: input.reason,
-      recordedById: context.staffUser.id,
-      createdAt: new Date(
-        Math.max(context.now.getTime(), (previous?.createdAt.getTime() ?? 0) + 1),
-      ),
-    },
-  });
-  await recordActivity(context.database, {
-    context,
-    action: "semesterOrganization.invalidateAvailability",
-    details: {
-      subject: { type: "student", id: student.id, name: student.fullName },
-      description: input.reason,
-    },
-  });
-  return { id: row.id };
 }

@@ -256,7 +256,7 @@ async function assignCloneTeacher(
   input: CloneClassForNextPeriodInput,
   source: SourceClass,
 ): Promise<void> {
-  const targetSemester = await input.database.semester.findUniqueOrThrow({
+  const targetSemester = await input.database.period.findUniqueOrThrow({
     where: { id: input.semesterId },
     select: { startDate: true },
   });

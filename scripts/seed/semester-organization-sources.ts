@@ -262,5 +262,5 @@ export function proposalNotes(subject: PlacementSubject): string {
     return "Repetição explícita do MWY conforme decisão pedagógica; horário ainda precisa ser conciliado com o planejamento de C2.";
   if (subject.mode === "CONTINUE")
     return "Continuar o mesmo estágio no próximo semestre, preservando a avaliação e o plano individual em andamento.";
-  return "Intenção de avanço para o estágio seguinte; conferir decisão pedagógica e disponibilidade antes da publicação.";
+  return "Intenção de avanço para o estágio seguinte; conferir decisão pedagógica e turma antes da publicação.";
 }

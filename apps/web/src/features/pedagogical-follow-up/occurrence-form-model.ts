@@ -1,7 +1,13 @@
 "use client";
 
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useState,
+  useSyncExternalStore,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+} from "react";
+import { usePathname, useRouter } from "next/navigation";
 import type { CalendarView } from "@lazuli/ui";
 import type { RouterInputs, RouterOutputs } from "@lazuli/api";
 import { occurrenceCreateSchema } from "@lazuli/validators";
@@ -41,6 +47,7 @@ type SaveModel = {
 };
 export type OccurrenceFormModel = {
   student: OccurrenceStudent | undefined;
+  mobileList: boolean;
   date: string;
   setDate: Dispatch<SetStateAction<string>>;
   view: CalendarView;
@@ -68,18 +75,12 @@ export function useOccurrenceFormModel({
   student,
   onCreated,
 }: OccurrenceFormProps): OccurrenceFormModel {
+  const mobileList = useTeacherMobileList();
   const [date, setDate] = useState(schoolToday);
   const [view, setView] = useState<CalendarView>("day");
-  const [values, setValues] = useState<OccurrenceValues>({
-    classSessionId: "",
-    studentId: student?.id ?? "",
-    category: "LEARNING",
-    title: "",
-    account: "",
-    initialResponse: "",
-  });
+  const [values, setValues] = useState<OccurrenceValues>(() => initialValues(student));
   const validation = useValidation();
-  const data = useOccurrenceData({ student, date, view, values });
+  const data = useOccurrenceData({ student, date, view, values, mobileList });
   const save = useOccurrenceSave({ onClose, onCreated });
   function change(name: keyof OccurrenceValues, value: string): void {
     if (save.isPending) return;
@@ -100,6 +101,7 @@ export function useOccurrenceFormModel({
   }
   return {
     student,
+    mobileList,
     date,
     setDate,
     view,
@@ -113,22 +115,32 @@ export function useOccurrenceFormModel({
   };
 }
 
+function initialValues(student: OccurrenceStudent | undefined): OccurrenceValues {
+  return {
+    classSessionId: "",
+    studentId: student?.id ?? "",
+    category: "LEARNING",
+    title: "",
+    account: "",
+    initialResponse: "",
+  };
+}
+
 function useOccurrenceData({
   student,
   date,
   view,
   values,
+  mobileList,
 }: {
   student: OccurrenceStudent | undefined;
   date: string;
   view: CalendarView;
   values: OccurrenceValues;
+  mobileList: boolean;
 }): OccurrenceData {
   const from = view === "week" ? monday(date) : date;
-  const sessions = trpc.occurrences.sessions.useQuery({
-    ...(student ? { studentId: student.id } : {}),
-    range: { from, to: view === "week" ? shiftDate(from, WEEK_END_OFFSET) : date },
-  });
+  const sessions = useOccurrenceSessions({ student, from, date, view, mobileList });
   const roster = trpc.occurrences.roster.useQuery(
     { id: values.classSessionId },
     { enabled: !student && Boolean(values.classSessionId) },
@@ -139,6 +151,46 @@ function useOccurrenceData({
   const ready = rosterReady({ student, roster, studentId: values.studentId });
   const canSubmit = Boolean(selected) && !calendarBusy && !sessions.isError && ready;
   return { from, sessions, roster, selected, hours, calendarBusy, canSubmit };
+}
+
+function useOccurrenceSessions({
+  student,
+  from,
+  date,
+  view,
+  mobileList,
+}: {
+  student: OccurrenceStudent | undefined;
+  from: string;
+  date: string;
+  view: CalendarView;
+  mobileList: boolean;
+}): OccurrenceFormModel["sessions"] {
+  const studentFilter = student ? { studentId: student.id } : {};
+  const calendarSessions = trpc.occurrences.sessions.useQuery(
+    {
+      ...studentFilter,
+      range: { from, to: view === "week" ? shiftDate(from, WEEK_END_OFFSET) : date },
+    },
+    { enabled: !mobileList },
+  );
+  const recentSessions = trpc.occurrences.sessions.useQuery(studentFilter, { enabled: mobileList });
+  return mobileList ? recentSessions : calendarSessions;
+}
+
+const MOBILE_QUERY = "(max-width: 959px)";
+function useTeacherMobileList(): boolean {
+  const pathname = usePathname();
+  const narrow = useSyncExternalStore(subscribeNarrow, narrowSnapshot, () => false);
+  return pathname.startsWith("/professor/") && narrow;
+}
+function subscribeNarrow(callback: () => void): () => void {
+  const media = globalThis.matchMedia(MOBILE_QUERY);
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+function narrowSnapshot(): boolean {
+  return globalThis.matchMedia(MOBILE_QUERY).matches;
 }
 
 function rosterReady({
@@ -164,7 +216,7 @@ function useOccurrenceSave({
   const utils = trpc.useUtils();
   const save = trpc.occurrences.create.useMutation({
     onSuccess: async (result, submitted) => {
-      await utils.occurrences.invalidate();
+      await Promise.all([utils.occurrences.invalidate(), utils.dashboard.invalidate()]);
       onClose();
       if (onCreated) onCreated(result.id);
       else

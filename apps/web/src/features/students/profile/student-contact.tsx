@@ -1,242 +1,16 @@
 "use client";
 
-import {
-  useId,
-  useRef,
-  useState,
-  type Dispatch,
-  type ReactElement,
-  type ReactNode,
-  type RefObject,
-  type SetStateAction,
-} from "react";
-import { MapPin, NotebookPen, Pencil, UserRound, UsersRound, type LucideIcon } from "lucide-react";
-import {
-  Avatar,
-  Badge,
-  Button,
-  Dialog,
-  DialogBackdrop,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogPortal,
-  DialogTitle,
-  DialogTrigger,
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@lazuli/ui";
-import { DiscardRegistrationDialog } from "~/features/shared/discard-registration-dialog";
+import type { ReactElement, ReactNode } from "react";
+import { MapPin, Pencil, UserRound, UsersRound, type LucideIcon } from "lucide-react";
+import { Button, InlineSkeleton } from "@lazuli/ui";
 import { formatDateOnlyBR, toWhatsAppUrl } from "~/lib/format";
-import { statusBadgeVm } from "../view-model";
 import type { StudentProfile } from "./logic";
-import { RegistrationDocuments } from "./registration-documents";
-import { RegistrationEditor, type RegistrationEditTarget } from "./registration-editor";
+import type { RegistrationEditTarget } from "./registration-editor";
 import styles from "./student-registration.module.css";
 
 const NOT_INFORMED = "Não informado";
 
-type RegistrationViewModel = {
-  profile: StudentProfile;
-  editTarget: RegistrationEditTarget | null;
-  setEditTarget: Dispatch<SetStateAction<RegistrationEditTarget | null>>;
-  setEditBusy: Dispatch<SetStateAction<boolean>>;
-  dirty: boolean;
-  setDirty: Dispatch<SetStateAction<boolean>>;
-  discard: "close" | "edit" | null;
-  setDiscard: Dispatch<SetStateAction<"close" | "edit" | null>>;
-  setUploadBusy: Dispatch<SetStateAction<boolean>>;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  mobileSection: string;
-  setMobileSection: Dispatch<SetStateAction<string>>;
-  detailsId: string;
-  documentsId: string;
-  title: RefObject<HTMLHeadingElement | null>;
-  details: RefObject<HTMLDivElement | null>;
-  finishEdit: () => void;
-};
-type RegistrationDialogModel = RegistrationViewModel & {
-  open: boolean;
-  editBusy: boolean;
-  uploadBusy: boolean;
-};
-
-function finishRegistrationEdit({
-  editTarget,
-  setEditTarget,
-  setDirty,
-  details,
-}: Pick<RegistrationViewModel, "editTarget" | "setEditTarget" | "setDirty" | "details">): void {
-  setEditTarget(null);
-  setDirty(false);
-  requestAnimationFrame(() => {
-    details.current
-      ?.querySelector<HTMLButtonElement>(`[data-edit-section="${editTarget}"]`)
-      ?.focus();
-  });
-}
-
-function useRegistrationDialogModel(profile: StudentProfile): RegistrationDialogModel {
-  const [editTarget, setEditTarget] = useState<RegistrationEditTarget | null>(null);
-  const [editBusy, setEditBusy] = useState(false);
-  const [dirty, setDirty] = useState(false);
-  const [discard, setDiscard] = useState<"close" | "edit" | null>(null);
-  const [uploadBusy, setUploadBusy] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [mobileSection, setMobileSection] = useState("details");
-  const detailsId = useId();
-  const documentsId = useId();
-  const title = useRef<HTMLHeadingElement>(null);
-  const details = useRef<HTMLDivElement>(null);
-  const finishEdit = (): void =>
-    finishRegistrationEdit({ editTarget, setEditTarget, setDirty, details });
-  return {
-    profile,
-    open,
-    editBusy,
-    uploadBusy,
-    editTarget,
-    setEditTarget,
-    setEditBusy,
-    dirty,
-    setDirty,
-    discard,
-    setDiscard,
-    setUploadBusy,
-    setOpen,
-    mobileSection,
-    setMobileSection,
-    detailsId,
-    documentsId,
-    title,
-    details,
-    finishEdit,
-  };
-}
-
-export function StudentContactButton({ profile }: { profile: StudentProfile }): ReactElement {
-  const model = useRegistrationDialogModel(profile);
-  return (
-    <Dialog
-      open={model.open}
-      onOpenChange={(value) => {
-        if (model.uploadBusy || model.editBusy) return;
-        if (!value && model.dirty) {
-          model.setDiscard("close");
-          return;
-        }
-        if (value) model.setMobileSection("details");
-        model.setOpen(value);
-      }}
-      onOpenChangeComplete={(value) => {
-        if (!value) model.setEditTarget(null);
-      }}
-    >
-      <DialogTrigger
-        aria-label="Informações cadastrais"
-        title="Informações cadastrais"
-        render={<Button variant="link" size="inline" />}
-      >
-        <UserRound aria-hidden="true" />
-        <span>Informações cadastrais</span>
-      </DialogTrigger>
-      <DialogPortal>
-        <DialogBackdrop className="student-registration-backdrop" />
-        <RegistrationContent model={model} />
-      </DialogPortal>
-    </Dialog>
-  );
-}
-
-function RegistrationContent({ model }: { model: RegistrationViewModel }): ReactElement {
-  return (
-    <DialogContent
-      closeLabel="Fechar cadastro"
-      initialFocus={model.title}
-      className="student-registration-dialog"
-    >
-      <RegistrationHeader model={model} />
-      <RegistrationMobileNavigation model={model} />
-      <div className={styles.layout} data-mobile-section={model.mobileSection}>
-        <RegistrationDetails model={model} />
-        <div id={model.documentsId} className={styles.documentsPane}>
-          <RegistrationDocuments studentId={model.profile.id} onBusyChange={model.setUploadBusy} />
-        </div>
-      </div>
-      <RegistrationDiscard model={model} />
-    </DialogContent>
-  );
-}
-
-function RegistrationHeader({ model }: { model: RegistrationViewModel }): ReactElement {
-  const { profile } = model;
-  const status = statusBadgeVm(profile.contact.status);
-  return (
-    <div className={styles.header}>
-      <Avatar name={profile.contact.fullName} colorKey={profile.id} size="lg" />
-      <DialogHeader className="min-w-0 flex-1">
-        <DialogTitle
-          ref={model.title}
-          tabIndex={-1}
-          size="lg"
-          className="outline-none [overflow-wrap:anywhere] [text-wrap:balance]"
-        >
-          {profile.contact.fullName}
-        </DialogTitle>
-        <div className={styles.headerMetadata}>
-          <DialogDescription>Informações cadastrais</DialogDescription>
-          <Badge variant={status.variant}>{status.label}</Badge>
-        </div>
-      </DialogHeader>
-    </div>
-  );
-}
-
-function RegistrationMobileNavigation({ model }: { model: RegistrationViewModel }): ReactElement {
-  return (
-    <div className={styles.mobileNavigation}>
-      <SegmentedControl
-        aria-label="Seção do cadastro"
-        value={model.mobileSection}
-        onValueChange={(value) => {
-          if (value) model.setMobileSection(value);
-        }}
-      >
-        <SegmentedControlItem value="details" aria-controls={model.detailsId}>
-          Dados cadastrais
-        </SegmentedControlItem>
-        <SegmentedControlItem value="documents" aria-controls={model.documentsId}>
-          Documentos
-        </SegmentedControlItem>
-      </SegmentedControl>
-    </div>
-  );
-}
-
-function RegistrationDetails({ model }: { model: RegistrationViewModel }): ReactElement {
-  return (
-    <div id={model.detailsId} ref={model.details} className={styles.details}>
-      {model.editTarget ? (
-        <RegistrationEditor
-          key={model.editTarget}
-          profile={model.profile}
-          target={model.editTarget}
-          onCancel={() => {
-            if (model.dirty) model.setDiscard("edit");
-            else model.finishEdit();
-          }}
-          onSaved={model.finishEdit}
-          onDirtyChange={model.setDirty}
-          onBusyChange={model.setEditBusy}
-        />
-      ) : (
-        <RegistrationFactsSections profile={model.profile} onEdit={model.setEditTarget} />
-      )}
-    </div>
-  );
-}
-
-function RegistrationFactsSections({
+export function RegistrationFactsSections({
   profile,
   onEdit,
 }: {
@@ -261,33 +35,87 @@ function RegistrationFactsSections({
         <SectionHeading title="Endereço" icon={MapPin} target="address" onEdit={onEdit} />
         <StudentAddress address={profile.address} />
       </section>
+    </>
+  );
+}
+
+export function RegistrationFactsLoading(): ReactElement {
+  return (
+    <>
       <section className={styles.section}>
-        <SectionHeading title="Observações" icon={NotebookPen} target="notes" onEdit={onEdit} />
-        <p className={styles.notes}>{profile.notes ?? "Nenhuma observação."}</p>
+        <SectionHeading title="Dados do aluno" icon={UserRound} target="student" />
+        <dl className={styles.facts}>
+          <ProfileFact label="Nome completo" wide>
+            <InlineSkeleton className="w-48 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="Documento">
+            <InlineSkeleton className="w-24 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="Nascimento">
+            <InlineSkeleton className="w-20 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="Telefone">
+            <InlineSkeleton className="w-24 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="E-mail" wide>
+            <InlineSkeleton className="w-48 max-w-full" />
+          </ProfileFact>
+        </dl>
+      </section>
+      <section className={styles.section}>
+        <SectionHeading title="Responsável" icon={UsersRound} target="guardian" />
+        <GuardianContactLoading />
+      </section>
+      <section className={styles.section}>
+        <SectionHeading title="Endereço" icon={MapPin} target="address" />
+        <div className={styles.addressText}>
+          <p>
+            <InlineSkeleton className="w-56 max-w-full" />
+          </p>
+          <p className={styles.supporting}>
+            <InlineSkeleton className="w-40 max-w-full" />
+          </p>
+          <p className={styles.supporting}>
+            <InlineSkeleton className="w-24 max-w-full" />
+          </p>
+        </div>
       </section>
     </>
   );
 }
 
-function RegistrationDiscard({ model }: { model: RegistrationViewModel }): ReactElement | null {
-  if (!model.discard) return null;
+function GuardianContactLoading(): ReactElement {
   return (
-    <DiscardRegistrationDialog
-      onKeep={() => model.setDiscard(null)}
-      onDiscard={() => {
-        if (model.discard === "close") {
-          model.setDirty(false);
-          model.setOpen(false);
-        } else model.finishEdit();
-        model.setDiscard(null);
-      }}
-    />
+    <>
+      <div className={styles.guardianName}>
+        <p>
+          <InlineSkeleton className="w-40 max-w-full" />
+        </p>
+        <span>
+          <InlineSkeleton className="w-12" />
+        </span>
+      </div>
+      <dl className={styles.facts}>
+        <ProfileFact label="Documento">
+          <InlineSkeleton className="w-24 max-w-full" />
+        </ProfileFact>
+        <ProfileFact label="Telefone">
+          <InlineSkeleton className="w-24 max-w-full" />
+        </ProfileFact>
+        <ProfileFact label="E-mail" wide>
+          <InlineSkeleton className="w-48 max-w-full" />
+        </ProfileFact>
+      </dl>
+    </>
   );
 }
 
 function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactElement {
   return (
     <dl className={styles.facts}>
+      <ProfileFact label="Nome completo" wide>
+        {profile.contact.fullName}
+      </ProfileFact>
       <ProfileFact label={profile.contact.documentType ?? "Documento"}>
         {profile.contact.documentNumber ?? NOT_INFORMED}
       </ProfileFact>
@@ -378,7 +206,7 @@ function SectionHeading({
   title: string;
   icon: LucideIcon;
   target: RegistrationEditTarget;
-  onEdit: (target: RegistrationEditTarget) => void;
+  onEdit?: (target: RegistrationEditTarget) => void;
 }): ReactElement {
   return (
     <div className={styles.sectionHeading}>
@@ -392,7 +220,8 @@ function SectionHeading({
         data-edit-section={target}
         aria-label={`Editar ${title.toLocaleLowerCase("pt-BR")}`}
         title={`Editar ${title.toLocaleLowerCase("pt-BR")}`}
-        onClick={() => onEdit(target)}
+        disabled={!onEdit}
+        onClick={() => onEdit?.(target)}
       >
         <Pencil aria-hidden="true" />
       </Button>

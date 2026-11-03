@@ -15,6 +15,20 @@
   padding-bottom: 1.25rem;
 }
 
+.sections[data-lessons] > :global([data-slot="tabs"]) {
+  height: calc(100cqh - 1.25rem);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sections[data-lessons] :global([data-slot="tabs-panel"]) {
+  min-height: 0;
+}
+
+.sections :global([data-slot="tabs-panel"]) {
+  animation: class-tab-reveal 190ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
 /* This page scrolls around the roster; wheel input over its table must reach
    the page when the table viewport has no vertical distance left to scroll. */
 .sections :global([data-slot="table-viewport"]) {
@@ -198,6 +212,154 @@
   background: var(--background);
 }
 
+.lessonAlert {
+  width: 1rem;
+  height: 1rem;
+  animation: lesson-alert-pulse 2s ease-in-out infinite;
+}
+
+@keyframes lesson-alert-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lessonAlert {
+    animation: none;
+  }
+}
+
 .sections[data-planning] > :global([data-slot="tabs"]) {
   min-height: 0;
+}
+
+.missingTeacher {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.missingTeacher > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--warning);
+  font-size: var(--lz-text-body);
+}
+.missingTeacher > div svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Reveal the class identity first, then its schedule and teaching context. */
+.overview:not([aria-busy="true"]) {
+  animation: class-card-reveal 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.overview:not([aria-busy="true"]) .overviewGrid > * {
+  animation: class-context-arrive 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: 80ms;
+}
+.overview:not([aria-busy="true"]) .overviewGrid > :nth-child(2) {
+  animation-delay: 115ms;
+}
+.overview:not([aria-busy="true"]) .overviewGrid > :nth-child(3) {
+  animation-delay: 150ms;
+}
+.overview:not([aria-busy="true"]) .overviewGrid > :nth-child(4) {
+  animation-delay: 185ms;
+}
+.overview:not([aria-busy="true"]) .overviewGrid > :nth-child(5) {
+  animation-delay: 220ms;
+}
+
+/* Opacity preserves the sticky navigation's containing block. */
+.navigation {
+  animation: class-workspace-arrive 220ms ease-out 70ms backwards;
+}
+.rosterContent {
+  min-width: 0;
+}
+.rosterContent[data-ready] {
+  animation: class-context-arrive 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes class-context-arrive {
+  from {
+    opacity: 0.35;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes class-card-reveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes class-tab-reveal {
+  from {
+    opacity: 0.7;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes class-workspace-arrive {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overview:not([aria-busy="true"]),
+  .overview:not([aria-busy="true"]) .overviewGrid > *,
+  .navigation,
+  .rosterContent[data-ready],
+  .sections :global([data-slot="tabs-panel"]) {
+    animation: class-workspace-arrive 100ms ease-out;
+  }
+}
+
+.loadingPage {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.loadingNavigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.5rem;
+  min-height: 3.5rem;
+}
+.loadingNavigation > div {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.loadingNavigation span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.loadingNavigation svg {
+  width: 1rem;
+  height: 1rem;
 }

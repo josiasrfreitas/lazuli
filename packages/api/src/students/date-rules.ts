@@ -34,7 +34,7 @@ export function toDateOnlyString(date: Date | null): string | null {
   return date.toISOString().slice(0, DATE_ONLY_LENGTH);
 }
 
-function adultCutoffDateOnly(now: Date): string {
+export function adultCutoffDateOnly(now: Date): string {
   const today = saoPauloDateOnly(now);
   const cutoffYear = Number(today.slice(YEAR_START_INDEX, YEAR_END_INDEX)) - ADULT_AGE_YEARS;
 

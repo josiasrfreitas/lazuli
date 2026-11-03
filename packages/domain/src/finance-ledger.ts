@@ -23,7 +23,6 @@ export type DeriveInstallmentLedgerInput = {
   adjustments: AmountFact[];
   allocations: AmountFact[];
   now: Date;
-  interestRatePctMonthly: number;
 };
 
 export type InstallmentLedger = {
@@ -33,7 +32,6 @@ export type InstallmentLedger = {
   collectibleRemainingCents: number;
   status: InstallmentDisplayStatus;
   overdueDays: number;
-  interestPreviewCents: number;
   ageBucket: OverdueAgeBucket | null;
 };
 
@@ -47,7 +45,6 @@ export type DeriveOrderLedgerInput = {
     allocations: AmountFact[];
   }>;
   now: Date;
-  interestRatePctMonthly: number;
 };
 
 export type OrderLedger = {
@@ -77,8 +74,6 @@ const SECONDS_PER_MINUTE = 60;
 const MILLISECONDS_PER_SECOND = 1000;
 const MILLISECONDS_PER_DAY =
   HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
-const DAYS_PER_INTEREST_MONTH = 30;
-const PERCENT_DENOMINATOR = 100;
 const ONE_WEEK_DAYS = 7;
 const THIRTY_DAY_BUCKET_START = 30;
 
@@ -108,11 +103,6 @@ export function deriveInstallmentLedger(input: DeriveInstallmentLedgerInput): In
       currentSaoPauloDate,
     }),
     overdueDays,
-    interestPreviewCents: deriveInterestPreviewCents({
-      collectibleRemainingCents,
-      interestRatePctMonthly: input.interestRatePctMonthly,
-      overdueDays,
-    }),
     ageBucket: deriveAgeBucket(overdueDays),
   };
 }
@@ -128,7 +118,6 @@ export function deriveOrderLedger(input: DeriveOrderLedgerInput): OrderLedger {
       ...installment,
       orderCancelledAt: input.cancelledAt,
       now: input.now,
-      interestRatePctMonthly: input.interestRatePctMonthly,
     });
 
     openBalanceCents += ledger.collectibleRemainingCents;
@@ -173,18 +162,6 @@ function deriveInstallmentStatus(input: {
   }
 
   return "UPCOMING";
-}
-
-function deriveInterestPreviewCents(input: {
-  collectibleRemainingCents: number;
-  interestRatePctMonthly: number;
-  overdueDays: number;
-}): number {
-  return Math.floor(
-    (input.collectibleRemainingCents * input.interestRatePctMonthly * input.overdueDays) /
-      PERCENT_DENOMINATOR /
-      DAYS_PER_INTEREST_MONTH,
-  );
 }
 
 function deriveAgeBucket(overdueDays: number): OverdueAgeBucket | null {

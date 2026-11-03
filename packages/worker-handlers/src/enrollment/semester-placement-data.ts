@@ -24,12 +24,6 @@ export const include = {
 } satisfies Prisma.SemesterPlacementInclude;
 export type Placement = Prisma.SemesterPlacementGetPayload<{ include: typeof include }>;
 
-export type Availability = {
-  confirmed: boolean;
-  validUntil: Date;
-  formats: string[];
-  slots: Prisma.JsonValue;
-};
 const DATE_ONLY_LENGTH = 10;
 export function dateOnly(value: Date): string {
   return value.toISOString().slice(0, DATE_ONLY_LENGTH);

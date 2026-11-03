@@ -76,15 +76,20 @@ migrations, and loads database fixtures only for a database created by this setu
 objects are uploaded only when absent, so locally edited objects are preserved. Caddy remains owned
 by the Storybook command and is not part of full setup.
 
-The full command is serialized per worktree and safe to repeat. If it stops after database creation
-or during seed, `.lazuli/database-initialization.json` remains pending and the next
-`pnpm workspace:setup full` resumes initialization. An already existing database with no pending
+The full command is serialized per worktree and safe to repeat. If it stops after database creation,
+`.lazuli/database-initialization.json` remains pending. The next `pnpm workspace:setup full` resumes
+initialization only when fixtures have not been written, or finalizes an already completed seed.
+If a failed seed left school data behind, setup stops without replaying fixtures. Back up any local
+changes and explicitly run `pnpm seed` to rebuild this workspace's database and bucket, as required
+by [ADR 0024](docs/decisions/0024-rebuild-development-data-through-one-seed.md).
+An already existing database with no pending
 journal is treated as user data: migrations run, but fixtures are not reloaded. Workspace metadata
 records the requested profile; `pnpm workspace:status` separately observes the current database,
 bucket, initialization journal, and Compose service health without starting anything.
 
 When promotion fails, inspect the shared stack with `docker compose ps` and the affected service
-with `docker compose logs <service>`, then retry `pnpm workspace:setup full`. The command does not
+with `docker compose logs <service>`, then retry `pnpm workspace:setup full` unless fixture loading
+failed; recover a partial seed using the explicit rebuild described above. The command does not
 reset a database or replace existing GCS objects.
 
 Archive through Orca to run `pnpm workspace:teardown`; with the CLI, pass `--run-hooks` to
@@ -156,7 +161,7 @@ The former `prisma:seed`, `seed:settings`, `seed:contracts`, `seed:gcs`, and
 Mailpit, Hatchet, and other worktrees are preserved. Repeat `pnpm seed` after a failed run.
 
 Finance settings include a R$ 250 tuition ceiling, 20% maximum discount, 10% punctuality discount,
-0.1% daily interest, 2% monthly interest, 10% cancellation fee, and R$ 120 material price.
+2% monthly simple interest prorated daily on a 30-day basis, 10% cancellation fee, and R$ 120 material price.
 The system administrator remains the distinct `sistema@lazuli.local` account.
 
 See [decision 0024](docs/decisions/0024-rebuild-development-data-through-one-seed.md).

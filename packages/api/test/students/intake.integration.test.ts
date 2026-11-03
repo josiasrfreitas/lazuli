@@ -25,9 +25,7 @@ async function clean(): Promise<void> {
   await db.admissionCandidate.deleteMany({
     where: { fullName: { startsWith: harness.ns.prefix } },
   });
-  await db.studentAvailability.deleteMany({
-    where: { student: { fullName: { startsWith: harness.ns.prefix } } },
-  });
+
   await harness.clean();
 }
 beforeEach(clean);
@@ -64,6 +62,7 @@ function input(): RouterInputs["students"]["enrollNew"] {
       placement: {
         id: randomUUID(),
         candidateId: leadId,
+        teacherId: harness.ns.teacher.id,
         date: "2091-03-11",
         startTime: "14:00",
         endTime: "15:00",

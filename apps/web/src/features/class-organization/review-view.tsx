@@ -1,11 +1,11 @@
 import type { JSX as ReactJSX } from "react";
 import { Button, Checkbox } from "@lazuli/ui";
-import type { OrganizationAction, Placement, SemesterBoard } from "./model";
+import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
 import { ReviewRow } from "./review-row";
 import styles from "./organization.module.css";
 
 type ReviewProps = {
-  board: SemesterBoard;
+  board: OrganizationBoard;
   rows: Placement[];
   eligible: Placement[];
   selected: Placement[];
@@ -42,7 +42,7 @@ function ReviewHeader({
   return (
     <div className={styles.row}>
       <div>
-        <h2 className="text-body font-semibold">Antes de confirmar</h2>
+        <h2 className="text-body font-semibold">Antes de aplicar as alocações</h2>
         <p className={styles.small}>
           Compare origem e destino. Passe sobre a mudança ou abra os detalhes.
         </p>
@@ -53,7 +53,7 @@ function ReviewHeader({
           checked={showAll}
           onCheckedChange={(value) => onShowAll(Boolean(value))}
         />
-        <span className={styles.small}>Incluir confirmados</span>
+        <span className={styles.small}>Incluir já alocados</span>
       </label>
     </div>
   );
@@ -93,7 +93,7 @@ function ReviewTable({
         <div className={styles.empty}>
           <h2>Nenhuma mudança nesta seleção</h2>
           <p>
-            Inclua os confirmados para consultar a composição ou organize novos alunos pela agenda.
+            Inclua os já alocados para consultar a composição ou organize novos alunos pela agenda.
           </p>
         </div>
       )}
@@ -137,15 +137,15 @@ function ReviewFooter({ selected, eligible, working, onConfirm }: ReviewProps): 
   return (
     <footer className={styles.selection}>
       <span className={styles.small}>
-        {selected.length} selecionados · {eligible.length} prontos para confirmar
+        {selected.length} selecionados · {eligible.length} prontos para aplicar
       </span>
       <span className={`${styles.small} ${styles.push}`}>
         Contratos são tratados separadamente.
       </span>
       <Button size="sm" disabled={selected.length === 0 || working} onClick={onConfirm}>
         {working
-          ? "Confirmando alocações…"
-          : `Confirmar${selected.length > 0 ? ` ${selected.length}` : " selecionados"}`}
+          ? "Aplicando alocações…"
+          : `Aplicar${selected.length > 0 ? ` ${selected.length}` : " selecionados"}`}
       </Button>
     </footer>
   );

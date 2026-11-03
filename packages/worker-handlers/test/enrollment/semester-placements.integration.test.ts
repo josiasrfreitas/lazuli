@@ -8,7 +8,7 @@ const TEACHER = "00000000-0000-0000-0000-000000185002";
 const due = new Date("2094-07-01T03:00:00.000Z");
 const slots = [{ weekday: "MONDAY" as const, startTime: "14:00", endTime: "15:00" }];
 async function clean(): Promise<void> {
-  const semesters = await db.semester.findMany({
+  const semesters = await db.period.findMany({
     where: { name: { startsWith: PREFIX } },
     select: { id: true },
   });
@@ -18,7 +18,7 @@ async function clean(): Promise<void> {
     where: { placement: { semesterId: { in: ids } } },
   });
   await db.semesterPlacement.deleteMany({ where: { semesterId: { in: ids } } });
-  await db.studentAvailability.deleteMany({ where: { semesterId: { in: ids } } });
+
   await db.semesterClassPlan.deleteMany({ where: { semesterId: { in: ids } } });
   await db.enrollmentAction.deleteMany({
     where: { enrollment: { student: { fullName: { startsWith: PREFIX } } } },
@@ -30,7 +30,7 @@ async function clean(): Promise<void> {
   await db.student.deleteMany({ where: { fullName: { startsWith: PREFIX } } });
   await db.classScheduleSlot.deleteMany({ where: { class: { semesterId: { in: ids } } } });
   await db.class.deleteMany({ where: { semesterId: { in: ids } } });
-  await db.semester.deleteMany({ where: { id: { in: ids } } });
+  await db.period.deleteMany({ where: { id: { in: ids } } });
   await db.stage.deleteMany({ where: { name: { startsWith: PREFIX } } });
   await db.track.deleteMany({ where: { name: { startsWith: PREFIX } } });
   await db.productLine.deleteMany({ where: { name: { startsWith: PREFIX } } });
@@ -50,7 +50,7 @@ type Fixture = {
   exit: Prisma.EnrollmentActionGetPayload<Prisma.EnrollmentActionDefaultArgs>;
   placement: Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
   student: Prisma.StudentGetPayload<Prisma.StudentDefaultArgs>;
-  next: Prisma.SemesterGetPayload<Prisma.SemesterDefaultArgs>;
+  next: Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
 };
 async function fixture(): Promise<Fixture> {
   await db.user.createMany({
@@ -76,14 +76,14 @@ async function fixture(): Promise<Fixture> {
   const stage = await db.stage.create({
     data: { trackId: track.id, internalCode: "W1", name: PREFIX + "Stage", sequence: 1 },
   });
-  const old = await db.semester.create({
+  const old = await db.period.create({
     data: {
       name: PREFIX + "2094.1",
       startDate: new Date("2094-01-01"),
       endDate: new Date("2094-06-30"),
     },
   });
-  const next = await db.semester.create({
+  const next = await db.period.create({
     data: {
       name: PREFIX + "2094.2",
       startDate: new Date("2094-07-01"),
@@ -130,17 +130,7 @@ async function fixture(): Promise<Fixture> {
       recordedById: ADMIN,
     },
   });
-  const availability = await db.studentAvailability.create({
-    data: {
-      studentId: student.id,
-      semesterId: next.id,
-      formats: ["ONLINE"],
-      slots,
-      validUntil: next.endDate,
-      recordedById: ADMIN,
-      createdAt: new Date("2094-06-01"),
-    },
-  });
+
   return db.$transaction(async (database) => {
     const source = await database.enrollment.create({
       data: { studentId: student.id, classId: sourceClass.id, entryDate: old.startDate },
@@ -192,7 +182,6 @@ async function fixture(): Promise<Fixture> {
         enrollmentId: target.id,
         entryActionId: entry.id,
         sourceExitActionId: exit.id,
-        availabilityId: availability.id,
       },
     });
     return { source, sourceProgress, target, entry, exit, placement, student, next };
@@ -220,69 +209,6 @@ void it("applies the paired next-semester movement as TRANSFERRED once, only on 
   assert.equal(progress.endReason, "TRANSFERRED");
   const entry = await db.enrollmentAction.findUniqueOrThrow({ where: { id: data.entry.id } });
   assert.equal(entry.status, "APPLIED");
-  assert.equal(
-    await db.$transaction((database) => processDueEnrollmentActions({ database, now: due })),
-    0,
-  );
-});
-void it("returns a publication with invalidated availability to review and preserves the current membership", async () => {
-  const data = await fixture();
-  const lead = await db.admissionCandidate.create({
-    data: {
-      fullName: data.student.fullName,
-      phone: "11999990000",
-      studentId: data.student.id,
-      enrollmentId: data.target.id,
-      status: "ENROLLED",
-      recordedById: ADMIN,
-    },
-  });
-  await db.studentAvailability.create({
-    data: {
-      studentId: data.student.id,
-      semesterId: data.next.id,
-      confirmed: false,
-      formats: ["ONLINE"],
-      slots,
-      validUntil: data.next.endDate,
-      notes: "Availability revoked after publication",
-      recordedById: ADMIN,
-      createdAt: new Date("2094-06-30"),
-    },
-  });
-  assert.equal(
-    await db.$transaction((database) => processDueEnrollmentActions({ database, now: due })),
-    0,
-  );
-  const source = await db.enrollment.findUniqueOrThrow({ where: { id: data.source.id } });
-  assert.equal(source.exitDate, null);
-  const progress = await db.pedagogicalProgress.findUniqueOrThrow({
-    where: { id: data.sourceProgress.id },
-  });
-  assert.equal(progress.endDate, null);
-  assert.equal(await db.enrollment.count({ where: { id: data.target.id } }), 0);
-  const actions = await db.enrollmentAction.findMany({
-    where: { id: { in: [data.entry.id, data.exit.id] } },
-  });
-  assert.deepEqual(
-    actions.map((action) => action.status),
-    ["CANCELLED", "CANCELLED"],
-  );
-  const placement = await db.semesterPlacement.findUniqueOrThrow({
-    where: { id: data.placement.id },
-  });
-  assert.equal(placement.publishedAt, null);
-  const history = await db.semesterPlacementRevision.findFirstOrThrow({
-    where: { placementId: data.placement.id },
-  });
-  assert.equal(history.action, "REQUIRES_REVIEW");
-  assert.equal(history.recordedById, null);
-  assert.match(history.reason ?? "", /Confirme a disponibilidade/u);
-  const reopened = await db.admissionCandidate.findUniqueOrThrow({ where: { id: lead.id } });
-  assert.equal(reopened.status, "WAITING");
-  assert.equal(reopened.enrollmentId, null);
-  assert.equal(reopened.allocationPlanId, data.placement.planId);
-  assert.match(reopened.allocationPendingReason ?? "", /Confirme a disponibilidade/u);
   assert.equal(
     await db.$transaction((database) => processDueEnrollmentActions({ database, now: due })),
     0,

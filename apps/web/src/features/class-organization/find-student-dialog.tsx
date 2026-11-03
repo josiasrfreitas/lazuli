@@ -30,7 +30,7 @@ export function FindStudent({
       description={`Alunos cadastrados sem proposta em ${board.semester.name}.`}
       formId="organization-find"
       firstField="organization-student-search"
-      submitLabel="Cadastrar novo aluno"
+      submitLabel="Concluir"
       pending={false}
       onClose={onClose}
       error={query.error?.message}
@@ -40,7 +40,7 @@ export function FindStudent({
         className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
-          onAction({ kind: "student" });
+          onClose();
         }}
       >
         <StudentSearchField search={search} setSearch={setSearch} setPage={setPage} />
@@ -107,7 +107,9 @@ function StudentSearchResults({
         ))
       )}
       {query.data?.rows.length === 0 && (
-        <p className={styles.small}>Nenhum aluno encontrado. Você pode cadastrar um novo.</p>
+        <p className={styles.small}>
+          Nenhum aluno encontrado. Pessoas novas devem ser cadastradas como leads.
+        </p>
       )}
     </div>
   );

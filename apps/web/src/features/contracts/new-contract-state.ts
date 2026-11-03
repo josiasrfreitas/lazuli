@@ -29,6 +29,9 @@ type ParsedInput = ReturnType<typeof contractInputFromFields>;
 const CENTS_PER_REAL = 100;
 const DEFAULT_CONTRACT_MONTHS = 12;
 const FORM_KEYS = new Set<keyof ContractFields>([
+  "enrollmentFee",
+  "scholarshipPct",
+  "scholarshipAgreement",
   "studentId",
   "payerId",
   "agreedOn",
@@ -38,6 +41,7 @@ const FORM_KEYS = new Set<keyof ContractFields>([
 type ContractIssue = { path: (string | number)[]; message: string; code?: string };
 const STUDENT_KEYS: Record<string, keyof ContractFields> = {
   fullName: "studentDraftName",
+  birthDate: "studentBirthDate",
   documentType: "studentDocumentNumber",
   documentNumber: "studentDocumentNumber",
   phone: "studentPhone",
@@ -45,6 +49,8 @@ const STUDENT_KEYS: Record<string, keyof ContractFields> = {
 };
 const GUARDIAN_KEYS: Record<string, keyof ContractFields> = {
   fullName: "studentGuardianName",
+  documentType: "studentGuardianDocumentNumber",
+  documentNumber: "studentGuardianDocumentNumber",
   phone: "studentGuardianPhone",
   email: "studentGuardianEmail",
 };
@@ -56,15 +62,18 @@ const PAYER_KEYS: Record<string, keyof ContractFields> = {
   email: "payerEmail",
 };
 const MATERIAL_KEYS: Record<string, keyof ContractFields> = {
+  scholarshipPct: "materialScholarshipPct",
+  scholarshipAgreement: "materialScholarshipAgreement",
   stageIds: "materialStageIds",
   category: "materialCategory",
   payment: "materialPayment",
+  installmentCount: "materialInstallments",
+  priceOverrideCents: "materialCustomPrice",
 };
 
-function assignMaterialIssue(errors: Errors, property: string): void {
+function assignMaterialIssue(errors: Errors, ...[property, message]: [string, string]): void {
   const key = MATERIAL_KEYS[property] ?? "materialTotal";
-  errors[key] =
-    property === "expectedTotalCents" ? "Aguarde o preço do material." : "Selecione uma opção.";
+  errors[key] = property === "expectedTotalCents" ? "Aguarde o preço do material." : message;
 }
 
 function assignPayerIssue(errors: Errors, issue: ContractIssue): void {
@@ -77,7 +86,7 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
   const section = issue.path[0];
   const property = String(issue.path[1]);
   if (section === "material") {
-    assignMaterialIssue(errors, property);
+    assignMaterialIssue(errors, property, issue.message);
     return;
   }
   if (section === "newStudent") {
@@ -97,11 +106,12 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
       "Informe uma quantidade inteira entre 1 e a duração do contrato em meses.";
     return;
   }
-  const name = section as keyof ContractFields | "monthlyAmountCents";
+  const name = section as keyof ContractFields | "monthlyAmountCents" | "enrollmentFeeCents";
   if (name === "monthlyAmountCents")
     errors.monthlyAmount =
       issue.code === "custom" ? issue.message : "Informe uma mensalidade válida.";
-  else if (FORM_KEYS.has(name)) errors[name] = "Confira este campo.";
+  else if (name === "enrollmentFeeCents") errors.enrollmentFee = issue.message;
+  else if (FORM_KEYS.has(name)) errors[name] = issue.message;
 }
 
 function assignStudentIssue(errors: Errors, issue: ContractIssue): void {
@@ -180,10 +190,10 @@ function clearedErrors(
 
 export function useContractFormState(
   open: boolean,
-  initialFields = emptyContractFields,
+  ...[initialFields = emptyContractFields, suggestAgreementDate = true]: [ContractFields?, boolean?]
 ): ContractFormState {
   const [fields, setFields] = useState<ContractFields>(initialFields);
-  useAgreementDate(open, setFields);
+  useAgreementDate(open && suggestAgreementDate, setFields);
   const [errors, setErrors] = useState<Errors>({});
   const [submissionError, setSubmissionError] = useState("");
   const commandId = useRef(crypto.randomUUID());
@@ -248,7 +258,7 @@ export type ContractOperation = {
   submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 };
 
-function monthlyAmountError(text: string, offer: FormProps["offer"]): string | undefined {
+export function monthlyAmountError(text: string, offer: FormProps["offer"]): string | undefined {
   const value = text.trim();
   const amount = Math.round(Number(value.replace(",", ".")) * CENTS_PER_REAL);
   if (!/^\d+(?:[.,]\d{1,2})?$/u.test(value) || !Number.isSafeInteger(amount) || amount <= 0) {
@@ -313,6 +323,7 @@ export function useContractOperation(input: ContractOperationInput): ContractOpe
       submitting.current = true;
       await create.mutateAsync(parsed.data);
       void utils.finance.searchContractParties.invalidate();
+      void utils.students.invalidate();
       input.onCreated();
       state.reset();
       input.onOpenChange(false);

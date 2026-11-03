@@ -62,6 +62,7 @@ function DocumentFields({ errors, fields, onFieldChange }: FieldsProps): ReactEl
   return (
     <PersonDocumentField
       error={errors.documentNumber ?? errors.documentType}
+      required
       name="documentNumber"
       onChange={(document) => {
         onFieldChange("documentNumber", document.documentNumber);
@@ -79,6 +80,7 @@ function BirthDateField({ errors, fields, onFieldChange }: FieldsProps): ReactEl
       <Input
         autoComplete="off"
         invalid={errors.birthDate !== undefined}
+        aria-required="true"
         name="birthDate"
         onChange={(event) => {
           const [year, month, day] = event.target.value.split("-");
@@ -100,7 +102,8 @@ type GuardianSectionProps = FieldsProps & {
   action?: ReactNode;
 };
 
-const MINOR_DESCRIPTION = "Obrigatório para menores de idade: nome e telefone ou email.";
+const MINOR_DESCRIPTION =
+  "Obrigatório para menores de idade: nome, CPF ou RG e telefone ou e-mail.";
 
 function GuardianFields({
   errors,
@@ -110,16 +113,24 @@ function GuardianFields({
   compact = false,
 }: FieldsProps & { minor: boolean; compact?: boolean }): ReactElement {
   return (
-    <div className={compact ? styles.guardianFields : "grid gap-3"}>
-      <TextField
-        error={errors.guardianName}
-        label="Nome do responsável"
-        name="guardianName"
-        onChange={onFieldChange}
-        placeholder="Nome completo do responsável"
-        required={minor}
-        value={fields.guardianName}
-      />
+    <div className="grid gap-3">
+      <FormRow columns={2}>
+        <TextField
+          error={errors.guardianName}
+          label="Nome do responsável"
+          name="guardianName"
+          onChange={onFieldChange}
+          placeholder="Nome completo do responsável"
+          required={minor}
+          value={fields.guardianName}
+        />
+        <GuardianDocumentField
+          fields={fields}
+          errors={errors}
+          onFieldChange={onFieldChange}
+          minor={minor}
+        />
+      </FormRow>
       <div className={compact ? styles.guardianContacts : "grid gap-3 sm:grid-cols-2"}>
         <TextField
           error={errors.guardianPhone}
@@ -142,6 +153,26 @@ function GuardianFields({
         />
       </div>
     </div>
+  );
+}
+
+function GuardianDocumentField({
+  fields,
+  errors,
+  onFieldChange,
+  minor,
+}: FieldsProps & { minor: boolean }): ReactElement {
+  return (
+    <PersonDocumentField
+      required={minor || Boolean(fields.guardianName.trim())}
+      name="guardianDocumentNumber"
+      value={fields.guardianDocumentNumber}
+      error={errors.guardianDocumentNumber ?? errors.guardianDocumentType}
+      onChange={(document) => {
+        onFieldChange("guardianDocumentNumber", document.documentNumber);
+        onFieldChange("guardianDocumentType", document.documentType ?? "");
+      }}
+    />
   );
 }
 
@@ -205,32 +236,29 @@ function ContactSection({
   fields,
   onFieldChange,
   stacked = false,
-  action,
-}: FieldsProps & { stacked?: boolean; action?: ReactNode }): ReactElement {
+}: FieldsProps & { stacked?: boolean }): ReactElement {
   return (
-    <FormSection title="Contato" action={action}>
-      <FormRow columns={stacked ? 1 : 2}>
-        <TextField
-          error={errors.phone}
-          inputMode="tel"
-          label="Telefone"
-          name="phone"
-          onChange={onFieldChange}
-          placeholder="(11) 99999-9999"
-          type="tel"
-          value={fields.phone}
-        />
-        <TextField
-          error={errors.email}
-          label="Email"
-          name="email"
-          onChange={onFieldChange}
-          placeholder="nome@exemplo.com"
-          type="email"
-          value={fields.email}
-        />
-      </FormRow>
-    </FormSection>
+    <FormRow columns={stacked ? 1 : 2} role="group" aria-label="Contato">
+      <TextField
+        error={errors.phone}
+        inputMode="tel"
+        label="Telefone"
+        name="phone"
+        onChange={onFieldChange}
+        placeholder="(11) 99999-9999"
+        type="tel"
+        value={fields.phone}
+      />
+      <TextField
+        error={errors.email}
+        label="Email"
+        name="email"
+        onChange={onFieldChange}
+        placeholder="nome@exemplo.com"
+        type="email"
+        value={fields.email}
+      />
+    </FormRow>
   );
 }
 

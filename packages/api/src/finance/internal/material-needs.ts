@@ -72,7 +72,7 @@ export async function readMaterialNeeds(
   );
 }
 
-async function activeEnrollments(
+export async function activeEnrollments(
   database: FinanceDatabase,
   options: { studentId: string; today: Date },
 ): Promise<Enrollment[]> {

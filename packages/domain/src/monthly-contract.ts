@@ -9,6 +9,7 @@ export type MonthlyContractTerms = {
   tuitionCeilingCents: number;
   maximumDiscountPct: number;
   punctualityDiscountPct: number;
+  scholarshipPct?: number | undefined;
 };
 
 const PERCENT_UNITS = 1_000_000;
@@ -21,6 +22,7 @@ const DAY_END = 10;
 const MONTHS_PER_YEAR = 12;
 const ONE_BASED_MONTH = 1;
 const MAX_PERSISTED_AMOUNT_CENTS = 2_147_483_647;
+const PERCENT_BASE = 100;
 
 export function addCalendarMonths(value: string, months: number): string {
   const sourceYear = Number(value.slice(0, YEAR_END));
@@ -69,30 +71,30 @@ function persistiblePrincipalCents(durationMonths: number, monthlyAmountCents: n
 
 export function previewMonthlyContract(terms: MonthlyContractTerms): {
   endsOn: string;
+  chargedMonthlyCents: number;
   principalAmountCents: number;
   onTimeMonthlyCents: number;
   floorCents: number;
   installments: Array<{ sequenceNumber: number; amountCents: number; dueDate: string }>;
 } {
   const installmentCount = terms.installmentCount ?? terms.durationMonths;
-  if (
-    !Number.isInteger(installmentCount) ||
-    installmentCount < 1 ||
-    installmentCount > terms.durationMonths
-  ) {
-    throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
+  assertInstallmentCount(installmentCount, terms.durationMonths);
+  // Validate the reference price before applying the separately agreed scholarship.
+  persistiblePrincipalCents(terms.durationMonths, terms.monthlyAmountCents);
+  const scholarshipPct = terms.scholarshipPct ?? 0;
+  assertScholarshipPercent(scholarshipPct);
+  const chargedMonthlyCents = priceAfterDiscountCents(terms.monthlyAmountCents, scholarshipPct);
+  if (scholarshipPct < PERCENT_BASE && chargedMonthlyCents < 1) {
+    throw new Error("A bolsa parcial deve manter uma mensalidade de pelo menos um centavo.");
   }
-  const principalAmountCents = persistiblePrincipalCents(
-    terms.durationMonths,
-    terms.monthlyAmountCents,
-  );
+  const principalAmountCents = terms.durationMonths * chargedMonthlyCents;
   const numerator =
     BigInt(terms.tuitionCeilingCents) *
     BigInt(PERCENT_UNITS - Math.round(terms.maximumDiscountPct * PERCENT_TO_UNITS));
   const floorCents = Number((numerator + BigInt(PERCENT_UNITS - 1)) / BigInt(PERCENT_UNITS));
   const onTimeMonthlyCents = priceAfterDiscountCents(
-    terms.monthlyAmountCents,
-    terms.punctualityDiscountPct,
+    chargedMonthlyCents,
+    scholarshipPct > 0 ? 0 : terms.punctualityDiscountPct,
   );
   if (
     terms.monthlyAmountCents > terms.tuitionCeilingCents ||
@@ -102,15 +104,27 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   }
   return {
     endsOn: addCalendarMonths(terms.startsOn, terms.durationMonths),
+    chargedMonthlyCents,
     principalAmountCents,
     onTimeMonthlyCents,
     floorCents,
-    installments: splitPrincipal(principalAmountCents, installmentCount).map(
-      (amountCents, index) => ({
-        sequenceNumber: index + 1,
-        amountCents,
-        dueDate: addCalendarMonths(terms.firstDueDate, index),
-      }),
-    ),
+    installments: (principalAmountCents === 0
+      ? []
+      : splitPrincipal(principalAmountCents, installmentCount)
+    ).map((amountCents, index) => ({
+      sequenceNumber: index + 1,
+      amountCents,
+      dueDate: addCalendarMonths(terms.firstDueDate, index),
+    })),
   };
+}
+
+function assertInstallmentCount(count: number, durationMonths: number): void {
+  if (Number.isInteger(count) && count >= 1 && count <= durationMonths) return;
+  throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
+}
+
+function assertScholarshipPercent(percent: number): void {
+  if (Number.isFinite(percent) && percent >= 0 && percent <= PERCENT_BASE) return;
+  throw new Error("Informe um percentual de bolsa entre 0 e 100.");
 }

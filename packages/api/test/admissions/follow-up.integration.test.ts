@@ -71,17 +71,9 @@ void it("captures and edits contact details without requiring or fabricating ped
   assert.equal(saved.contactName, "Mãe do futuro aluno");
   assert.equal(saved.source, "Visita à escola");
   assert.deepEqual(
-    [
-      saved.scheduleType,
-      saved.format,
-      saved.availableUntil,
-      saved.availabilityConfirmedAt,
-      saved.studentId,
-      saved.enrollmentId,
-    ],
-    [null, null, null, null, null, null],
+    [saved.scheduleType, saved.format, saved.studentId, saved.enrollmentId],
+    [null, null, null, null],
   );
-  assert.deepEqual(saved.availability, []);
   await assert.rejects(caller().admissions.matches({ ...lead, date: "2071-02-01" }), {
     code: "BAD_REQUEST",
     message: /Defina modalidade/,

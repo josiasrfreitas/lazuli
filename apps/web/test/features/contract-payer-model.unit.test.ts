@@ -16,6 +16,10 @@ const fields = {
   endsOn: "31/03/2027",
   firstDueDate: "31/03/2026",
   monthlyAmount: "250,00",
+  materialStageIds: "00000000-0000-4000-8000-000000000004",
+  materialCategory: "ADULT",
+  materialTotal: "10000",
+  materialQuoteVersion: "a".repeat(64),
   payerName: " Maria ",
   payerDocumentType: "RG",
   payerDocumentNumber: "12.345.678-X",
@@ -50,25 +54,22 @@ void it("ignores an invalid inactive draft and directs document errors to its co
   });
 });
 
-void it("sends optional blank contacts and document as absent", () => {
+void it("sends blank optional contact fields as absent", () => {
   const parsed = contractInputFromFields(
     {
       ...fields,
       payerMode: "create",
-      payerDocumentType: "",
-      payerDocumentNumber: " ",
       payerPhone: " ",
-      payerEmail: " ",
     },
     COMMAND,
   );
   assert.equal(parsed.success, true);
   assert.deepEqual(parsed.data?.newPayer, {
     name: "Maria",
-    documentType: undefined,
-    documentNumber: undefined,
+    documentType: "RG",
+    documentNumber: "12.345.678-X",
     phone: undefined,
-    email: undefined,
+    email: "maria@example.com",
   });
 });
 

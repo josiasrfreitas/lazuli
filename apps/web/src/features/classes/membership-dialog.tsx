@@ -143,6 +143,7 @@ function MembershipBody({
   return (
     <DialogContent
       className="md:max-w-md"
+      data-class-dialog-motion
       initialFocus={() =>
         popup.current?.querySelector<HTMLInputElement>(
           source ? 'input[name="targetClassId"]' : 'input[name="studentSearch"]',

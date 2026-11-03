@@ -10,9 +10,7 @@ import {
   DataTable,
   DataTablePage,
   Input,
-  PencilLoader,
   TableFilters,
-  TableFilterChips,
   type TableFilterField,
   type DataTableState,
 } from "@lazuli/ui";
@@ -46,7 +44,6 @@ export function AdmissionsPage(): ReactElement {
   return (
     <>
       <AdmissionsView
-        fields={fields}
         query={query}
         pagination={pagination}
         filtered={Boolean(params.busca) || params.interesse !== "ALL" || params.situacao !== "ALL"}
@@ -71,13 +68,11 @@ export function AdmissionsPage(): ReactElement {
   );
 }
 function AdmissionsView({
-  fields,
   query,
   pagination,
   filtered,
   controls,
 }: {
-  fields: TableFilterField[];
   query: CandidateQuery;
   pagination: ReturnType<typeof useUrlPagination>;
   filtered: boolean;
@@ -93,24 +88,21 @@ function AdmissionsView({
       }
       controls={controls}
     >
-      <AdmissionsTableContent {...{ fields, query, pagination, filtered }} />
+      <AdmissionsTableContent {...{ query, pagination, filtered }} />
     </DataTablePage>
   );
 }
 function AdmissionsTableContent({
-  fields,
   query,
   pagination,
   filtered,
 }: {
-  fields: TableFilterField[];
   query: CandidateQuery;
   pagination: ReturnType<typeof useUrlPagination>;
   filtered: boolean;
 }): ReactElement {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <TableFilterChips fields={fields} />
       <AdmissionsTable query={query} pagination={pagination} filtered={filtered} />
     </div>
   );
@@ -166,13 +158,6 @@ function AdmissionsTable({
   filtered: boolean;
 }): ReactElement {
   const router = useRouter();
-  if (!query.data && !query.isError) {
-    return (
-      <div className="grid min-h-48 flex-1 place-items-center" aria-busy="true">
-        <PencilLoader label="Carregando leads" />
-      </div>
-    );
-  }
   return (
     <div className="min-h-0 flex-1">
       <DataTable

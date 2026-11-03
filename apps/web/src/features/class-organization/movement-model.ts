@@ -6,9 +6,9 @@ import { trpc, type QueryResult } from "~/lib/trpc";
 import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { useValidation } from "~/features/shared/task-form";
-import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { OrganizationDialogProps as Props } from "./dialogs";
-import type { Placement, SemesterBoard } from "./model";
+import type { Placement, OrganizationBoard } from "./model";
 
 const MIN_REASON_LENGTH = 3;
 const MAX_REASON_LENGTH = 1200;
@@ -23,7 +23,7 @@ const moveSchema = z.object({
 export type MovementProps = Props & { rows: Placement[]; decline: boolean };
 export type MovementModel = {
   targetSemesterId: string;
-  targetBoard: SemesterBoard | undefined;
+  targetBoard: OrganizationBoard | undefined;
   targetError: string | undefined;
   periods: QueryResult<RouterOutputs["semesterOrganization"]["semesters"]>;
   planId: string;

@@ -32,7 +32,7 @@ export function deriveContractServiceStatus(input: {
 
 /** Only registered adjustments and allocations count; previews never become debt. */
 export function deriveContractFinancialSummary(
-  input: Omit<DeriveOrderLedgerInput, "interestRatePctMonthly"> & { installmentCount: number },
+  input: DeriveOrderLedgerInput & { installmentCount: number },
 ): {
   status: ContractFinancialStatus;
   paymentProgress: { paid: number; total: number; waived: number; cancelled: number };
@@ -44,7 +44,6 @@ export function deriveContractFinancialSummary(
       ...installment,
       orderCancelledAt: input.cancelledAt,
       now: input.now,
-      interestRatePctMonthly: 0,
     }),
     dueDate:
       typeof installment.dueDate === "string"

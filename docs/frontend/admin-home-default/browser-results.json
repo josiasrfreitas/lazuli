@@ -1,0 +1,183 @@
+{
+  "findings": [
+    {
+      "name": "desktop-dark",
+      "overflow": false,
+      "contentOverflow": false,
+      "h1": "40px",
+      "width": 1440,
+      "headingCount": 2,
+      "body": "Olá, Clara.\n230\nalunos ativos\nAinda hoje\nAbrir agenda\n14:00\n15:00\nExemplo · Teens A2\nAula · Camila Duarte\n15:30\n16:00\nExemplo · Mariana Albuquerque\nAtendimento\n17:00\n18:00\nExemplo · Rafael Mendes\nExperimental\nVer os 12 compromissos de hoje\nEm outubro\nNovos alunos\n11\nMatrículas iniciadas\n13\nExperimentais realizadas\n7"
+    },
+    {
+      "name": "agenda-navigation",
+      "path": "/aulas"
+    },
+    {
+      "name": "desktop-light",
+      "overflow": false,
+      "contentOverflow": false,
+      "h1": "40px",
+      "width": 1440,
+      "headingCount": 2,
+      "body": "Olá, Clara.\n230\nalunos ativos\nAinda hoje\nAbrir agenda\n14:00\n15:00\nExemplo · Teens A2\nAula · Camila Duarte\n15:30\n16:00\nExemplo · Mariana Albuquerque\nAtendimento\n17:00\n18:00\nExemplo · Rafael Mendes\nExperimental\nVer os 12 compromissos de hoje\nEm outubro\nNovos alunos\n11\nMatrículas iniciadas\n13\nExperimentais realizadas\n7"
+    },
+    {
+      "name": "mobile-dark",
+      "overflow": false,
+      "contentOverflow": false,
+      "h1": "32px",
+      "width": 390,
+      "headingCount": 2,
+      "body": "Olá, Clara.\n230\nalunos ativos\nAinda hoje\nAbrir agenda\n14:00\n15:00\nExemplo · Teens A2\nAula · Camila Duarte\n15:30\n16:00\nExemplo · Mariana Albuquerque\nAtendimento\n17:00\n18:00\nExemplo · Rafael Mendes\nExperimental\nVer os 12 compromissos de hoje\nEm outubro\nNovos alunos\n11\nMatrículas iniciadas\n13\nExperimentais realizadas\n7"
+    },
+    {
+      "name": "mobile-light",
+      "overflow": false,
+      "contentOverflow": false,
+      "h1": "32px",
+      "width": 390,
+      "headingCount": 2,
+      "body": "Olá, Clara.\n230\nalunos ativos\nAinda hoje\nAbrir agenda\n14:00\n15:00\nExemplo · Teens A2\nAula · Camila Duarte\n15:30\n16:00\nExemplo · Mariana Albuquerque\nAtendimento\n17:00\n18:00\nExemplo · Rafael Mendes\nExperimental\nVer os 12 compromissos de hoje\nEm outubro\nNovos alunos\n11\nMatrículas iniciadas\n13\nExperimentais realizadas\n7"
+    },
+    {
+      "name": "narrow-320",
+      "overflow": false,
+      "contentOverflow": false,
+      "h1": "32px",
+      "width": 320,
+      "headingCount": 2,
+      "body": "Olá, Clara.\n230\nalunos ativos\nAinda hoje\nAbrir agenda\n14:00\n15:00\nExemplo · Teens A2\nAula · Camila Duarte\n15:30\n16:00\nExemplo · Mariana Albuquerque\nAtendimento\n17:00\n18:00\nExemplo · Rafael Mendes\nExperimental\nVer os 12 compromissos de hoje\nEm outubro\nNovos alunos\n11\nMatrículas iniciadas\n13\nExperimentais realizadas\n7"
+    },
+    {
+      "name": "empty-desktop",
+      "overflow": false,
+      "contentOverflow": false,
+      "h1": "40px",
+      "width": 1440,
+      "headingCount": 2,
+      "body": "Olá, Clara.\n230\nalunos ativos\nAinda hoje\nAbrir agenda\n\nSem compromissos restantes hoje.\n\nEm outubro\nNovos alunos\n250\nMatrículas iniciadas\n0\nExperimentais realizadas\n4"
+    },
+    {
+      "name": "error-mobile",
+      "overflow": false,
+      "contentOverflow": false,
+      "h1": "32px",
+      "width": 390,
+      "headingCount": 0,
+      "body": "Olá, Clara.\n\nNão foi possível carregar o Início.\n\nTentar novamente"
+    },
+    {
+      "name": "motion-and-interruption",
+      "motion": [
+        {
+          "target": "data-brand-symbol",
+          "frames": [
+            {
+              "opacity": 0,
+              "offset": 0
+            },
+            {
+              "opacity": 0,
+              "offset": 0.8
+            },
+            {
+              "opacity": 1
+            }
+          ],
+          "options": {
+            "duration": 760,
+            "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+            "fill": "both"
+          }
+        },
+        {
+          "target": "data-arrival-wordmark",
+          "frames": [
+            {
+              "opacity": 1
+            },
+            {
+              "opacity": 0
+            }
+          ],
+          "options": {
+            "duration": 240,
+            "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+            "fill": "both"
+          }
+        },
+        {
+          "target": "data-arrival-cover",
+          "frames": [
+            {
+              "opacity": 1
+            },
+            {
+              "opacity": 0
+            }
+          ],
+          "options": {
+            "duration": 600,
+            "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+            "fill": "both"
+          }
+        },
+        {
+          "target": "data-home-content",
+          "frames": [
+            {
+              "opacity": 0.35,
+              "transform": "translateY(8px)"
+            },
+            {
+              "opacity": 1,
+              "transform": "none"
+            }
+          ],
+          "options": {
+            "duration": 760,
+            "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+            "fill": "both"
+          }
+        },
+        {
+          "target": "data-arrival-symbol",
+          "frames": [
+            {
+              "transform": "none",
+              "opacity": 1,
+              "offset": 0
+            },
+            {
+              "transform": "translate(-41px, -29.5px) scale(0.36363636363636365)",
+              "opacity": 1,
+              "offset": 0.8
+            },
+            {
+              "transform": "translate(-41px, -29.5px) scale(0.36363636363636365)",
+              "opacity": 0,
+              "offset": 1
+            }
+          ],
+          "options": {
+            "duration": 760,
+            "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+            "fill": "both"
+          }
+        }
+      ],
+      "queryPreserved": true,
+      "reloadDoesNotReplay": true
+    },
+    {
+      "name": "reduced-motion",
+      "motion": []
+    },
+    {
+      "name": "no-javascript",
+      "coverReleases": true
+    }
+  ],
+  "errors": []
+}

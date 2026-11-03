@@ -1,19 +1,7 @@
 import { effectiveTeacherId, type SemesterEligibility } from "@lazuli/domain";
-import { classScheduleSlotInputSchema, z } from "@lazuli/validators";
-import { dateOnly, type Placement, type Availability } from "./semester-placement-data.js";
+import { dateOnly, type Placement } from "./semester-placement-data.js";
 
-const TIME_START = 11;
-const TIME_END = 16;
-function slots(
-  value: Availability["slots"],
-): NonNullable<SemesterEligibility["availability"]>["slots"] {
-  return z.array(classScheduleSlotInputSchema).parse(value);
-}
-
-export function eligibility(
-  row: Placement,
-  availability: Availability | null,
-): SemesterEligibility {
+export function eligibility(row: Placement): SemesterEligibility {
   const entryOn = dateOnly(row.entryAction!.effectiveDate);
   return {
     entryOn,
@@ -26,14 +14,6 @@ export function eligibility(
         : null,
     source: sourceEligibility(row),
     plan: planEligibility(row, entryOn),
-    availability: availability
-      ? {
-          confirmed: availability.confirmed,
-          validUntil: dateOnly(availability.validUntil),
-          formats: availability.formats,
-          slots: slots(availability.slots),
-        }
-      : null,
   };
 }
 
@@ -58,12 +38,6 @@ function planEligibility(row: Placement, entryOn: string): SemesterEligibility["
   return {
     scheduleType: target.scheduleType,
     sharedStageId: target.sharedStageId,
-    format: target.format,
-    slots: target.scheduleSlots.map((slot) => ({
-      weekday: slot.weekday,
-      startTime: slot.startTime.toISOString().slice(TIME_START, TIME_END),
-      endTime: slot.endTime.toISOString().slice(TIME_START, TIME_END),
-    })),
     teacherReady: planTeacherReady(target, entryOn),
     active: target.status === "ACTIVE" && !target.deletedAt && !row.enrollment?.deletedAt,
   };

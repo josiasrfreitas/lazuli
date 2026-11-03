@@ -1,222 +1,406 @@
 "use client";
 
-import { ArrowUpRight, MailCheck } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { MailCheck, Check } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+} from "react";
 
-import { Alert, AlertDescription, AlertIcon, Button, Field, Input, Label } from "@lazuli/ui";
+import { Alert, AlertDescription, Button } from "@lazuli/ui";
 
-import { authClient } from "~/lib/auth-client";
-
+import { submitLogin } from "./login-actions";
+import { LoginForm, type LoginMode } from "./login-form";
 import styles from "./login-entrance.module.css";
 
-type LoginPending = "none" | "magic-link";
+export type LoginInitialError = "denied" | "verification";
+const DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
+const SET_PASSWORD_MODE = "set-password";
+const DESCRIPTION: Record<LoginMode, string> = {
+  password: "Entre com seu email e sua senha.",
+  "magic-link": "Receba um link no email para entrar sem senha.",
+  register:
+    "Receba um link no email cadastrado na escola. Ao abrir, você volta aqui para escolher sua senha.",
+  recover: "Enviaremos um link no seu email para você escolher uma nova senha.",
+  reset: "Escolha sua senha para entrar na Lazuli.",
+  "set-password": "Escolha uma senha para os próximos acessos à Lazuli.",
+};
 
-/** Replaces the form after sending, so another send cannot invalidate the first link. */
-function MagicLinkSent({
-  email,
-  onUseAnotherEmail,
-}: {
-  email: string;
-  onUseAnotherEmail: () => void;
-}): ReactNode {
-  return (
-    <div className={styles.accessContent}>
-      <h2 className={styles.accessTitle} id="login-title">
-        Confira seu email.
-      </h2>
-      <div className={styles.sent} role="status">
-        <div className={styles.sentMark} aria-hidden="true">
-          <MailCheck />
-        </div>
-        <p className="text-body leading-relaxed">
-          Link de acesso enviado para <span className="font-semibold">{email}</span>.
-        </p>
-        <p className="mt-4 text-body leading-relaxed text-marquee-muted">
-          Abra o link no email para entrar. Se não chegar em alguns minutos, confira a caixa de
-          spam.
-        </p>
-        <Button className="mt-5" onClick={onUseAnotherEmail} size="lg" variant="secondary">
-          Usar outro email
-        </Button>
-      </div>
-    </div>
-  );
+function initialLoginError(error: LoginInitialError | null): string | null {
+  if (error === "denied") return DENIED_MESSAGE;
+  if (error === "verification") return "Link inválido ou expirado. Peça um novo abaixo.";
+  return null;
 }
 
-/**
- * Every rejection is reported with the same sentence, whatever the cause, so the
- * screen never confirms whether an address belongs to the school. A send that
- * fails for another reason says so plainly instead — telling someone their
- * access was denied when the mail server was down would simply be untrue.
- */
-const DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
-const SEND_FAILURE_MESSAGE = "Não foi possível enviar o link. Tente novamente em alguns instantes.";
-const VERIFICATION_FAILURE_MESSAGE = "Link inválido ou expirado. Peça um novo abaixo.";
-const UNAUTHORIZED_STATUS = 401;
+function useLoginToken(token: string | null): {
+  linkToken: string | null;
+  linkReady: boolean;
+  setLinkToken: Dispatch<SetStateAction<string | null>>;
+} {
+  const [linkToken, setLinkToken] = useState(token);
+  const [linkReady, setLinkReady] = useState(false);
+  useEffect(() => {
+    const fragmentToken = new URLSearchParams(globalThis.location.hash.slice(1)).get("token");
+    setLinkToken(fragmentToken || token);
+    setLinkReady(true);
+    if (fragmentToken || (token && globalThis.location.search.includes("token="))) {
+      globalThis.history.replaceState(globalThis.history.state, "", globalThis.location.pathname);
+    }
+  }, [token]);
+  return { linkToken, linkReady, setLinkToken };
+}
 
-/**
- * How a verification redirect landed back here: access denied (no new link
- * will ever help) or a failed link (a new one will). The page derives this
- * from the `error` query parameter; the card never sees the raw code.
- */
-export type LoginInitialError = "denied" | "verification";
+function useLoginFocus({
+  container,
+  mode,
+  complete,
+  invalidReset,
+}: {
+  container: RefObject<HTMLDivElement | null>;
+  mode: LoginMode;
+  complete: boolean;
+  invalidReset: boolean;
+}): void {
+  const lastFocusState = useRef({ mode, complete, invalidReset });
+  useEffect(() => {
+    if (
+      lastFocusState.current.mode === mode &&
+      lastFocusState.current.complete === complete &&
+      lastFocusState.current.invalidReset === invalidReset
+    )
+      return;
+    lastFocusState.current = { mode, complete, invalidReset };
+    container.current
+      ?.querySelector<HTMLElement>(complete ? '[role="status"]' : "input, button")
+      ?.focus({ preventScroll: true });
+  }, [container, mode, complete, invalidReset]);
+}
 
-/** Magic links only recognise staff members already registered by the school. */
-export function LoginCard({ initialError }: { initialError: LoginInitialError | null }): ReactNode {
-  const { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink } =
-    useLoginCard(initialError);
+type LoginCardInput = {
+  initialError: LoginInitialError | null;
+  initialMode?: LoginMode;
+  token?: string | null;
+};
 
-  if (sentTo !== null) {
-    return <MagicLinkSent email={sentTo} onUseAnotherEmail={() => setSentTo(null)} />;
+type LoginSubmitContext = {
+  mode: LoginMode;
+  email: string;
+  token: string | null;
+  submitting: RefObject<boolean>;
+  setPending: Dispatch<SetStateAction<boolean>>;
+  setError: Dispatch<SetStateAction<string | null>>;
+  setExpired: Dispatch<SetStateAction<boolean>>;
+  setComplete: Dispatch<SetStateAction<boolean>>;
+};
+
+function finishLoginSubmit(
+  context: LoginSubmitContext,
+  failure: Awaited<ReturnType<typeof submitLogin>>,
+): void {
+  context.setError(failure?.expired ? null : (failure?.message ?? null));
+  context.setExpired(Boolean(failure?.expired));
+  if (failure === null && context.mode !== "password") context.setComplete(true);
+  if (failure !== null || context.mode !== "password") {
+    context.setPending(false);
+    context.submitting.current = false;
   }
+}
 
+function createLoginSubmit(
+  context: LoginSubmitContext,
+): (event: FormEvent<HTMLFormElement>) => Promise<void> {
+  return async (event) => {
+    event.preventDefault();
+    if (context.submitting.current || !event.currentTarget.reportValidity()) return;
+    const passwordValue = new FormData(event.currentTarget).get("password");
+    const password = typeof passwordValue === "string" ? passwordValue : "";
+    context.submitting.current = true;
+    context.setPending(true);
+    context.setError(null);
+    const failure = await submitLogin({
+      mode: context.mode,
+      email: context.email.trim(),
+      password,
+      token: context.token,
+    });
+    finishLoginSubmit(context, failure);
+  };
+}
+
+function useLoginCard({
+  initialError,
+  initialMode = "password",
+  token = null,
+}: LoginCardInput): LoginCardViewProps {
+  const [mode, setMode] = useState<LoginMode>(
+    initialError === "verification" ? "magic-link" : initialMode,
+  );
+  const [email, setEmail] = useState("");
+  const [pending, setPending] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [modeDirection, setModeDirection] = useState<"forward" | "back" | null>(null);
+  const [error, setError] = useState(initialLoginError(initialError));
+  const container = useRef<HTMLDivElement>(null);
+  const submitting = useRef(false);
+  const [expired, setExpired] = useState(false);
+  const { linkToken, linkReady, setLinkToken } = useLoginToken(token);
+  const definingPassword = mode === "reset" || mode === SET_PASSWORD_MODE;
+  const invalidReset = definingPassword && linkReady && (!linkToken || expired);
+  const requestMode = mode === SET_PASSWORD_MODE ? "register" : "recover";
+  useLoginFocus({ container, mode, complete, invalidReset });
+  const changeMode = (next: LoginMode): void => {
+    setModeDirection(next === "password" ? "back" : "forward");
+    setMode(next);
+    setComplete(false);
+    setError(null);
+    setExpired(false);
+    setLinkToken(null);
+    if (linkToken || globalThis.location.pathname !== "/login")
+      globalThis.history.replaceState(globalThis.history.state, "", "/login");
+  };
+  const handleSubmit = createLoginSubmit({
+    mode,
+    email,
+    token: linkToken,
+    submitting,
+    setPending,
+    setError,
+    setExpired,
+    setComplete,
+  });
+  const status = { mode, email, pending, complete, modeDirection, error, container };
+  const actions = { setEmail, changeMode, handleSubmit };
+  return { ...status, invalidReset, definingPassword, requestMode, ...actions };
+}
+
+export function LoginCard(props: LoginCardInput): ReactNode {
+  const view = useLoginCard(props);
+  return <LoginCardView {...view} />;
+}
+
+type LoginCardViewProps = {
+  mode: LoginMode;
+  email: string;
+  pending: boolean;
+  complete: boolean;
+  modeDirection: "forward" | "back" | null;
+  error: string | null;
+  container: RefObject<HTMLDivElement | null>;
+  invalidReset: boolean;
+  definingPassword: boolean;
+  requestMode: LoginMode;
+  setEmail: Dispatch<SetStateAction<string>>;
+  changeMode: (next: LoginMode) => void;
+  handleSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+};
+
+function LoginCardView({
+  mode,
+  email,
+  pending,
+  complete,
+  modeDirection,
+  error,
+  container,
+  invalidReset,
+  definingPassword,
+  requestMode,
+  setEmail,
+  changeMode,
+  handleSubmit,
+}: LoginCardViewProps): ReactNode {
   return (
     <div
+      ref={container}
       className={styles.accessContent}
       data-login-reveal="form"
       data-error={error !== null || undefined}
+      data-mode-change={modeDirection ?? undefined}
     >
-      <div>
-        <h2 className={styles.accessTitle} id="login-title">
-          Boas-vindas <span>de volta.</span>
-        </h2>
-        <p className={styles.accessDescription}>Receba seu link de acesso por email.</p>
-      </div>
-      <div className={styles.methods}>
-        <LoginMethods {...{ email, error, handleMagicLink, pending, setEmail }} />
-      </div>
-    </div>
-  );
-}
-
-function useLoginCard(initialError: LoginInitialError | null): {
-  email: string;
-  error: string | null;
-  pending: LoginPending;
-  sentTo: string | null;
-  setEmail: (email: string) => void;
-  setSentTo: (email: string | null) => void;
-  handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-} {
-  const [email, setEmail] = useState("");
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [pending, setPending] = useState<LoginPending>("none");
-  const [error, setError] = useState<string | null>(initialErrorMessage(initialError));
-
-  async function handleMagicLink(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    setError(null);
-    setPending("magic-link");
-
-    const failure = await sendMagicLink(email);
-
-    setPending("none");
-    setError(failure);
-
-    if (failure === null) {
-      setSentTo(email);
-    }
-  }
-
-  return { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink };
-}
-
-function initialErrorMessage(initialError: LoginInitialError | null): string | null {
-  if (initialError === null) {
-    return null;
-  }
-
-  return initialError === "denied" ? DENIED_MESSAGE : VERIFICATION_FAILURE_MESSAGE;
-}
-
-/** Returns the message to show, or `null` when the link is on its way. */
-async function sendMagicLink(email: string): Promise<string | null> {
-  const result = await authClient.signIn.magicLink({
-    callbackURL: "/",
-    email,
-    errorCallbackURL: "/login",
-  });
-
-  if (result.error === null) {
-    return null;
-  }
-
-  return result.error.status === UNAUTHORIZED_STATUS ? DENIED_MESSAGE : SEND_FAILURE_MESSAGE;
-}
-
-function LoginMethods({
-  email,
-  error,
-  handleMagicLink,
-  pending,
-  setEmail,
-}: {
-  email: string;
-  error: string | null;
-  handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  pending: LoginPending;
-  setEmail: (email: string) => void;
-}): ReactNode {
-  return (
-    <div className={styles.controlStack}>
-      <LoginAlert message={error} />
-      <EmailSignInForm {...{ email, handleMagicLink, pending, setEmail }} />
-    </div>
-  );
-}
-
-function EmailSignInForm({
-  email,
-  handleMagicLink,
-  pending,
-  setEmail,
-}: {
-  email: string;
-  handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  pending: LoginPending;
-  setEmail: (email: string) => void;
-}): ReactNode {
-  return (
-    <form className={styles.emailForm} onSubmit={(event) => void handleMagicLink(event)}>
-      <Field>
-        <Label className="text-body text-marquee-foreground">Email institucional</Label>
-        <Input
-          autoComplete="email"
-          size="lg"
-          className="text-body"
-          disabled={pending !== "none"}
-          name="email"
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="voce@escola.com.br"
-          required
-          type="email"
-          value={email}
+      <LoginCardHeading mode={mode} complete={complete} definingPassword={definingPassword} />
+      {complete ? (
+        <LoginComplete mode={mode} email={email} onBack={() => changeMode("password")} />
+      ) : (
+        <LoginCardMethods
+          {...{
+            mode,
+            email,
+            pending,
+            error,
+            invalidReset,
+            definingPassword,
+            requestMode,
+            setEmail,
+            changeMode,
+            handleSubmit,
+          }}
         />
-      </Field>
-      <Button
-        disabled={pending !== "none"}
-        loading={pending === "magic-link"}
-        size="lg"
-        type="submit"
-      >
-        Receber link de acesso
-        <ArrowUpRight aria-hidden="true" />
-      </Button>
-    </form>
+      )}
+    </div>
   );
 }
 
-function LoginAlert({ message }: { message: string | null }): ReactNode {
-  if (message === null) return null;
+function LoginCardHeading({
+  mode,
+  complete,
+  definingPassword,
+}: {
+  mode: LoginMode;
+  complete: boolean;
+  definingPassword: boolean;
+}): ReactNode {
+  let heading = title(mode);
+  if (complete) heading = definingPassword ? "Senha salva." : "Confira seu email.";
   return (
-    <Alert
-      className="flex items-center gap-3 rounded-none border-destructive/40"
-      variant="destructive"
+    <h2
+      key={`title-${complete ? "complete" : mode}`}
+      className={styles.accessTitle}
+      id="login-title"
     >
-      <AlertIcon className="translate-y-0">
-        <img alt="" className="-my-2 size-8" src="/icons/login-error-mark.svg" />
-      </AlertIcon>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
+      {heading}
+    </h2>
+  );
+}
+
+type LoginMethodsProps = Pick<
+  LoginCardViewProps,
+  | "mode"
+  | "email"
+  | "pending"
+  | "error"
+  | "invalidReset"
+  | "definingPassword"
+  | "requestMode"
+  | "setEmail"
+  | "changeMode"
+  | "handleSubmit"
+>;
+
+function LoginCardMethods({
+  mode,
+  email,
+  pending,
+  error,
+  invalidReset,
+  definingPassword,
+  requestMode,
+  setEmail,
+  changeMode,
+  handleSubmit,
+}: LoginMethodsProps): ReactNode {
+  return (
+    <>
+      <p key={`description-${mode}`} className={styles.accessDescription}>
+        {DESCRIPTION[mode]}
+      </p>
+      <div key={`methods-${mode}`} className={styles.methods}>
+        <div className={styles.controlStack}>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {invalidReset ? (
+            <InvalidResetNotice onRequest={() => changeMode(requestMode)} />
+          ) : (
+            <LoginForm
+              key={mode}
+              mode={mode}
+              pending={pending}
+              email={email}
+              setEmail={setEmail}
+              onSubmit={(event) => void handleSubmit(event)}
+              onModeChange={changeMode}
+              className={styles.emailForm}
+            />
+          )}
+          {definingPassword && error && (
+            <Button variant="secondary" onClick={() => changeMode(requestMode)}>
+              Solicitar novo link
+            </Button>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function InvalidResetNotice({ onRequest }: { onRequest: () => void }): ReactNode {
+  return (
+    <>
+      <Alert variant="destructive">
+        <AlertDescription>
+          Link inválido ou expirado. Solicite um novo para definir sua senha.
+        </AlertDescription>
+      </Alert>
+      <Button onClick={onRequest}>Solicitar novo link</Button>
+    </>
+  );
+}
+
+function title(mode: LoginMode): ReactNode {
+  if (mode === "register" || mode === "set-password") return "Cadastre sua senha.";
+  if (mode === "recover") return "Recupere seu acesso.";
+  if (mode === "reset") return "Sua nova senha.";
+  if (mode === "magic-link") return "Entre pelo email.";
+  return (
+    <>
+      Boas-vindas <span>de volta.</span>
+    </>
+  );
+}
+
+function LoginComplete({
+  mode,
+  email,
+  onBack,
+}: {
+  mode: LoginMode;
+  email: string;
+  onBack: () => void;
+}): ReactNode {
+  const saved = mode === "reset" || mode === SET_PASSWORD_MODE;
+  const passwordEmail = mode === "recover" || mode === "register";
+  return (
+    <div className={styles.sent} role="status" tabIndex={-1}>
+      <div className={styles.sentMark} aria-hidden="true">
+        {saved ? <Check /> : <MailCheck />}
+      </div>
+      <p className="text-body leading-relaxed">
+        <CompleteMessage mode={mode} email={email} />
+      </p>
+      {!saved && (
+        <p className="mt-4 text-body leading-relaxed text-marquee-muted">
+          Se não encontrar o email, confira a caixa de spam.
+          {passwordEmail &&
+            " Abra o link para escolher sua senha no site. Ele vale por 15 minutos."}
+        </p>
+      )}
+      <Button className="mt-5" size="lg" variant={saved ? "primary" : "secondary"} onClick={onBack}>
+        {saved ? "Entrar com minha senha" : "Voltar para o login"}
+      </Button>
+    </div>
+  );
+}
+
+function CompleteMessage({ mode, email }: { mode: LoginMode; email: string }): ReactNode {
+  if (mode === "reset" || mode === SET_PASSWORD_MODE)
+    return "Tudo pronto. Entre com seu email e sua nova senha.";
+  if (mode === "recover" || mode === "register")
+    return (
+      <>
+        Se <strong>{email}</strong> tiver acesso à Lazuli, você receberá um link para{" "}
+        {mode === "register" ? "cadastrar" : "recuperar"} sua senha.
+      </>
+    );
+  return (
+    <>
+      Se <strong>{email}</strong> tiver acesso à Lazuli, você receberá um link para entrar.
+    </>
   );
 }

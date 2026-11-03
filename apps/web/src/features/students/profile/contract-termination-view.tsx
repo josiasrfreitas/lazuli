@@ -9,6 +9,7 @@ import {
   type TerminationState,
 } from "./contract-termination-state";
 import { TerminationDetails } from "./contract-termination-fields";
+import { ContractRenegotiationMode } from "./contract-renegotiation-mode";
 
 export type TerminationViewProps = {
   preview: TerminationPreview;
@@ -20,6 +21,7 @@ export type TerminationViewProps = {
   onReset: () => void;
   pending: boolean;
   mutationError: string | undefined;
+  onReduce?: (() => void) | undefined;
 };
 
 export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
@@ -32,7 +34,7 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
   };
   return (
     <TaskDialog
-      title="Rescindir contrato e encerrar matrícula"
+      title="Renegociar contrato"
       description={preview.studentName}
       onClose={onClose}
       pending={pending}
@@ -53,6 +55,13 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
       submitDisabled={state.review && (!state.acknowledged || !amounts.nameConfirmed)}
       onBack={state.review ? handleBack : undefined}
     >
+      {props.onReduce && (
+        <ContractRenegotiationMode
+          value="terminate"
+          onChange={props.onReduce}
+          disabled={pending || state.review}
+        />
+      )}
       <TerminationFormBody {...props} />
     </TaskDialog>
   );

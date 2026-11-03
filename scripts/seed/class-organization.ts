@@ -1,23 +1,14 @@
-import type { Semester } from "../../packages/db/src/index.js";
+import type { Period } from "../../packages/db/src/index.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { DEV_ADMIN, DEV_TEACHERS } from "../../packages/db/src/seed-dev-data.js";
-import {
-  addDays,
-  stableUuid,
-  timeOfDay,
-  utcDate,
-  isoOf,
-} from "../../packages/db/src/seed-dev-support.js";
+import { addDays, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 import type { OrganizationContext } from "../../packages/api/src/semester-organization/data.js";
 import { prepareSemester } from "../../packages/api/src/semester-organization/prepare.js";
 import {
   saveContinuity,
   pendingLead,
 } from "../../packages/api/src/semester-organization/lifecycle.js";
-import {
-  confirmAvailability,
-  saveClassPlan,
-} from "../../packages/api/src/semester-organization/write.js";
+import { saveClassPlan } from "../../packages/api/src/semester-organization/write.js";
 import { publishedOrganizationClass } from "./semester-organization-calendar.js";
 import { organizationId, type OrganizationSlot } from "./semester-organization-data.js";
 
@@ -43,7 +34,7 @@ const eveningSlots: OrganizationSlot[] = ["TUESDAY", "THURSDAY"].map((weekday) =
   endTime: "21:00",
 }));
 type SeedContext = OrganizationContext & {
-  semester: Semester;
+  semester: Period;
   teacherId: string;
   today: Date;
   initialStageId: string;
@@ -80,7 +71,7 @@ async function seedContext(database: DatabaseClient, todayIso: string): Promise<
     select: { id: true, name: true, email: true, role: true, isEnabled: true },
   });
   const today = utcDate(todayIso);
-  const semester = await database.semester.findFirstOrThrow({
+  const semester = await database.period.findFirstOrThrow({
     where: { startDate: { lte: today }, endDate: { gte: today }, deletedAt: null },
   });
   const teacher = await database.user.findUniqueOrThrow({
@@ -213,33 +204,10 @@ async function seedContinuity(context: SeedContext): Promise<void> {
         continuity,
         reason,
       });
-      if (continuity === "CHANGE")
-        await seedTransferAvailability(context, { studentId: row.studentId, notes: reason });
     }
   }
   // Existing annual contracts remain intact: coverage implies expected continuity,
   // without fabricating manual confirmation for the other students.
-}
-
-async function seedTransferAvailability(
-  context: SeedContext,
-  input: { studentId: string; notes: string },
-): Promise<void> {
-  const { studentId, notes } = input;
-  const { database, semester } = context;
-  const previous = await database.studentAvailability.findFirstOrThrow({
-    where: { semesterId: semester.id, studentId },
-    orderBy: { createdAt: "desc" },
-  });
-  await confirmAvailability(context, {
-    semesterId: semester.id,
-    studentId,
-    previousId: previous.id,
-    validUntil: isoOf(semester.endDate),
-    formats: ["IN_PERSON"],
-    slots: eveningSlots,
-    notes,
-  });
 }
 
 async function seedWaitingLead(
@@ -247,7 +215,7 @@ async function seedWaitingLead(
   person: { name: string; reason: string; index: number },
 ): Promise<void> {
   const { index } = person;
-  const { database, today, semester, staffUser, now, initialStageId } = context;
+  const { database, today, staffUser, initialStageId } = context;
   const id = stableUuid(["organization-lead", String(index)]);
   await database.admissionCandidate.create({
     data: {
@@ -263,18 +231,10 @@ async function seedWaitingLead(
       scheduleType: "REGULAR",
       format: "IN_PERSON",
       stageId: initialStageId,
-      availableUntil: semester.endDate,
-      availabilityConfirmedAt: now,
+
       recordedById: staffUser.id,
       notes:
         "Quer iniciar o curso de inglês. Estágio inicial definido em conversa com a coordenação.",
-      availability: {
-        create: eveningSlots.map((slot) => ({
-          weekday: slot.weekday,
-          startTime: timeOfDay(slot.startTime),
-          endTime: timeOfDay(slot.endTime),
-        })),
-      },
     },
   });
   await pendingLead(context, { id, pending: true, reason: person.reason });

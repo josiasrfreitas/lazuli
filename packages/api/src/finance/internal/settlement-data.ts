@@ -1,6 +1,12 @@
 import type { Prisma } from "@lazuli/db";
 import { createHash } from "node:crypto";
-import { quoteSettlement, saoPauloDateOnly, type SettlementQuote } from "@lazuli/domain";
+import {
+  quoteSettlement,
+  settlementInterestDetails,
+  saoPauloDateOnly,
+  type SettlementInput,
+  type SettlementQuote,
+} from "@lazuli/domain";
 import { badRequest } from "../../trpc/errors.js";
 import { type FinanceDatabase, toDateOnlyString } from "./shared.js";
 
@@ -29,6 +35,7 @@ export type SettlementLine = {
   payerId: string;
   version: string;
   quote: SettlementQuote;
+  interestDetails?: ReturnType<typeof settlementInterestDetails>;
   materialReceipt?: { name: string; chargedCents: number; feeCents: number; netCents: number };
 };
 
@@ -41,7 +48,7 @@ export function settlementLine(input: {
   const { item, date } = input;
   validateSettlementItem(input);
   const contract = item.order.kind === "TUITION" ? item.order.contract : null;
-  const quote = quoteSettlement({
+  const calculation: SettlementInput = {
     nominalCents: item.amountCents,
     terms: settlementTerms(item),
     payments: item.allocations.map((row) => ({
@@ -55,12 +62,16 @@ export function settlementLine(input: {
       .reduce((sum, row) => sum + row.amountCents, 0),
     effectiveDate: date,
     receivedCents: input.amountCents,
-  });
+  };
+  const quote = quoteSettlement(calculation);
   return {
     installmentId: item.id,
     payerId: item.order.contract?.payerId ?? item.order.payerId ?? "",
     version: createHash("sha256").update(JSON.stringify({ item, date })).digest("hex"),
     quote,
+    ...(quote.newInterestCents > 0
+      ? { interestDetails: settlementInterestDetails(calculation) }
+      : {}),
     ...materialReceipt(item),
   };
 }
@@ -132,7 +143,6 @@ function assertContractRates(item: SettlementItem): void {
   if (
     item.order.contract &&
     (item.order.contract.punctualityDiscountPct === null ||
-      item.order.contract.interestRatePctDaily === null ||
       item.order.contract.interestRatePctMonthly === null)
   ) {
     throw badRequest("Contrato sem condições de juros definidas.");
@@ -141,7 +151,6 @@ function assertContractRates(item: SettlementItem): void {
 
 function settlementTerms(item: SettlementItem): {
   dueDate: string;
-  dailyPct: number;
   monthlyPct: number;
   discountPct: number;
 } {
@@ -149,13 +158,11 @@ function settlementTerms(item: SettlementItem): {
   if (!contract)
     return {
       dueDate: toDateOnlyString(item.agreements[0]?.previousDueDate ?? item.dueDate),
-      dailyPct: 0,
       monthlyPct: 0,
       discountPct: 0,
     };
   return {
     dueDate: toDateOnlyString(item.agreements[0]?.previousDueDate ?? item.dueDate),
-    dailyPct: decimalRate(contract.interestRatePctDaily),
     monthlyPct: decimalRate(contract.interestRatePctMonthly),
     discountPct: decimalRate(contract.punctualityDiscountPct),
   };

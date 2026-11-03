@@ -3,7 +3,7 @@ import { after, before, beforeEach, describe, it } from "node:test";
 
 import { FINANCE_DUE_DAY_FIFTEENTH, FINANCE_DUE_DAY_TENTH } from "@lazuli/domain";
 import { db } from "@lazuli/db";
-import { InstallmentAdjustmentType, PaymentMethod } from "@lazuli/db";
+import { InstallmentAdjustmentType } from "@lazuli/db";
 
 import {
   ORDER_LOCKED_MESSAGE,
@@ -215,7 +215,7 @@ function registerUpdateOrderCutoffErrors(): void {
         payerId: created.payerId,
         date: PAYMENT_EVENT_DATE,
         amountCents: PAYMENT_AMOUNT_CENTS,
-        method: PaymentMethod.PIX,
+        method: "PIX",
       },
     });
     await db.paymentAllocation.create({

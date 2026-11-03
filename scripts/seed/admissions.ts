@@ -6,7 +6,6 @@ import {
   DEV_TEACHERS,
   type DevClassSeed,
   type DevStudentSeed,
-  type DevWeekday,
 } from "../../packages/db/src/seed-dev-data.js";
 import { addDays, stableUuid, timeOfDay, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
@@ -37,9 +36,7 @@ const PERSONALIZED_CYCLE = 3;
 const ARCHIVED_PROSPECT_START = 10;
 const VISIT_OUTCOME_CYCLE = 4;
 const AVAILABLE_DAYS = 45;
-const CONFIRMATION_DAYS_AGO = 7;
 const CREATION_DAYS_AGO = 14;
-const EXPIRED_DAYS_AGO = 10;
 const CONVERTED_CANDIDATES = 6;
 const FRIDAY_JS_DAY = 5;
 const DAYS_PER_WEEK = 7;
@@ -79,9 +76,6 @@ type PedagogySeed = {
   scheduleType: NonNullable<DevClassSeed["scheduleType"]> | null;
   format: "IN_PERSON" | null;
   stageId: string | null;
-  availableUntil: Date | null;
-  availabilityConfirmedAt: Date | null;
-  availability: { create: ReturnType<typeof candidateAvailability> };
 };
 type VisitInput = { candidateId: string; index: number; todayIso: string; adminId: string };
 
@@ -187,18 +181,11 @@ function candidateNotes(input: CandidateRecordInput): string {
 }
 
 function candidatePedagogy(input: CandidateRecordInput): PedagogySeed {
-  const { candidate, classSeed, archived, todayIso, unknownPedagogy } = input;
+  const { classSeed, unknownPedagogy } = input;
   return {
     scheduleType: unknownPedagogy ? null : (classSeed.scheduleType ?? "REGULAR"),
     format: unknownPedagogy ? null : "IN_PERSON",
     stageId: input.stageId,
-    availableUntil: unknownPedagogy
-      ? null
-      : addDays(utcDate(todayIso), archived ? -EXPIRED_DAYS_AGO : AVAILABLE_DAYS),
-    availabilityConfirmedAt: unknownPedagogy
-      ? null
-      : addDays(utcDate(todayIso), archived ? -AVAILABLE_DAYS : -CONFIRMATION_DAYS_AGO),
-    availability: { create: unknownPedagogy ? [] : candidateAvailability(candidate, classSeed) },
   };
 }
 
@@ -207,23 +194,6 @@ function commercialFields(input: CommercialInput): CommercialSeed {
     contactName: input.candidate.contactName,
     source: LEAD_SOURCES[input.index % LEAD_SOURCES.length]!,
   };
-}
-
-function candidateAvailability(
-  candidate: CandidateSeed,
-  classSeed: DevClassSeed,
-): Array<{
-  id: string;
-  weekday: DevWeekday;
-  startTime: Date;
-  endTime: Date;
-}> {
-  return classSeed.slots.map((slot) => ({
-    id: stableUuid(["admission-slot", candidate.key, slot.weekday, slot.startTime]),
-    weekday: slot.weekday,
-    startTime: timeOfDay(slot.startTime),
-    endTime: timeOfDay(slot.endTime),
-  }));
 }
 
 async function seedTrial(
@@ -287,15 +257,6 @@ async function seedIntroduction(database: DatabaseClient, input: VisitInput): Pr
       notes: "Apresentação do curso personalizado e do material; horário reservado com o docente.",
     },
   });
-  await database.admissionAvailability.create({
-    data: {
-      id: stableUuid(["admission-introduction-slot", input.candidateId]),
-      candidateId: input.candidateId,
-      weekday: "FRIDAY",
-      startTime: timeOfDay("13:00"),
-      endTime: timeOfDay("17:00"),
-    },
-  });
 }
 
 async function nextOpenFriday(database: DatabaseClient, todayIso: string): Promise<Date> {
@@ -345,8 +306,7 @@ async function createConvertedCandidate(
       stageId: classroom.sharedStageId,
       studentId: enrollment.studentId,
       enrollmentId: enrollment.id,
-      availableUntil: addDays(enrollment.entryDate, AVAILABLE_DAYS),
-      availabilityConfirmedAt: addDays(enrollment.entryDate, -CONFIRMATION_DAYS_AGO),
+
       createdAt: addDays(enrollment.entryDate, -CREATION_DAYS_AGO),
       recordedById: adminId,
       notes: "Horário acordado e entrada concluída pela secretaria.",

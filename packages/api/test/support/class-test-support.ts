@@ -127,14 +127,14 @@ async function seedStageFixtures(
 }
 
 async function seedSemesterFixtures(): Promise<{ semesterId: string; nextSemesterId: string }> {
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: {
       name: `${TEST_PREFIX}2026.1`,
       startDate: new Date("2026-02-01"),
       endDate: new Date("2026-06-30"),
     },
   });
-  const nextSemester = await db.semester.create({
+  const nextSemester = await db.period.create({
     data: {
       name: `${TEST_PREFIX}2026.2`,
       startDate: new Date("2026-08-01"),
@@ -164,7 +164,7 @@ export async function cleanClassDatabase(): Promise<void> {
   await db.class.deleteMany({
     where: { teacherId: { in: FIXTURE_TEACHER_IDS } },
   });
-  await db.semester.deleteMany({
+  await db.period.deleteMany({
     where: { name: { startsWith: TEST_PREFIX } },
   });
   await db.stage.deleteMany({

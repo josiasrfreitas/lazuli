@@ -1,10 +1,11 @@
 import type { ReactElement } from "react";
-import { Button, InlineSkeleton } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { gradeAverage } from "~/features/assessments/grade-average";
 import { gradeLabel } from "~/features/assessments/shared";
 import { StudentAssessmentsDialog } from "./student-assessments-dialog";
 import { MetricHeading } from "./metric-heading";
+import styles from "./student-profile.module.css";
 
 export function EnrollmentGradeAverage({
   progressId,
@@ -58,8 +59,7 @@ function GradeAverageContent({
 }): ReactElement {
   if (pending)
     return (
-      <div role="status">
-        <InlineSkeleton className="h-10 w-24" />
+      <div className="min-h-10" role="status">
         <span className="sr-only">Carregando média</span>
       </div>
     );
@@ -77,7 +77,7 @@ function GradeAverageContent({
 
 function GradeAverageReading({ grades }: { grades: readonly { score: number }[] }): ReactElement {
   return (
-    <>
+    <div className={`${styles.lateData} grid gap-2`}>
       <p className="font-numeric text-4xl font-semibold leading-none tracking-tight tabular-nums text-heading">
         {gradeLabel(gradeAverage(grades))}
       </p>
@@ -85,6 +85,6 @@ function GradeAverageReading({ grades }: { grades: readonly { score: number }[] 
         {grades.length > 0 ? `${grades.length} notas · estágio atual` : "Sem notas lançadas"}
       </p>
       <p className="text-caption text-muted-foreground">de 100 pontos possíveis</p>
-    </>
+    </div>
   );
 }

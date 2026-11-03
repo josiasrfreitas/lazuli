@@ -5,7 +5,6 @@ import { userAgent } from "next/server";
 import type { ReactNode } from "react";
 
 import { getStaffIdentity } from "@lazuli/auth/server";
-import { canAccess } from "@lazuli/api";
 import { EmptyState } from "@lazuli/ui";
 
 import { AdminHome } from "~/features/admin-home/home";
@@ -15,7 +14,11 @@ import { experienceActivationHref } from "~/lib/staff-experience";
 
 export const metadata: Metadata = { title: "Início" };
 
-export default async function HomePage(): Promise<ReactNode> {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ entrada?: string }>;
+}): Promise<ReactNode> {
   const requestHeaders = await headers();
   const identity = await getStaffIdentity({ headers: requestHeaders });
 
@@ -32,8 +35,10 @@ export default async function HomePage(): Promise<ReactNode> {
     redirect(experienceActivationHref("TEACHER", "/professor"));
   }
 
-  if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN")
-    return <AdminHome name={identity.name} finance={canAccess(identity.role, "finance")} />;
+  if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") {
+    const params = await searchParams;
+    return <AdminHome name={identity.name} arriving={params.entrada === "1"} />;
+  }
 
   const home = homeHrefFor(identity.role);
 

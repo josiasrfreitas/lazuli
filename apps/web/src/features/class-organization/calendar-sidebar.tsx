@@ -5,8 +5,8 @@ import { CalendarDays, Download, Plus } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
-import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
-import type { OrganizationAction, SemesterBoard } from "./model";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
+import type { OrganizationAction, OrganizationBoard } from "./model";
 import styles from "./organization.module.css";
 
 export function CalendarSidebar({
@@ -15,7 +15,7 @@ export function CalendarSidebar({
   end,
   onAction,
 }: {
-  board: SemesterBoard;
+  board: OrganizationBoard;
   start: string;
   end: string;
   onAction: (action: OrganizationAction) => void;
@@ -60,7 +60,7 @@ function CalendarSidebarHeader({
 }): ReactJSX.Element {
   return (
     <header className={styles.panelHeader}>
-      <h2>Datas que organizam o semestre</h2>
+      <h2>Datas que organizam o período</h2>
       <dl className={styles.facts}>
         <dt>Início</dt>
         <dd>{formatDateOnlyBR(start)}</dd>
@@ -73,7 +73,7 @@ function CalendarSidebarHeader({
           Editar período
         </Button>
         <Button size="sm" variant="ghost" onClick={() => onAction({ kind: "newSemester" })}>
-          Novo semestre
+          Novo período
         </Button>
       </div>
     </header>
@@ -85,7 +85,7 @@ function ClosedDaysList({
   removing,
   onRemove,
 }: {
-  board: SemesterBoard;
+  board: OrganizationBoard;
   removing: boolean;
   onRemove: (date: string) => void;
 }): ReactJSX.Element {

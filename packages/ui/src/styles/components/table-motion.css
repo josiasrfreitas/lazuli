@@ -1,0 +1,165 @@
+/* One arrival for the frame, then a short settling of rows when data replaces
+   placeholders. Sorting and selection do not replay the entrance. */
+[data-slot="table-container"] {
+  animation: lz-table-arrive 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-slot="table-body"]:not(:has([data-slot="table-skeleton-row"])) {
+  animation: lz-table-rows 180ms ease-out;
+}
+
+/* Keep the sweep attached to the visible scroll frame, above the rows and
+   below pagination. The placeholders keep their real column geometry. */
+[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]),
+[data-slot="table-container"]
+  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]) {
+  isolation: isolate;
+}
+
+[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after,
+[data-slot="table-container"]
+  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, currentColor 8%, transparent) 50%,
+    transparent 75%
+  );
+  transform: translateX(-100%);
+  animation: lz-table-sweep 1.8s ease-in-out infinite;
+}
+
+[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]) {
+  overflow: hidden;
+}
+
+/* Native horizontal scroll remains available during background refreshes. */
+[data-slot="table-container"]
+  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after {
+  transform: none;
+  background-size: 300% 100%;
+  animation-name: lz-table-native-sweep;
+}
+
+@keyframes lz-table-native-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@keyframes lz-table-arrive {
+  from {
+    opacity: 0.65;
+    clip-path: inset(0 0 12px round 8px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 round 8px);
+  }
+}
+
+@keyframes lz-table-rows {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lz-table-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="table-container"],
+  [data-slot="table-body"]:not(:has([data-slot="table-skeleton-row"])) {
+    animation: none;
+  }
+
+  [data-slot="table-scroll-area"]::after,
+  [data-slot="table-container"] > [data-slot="table-viewport"]::after {
+    display: none;
+    animation: none;
+  }
+}
+
+/* A single, fully readable label travels only by its measured overflow. */
+.lz-filter-label {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+}
+.lz-filter-label > span {
+  display: block;
+  width: max-content;
+  white-space: nowrap;
+}
+.lz-filter-label > [data-overflow] {
+  animation: lz-filter-label-travel var(--filter-label-duration) linear infinite alternate;
+}
+[data-slot="popover-content"][data-ending-style] .lz-filter-label > span {
+  animation-play-state: paused;
+}
+@keyframes lz-filter-label-travel {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(var(--filter-label-distance));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lz-filter-label > span {
+    animation: none;
+    width: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  [data-slot="table-filter-chip"] > button {
+    height: auto;
+    min-height: var(--spacing-control-sm);
+  }
+}
+
+/* The bars breathe independently of the sweep, without moving cell boundaries. */
+[data-slot="table-skeleton-bar"] {
+  animation: lz-table-skeleton-breathe 2.4s ease-in-out infinite;
+  animation-delay: var(--skeleton-row-delay, 0s);
+}
+[data-slot="table-skeleton-row"]:nth-child(3n + 2) {
+  --skeleton-row-delay: -0.8s;
+}
+[data-slot="table-skeleton-row"]:nth-child(3n + 3) {
+  --skeleton-row-delay: -1.6s;
+}
+@keyframes lz-table-skeleton-breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scaleX(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="table-skeleton-bar"] {
+    animation: none;
+  }
+}

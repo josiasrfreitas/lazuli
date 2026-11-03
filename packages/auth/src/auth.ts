@@ -3,8 +3,13 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 
 import type { createDbClient } from "@lazuli/db";
 
-import { createAuthOptions, type AuthOptionsInput, type MagicLinkSender } from "./auth-options.js";
-import { createMagicLinkSender } from "./email.js";
+import {
+  createAuthOptions,
+  type AuthOptionsInput,
+  type MagicLinkSender,
+  type PasswordResetSender,
+} from "./auth-options.js";
+import { createMagicLinkSender, createPasswordResetSender } from "./email.js";
 import { getAuthEnvironment } from "./env.js";
 import type { AuthEnvironment } from "./env.js";
 import {
@@ -17,10 +22,47 @@ const MAGIC_LINK_VERIFY_PATH = "/magic-link/verify";
 
 type StaffDatabase = AuthOptionsInput["database"] & ReturnType<typeof createDbClient>;
 
+function sendIfEligible<T extends { email: string }>(
+  database: StaffDatabase,
+  sender: (delivery: T) => Promise<void>,
+): (delivery: T) => Promise<void> {
+  return async (delivery) => {
+    const user = await database.user.findUnique({
+      where: { email: delivery.email },
+      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+    });
+    if (evaluateStaffAccess(user).allowed) await sender(delivery);
+  };
+}
+
+function resetPasswordGuard(database: StaffDatabase): ReturnType<typeof createAuthMiddleware> {
+  return createAuthMiddleware(async (ctx) => {
+    if (ctx.path !== "/reset-password") return;
+    const body = ctx.body as { token?: string } | undefined;
+    const query = ctx.query as { token?: string } | undefined;
+    const token = body?.token || query?.token;
+    if (!token) return;
+    const verification = await database.verification.findFirst({
+      where: { identifier: `reset-password:${token}`, expiresAt: { gt: new Date() } },
+      select: { value: true },
+    });
+    if (!verification) return;
+    const user = await database.user.findUnique({
+      where: { id: verification.value },
+      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+    });
+    if (!evaluateStaffAccess(user).allowed) {
+      await database.verification.deleteMany({ where: { identifier: `reset-password:${token}` } });
+      throw new APIError("BAD_REQUEST", { code: "INVALID_TOKEN", message: "Invalid token" });
+    }
+  });
+}
+
 export type CreateAuthInput = {
   environment?: AuthEnvironment;
   database: StaffDatabase;
   sendMagicLink?: MagicLinkSender;
+  sendResetPassword?: PasswordResetSender;
 };
 
 /** Narrow session shape consumed downstream; domain identity is reloaded by email. */
@@ -35,16 +77,15 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
   const environment = input.environment ?? getAuthEnvironment();
   const database = input.database;
   const sendMagicLink = input.sendMagicLink ?? createMagicLinkSender(environment);
+  const sendResetPassword = input.sendResetPassword ?? createPasswordResetSender(environment);
 
   const instance = betterAuth({
     ...createAuthOptions({
       baseUrl: environment.appUrl,
       secret: environment.betterAuthSecret,
       database,
-      sendMagicLink: async (delivery) => {
-        await assertStaffCanAuthenticate(database, delivery.email);
-        await sendMagicLink(delivery);
-      },
+      sendResetPassword: sendIfEligible(database, sendResetPassword),
+      sendMagicLink: sendIfEligible(database, sendMagicLink),
     }),
     databaseHooks: {
       session: {
@@ -60,6 +101,7 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
       },
     },
     hooks: {
+      before: resetPasswordGuard(database),
       after: redirectDeniedMagicLinkVerification,
     },
   });
@@ -71,14 +113,6 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
       return result === null ? null : { user: { email: result.user.email } };
     },
   };
-}
-
-async function assertStaffCanAuthenticate(database: StaffDatabase, email: string): Promise<void> {
-  const user = await database.user.findUnique({
-    where: { email },
-    include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
-  });
-  assertStaffAccess(user);
 }
 
 function assertStaffAccess(user: StaffAccessUser | null): void {

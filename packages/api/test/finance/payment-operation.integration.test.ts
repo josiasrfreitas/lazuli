@@ -17,17 +17,17 @@ void after(() => cleanPaymentOperations(PREFIX));
 void describe("payment operations", () => {
   void it("previews without writing and persists only incremental interest through successive partial receipts", async () => {
     const item = await paymentFixture(PREFIX);
-    const first = await paymentCommand({ ...item, date: "2026-02-10", amountCents: 21_000 });
-    await paymentCommand({ ...item, date: "2026-02-10", amountCents: 21_000 });
+    const first = await paymentCommand({ ...item, date: "2026-02-10", amountCents: 20_667 });
+    await paymentCommand({ ...item, date: "2026-02-10", amountCents: 20_667 });
     assert.equal(
       await db.installmentAdjustment.count({ where: { installmentId: item.installmentId } }),
       0,
     );
     await confirmPaymentCommand(first);
-    const second = await paymentCommand({ ...item, date: "2026-02-28", amountCents: 13_040 });
+    const second = await paymentCommand({ ...item, date: "2026-02-28", amountCents: 10_960 });
     await confirmPaymentCommand(second);
     const final = await paymentCommand({ ...item, date: "2026-03-31" });
-    assert.equal(final.receipts[0]?.amountCents, 73_570);
+    assert.equal(final.receipts[0]?.amountCents, 71_446);
     await confirmPaymentCommand(final);
     const adjustments = await db.installmentAdjustment.findMany({
       where: { installmentId: item.installmentId },
@@ -35,7 +35,7 @@ void describe("payment operations", () => {
     });
     assert.deepEqual(
       adjustments.map((row) => row.amountCents),
-      [1000, 3040, 3570],
+      [667, 960, 1446],
     );
     const rows = await finance(db, ADMIN.id).installments(
       { view: "all", page: 1, pageSize: 25, search: PREFIX },
@@ -45,7 +45,7 @@ void describe("payment operations", () => {
     if (rows.view === "overdue") throw new Error("Wrong query view");
     const paid = rows.rows.find((row) => row.installmentId === item.installmentId);
     assert.equal(paid?.collectibleBalanceCents, 0);
-    assert.equal(paid?.paidAmountCents, 107_610);
+    assert.equal(paid?.paidAmountCents, 103_073);
     const contracts = await finance(db, ADMIN.id).listContracts({
       page: 1,
       payerId: item.payerId,
@@ -72,6 +72,33 @@ void describe("payment operations", () => {
       1,
     );
     await assert.rejects(confirmPaymentCommand({ ...command, method: "CASH" }), /outros dados/);
+  });
+  void it("stores a third-party Pix name on the payment entry and keeps it on retry", async () => {
+    const item = await paymentFixture(PREFIX);
+    const initial = await paymentCommand({ ...item, date: "2026-02-10" });
+    const command = {
+      ...initial,
+      receipts: initial.receipts.map((receipt) => ({
+        ...receipt,
+        thirdPartyName: "  Marina Ribeiro  ",
+      })),
+    };
+    const [created] = await confirmPaymentCommand(command);
+    assert.ok(created);
+    const stored = await db.paymentEntry.findUniqueOrThrow({ where: { id: created.id } });
+    assert.equal(stored.thirdPartyName, "Marina Ribeiro");
+    const [replayed] = await confirmPaymentCommand(command);
+    assert.equal(replayed?.id, created.id);
+    await assert.rejects(
+      confirmPaymentCommand({
+        ...command,
+        receipts: command.receipts.map((receipt) => ({
+          ...receipt,
+          thirdPartyName: "Outra pessoa",
+        })),
+      }),
+      /outros dados/,
+    );
   });
   void it("rejects an entire multi-payer batch when one preview is stale", async () => {
     const first = await paymentFixture(PREFIX);
@@ -137,18 +164,18 @@ void describe("payment operations", () => {
       commandId: randomUUID(),
       payerId: individual.payerId,
       date: new Date("2026-02-10T00:00:00Z"),
-      amountCents: 21_000,
+      amountCents: 20_667,
       method: "PIX" as const,
-      allocations: [{ installmentId: individual.installmentId, amountCents: 21_000 }],
+      allocations: [{ installmentId: individual.installmentId, amountCents: 20_667 }],
     };
     await db.$transaction((tx) => finance(tx, ADMIN.id).registerPayment(input));
     await confirmPaymentCommand(
-      await paymentCommand({ ...batched, date: "2026-02-10", amountCents: 21_000 }),
+      await paymentCommand({ ...batched, date: "2026-02-10", amountCents: 20_667 }),
     );
     const nextIndividual = await paymentCommand({ ...individual, date: "2026-02-28" });
     const nextBatch = await paymentCommand({ ...batched, date: "2026-02-28" });
-    assert.equal(nextIndividual.receipts[0]?.amountCents, 83_040);
-    assert.equal(nextBatch.receipts[0]?.amountCents, 83_040);
+    assert.equal(nextIndividual.receipts[0]?.amountCents, 80_960);
+    assert.equal(nextBatch.receipts[0]?.amountCents, 80_960);
   });
 });
 
@@ -209,7 +236,7 @@ void it("reads effective adjustment dates and legacy São Paulo dates before acc
     },
   });
   await confirmPaymentCommand(
-    await paymentCommand({ ...item, date: "2026-02-10", amountCents: 10_800 }),
+    await paymentCommand({ ...item, date: "2026-02-10", amountCents: 10_533 }),
   );
   await db.installmentAdjustment.create({
     data: {
@@ -220,10 +247,10 @@ void it("reads effective adjustment dates and legacy São Paulo dates before acc
     },
   });
   await confirmPaymentCommand(
-    await paymentCommand({ ...item, date: "2026-02-20", amountCents: 10_750 }),
+    await paymentCommand({ ...item, date: "2026-02-20", amountCents: 10_500 }),
   );
   const final = await paymentCommand({ ...item, date: "2026-02-28" });
-  assert.equal(final.receipts[0]?.amountCents, 71_960);
+  assert.equal(final.receipts[0]?.amountCents, 70_374);
   await confirmPaymentCommand(final);
   const interest = await db.installmentAdjustment.findMany({
     where: { installmentId: item.installmentId, type: "INTEREST" },
@@ -231,7 +258,7 @@ void it("reads effective adjustment dates and legacy São Paulo dates before acc
   });
   assert.deepEqual(
     interest.map((row) => row.amountCents),
-    [800, 750, 1960],
+    [533, 500, 374],
   );
   const settled = await paymentCommand({ ...item, date: "2026-03-31" });
   assert.equal(settled.receipts[0]?.amountCents, 0);

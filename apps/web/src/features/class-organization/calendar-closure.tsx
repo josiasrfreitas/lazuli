@@ -6,7 +6,7 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { TextControl } from "~/features/classes/form-controls";
-import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { OrganizationDialogProps as Props } from "./dialogs";
 import styles from "./organization.module.css";
 

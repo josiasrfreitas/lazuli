@@ -3,6 +3,7 @@ import { Field, FieldError, ScheduleCalendar } from "@lazuli/ui";
 import { shiftDate } from "~/features/class-records/calendar-model";
 import { OccurrenceLessonCard, type OccurrenceCalendarEvent } from "./occurrence-calendar-event";
 import type { OccurrenceFormModel } from "./occurrence-form-model";
+import { OccurrenceLessonList } from "./occurrence-lesson-list";
 import styles from "./occurrence-form.module.css";
 
 const WEEK_END_OFFSET = 6;
@@ -13,7 +14,7 @@ const ISO_MINUTE_END_INDEX = 16;
 export function OccurrenceCalendar({ model }: { model: OccurrenceFormModel }): ReactElement {
   const error = model.validation.errors.classSessionId;
   return (
-    <div className={styles.schedule}>
+    <div className={styles.schedule} data-mobile-list={model.mobileList}>
       <Field
         name="classSessionId"
         className="flex min-h-0 flex-1 flex-col gap-3"
@@ -31,7 +32,11 @@ export function OccurrenceCalendar({ model }: { model: OccurrenceFormModel }): R
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "occurrence-lesson-error" : undefined}
         >
-          <OccurrenceSchedule model={model} />
+          {model.mobileList ? (
+            <OccurrenceLessonList model={model} />
+          ) : (
+            <OccurrenceSchedule model={model} />
+          )}
         </div>
         <FieldError id="occurrence-lesson-error" match={Boolean(error)}>
           {error}

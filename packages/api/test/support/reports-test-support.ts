@@ -96,7 +96,7 @@ export async function seedStudent(): Promise<{ studentId: string }> {
 
 export async function seedOwnedClass(): Promise<{ classId: string }> {
   await ensureTeacherUser();
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: {
       name: `${TEST_PREFIX}Semester`,
       startDate: new Date("2026-02-01"),
@@ -157,7 +157,7 @@ export async function cleanReportsDatabase(): Promise<void> {
   await db.stage.deleteMany({ where: { internalCode: { startsWith: "GRE66" } } });
   await db.track.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.productLine.deleteMany({ where: { key: { startsWith: "gre66_reports_" } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await db.period.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.student.deleteMany({ where: { fullName: { startsWith: TEST_PREFIX } } });
   await db.user.deleteMany({ where: { id: TEACHER.id } });
 }

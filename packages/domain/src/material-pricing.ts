@@ -1,3 +1,5 @@
+import { priceAfterDiscountCents } from "./monthly-contract.js";
+
 export const INITIAL_MATERIAL_PRICING = {
   childMaterialInstallments: 6,
   childMaterialInstallmentCents: 12_300,
@@ -17,6 +19,35 @@ type MaterialQuote = {
   totalCents: number;
   cashCents: number;
 };
+
+/** The buyer's installments divide the acquisition total, independently of the book price. */
+export function materialInstallmentPlan(
+  totalCents: number,
+  installmentCount: number,
+): {
+  installmentCount: number;
+  installmentCents: number;
+  lastInstallmentCents: number;
+} {
+  if (
+    !Number.isInteger(totalCents) ||
+    totalCents < 0 ||
+    totalCents > MAX_CENTS ||
+    !Number.isInteger(installmentCount) ||
+    installmentCount < 1 ||
+    installmentCount > Math.max(1, totalCents)
+  ) {
+    throw new Error(
+      "Informe uma quantidade de parcelas que mantenha pelo menos R$ 0,01 por parcela.",
+    );
+  }
+  const installmentCents = Math.floor(totalCents / installmentCount);
+  return {
+    installmentCount,
+    installmentCents,
+    lastInstallmentCents: totalCents - installmentCents * (installmentCount - 1),
+  };
+}
 
 /** The agreed card total includes the global fee; the school receives the cash price once. */
 export function materialPriceQuote({
@@ -55,4 +86,46 @@ function validFee(cardFeePct: number, feeUnits: number): boolean {
     cardFeePct <= PERCENT_BASE &&
     Math.abs(feeUnits / PERCENT_PRECISION - cardFeePct) <= Number.EPSILON
   );
+}
+
+/** Apply the scholarship before card fees; cash keeps its own quoted base. */
+export function materialScholarshipQuote(input: {
+  quote: MaterialQuote;
+  payment: "CASH" | "INSTALLMENTS";
+  scholarshipPct: number;
+  cardFeePct: number;
+  priceOverrideCents?: number | undefined;
+}): { chargedCents: number; receivableCents: number; feeCents: number; installmentCents: number } {
+  const { quote, payment, scholarshipPct, cardFeePct, priceOverrideCents } = input;
+  if (priceOverrideCents !== undefined && !validPriceOverride(priceOverrideCents))
+    throw new Error("Informe um valor de material maior que zero.");
+  if (!Number.isFinite(scholarshipPct) || scholarshipPct < 0 || scholarshipPct > PERCENT_BASE)
+    throw new Error("Informe um percentual de bolsa entre 0 e 100.");
+  const installmentCents = priceAfterDiscountCents(quote.installmentCents, scholarshipPct);
+  const chargedCents = materialChargedCents(input, installmentCents);
+  const receivableCents =
+    payment === "CASH" ? chargedCents : priceAfterDiscountCents(chargedCents, cardFeePct);
+  if (scholarshipPct < PERCENT_BASE && (chargedCents < 1 || receivableCents < 1))
+    throw new Error("A bolsa parcial deve manter um valor de pelo menos um centavo.");
+  return {
+    chargedCents,
+    receivableCents,
+    feeCents: chargedCents - receivableCents,
+    installmentCents,
+  };
+}
+
+function validPriceOverride(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= MAX_CENTS;
+}
+
+function materialChargedCents(
+  input: Parameters<typeof materialScholarshipQuote>[0],
+  installmentCents: number,
+): number {
+  if (input.priceOverrideCents !== undefined)
+    return priceAfterDiscountCents(input.priceOverrideCents, input.scholarshipPct);
+  if (input.payment === "CASH")
+    return priceAfterDiscountCents(input.quote.cashCents, input.scholarshipPct);
+  return installmentCents * input.quote.installments;
 }

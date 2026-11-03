@@ -1,5 +1,6 @@
 import type { PaymentAllocation, PaymentEntry } from "@lazuli/db";
 
+import { badRequest } from "../../trpc/errors.js";
 import type { FinanceDatabase } from "./shared.js";
 
 export type PaymentAllocationInput = {
@@ -23,7 +24,14 @@ export type LoadedInstallment = {
 
 export type PaymentEntrySummary = Pick<
   PaymentEntry,
-  "id" | "payerId" | "date" | "amountCents" | "method" | "note" | "externalReference"
+  | "id"
+  | "payerId"
+  | "date"
+  | "amountCents"
+  | "method"
+  | "externalInstallments"
+  | "note"
+  | "externalReference"
 >;
 
 export type PaymentAllocationSummary = Pick<
@@ -37,6 +45,7 @@ const paymentEntrySelect = {
   date: true,
   amountCents: true,
   method: true,
+  externalInstallments: true,
   note: true,
   externalReference: true,
 } as const;
@@ -57,12 +66,23 @@ export async function persistPayment(input: {
     date: Date;
     amountCents: number;
     method: PaymentEntry["method"];
+    externalInstallments?: number | undefined;
     note?: string | null | undefined;
     externalReference?: string | null | undefined;
+    thirdPartyName?: string | null | undefined;
   };
   allocationRows: PaymentAllocationInput[];
   staffUserId: string;
 }): Promise<{ paymentEntry: PaymentEntrySummary; allocations: PaymentAllocationSummary[] }> {
+  const method = await input.database.paymentMethod.findFirst({
+    where: { code: input.values.method, active: true, deletedAt: null },
+    select: { id: true, allowsExternalInstallments: true },
+  });
+  if (!method) throw badRequest("Selecione uma forma de pagamento disponível.");
+  const externalInstallments = validatedExternalInstallments(
+    input.values.externalInstallments,
+    method.allowsExternalInstallments,
+  );
   const paymentEntry = await input.database.paymentEntry.create({
     data: {
       payerId: input.values.payerId,
@@ -71,20 +91,39 @@ export async function persistPayment(input: {
       date: input.values.date,
       amountCents: input.values.amountCents,
       method: input.values.method,
+      externalInstallments,
       note: input.values.note ?? null,
       externalReference: input.values.externalReference ?? null,
+      thirdPartyName: input.values.thirdPartyName?.trim() || null,
       createdById: input.staffUserId,
       updatedById: input.staffUserId,
     },
     select: paymentEntrySelect,
   });
 
+  const allocations = await persistAllocations(input, paymentEntry.id);
+  return { paymentEntry, allocations };
+}
+
+function validatedExternalInstallments(requested: number | undefined, allowed: boolean): number {
+  const count = requested ?? 1;
+  if (!Number.isInteger(count) || count < 1)
+    throw badRequest("Informe uma quantidade válida de parcelas no banco.");
+  if (count > 1 && !allowed)
+    throw badRequest("Esta forma de pagamento não permite parcelamento por terceiros.");
+  return count;
+}
+
+async function persistAllocations(
+  input: Pick<Parameters<typeof persistPayment>[0], "database" | "allocationRows" | "staffUserId">,
+  paymentEntryId: string,
+): Promise<PaymentAllocationSummary[]> {
   const allocations: PaymentAllocationSummary[] = [];
   for (const allocation of input.allocationRows) {
     allocations.push(
       await input.database.paymentAllocation.create({
         data: {
-          paymentEntryId: paymentEntry.id,
+          paymentEntryId,
           installmentId: allocation.installmentId,
           amountCents: allocation.amountCents,
           createdById: input.staffUserId,
@@ -94,8 +133,7 @@ export async function persistPayment(input: {
       }),
     );
   }
-
-  return { paymentEntry, allocations };
+  return allocations;
 }
 
 export async function lockInstallments(

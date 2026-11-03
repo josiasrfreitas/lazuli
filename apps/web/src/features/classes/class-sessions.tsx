@@ -138,7 +138,7 @@ function generationMessage(data: Generation): string {
     return `${data.sessionCount} aulas no calendário. Repreparar preserva os encontros e os registros existentes.`;
   if (data.request?.status === "SUCCEEDED")
     return "Nenhum encontro neste horário e período. Confira a recorrência e os dias sem aula.";
-  return "As aulas ainda não foram preparadas. O horário, o semestre e os dias sem aula definem as datas.";
+  return "As aulas ainda não foram preparadas. O horário, o período e os dias sem aula definem as datas.";
 }
 
 function generationAction(data: Generation): string {

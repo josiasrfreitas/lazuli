@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@lazuli/ui";
 import { formatBRLFromCents as money } from "~/lib/format";
+import { FinancialDialogLoading } from "./financial-dialog-loading";
 import { TreatmentConditions, TreatmentInstallments } from "./treatment-fields";
 import { TreatmentReviewPanel } from "./treatment-review";
 import { useTreatment, type TreatmentState } from "./use-treatment";
@@ -55,10 +56,19 @@ export function TreatmentDialog({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent ref={content} className="md:max-w-5xl" initialFocus={firstField}>
+        <DialogContent
+          ref={content}
+          className="md:max-w-5xl"
+          initialFocus={firstField}
+          data-student-dialog-motion
+        >
           <TreatmentHeader review={Boolean(state.review)} />
           <DialogBody ref={state.body}>
-            <TreatmentForm state={state} />
+            {state.available.isPending ? (
+              <FinancialDialogLoading />
+            ) : (
+              <TreatmentForm state={state} />
+            )}
             {state.error && <Alert variant="destructive">{state.error}</Alert>}
           </DialogBody>
           <TreatmentFooter state={state} onClose={onClose} />

@@ -582,6 +582,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@lazuli/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@prisma/adapter-pg':
         specifier: 'catalog:'
         version: 7.8.0

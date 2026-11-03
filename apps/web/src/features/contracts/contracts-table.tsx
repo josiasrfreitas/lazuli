@@ -17,6 +17,7 @@ import { paymentPlanLabel } from "./contract-form-model";
 import type { ContractFilters } from "./contract-filters";
 
 const PAGE_SIZE = 25;
+const FULL_SCHOLARSHIP_PERCENT = 100;
 export type ContractRow = RouterOutputs["finance"]["listContracts"]["rows"][number];
 
 const STATUS_LABELS: Record<ContractRow["status"], string> = {
@@ -46,6 +47,8 @@ export function ContractPaymentProgress({
   progress: ContractRow["paymentProgress"];
 }): ReactElement {
   const { paid, total, waived, cancelled } = progress;
+  if (total === 0)
+    return <span className="text-caption text-muted-foreground">Sem parcelas de mensalidade</span>;
   const label = `${paid} de ${total} pagas`;
   const exceptions = [
     waived > 0 ? `${waived} ${waived === 1 ? "dispensada" : "dispensadas"}` : null,
@@ -163,9 +166,17 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
     width: COLUMN_WIDTHS.amount,
     numeric: true,
     cell: (row) => (
-      <span className="font-numeric whitespace-nowrap">
-        {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
-      </span>
+      <div className="grid gap-1 font-numeric">
+        <span>{paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}</span>
+        {row.scholarshipPct > 0 && (
+          <span className="text-caption text-muted-foreground">
+            Bolsa{" "}
+            {row.scholarshipPct === FULL_SCHOLARSHIP_PERCENT
+              ? "integral"
+              : `de ${row.scholarshipPct.toLocaleString("pt-BR")}%`}
+          </span>
+        )}
+      </div>
     ),
   },
   {

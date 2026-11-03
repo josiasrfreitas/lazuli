@@ -35,6 +35,7 @@ const componentSourcePaths = {
   tableCellsSource: "packages/ui/src/components/table-cells.tsx",
   tableSource: "packages/ui/src/components/table.tsx",
   tableSkeletonSource: "packages/ui/src/components/table-skeleton.tsx",
+  tableMotionStyles: "packages/ui/src/styles/components/table-motion.css",
   tableStory: "apps/storybook/src/components/table.stories.tsx",
   tabsSource: "packages/ui/src/components/tabs.tsx",
   tabsStory: "apps/storybook/src/components/tabs.stories.tsx",
@@ -243,13 +244,20 @@ function assertTableContract({ tableSource, tableCellsSource }) {
   assert.match(tableCellsSource, /numeric &&[^"]*"text-right[^"]*\btabular-nums\b/u);
 }
 
-function assertTableSkeletonContract({ tableSkeletonSource }) {
+function assertTableSkeletonContract({ tableSkeletonSource, tableMotionStyles }) {
   // Loading draws real rows and cells so the columns keep their widths; a
   // centred message here would resize the table when the data lands.
   for (const slot of ["table-skeleton-row", "table-skeleton-cell", "table-skeleton-bar"]) {
     assert.match(tableSkeletonSource, new RegExp(`data-slot="${slot}"`, "u"));
   }
-  assert.match(tableSkeletonSource, /animate-pulse motion-reduce:animate-none/u);
+  assert.match(
+    tableMotionStyles,
+    /\[data-slot="table-skeleton-bar"\]\s*\{\s*animation: lz-table-skeleton-breathe/u,
+  );
+  assert.match(
+    tableMotionStyles,
+    /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\[data-slot="table-skeleton-bar"\]\s*\{\s*animation: none/u,
+  );
   // The bars are decorative; the sr-only status row is what gets announced.
   assert.match(tableSkeletonSource, /aria-hidden="true"/u);
   assert.match(tableSkeletonSource, /role="status"/u);

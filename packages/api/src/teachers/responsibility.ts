@@ -21,6 +21,17 @@ export const responsibilitySelect = {
   },
 } satisfies Prisma.ClassSelect;
 type Responsibility = Prisma.ClassGetPayload<{ select: typeof responsibilitySelect }>;
+export function assignedTeacherIdOn(row: Responsibility, date: Date): string | null {
+  return effectiveTeacherId({
+    initialTeacherId: row.teacherId,
+    assignments: row.teacherAssignments.map((item) => ({
+      teacherId: item.teacherId,
+      effectiveDate: item.effectiveDate.toISOString().slice(0, ISO_DATE_LENGTH),
+    })),
+    departureDates: new Map(),
+    date: date.toISOString().slice(0, ISO_DATE_LENGTH),
+  });
+}
 export function usualTeacherOn(
   row: Responsibility,
   date: Date,

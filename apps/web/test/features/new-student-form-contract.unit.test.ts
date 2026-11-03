@@ -58,6 +58,7 @@ void describe("new-student form contract", () => {
       "phone",
       "email",
       "guardianName",
+      "guardianDocumentNumber",
       "guardianPhone",
       "guardianEmail",
     ]);
@@ -85,7 +86,16 @@ void describe("new-student form contract", () => {
     assert.equal(markup.includes('role="combobox"'), false);
     assert.equal(markup.includes("<select"), false);
     assert.equal(markup.includes('data-slot="segmented-control"'), false);
-    assert.match(markup, /CPF ou RG \(opcional\)/u);
+    const studentDocument = inputs.find((tag) => attribute(tag, "name") === "documentNumber") ?? "";
+    assert.equal(attribute(studentDocument, "aria-required"), "true");
+    assert.equal(
+      inputs.filter(
+        (tag) =>
+          attribute(tag, "name")?.includes("documentNumber") ||
+          attribute(tag, "name") === "guardianDocumentNumber",
+      ).length,
+      2,
+    );
   });
 
   void it("keeps guardian fields visible with an optional badge for adults", () => {

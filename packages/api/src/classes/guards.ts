@@ -9,7 +9,7 @@ import {
   TEACHER_INVALID_MESSAGE,
 } from "./errors.js";
 
-type GuardDatabase = Pick<Prisma.TransactionClient, "user" | "stage" | "semester" | "track">;
+type GuardDatabase = Pick<Prisma.TransactionClient, "user" | "stage" | "period" | "track">;
 
 export async function assertTeacherIsActive(input: {
   database: GuardDatabase;
@@ -62,7 +62,7 @@ export async function loadSemester(input: {
   database: GuardDatabase;
   semesterId: string;
 }): Promise<{ id: string; name: string; startDate: Date }> {
-  const semester = await input.database.semester.findUnique({
+  const semester = await input.database.period.findUnique({
     where: { id: input.semesterId },
     select: { id: true, name: true, startDate: true },
   });

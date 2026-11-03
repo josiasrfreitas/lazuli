@@ -2,7 +2,7 @@
 import type { JSX as ReactJSX } from "react";
 import { TaskDialog } from "~/features/shared/task-form";
 import { trpc } from "~/lib/trpc";
-import { useOrganizationRefresh } from "~/features/semester-organization/shared";
+import { useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { ClassPlan } from "./model";
 import styles from "./organization.module.css";
 export { ContinuityDialog } from "./continuity-form";

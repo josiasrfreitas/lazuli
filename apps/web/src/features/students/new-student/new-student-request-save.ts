@@ -3,6 +3,8 @@ import { fieldErrors } from "~/features/contracts/new-contract-state";
 import type { EnrollmentNavigation } from "./new-student-navigation";
 import type { EnrollmentPersistence } from "./new-student-persistence";
 import type { ClassSources, ExistingSources } from "./new-student-sources";
+import { validateDados } from "./reducer";
+import type { BlockingItem } from "./new-student-state";
 import type { EnrollmentContract, EnrollmentFlow, EnrollmentIdentity } from "./new-student-state";
 import {
   intakeContract,
@@ -20,28 +22,9 @@ type SaveContext = {
   navigation: EnrollmentNavigation;
   persistence: EnrollmentPersistence;
   existingStudentId: string | undefined;
+  today: string;
 };
 type ParsedContract = ReturnType<typeof intakeContract>;
-
-function canBeginSave(context: SaveContext, closing: boolean): boolean {
-  const { flow, navigation, classes, identity } = context;
-  if (flow.busy.current || (!closing && flow.step !== "contract")) return false;
-  if (!navigation.validateStudent(!closing)) {
-    if (!closing) flow.setStep("student");
-    return false;
-  }
-  const issue = intakeSaveIssue({
-    blockedLead: classes.blockedLead,
-    selectedId: identity.selectedId,
-    optionsFetching: classes.options.isFetching,
-    selected: Boolean(classes.selected),
-    stageId: identity.stageId,
-    waitingPlacement: classes.waitingPlacement,
-  });
-  if (!issue) return true;
-  if (!closing) flow.setError(issue);
-  return false;
-}
 
 function contractReady(context: SaveContext, parsedContract: ParsedContract): boolean {
   if (!parsedContract) return true;
@@ -97,8 +80,13 @@ export function createRequestSave(
   context: SaveContext,
 ): (withContract: boolean, closing?: boolean) => boolean {
   return (withContract, closing = false) => {
-    if (!canBeginSave(context, closing)) return false;
-    const { identity, flow, contractData, existingStudentId, existing, persistence } = context;
+    if (context.flow.busy.current) return false;
+    const { blocking, items } = initialSaveState(context, withContract);
+    if (blocking.length > 0) {
+      context.flow.setConfirmation({ items, blocking });
+      return true;
+    }
+    const { identity, flow, contractData, existingStudentId, existing } = context;
     const parsedContract = intakeContract({
       withContract,
       existingContract: Boolean(existing.existingContract),
@@ -107,15 +95,50 @@ export function createRequestSave(
       student: identity.state.fields,
       commandId: contractData.contract.commandId.current,
     });
-    if (!contractReady(context, parsedContract)) return false;
-    const { items, parsed } = prepareIntakeSave(context, { withContract, parsedContract });
+    if (!contractReady(context, parsedContract)) {
+      context.flow.setConfirmation({
+        items,
+        blocking: [{ label: "Complete os dados obrigatórios do contrato.", step: "contract" }],
+      });
+      return true;
+    }
+    const { parsed } = prepareIntakeSave(context, { withContract, parsedContract });
     if (!parsed.input) {
       if (!closing) flow.setError(parsed.error);
       return false;
     }
     flow.setError("");
-    if (closing || items.length > 0) flow.setConfirmation({ input: parsed.input, items });
-    else void persistence.persist(parsed.input);
+    flow.setConfirmation({ input: parsed.input, items, blocking: [] });
     return true;
   };
+}
+
+function initialSaveState(
+  context: SaveContext,
+  withContract: boolean,
+): { blocking: BlockingItem[]; items: string[] } {
+  const studentErrors = validateDados(context.identity.state.fields, context.today);
+  const blocking: BlockingItem[] = Object.entries(studentErrors).map(([field, label]) => ({
+    label,
+    field,
+    step: "student",
+  }));
+  const issue = intakeSaveIssue({
+    blockedLead: context.classes.blockedLead,
+    selectedId: context.identity.selectedId,
+    optionsFetching: context.classes.options.isFetching,
+    selected: Boolean(context.classes.selected),
+    stageId: context.identity.stageId,
+    waitingPlacement: context.classes.waitingPlacement,
+  });
+  if (issue)
+    blocking.push({ label: issue, step: context.classes.blockedLead ? "student" : "pedagogy" });
+  const items = intakePendingItems({
+    selected: Boolean(context.classes.selected),
+    existingEnrollment: Boolean(context.existing.existingEnrollment),
+    waitingPlacement: context.classes.waitingPlacement,
+    withContract,
+    existingContract: Boolean(context.existing.existingContract),
+  });
+  return { blocking, items };
 }

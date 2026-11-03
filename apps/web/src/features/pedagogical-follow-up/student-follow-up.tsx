@@ -20,9 +20,19 @@ import {
   type SelectFollowUp,
 } from "./student-navigation";
 import styles from "./student-desk.module.css";
-type Props = { studentId: string; studentName: string; canRecord: boolean };
+type Props = {
+  studentId: string;
+  studentName: string;
+  canRecord: boolean;
+  showAppointments?: boolean;
+};
 type Action = "schedule" | "occurrence" | "intervention" | null;
-export function StudentFollowUp({ studentId, studentName, canRecord }: Props): ReactElement {
+export function StudentFollowUp({
+  studentId,
+  studentName,
+  canRecord,
+  showAppointments = true,
+}: Props): ReactElement {
   const [record, setRecord] = useQueryState("registro", parseAsString.withDefault(""));
   const [action, setAction] = useState<Action>(null);
   const me = trpc.me.useQuery();
@@ -38,12 +48,14 @@ export function StudentFollowUp({ studentId, studentName, canRecord }: Props): R
   }, []);
   return (
     <section id="acompanhamento" ref={anchor} className={styles.workspace}>
-      <StudentAppointmentCarousel
-        studentId={studentId}
-        admin={admin && canRecord}
-        hideEmpty={!canRecord}
-        onSchedule={() => setAction("schedule")}
-      />
+      {showAppointments && (
+        <StudentAppointmentCarousel
+          studentId={studentId}
+          admin={admin && canRecord}
+          hideEmpty={!canRecord}
+          onSchedule={() => setAction("schedule")}
+        />
+      )}
       <StudentDesk
         studentId={studentId}
         canRecord={canRecord}

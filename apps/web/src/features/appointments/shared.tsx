@@ -83,6 +83,7 @@ export function useAppointmentRefresh() {
   return async () => {
     await Promise.all([
       utils.appointments.invalidate(),
+      utils.dashboard.invalidate(),
       utils.teacherWorkspace.invalidate(),
       utils.teachers.invalidate(),
       utils.students.invalidate(),

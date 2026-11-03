@@ -164,6 +164,7 @@ export async function findPaymentCommand(
       date: row.date,
       amountCents: row.amountCents,
       method: row.method,
+      externalInstallments: row.externalInstallments,
       note: row.note,
       externalReference: row.externalReference,
     },

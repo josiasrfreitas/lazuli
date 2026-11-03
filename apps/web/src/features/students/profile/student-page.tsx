@@ -1,49 +1,76 @@
 "use client";
-import { StudentPhoto } from "~/features/student-documents/student-photo";
-import { useState, type ReactElement, type ReactNode } from "react";
-import { AlertCircle, BookOpen, CalendarDays, Wallet } from "lucide-react";
+
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import {
+  BookOpen,
+  CalendarDays,
+  LayoutDashboard,
+  MessageCircle,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { Tabs, TabsList, TabsTab, TabsPanel, DetailHeader, InlineSkeleton } from "@lazuli/ui";
+import type { RouterOutputs } from "@lazuli/api";
+import {
+  Button,
+  DetailHeader,
+  InlineSkeleton,
+  SegmentedControl,
+  SegmentedControlItem,
+  Tabs,
+  TabsList,
+  TabsPanel,
+  TabsTab,
+} from "@lazuli/ui";
+import { trpc } from "~/lib/trpc";
+import { firstTwoNames } from "~/lib/format";
+import { useAnimationPreviewDelay } from "~/lib/animation-preview";
+import { StudentPhoto } from "~/features/student-documents/student-photo";
+import { StudentPlanning } from "~/features/stage-planning/student-planning";
 import { useStudentProfile, useStudentPedagogy, type StudentProfile } from "./logic";
 import { StudentStatus } from "./student-identity";
 import { ProfileError } from "./profile-shared";
 import { StudentPedagogySection } from "./student-pedagogy";
 import { StudentFinanceSection } from "./student-finance";
-
-import { trpc } from "~/lib/trpc";
-
+import { StudentRegistrationLoading, StudentRegistrationSection } from "./student-registration";
+import { StudentContractRenewal } from "./student-contract-renewal";
+import { StudentOverview, StudentOverviewLoading } from "./student-overview";
+import { StudentAgendaDialog } from "./student-agenda-dialog";
 import { CurrentEnrollment } from "./current-enrollment";
 import { PedagogyLoading, EnrollmentLoading } from "./student-loading";
-
+import { useSectionCarousel } from "./use-section-carousel";
 import styles from "./student-profile.module.css";
-import { StudentPlanning } from "~/features/stage-planning/student-planning";
-import { StudentPendingActions } from "./student-pending-actions";
 
-const SECTIONS = ["pedagogico", "financeiro", "planejamento"] as const;
-type PedagogyProps = {
-  id: string;
-  profile?: StudentProfile | undefined;
-  pedagogyWorkspacePreview?: ReactNode;
-};
+const OVERVIEW_SECTION = "visao-geral";
+const PEDAGOGY_SECTION = "pedagogico";
+const PLANNING_SECTION = "planejamento";
+const SECTIONS = [
+  OVERVIEW_SECTION,
+  "cadastro",
+  PEDAGOGY_SECTION,
+  PLANNING_SECTION,
+  "financeiro",
+] as const;
+const PREVIEW_DELAY_MS = 1800;
+const ENTRANCE_DURATION_MS = 720;
+const SECTION_QUERY = "secao";
+type StudentSection = (typeof SECTIONS)[number];
+type PageProps = { id: string; pedagogyWorkspacePreview?: ReactNode };
+type SectionsProps = PageProps & { profile: StudentProfile | undefined };
 
-export function StudentPage({
-  id,
-  pedagogyWorkspacePreview,
-}: {
-  id: string;
-  pedagogyWorkspacePreview?: ReactNode;
-}): ReactElement {
+export function StudentPage({ id, pedagogyWorkspacePreview }: PageProps): ReactElement {
   const profile = useStudentProfile(id);
+  const previewReady = useAnimationPreviewDelay(PREVIEW_DELAY_MS);
   return (
     <div data-page-scroll="internal" className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-        {profile.isError && (
+        {profile.isError ? (
           <ProfileError message={profile.error.message} onRetry={() => void profile.refetch()} />
-        )}
-        {!profile.isError && (
+        ) : (
           <StudentSections
+            key={id}
             id={id}
-            profile={profile.data}
+            profile={previewReady ? profile.data : undefined}
             pedagogyWorkspacePreview={pedagogyWorkspacePreview}
           />
         )}
@@ -52,142 +79,399 @@ export function StudentPage({
   );
 }
 
-function StudentSections({ id, profile, pedagogyWorkspacePreview }: PedagogyProps): ReactElement {
+function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProps): ReactElement {
   const pedagogy = useStudentPedagogy(id);
-  const hasPpt = pedagogy.data?.enrollments.some(
-    (row) => row.class.scheduleType === "PERSONALIZED",
-  );
   const finance = trpc.finance.studentSummary.useQuery({ studentId: id });
-  const [pointerNavigation, setPointerNavigation] = useState(false);
-  const [section, setSection] = useQueryState(
-    "secao",
-    parseAsStringLiteral(SECTIONS).withDefault("pedagogico"),
-  );
+  const entranceComplete = useEntranceComplete(Boolean(profile));
+  const [registrationBusy, setRegistrationBusy] = useState(false);
+  const hasPpt = hasPersonalizedEnrollment(pedagogy.data);
+  const { activeSection, activeTab, navigate } = useStudentSectionNavigation({
+    pedagogyReady: Boolean(pedagogy.data),
+    hasPpt,
+    registrationBusy,
+  });
+  const header = studentHeaderProps({
+    id,
+    profile,
+    pedagogy,
+    registrationBusy,
+    activeSection,
+    entranceComplete,
+    financePending: finance.isPending,
+    pendingRenewals: finance.data?.pendingRenewals,
+  });
+  const content = {
+    section: activeSection,
+    id,
+    profile,
+    pedagogy,
+    hasPpt,
+    latestTermination: finance.data?.latestTermination,
+    pedagogyWorkspacePreview,
+    navigate,
+    onBusyChange: setRegistrationBusy,
+  } satisfies Parameters<typeof SectionContent>[0];
   return (
-    <div className={styles.sections} data-pointer-navigation={pointerNavigation || undefined}>
+    <StudentSectionsView
+      {...{ profile, activeSection, activeTab, entranceComplete, navigate, header, content }}
+    />
+  );
+}
+
+function StudentSectionsView({
+  profile,
+  activeSection,
+  activeTab,
+  entranceComplete,
+  navigate,
+  header,
+  content,
+}: {
+  profile: StudentProfile | undefined;
+  activeSection: StudentSection;
+  activeTab: StudentSection;
+  entranceComplete: boolean;
+  navigate: ReturnType<typeof useStudentSectionNavigation>["navigate"];
+  header: Parameters<typeof SectionsHeader>[0];
+  content: Parameters<typeof SectionContent>[0];
+}): ReactElement {
+  return (
+    <div
+      className={styles.sections}
+      data-overview={activeSection === OVERVIEW_SECTION || undefined}
+      data-ready={Boolean(profile) || undefined}
+      data-entering={profile && !entranceComplete ? true : undefined}
+    >
       <Tabs
-        value={section === "planejamento" && pedagogy.data && !hasPpt ? "pedagogico" : section}
+        value={activeTab}
         variant="underline"
         size="md"
         onValueChange={(value) => {
-          if (typeof value === "string") void setSection(studentSectionFromTab(value));
+          const next = SECTIONS.find((item) => item === value);
+          if (next) navigate(next);
         }}
       >
-        <StudentTabsHeader
-          id={id}
-          profile={profile}
-          hasPpt={Boolean(hasPpt)}
-          showPendingPlanning={pedagogy.isPending && section === "planejamento"}
-          severeOverdue={finance.data?.debtState === "SEVERE_OVERDUE"}
-          onPointerNavigationChange={setPointerNavigation}
-        />
-        <TabsPanel value="pedagogico">
-          {profile ? (
-            <StudentPedagogySection
-              profile={profile}
-              latestTermination={finance.data?.latestTermination}
-              pedagogyWorkspacePreview={pedagogyWorkspacePreview}
-            />
-          ) : (
-            <PedagogyLoading />
-          )}
-        </TabsPanel>
-        <TabsPanel value="planejamento">
-          <StudentPlanningPanel id={id} profile={profile} pedagogy={pedagogy} />
-        </TabsPanel>
-        <TabsPanel value="financeiro">
-          <StudentFinanceSection id={id} profile={profile} />
+        <SectionsHeader {...header} />
+        <TabsPanel key={activeSection} value={activeTab}>
+          <SectionContent {...content} />
         </TabsPanel>
       </Tabs>
     </div>
   );
 }
 
-function studentSectionFromTab(value: string): (typeof SECTIONS)[number] {
-  if (value === "planejamento") return "planejamento";
-  if (value === "financeiro") return "financeiro";
-  return "pedagogico";
-}
-
-function StudentTabsHeader({
+function studentHeaderProps({
   id,
   profile,
-  hasPpt,
-  showPendingPlanning,
-  severeOverdue,
-  onPointerNavigationChange,
+  pedagogy,
+  registrationBusy,
+  activeSection,
+  entranceComplete,
+  financePending,
+  pendingRenewals,
 }: {
   id: string;
   profile: StudentProfile | undefined;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
+  registrationBusy: boolean;
+  activeSection: StudentSection;
+  entranceComplete: boolean;
+  financePending: boolean;
+  pendingRenewals: RouterOutputs["finance"]["studentSummary"]["pendingRenewals"] | undefined;
+}): Parameters<typeof SectionsHeader>[0] {
+  return {
+    id,
+    profile,
+    canSchedule: Boolean(pedagogy.data?.enrollments.some((row) => row.current)),
+    registrationBusy,
+    financeActive: activeSection === "financeiro",
+    renewalReady: entranceComplete && Boolean(profile) && !financePending,
+    pendingRenewals: pendingRenewals ?? [],
+  };
+}
+
+function hasPersonalizedEnrollment(data: ReturnType<typeof useStudentPedagogy>["data"]): boolean {
+  return Boolean(data?.enrollments.some((row) => row.class.scheduleType === "PERSONALIZED"));
+}
+
+function useStudentSectionNavigation({
+  pedagogyReady,
+  hasPpt,
+  registrationBusy,
+}: {
+  pedagogyReady: boolean;
   hasPpt: boolean;
-  showPendingPlanning: boolean;
-  severeOverdue: boolean;
-  onPointerNavigationChange: (value: boolean) => void;
+  registrationBusy: boolean;
+}): {
+  activeSection: StudentSection;
+  activeTab: StudentSection;
+  navigate: (next: StudentSection) => void;
+} {
+  const switchSection = useSectionCarousel();
+  const [section, setSection] = useQueryState(
+    SECTION_QUERY,
+    parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION),
+  );
+  const activeSection = resolveSection(section, { pedagogyReady, hasPpt });
+  const activeTab = activeSection === PLANNING_SECTION ? PEDAGOGY_SECTION : activeSection;
+  const navigate = (next: StudentSection): void => {
+    if (registrationBusy) return;
+    switchSection(activeSection, { next, update: () => void setSection(next) });
+  };
+  return { activeSection, activeTab, navigate };
+}
+
+function useEntranceComplete(ready: boolean): boolean {
+  const [complete, setComplete] = useState(false);
+  useEffect(() => {
+    if (!ready || complete) return;
+    const timeout = globalThis.setTimeout(() => setComplete(true), ENTRANCE_DURATION_MS);
+    return () => globalThis.clearTimeout(timeout);
+  }, [ready, complete]);
+  return complete;
+}
+
+function resolveSection(
+  section: StudentSection,
+  { pedagogyReady, hasPpt }: { pedagogyReady: boolean; hasPpt: boolean },
+): StudentSection {
+  if (section === PLANNING_SECTION && pedagogyReady && !hasPpt) return PEDAGOGY_SECTION;
+  return section;
+}
+
+function SectionsHeader({
+  id,
+  profile,
+  canSchedule,
+  registrationBusy,
+  financeActive,
+  renewalReady,
+  pendingRenewals,
+}: {
+  id: string;
+  profile: StudentProfile | undefined;
+  canSchedule: boolean;
+  registrationBusy: boolean;
+  financeActive: boolean;
+  renewalReady: boolean;
+  pendingRenewals: RouterOutputs["finance"]["studentSummary"]["pendingRenewals"];
 }): ReactElement {
   return (
-    <div className={styles.stickyHeader}>
-      <DetailHeader
-        title={profile ? profile.contact.fullName : <InlineSkeleton className="h-8 w-64" />}
-        leading={
-          profile ? <StudentPhoto studentId={id} name={profile.contact.fullName} /> : undefined
+    <div className={styles.stickyHeader} data-ready={profile ? true : undefined}>
+      <StudentIdentityHeader
+        id={id}
+        profile={profile}
+        canSchedule={canSchedule}
+        renewalAction={
+          financeActive && pendingRenewals.length > 0 ? (
+            <StudentContractRenewal contracts={pendingRenewals} ready={renewalReady} />
+          ) : undefined
         }
-        metadata={
-          profile ? <StudentStatus profile={profile} /> : <InlineSkeleton className="h-5 w-12" />
-        }
-        actions={
-          <StudentTabsNavigation
-            hasPpt={hasPpt}
-            showPendingPlanning={showPendingPlanning}
-            severeOverdue={severeOverdue}
-            onPointerNavigationChange={onPointerNavigationChange}
-          />
-        }
+        navigation={<StudentTabsNavigation disabled={registrationBusy} />}
       />
-      {profile && <StudentPendingActions studentId={id} name={profile.contact.fullName} />}
     </div>
   );
 }
 
-function StudentTabsNavigation({
-  hasPpt,
-  showPendingPlanning,
-  severeOverdue,
-  onPointerNavigationChange,
-}: {
+type SectionContentProps = {
+  section: StudentSection;
+  id: string;
+  profile: StudentProfile | undefined;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
   hasPpt: boolean;
-  showPendingPlanning: boolean;
-  severeOverdue: boolean;
-  onPointerNavigationChange: (value: boolean) => void;
+  latestTermination: RouterOutputs["finance"]["studentSummary"]["latestTermination"] | undefined;
+  pedagogyWorkspacePreview: ReactNode;
+  navigate: (section: StudentSection) => void;
+  onBusyChange: (busy: boolean) => void;
+};
+type PedagogySectionProps = Pick<
+  SectionContentProps,
+  "section" | "id" | "profile" | "pedagogy" | "latestTermination" | "pedagogyWorkspacePreview"
+>;
+
+function SectionContent(props: SectionContentProps): ReactElement {
+  const { section, id, profile, navigate, onBusyChange } = props;
+  return (
+    <div className={styles.tabContent}>
+      {section === OVERVIEW_SECTION &&
+        (profile ? (
+          <StudentOverview profile={profile} navigate={navigate} />
+        ) : (
+          <StudentOverviewLoading />
+        ))}
+      {section === "cadastro" &&
+        (profile ? (
+          <StudentRegistrationSection profile={profile} onBusyChange={onBusyChange} />
+        ) : (
+          <StudentRegistrationLoading />
+        ))}
+      {(section === PEDAGOGY_SECTION || section === PLANNING_SECTION) && (
+        <PedagogyContent {...props} />
+      )}
+      {section === "financeiro" && <StudentFinanceSection id={id} profile={profile} />}
+    </div>
+  );
+}
+
+function PedagogyContent({
+  section,
+  id,
+  profile,
+  pedagogy,
+  hasPpt,
+  latestTermination,
+  pedagogyWorkspacePreview,
+  navigate,
+}: SectionContentProps): ReactElement {
+  return (
+    <div className={styles.pedagogyContent}>
+      {(hasPpt || section === PLANNING_SECTION) && (
+        <SegmentedControl
+          size="sm"
+          aria-label="Área pedagógica"
+          value={section}
+          onValueChange={(value) => {
+            if (value === PEDAGOGY_SECTION || value === PLANNING_SECTION) navigate(value);
+          }}
+        >
+          <SegmentedControlItem value={PEDAGOGY_SECTION}>Acompanhamento</SegmentedControlItem>
+          <SegmentedControlItem value={PLANNING_SECTION}>Plano de ensino PPT</SegmentedControlItem>
+        </SegmentedControl>
+      )}
+      <PedagogySection
+        section={section}
+        id={id}
+        profile={profile}
+        pedagogy={pedagogy}
+        latestTermination={latestTermination}
+        pedagogyWorkspacePreview={pedagogyWorkspacePreview}
+      />
+    </div>
+  );
+}
+
+function PedagogySection({
+  section,
+  id,
+  profile,
+  pedagogy,
+  latestTermination,
+  pedagogyWorkspacePreview,
+}: PedagogySectionProps): ReactElement {
+  if (section === PLANNING_SECTION)
+    return <StudentPlanningPanel id={id} profile={profile} pedagogy={pedagogy} />;
+  if (profile)
+    return (
+      <StudentPedagogySection
+        profile={profile}
+        latestTermination={latestTermination}
+        pedagogyWorkspacePreview={pedagogyWorkspacePreview}
+      />
+    );
+  return <PedagogyLoading />;
+}
+
+function StudentIdentityHeader({
+  id,
+  profile,
+  canSchedule,
+  renewalAction,
+  navigation,
+}: {
+  id: string;
+  profile: StudentProfile | undefined;
+  canSchedule: boolean;
+  renewalAction: ReactNode;
+  navigation: ReactNode;
 }): ReactElement {
   return (
-    <div className="flex max-w-full min-w-0 items-center gap-3 overflow-x-auto">
-      <TabsList
-        aria-label="Seções do aluno"
-        onPointerDownCapture={() => onPointerNavigationChange(true)}
-        onKeyDownCapture={() => onPointerNavigationChange(false)}
-      >
-        <TabsTab value="pedagogico">
-          <BookOpen aria-hidden="true" />
-          Pedagógico
-        </TabsTab>
-        {(hasPpt || showPendingPlanning) && (
-          <TabsTab value="planejamento">
-            <CalendarDays aria-hidden="true" />
-            Planejamento
-          </TabsTab>
-        )}
-        <TabsTab value="financeiro">
-          <Wallet aria-hidden="true" />
-          Financeiro
-          {severeOverdue && (
-            <span
-              className="text-destructive"
-              title="Pendência grave: pagamento vencido há mais de 30 dias"
-            >
-              <AlertCircle className={styles.financeAlert} aria-hidden="true" />
-              <span className="sr-only">Pendência grave: pagamento vencido há mais de 30 dias</span>
-            </span>
+    <DetailHeader
+      size="sm"
+      title={
+        profile ? (
+          firstTwoNames(profile.contact.fullName)
+        ) : (
+          <InlineSkeleton shape="block" className="h-7 w-48 max-w-full sm:w-64" />
+        )
+      }
+      leading={
+        profile ? (
+          <StudentPhoto studentId={id} name={profile.contact.fullName} />
+        ) : (
+          <InlineSkeleton className="size-10" />
+        )
+      }
+      metadata={
+        <>
+          {profile ? (
+            <StudentStatus profile={profile} />
+          ) : (
+            <InlineSkeleton shape="block" className="h-5 w-12" />
           )}
+          <StudentHeaderActions
+            profile={profile}
+            canSchedule={canSchedule}
+            renewalAction={renewalAction}
+          />
+        </>
+      }
+      actions={navigation}
+    />
+  );
+}
+
+function StudentHeaderActions({
+  profile,
+  canSchedule,
+  renewalAction,
+}: {
+  profile: StudentProfile | undefined;
+  canSchedule: boolean;
+  renewalAction: ReactNode;
+}): ReactElement {
+  return (
+    <div className={styles.headerActions}>
+      {profile?.whatsAppUrl && (
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<a href={profile.whatsAppUrl} target="_blank" rel="noreferrer" />}
+        >
+          <MessageCircle aria-hidden="true" /> WhatsApp
+        </Button>
+      )}
+      {profile ? (
+        <StudentAgendaDialog
+          profile={profile}
+          canSchedule={canSchedule}
+          secondary={Boolean(renewalAction)}
+        />
+      ) : (
+        <Button size="sm" disabled>
+          <CalendarDays aria-hidden="true" /> Agenda do aluno
+        </Button>
+      )}
+      {renewalAction}
+    </div>
+  );
+}
+
+function StudentTabsNavigation({ disabled }: { disabled: boolean }): ReactElement {
+  return (
+    <div className={styles.tabNavigation}>
+      <TabsList aria-label="Seções do aluno" className="min-w-full">
+        <TabsTab value={OVERVIEW_SECTION} disabled={disabled}>
+          <LayoutDashboard aria-hidden="true" /> Visão geral
+        </TabsTab>
+        <TabsTab value="cadastro">
+          <UserRound aria-hidden="true" /> Cadastro
+        </TabsTab>
+        <TabsTab value={PEDAGOGY_SECTION} disabled={disabled}>
+          <BookOpen aria-hidden="true" /> Pedagógico
+        </TabsTab>
+        <TabsTab value="financeiro" disabled={disabled}>
+          <Wallet aria-hidden="true" /> Financeiro
         </TabsTab>
       </TabsList>
     </div>
@@ -204,7 +488,7 @@ function StudentPlanningPanel({
   pedagogy: ReturnType<typeof useStudentPedagogy>;
 }): ReactElement {
   return (
-    <div className="grid min-w-0 gap-4 pt-4">
+    <div className="grid min-w-0 gap-4">
       <StudentPlanningEnrollments profile={profile} pedagogy={pedagogy} />
       <StudentPlanning studentId={id} />
     </div>

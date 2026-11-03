@@ -47,7 +47,8 @@ export const guardianCreateInputSchema = z
     address: addressInputSchema.nullish(),
   })
   .strict()
-  .superRefine(validateDocumentPair);
+  .superRefine(validateDocumentPair)
+  .superRefine(validateRequiredGuardian);
 
 export const guardianUpdateInputSchema = z
   .object({
@@ -104,7 +105,8 @@ export const studentCreateInputSchema = z
     guardian: createGuardianReferenceSchema.optional(),
   })
   .strict()
-  .superRefine(validateDocumentPair);
+  .superRefine(validateDocumentPair)
+  .superRefine(validateRequiredStudent);
 
 export const studentUpdateContactInputSchema = z
   .object({
@@ -160,4 +162,48 @@ function validateDocumentPair(input: DocumentPairInput, context: z.RefinementCtx
   if (input.documentNumber !== null && input.documentNumber !== undefined) {
     requireDocumentType(input.documentType, context);
   }
+}
+
+/** Required identity and a reachable contact for a complete student record. */
+function validateRequiredStudent(
+  input: {
+    documentType?: string | null | undefined;
+    documentNumber?: string | null | undefined;
+    birthDate?: Date | null | undefined;
+    phone?: string | null | undefined;
+    email?: string | null | undefined;
+  },
+  context: z.RefinementCtx,
+): void {
+  const missing = [
+    ["documentNumber", !input.documentNumber?.trim(), "Informe o CPF ou RG do aluno."],
+    ["documentType", !input.documentType, "Informe o tipo do documento."],
+    ["birthDate", !input.birthDate, "Informe o nascimento do aluno."],
+    ["phone", !input.phone?.trim() && !input.email?.trim(), "Informe telefone ou e-mail do aluno."],
+  ] as const;
+  for (const [field, absent, message] of missing) {
+    if (absent) context.addIssue({ code: z.ZodIssueCode.custom, path: [field], message });
+  }
+}
+
+function validateRequiredGuardian(
+  input: {
+    documentNumber?: string | null | undefined;
+    phone?: string | null | undefined;
+    email?: string | null | undefined;
+  },
+  context: z.RefinementCtx,
+): void {
+  if (!input.documentNumber?.trim())
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["documentNumber"],
+      message: "Informe o CPF ou RG do responsável.",
+    });
+  if (!input.phone?.trim() && !input.email?.trim())
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["phone"],
+      message: "Informe telefone ou e-mail do responsável.",
+    });
 }

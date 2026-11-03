@@ -1,10 +1,11 @@
 "use client";
 
 import type { JSX as ReactJSX } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import {
+  ArrowRight,
+  ArrowLeft,
   CalendarClock,
-  Check,
   ClipboardList,
   MessageSquareText,
   Pencil,
@@ -18,10 +19,7 @@ import {
   DialogBody,
   DialogContent,
   DialogFooter,
-  DialogHeader,
   DialogPortal,
-  DialogTitle,
-  PencilLoader,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { RecordState } from "~/features/class-records/shared";
@@ -30,9 +28,26 @@ import { AppointmentAccount } from "./appointment-account";
 import { AppointmentRecordForm } from "./record-form";
 import { ScheduleAppointmentDialog } from "./schedule-dialog";
 import type { Appointment } from "./shared";
+import {
+  AppointmentLoadingBody,
+  AppointmentLoadingHeader,
+  AppointmentLoadingFooter,
+} from "./student-appointment-loading";
 import { AppointmentDialogHeader, AppointmentDialogHistory } from "./appointment-dialog-context";
 import styles from "./student-appointment-dialog.module.css";
 import { AppointmentAssessmentFiles } from "~/features/assessment-files/attachments";
+
+type StudentAppointmentDialogProps = {
+  id: string;
+  admin: boolean;
+  readOnly?: boolean;
+  embedded?: boolean;
+  onPendingChange?: ((pending: boolean) => void) | undefined;
+  onReschedule?: ((row: Appointment["snapshot"]) => void) | undefined;
+  onOpenLesson?: ((id: string) => void) | undefined;
+  onClose: () => void;
+  onSelect: (id: string) => void;
+};
 
 export function StudentAppointmentDialog({
   id,
@@ -40,48 +55,214 @@ export function StudentAppointmentDialog({
   onClose,
   onSelect,
   readOnly = false,
+  embedded = false,
+  onPendingChange,
+  onReschedule,
+  onOpenLesson,
+}: StudentAppointmentDialogProps): ReactJSX.Element {
+  const query = trpc.appointments.detail.useQuery({ id }, { retry: false });
+  const state = useAppointmentDialogState(id, { embedded, onPendingChange });
+  const content = (
+    <AppointmentDetailContent
+      id={id}
+      admin={admin}
+      readOnly={readOnly}
+      onSelect={onSelect}
+      query={query}
+      state={state}
+      onReschedule={onReschedule}
+      onReturn={embedded ? onClose : undefined}
+      onOpenLesson={onOpenLesson}
+    />
+  );
+  if (embedded)
+    return (
+      <EmbeddedAppointmentPanel
+        state={state}
+        data={query.data}
+        onPendingChange={onPendingChange}
+        content={content}
+      />
+    );
+  return (
+    <AppointmentDialogShell
+      id={id}
+      open={state.open}
+      pending={state.pending}
+      onClose={onClose}
+      content={content}
+    />
+  );
+}
+
+function EmbeddedAppointmentPanel({
+  state,
+  data,
+  onPendingChange,
+  content,
+}: {
+  state: AppointmentDialogState;
+  data: Appointment | undefined;
+  onPendingChange: ((pending: boolean) => void) | undefined;
+  content: ReactJSX.Element;
+}): ReactJSX.Element {
+  if (state.action === "cancel" && data)
+    return (
+      <div key="cancel" className={styles.embeddedPanel}>
+        <CancelAppointmentDialog
+          embedded
+          row={data.snapshot}
+          onClose={() => state.setAction(null)}
+          onPendingChange={onPendingChange}
+        />
+      </div>
+    );
+  return (
+    <div key="detail" ref={state.panel} className={styles.embeddedPanel}>
+      {content}
+    </div>
+  );
+}
+
+function AppointmentDetailContent({
+  id,
+  admin,
+  readOnly,
+  onSelect,
+  query,
+  state,
+  onReschedule,
+  onReturn,
+  onOpenLesson,
 }: {
   id: string;
   admin: boolean;
-  readOnly?: boolean;
-  onClose: () => void;
+  readOnly: boolean;
   onSelect: (id: string) => void;
+  query: AppointmentDialogViewProps["query"];
+  state: AppointmentDialogState;
+  onReschedule: ((row: Appointment["snapshot"]) => void) | undefined;
+  onReturn: (() => void) | undefined;
+  onOpenLesson: ((id: string) => void) | undefined;
 }): ReactJSX.Element {
-  const query = trpc.appointments.detail.useQuery({ id }, { retry: false });
+  return (
+    <AppointmentDialogView
+      id={id}
+      admin={admin}
+      readOnly={readOnly}
+      onSelect={onSelect}
+      query={query}
+      editing={state.editing}
+      setEditing={state.setEditing}
+      pending={state.pending}
+      setPending={state.setPending}
+      footerTarget={state.footerTarget}
+      setFooterTarget={state.setFooterTarget}
+      action={state.action}
+      setAction={(next) => {
+        if (next === "reschedule" && onReschedule && query.data) onReschedule(query.data.snapshot);
+        else state.setAction(next);
+      }}
+      onReturn={onReturn}
+      onOpenLesson={onOpenLesson}
+    />
+  );
+}
+
+type AppointmentDialogState = {
+  open: boolean;
+  editing: boolean;
+  setEditing: (editing: boolean) => void;
+  pending: boolean;
+  setPending: (pending: boolean) => void;
+  footerTarget: HTMLDivElement | null;
+  setFooterTarget: (target: HTMLDivElement | null) => void;
+  action: "cancel" | "reschedule" | null;
+  setAction: (action: "cancel" | "reschedule" | null) => void;
+  panel: RefObject<HTMLDivElement | null>;
+};
+
+function useAppointmentDialogState(
+  id: string,
+  {
+    embedded,
+    onPendingChange,
+  }: {
+    embedded: boolean;
+    onPendingChange: ((pending: boolean) => void) | undefined;
+  },
+): AppointmentDialogState {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(true);
+  }, [id]);
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [footerTarget, setFooterTarget] = useState<HTMLDivElement | null>(null);
   const [action, setAction] = useState<"cancel" | "reschedule" | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!embedded || action) return;
+    const frame = requestAnimationFrame(() =>
+      panel.current?.querySelector<HTMLButtonElement>("button")?.focus(),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [embedded, action]);
+  useEffect(() => {
+    onPendingChange?.(pending);
+    return () => onPendingChange?.(false);
+  }, [pending, onPendingChange]);
+  return {
+    open,
+    editing,
+    setEditing,
+    pending,
+    setPending,
+    footerTarget,
+    setFooterTarget,
+    action,
+    setAction,
+    panel,
+  };
+}
+
+function AppointmentDialogShell({
+  id,
+  open,
+  pending,
+  onClose,
+  content,
+}: {
+  id: string;
+  open: boolean;
+  pending: boolean;
+  onClose: () => void;
+  content: ReactJSX.Element;
+}): ReactJSX.Element {
   return (
     <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !pending) onClose();
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !pending) onClose();
       }}
     >
       <DialogPortal>
         <DialogBackdrop />
-        <AppointmentDialogView
-          id={id}
-          admin={admin}
-          readOnly={readOnly}
-          onSelect={onSelect}
-          query={query}
-          editing={editing}
-          setEditing={setEditing}
-          pending={pending}
-          setPending={setPending}
-          footerTarget={footerTarget}
-          setFooterTarget={setFooterTarget}
-          action={action}
-          setAction={setAction}
-        />
+        <DialogContent
+          className="md:max-w-4xl md:w-[calc(100%-2rem)]"
+          showCloseButton={!pending}
+          finalFocus={() => document.querySelector<HTMLElement>(`#appointment-cell-${id}`)}
+        >
+          {content}
+        </DialogContent>
       </DialogPortal>
     </Dialog>
   );
 }
 
 type AppointmentDialogViewProps = {
+  onReturn: (() => void) | undefined;
+  onOpenLesson: ((id: string) => void) | undefined;
   id: string;
   admin: boolean;
   readOnly: boolean;
@@ -103,24 +284,29 @@ type AppointmentDialogViewProps = {
 };
 
 function AppointmentDialogView(props: AppointmentDialogViewProps): ReactJSX.Element {
-  const { id, admin, query, pending } = props;
+  const { admin, query, pending } = props;
   return (
-    <DialogContent
-      className="md:max-w-4xl md:w-[calc(100%-2rem)]"
-      showCloseButton={!pending}
-      finalFocus={() => document.querySelector<HTMLElement>(`#appointment-cell-${id}`)}
-    >
+    <>
+      {props.onReturn && (
+        <div className="mb-3">
+          <Button variant="ghost" size="sm" disabled={pending} onClick={props.onReturn}>
+            <ArrowLeft aria-hidden="true" /> Voltar à agenda
+          </Button>
+        </div>
+      )}
       {query.data ? (
-        <AppointmentDialogHeader data={query.data} admin={admin} />
+        <AppointmentDialogHeader
+          data={query.data}
+          admin={admin}
+          onOpenLesson={props.onOpenLesson}
+        />
       ) : (
-        <DialogHeader>
-          <DialogTitle>Atendimento</DialogTitle>
-        </DialogHeader>
+        <AppointmentLoadingHeader />
       )}
       <AppointmentDialogMain {...props} />
       <AppointmentDialogFooter {...props} />
       <AppointmentActionDialogs {...props} />
-    </DialogContent>
+    </>
   );
 }
 
@@ -136,7 +322,7 @@ function AppointmentDialogMain({
     <DialogBody>
       <div className={styles.body}>
         {query.isPending ? (
-          <PencilLoader size="sm" label="Carregando atendimento" />
+          <AppointmentLoadingBody />
         ) : (
           <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
         )}
@@ -170,6 +356,7 @@ function AppointmentDialogFooter({
   onSelect,
   setFooterTarget,
 }: AppointmentDialogViewProps): ReactJSX.Element | null {
+  if (query.isPending) return <AppointmentLoadingFooter />;
   if (!query.data) return null;
   return (
     <DialogFooter className="border-t border-border pt-4" ref={setFooterTarget}>
@@ -234,7 +421,7 @@ function AppointmentDialogActions({
           variant="primary"
           onClick={() => setEditing(true)}
         >
-          {row.status === "SCHEDULED" ? <Check /> : <Pencil />}
+          {row.status === "SCHEDULED" ? <ArrowRight /> : <Pencil />}
           {row.status === "SCHEDULED" ? "Registrar atendimento" : "Corrigir registro"}
         </Button>
       )}

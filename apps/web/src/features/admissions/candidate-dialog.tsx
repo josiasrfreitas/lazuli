@@ -2,22 +2,22 @@
 import { useState, type ReactElement } from "react";
 import { Alert } from "@lazuli/ui";
 import { AdmissionDialog } from "./admission-dialog";
-import { CandidateContactFields, CandidateAvailabilityFields } from "./candidate-fields";
+import { CandidateContactFields, CandidateCourseFields } from "./candidate-fields";
 import { candidateSubmitLabel } from "./candidate-model";
 import { useCandidateForm, useCandidateSave } from "./use-candidate-form";
 import type { Candidate } from "./labels";
 type CandidateDialogProps = {
   candidate?: Candidate;
-  startAtAvailability?: boolean;
+  startAtCourse?: boolean;
   onClose: () => void;
 };
 export function CandidateDialog({
   candidate,
   onClose,
-  startAtAvailability = false,
+  startAtCourse = false,
 }: CandidateDialogProps): ReactElement {
   const [id] = useState(() => candidate?.id ?? crypto.randomUUID());
-  const form = useCandidateForm(candidate, startAtAvailability);
+  const form = useCandidateForm(candidate, startAtCourse);
   const save = useCandidateSave({ id, editing: Boolean(candidate), onClose });
   const change: typeof form.change = (key, value) => {
     form.change(key, value);
@@ -26,9 +26,7 @@ export function CandidateDialog({
   return (
     <AdmissionDialog
       title={candidate ? "Editar lead" : "Novo lead"}
-      description={
-        form.step === 0 ? "1 de 2 · Pessoa e interesse" : "2 de 2 · Horários e nivelamento"
-      }
+      description={form.step === 0 ? "1 de 2 · Pessoa e interesse" : "2 de 2 · Curso e nivelamento"}
       formId="candidate-form"
       body={form.body}
       pending={save.isPending}
@@ -50,7 +48,7 @@ export function CandidateDialog({
       {form.step === 0 ? (
         <CandidateContactFields draft={form.draft} errors={form.errors} change={change} />
       ) : (
-        <CandidateAvailabilityFields draft={form.draft} errors={form.errors} change={change} />
+        <CandidateCourseFields draft={form.draft} errors={form.errors} change={change} />
       )}
       {save.isError && <Alert variant="destructive">{save.error.message}</Alert>}
     </AdmissionDialog>

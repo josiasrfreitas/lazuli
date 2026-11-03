@@ -1,6 +1,7 @@
 import type { FinanceOverduePayerGroup, FinanceInstallmentRow } from "@lazuli/validators";
 
-type InstallmentGroupRow = Omit<FinanceInstallmentRow, "payer" | "beneficiaries"> & {
+type InstallmentGroupRow = Omit<FinanceInstallmentRow, "payer" | "beneficiaries" | "material"> & {
+  material?: FinanceInstallmentRow["material"] | null;
   payerId: string;
   payerName: string;
   dueDateSort: string;
@@ -25,6 +26,7 @@ export function toPublicRow(
     installmentId: row.installmentId,
     orderId: row.orderId,
     origin: row.origin,
+    ...(row.material ? { material: row.material } : {}),
     sequenceNumber: row.sequenceNumber,
     scheduleTotal: row.scheduleTotal,
     payer: { id: row.payerId, name: row.payerName },

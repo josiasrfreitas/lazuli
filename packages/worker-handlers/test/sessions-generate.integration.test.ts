@@ -146,7 +146,7 @@ async function seedGenerationFixtures(): Promise<{
 }
 
 async function seedSemester(): Promise<{ id: string }> {
-  return db.semester.create({
+  return db.period.create({
     data: {
       name: `${TEST_PREFIX}2040.1`,
       startDate: new Date("2040-03-01T00:00:00.000Z"),
@@ -259,7 +259,7 @@ async function cleanDatabase(): Promise<void> {
   });
   await db.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
   await db.schoolClosedDay.deleteMany({ where: { reason: { startsWith: TEST_PREFIX } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await db.period.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.stage.deleteMany({ where: { internalCode: { startsWith: "GRE65" } } });
   await db.track.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.productLine.deleteMany({ where: { key: { startsWith: "gre65_sessions_" } } });

@@ -43,6 +43,8 @@ export type FileUploadProps = {
   className?: string | undefined;
   /** An inline picker for files attached to an existing form row. */
   compact?: boolean | undefined;
+  /** Places the selected file beside the picker when space permits. */
+  layout?: "stacked" | "inline" | undefined;
   /** Reuse selection/validation with a contextual picker such as a profile avatar. */
   renderTrigger?: ((picker: { open: () => void; disabled: boolean }) => ReactNode) | undefined;
 };
@@ -235,18 +237,14 @@ function UploadSurface({ view }: UploadViewProps): ReactElement {
       data-dragging={dragging || undefined}
       data-disabled={disabled || undefined}
       data-compact={compact || undefined}
+      data-layout={view.layout ?? "stacked"}
       onDragEnter={view.onDragEnter}
       onDragOver={view.onDragOver}
       onDragLeave={view.onDragLeave}
       onDrop={view.onDrop}
     >
       <UploadInputs view={view} />
-      {status === "idle" &&
-        (view.renderTrigger ? (
-          view.renderTrigger({ open: () => view.picker.current?.click(), disabled: view.locked })
-        ) : (
-          <UploadDropzone view={view} />
-        ))}
+      <UploadIdleControl view={view} />
       {value.length > 0 && <UploadFiles view={view} />}
       {status !== "idle" && <UploadTransfer view={view} />}
       {message && (
@@ -255,6 +253,15 @@ function UploadSurface({ view }: UploadViewProps): ReactElement {
         </p>
       )}
     </div>
+  );
+}
+
+function UploadIdleControl({ view }: UploadViewProps): ReactNode {
+  if (view.status !== "idle") return null;
+  return view.renderTrigger ? (
+    view.renderTrigger({ open: () => view.picker.current?.click(), disabled: view.locked })
+  ) : (
+    <UploadDropzone view={view} />
   );
 }
 

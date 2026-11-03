@@ -200,8 +200,9 @@ async function assertStudentAndDashboardRead(fixture: Fixture): Promise<void> {
     [fixture.student.id],
   );
   assert.equal(
-    list.rows.find((row) => row.orderId === fixture.contractualId)?.ledger.interestPreviewCents,
-    0,
+    list.rows.find((row) => row.orderId === fixture.contractualId)?.ledger
+      .collectibleRemainingCents,
+    AMOUNT,
   );
 }
 

@@ -7,7 +7,7 @@ import type { Prisma } from "@lazuli/db";
 
 type VisitRow = Prisma.EntryVisitGetPayload<{
   include: {
-    candidate: { select: { id: true; fullName: true; status: true } };
+    candidate: { select: { id: true; fullName: true; status: true; studentId: true } };
     assessment: {
       select: {
         fileName: true;
@@ -41,7 +41,7 @@ export async function assignedVisit(context: RecordContext, id: string): Promise
   const visit = await context.database.entryVisit.findFirst({
     where: { id, deletedAt: null, candidate: { deletedAt: null } },
     include: {
-      candidate: { select: { id: true, fullName: true, status: true } },
+      candidate: { select: { id: true, fullName: true, status: true, studentId: true } },
       assessment: {
         select: {
           fileName: true,
@@ -72,11 +72,20 @@ export async function assignedVisit(context: RecordContext, id: string): Promise
     format: visit.format,
     notes: visit.notes,
     assessment: visit.assessment,
-    canRecord:
-      visit.status !== "CANCELLED" &&
-      visit.candidate.status === "WAITING" &&
-      sessionEndInstant({ date: visit.date, endTime: visit.startTime }) <= context.now,
+    canRecord: canRecordVisit(visit, context.now),
   };
+}
+
+function canRecordVisit(visit: VisitRow, now: Date): boolean {
+  return Boolean(
+    visit.status !== "CANCELLED" &&
+    (visit.candidate.status === "WAITING" ||
+      (visit.kind === "PLACEMENT" &&
+        visit.candidate.status === "ENROLLED" &&
+        visit.candidate.studentId &&
+        !visit.assessment?.stageId)) &&
+    sessionEndInstant({ date: visit.date, endTime: visit.startTime }) <= now,
+  );
 }
 
 async function visitTeacherId(context: RecordContext, visit: VisitRow): Promise<string | null> {

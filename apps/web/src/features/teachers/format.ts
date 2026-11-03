@@ -1,4 +1,3 @@
-const TEACHER_LIST_PATH = "/professores";
 const ISO_DATE_LENGTH = 10;
 const MINUTES_PER_HOUR = 60;
 const DAYS_AFTER_MONDAY = 6;
@@ -35,17 +34,4 @@ export function todayInSchool(): string {
   }).formatToParts(new Date());
   const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
-}
-export function safeTeacherReturn(value: string | null): string {
-  if (!value) return TEACHER_LIST_PATH;
-  let url: URL;
-  try {
-    url = new URL(value, "https://lazuli.local");
-  } catch {
-    return TEACHER_LIST_PATH;
-  }
-  return url.origin === "https://lazuli.local" &&
-    /^\/(professores|turmas)(\/|$)/u.test(url.pathname)
-    ? `${url.pathname}${url.search}`
-    : TEACHER_LIST_PATH;
 }

@@ -1,0 +1,48 @@
+{
+  "title": "Como preencher o contrato",
+  "question": "Três propostas para o modal. Abra o esboço para comparar a organização dos campos. Renovação e página do aluno ficam para depois.",
+  "options": [
+    {
+      "id": "contract-summary-side",
+      "label": "Resumo ao lado",
+      "thesis": "Preencher uma parte enquanto o combinado permanece visível.",
+      "palette": ["#0f1e3d", "#1b2029", "#e9edf6", "#d8ad4a"],
+      "materials": ["Controles e tipografia do Lazuli", "Dados ilustrativos"],
+      "viewport": "Resumo à esquerda; campos do material à direita; uma ação para continuar.",
+      "risk": "Precisa de mais largura; no celular, o resumo fica recolhido.",
+      "html": ".impeccable/mocks/decision/contract-summary-side.html",
+      "htmlFrame": "1440x900",
+      "comp": ".impeccable/mocks/decision/contract-summary-side.png"
+    },
+    {
+      "id": "contract-editable-agreement",
+      "label": "Acordo editável",
+      "thesis": "Conferir o acordo inteiro e abrir somente o trecho que precisa preencher.",
+      "palette": ["#0f1e3d", "#1b2029", "#e9edf6", "#d8ad4a"],
+      "materials": ["Controles e tipografia do Lazuli", "Dados ilustrativos"],
+      "viewport": "Resumo em uma coluna; material expandido entre as outras partes já resumidas.",
+      "risk": "A próxima pendência precisa estar muito clara para quem começa do zero.",
+      "html": ".impeccable/mocks/decision/contract-editable-agreement.html",
+      "htmlFrame": "1440x900",
+      "comp": ".impeccable/mocks/decision/contract-editable-agreement.png"
+    },
+    {
+      "id": "contract-short-steps",
+      "label": "Etapas curtas",
+      "thesis": "Resolver responsável, mensalidades e material em telas pequenas antes de conferir.",
+      "palette": ["#0f1e3d", "#1b2029", "#e9edf6", "#d8ad4a"],
+      "materials": ["Controles e tipografia do Lazuli", "Dados ilustrativos"],
+      "viewport": "Progresso superior; apenas a etapa Material aberta; resumo curto e rodapé fixo.",
+      "risk": "Requer mais avanços e retornos para comparar assuntos diferentes.",
+      "html": ".impeccable/mocks/decision/contract-short-steps.html",
+      "htmlFrame": "1440x900",
+      "comp": ".impeccable/mocks/decision/contract-short-steps.png"
+    }
+  ],
+  "reroll": true,
+  "steer": true,
+  "buildPath": {
+    "value": "code",
+    "toggle": true
+  }
+}

@@ -8,7 +8,6 @@ import {
   Button,
   DataTablePage,
   Input,
-  TableFilterChips,
   TableFilters,
   type RemoteOptionsResult,
   type TableFilterField,
@@ -19,6 +18,7 @@ import {
 } from "@lazuli/validators";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
 import { useSearchDraft } from "~/lib/use-search-draft";
+import { useAnimationPreviewDelay } from "~/lib/animation-preview";
 
 import {
   useStudentFilterOptions,
@@ -31,6 +31,8 @@ import { studentFilterOptionResult } from "./filter-options";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentsTable } from "./students-table";
 import { tableStateVm } from "./view-model";
+
+const STUDENT_PREVIEW_DELAY_MS = 1600;
 
 export type StudentsFilterFieldsProps = {
   filters: StudentsFilters;
@@ -209,7 +211,7 @@ function useStudentFilterFields(
     ),
     classSearch,
     teacherSearch,
-    classResult: studentFilterOptionResult(classSearch, classes),
+    classResult: studentFilterOptionResult(classSearch, { ...classes, preload: true }),
     teacherResult: studentFilterOptionResult(teacherSearch, teachers),
     onClassSearchChange: setClassSearch,
     onTeacherSearchChange: setTeacherSearch,
@@ -227,18 +229,24 @@ function hasStudentFilters(filters: ReturnType<typeof useStudentsFilters>): bool
   );
 }
 
-function studentTableState(
-  filters: ReturnType<typeof useStudentsFilters>,
-  students: ReturnType<typeof useStudentsList>,
-): ReturnType<typeof tableStateVm> {
+function studentTableState({
+  filters,
+  students,
+  previewReady,
+}: {
+  filters: ReturnType<typeof useStudentsFilters>;
+  students: ReturnType<typeof useStudentsList>;
+  previewReady: boolean;
+}): ReturnType<typeof tableStateVm> {
   return tableStateVm({
-    rows: students.data?.rows,
+    rows: previewReady ? students.data?.rows : undefined,
     isError: students.error !== null,
     filtered: hasStudentFilters(filters),
   });
 }
 
 export function StudentsPage(): ReactElement {
+  const previewReady = useAnimationPreviewDelay(STUDENT_PREVIEW_DELAY_MS);
   const filters = useStudentsFilters();
   const openStudent = useOpenStudent();
   const students = useStudentsList(filters);
@@ -257,9 +265,9 @@ export function StudentsPage(): ReactElement {
         title="Alunos"
       >
         <StudentsTableSection
-          fields={fields}
           filters={filters}
           students={students}
+          previewReady={previewReady}
           pagination={pagination}
           onOpenStudent={openStudent}
           onContinue={setResuming}
@@ -298,30 +306,29 @@ function useOpenStudent(): (id: string) => void {
 }
 
 function StudentsTableSection({
-  fields,
   filters,
   students,
+  previewReady,
   pagination,
   onOpenStudent,
   onContinue,
 }: {
-  fields: ReturnType<typeof useStudentFilterFields>;
   filters: ReturnType<typeof useStudentsFilters>;
   students: ReturnType<typeof useStudentsList>;
+  previewReady: boolean;
   pagination: ReturnType<typeof paginationFor>;
   onOpenStudent: (id: string) => void;
   onContinue: (id: string) => void;
 }): ReactElement {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <TableFilterChips fields={fields} />
       <div className="min-h-0 flex-1">
         <StudentsTable
           onRetry={() => void students.refetch()}
           onOpenRow={onOpenStudent}
           onContinue={onContinue}
-          state={studentTableState(filters, students)}
-          pagination={tablePaginationPropsFor(pagination, students.data)}
+          state={studentTableState({ filters, students, previewReady })}
+          pagination={tablePaginationPropsFor(pagination, previewReady ? students.data : undefined)}
         />
       </div>
     </div>

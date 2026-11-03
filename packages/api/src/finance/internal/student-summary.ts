@@ -1,3 +1,5 @@
+import { studentPaymentWhere } from "./student-payments-query.js";
+import { pendingRenewalWhere } from "./renewal-pending.js";
 import { readMaterialNeeds } from "./material-needs.js";
 import { saoPauloDateOnly, type StudentFinanceSummary } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
@@ -15,6 +17,8 @@ export async function readStudentSummary(
 ): Promise<
   StudentFinanceSummary & {
     asOf: string;
+    hasPaymentProofs: boolean;
+    pendingRenewals: { id: string; startsOn: string | null }[];
     materialNeeds: Awaited<ReturnType<typeof readMaterialNeeds>>;
     contracts: Awaited<ReturnType<typeof readStudentContractTerms>>;
     latestTermination: Awaited<ReturnType<typeof readLatestTermination>>;
@@ -33,18 +37,16 @@ export async function readStudentSummary(
     search: undefined,
   };
   const totals = await readTotals(query);
-  const next = await ledgerQuery(query)
-    .selectFrom("ledger")
-    .select("dueDate")
-    .select(sql<number>`sum("collectibleBalanceCents")::double precision`.as("amountCents"))
-    .where("collectibleBalanceCents", ">", 0)
-    .where("status", "!=", "OVERDUE")
-    .groupBy("dueDate")
-    .orderBy("dueDate", "asc")
-    .limit(1)
-    .executeTakeFirst();
+  const next = await nextDue(query);
   const balances = await ledgerQuery(query).selectFrom("ledger").selectAll().execute();
+  const pendingRenewals = await readPendingRenewals(database, { asOf, studentId: input.studentId });
+  const hasPaymentProofs = await hasStudentPaymentProofs(database, input.studentId);
   return {
+    hasPaymentProofs,
+    pendingRenewals: pendingRenewals.map((contract) => ({
+      id: contract.id,
+      startsOn: contract.startsOn ? toDateOnlyString(contract.startsOn) : null,
+    })),
     materialNeeds: await readMaterialNeeds(database, { studentId: input.studentId, asOf }),
     contracts: await readStudentContractTerms(database, { studentId: input.studentId, balances }),
     latestTermination: await readLatestTermination(database, input.studentId),
@@ -56,6 +58,43 @@ export async function readStudentSummary(
     nextDueCents: next?.amountCents ?? 0,
     history: await readStudentPaymentHistory(query),
   };
+}
+
+async function hasStudentPaymentProofs(
+  database: FinanceDatabase,
+  studentId: string,
+): Promise<boolean> {
+  const entry = await database.paymentEntry.findFirst({
+    where: { ...studentPaymentWhere(studentId), proofs: { some: { deletedAt: null } } },
+    select: { id: true },
+  });
+  return entry !== null;
+}
+
+function readPendingRenewals(
+  database: FinanceDatabase,
+  { asOf, studentId }: { asOf: string; studentId: string },
+): Promise<{ id: string; startsOn: Date | null }[]> {
+  return database.contract.findMany({
+    where: { ...pendingRenewalWhere(asOf), studentId },
+    select: { id: true, startsOn: true },
+    orderBy: [{ endsOn: "asc" }, { id: "asc" }],
+  });
+}
+
+async function nextDue(
+  query: LedgerInput,
+): Promise<{ dueDate: string; amountCents: number } | undefined> {
+  return ledgerQuery(query)
+    .selectFrom("ledger")
+    .select("dueDate")
+    .select(sql<number>`sum("collectibleBalanceCents")::double precision`.as("amountCents"))
+    .where("collectibleBalanceCents", ">", 0)
+    .where("status", "!=", "OVERDUE")
+    .groupBy("dueDate")
+    .orderBy("dueDate", "asc")
+    .limit(1)
+    .executeTakeFirst();
 }
 
 async function readTotals(
@@ -124,12 +163,21 @@ type ItemBalance = {
 const studentContractSelect = {
   id: true,
   commandId: true,
+  scholarshipPct: true,
+  scholarshipAgreement: true,
+  baseMonthlyAmountCents: true,
+  monthlyAmountCents: true,
   student: { select: { fullName: true } },
   payer: { select: { name: true } },
   startsOn: true,
   endsOn: true,
   durationMonths: true,
   punctualityDiscountPct: true,
+  renegotiations: {
+    where: { deletedAt: null },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { newAmountCents: true, installmentCount: true, reductionCents: true },
+  },
   orders: {
     where: { deletedAt: null, cancelledAt: null },
     select: {
@@ -141,6 +189,8 @@ const studentContractSelect = {
       material: {
         select: {
           name: true,
+          scholarshipPct: true,
+          scholarshipAgreement: true,
           items: {
             orderBy: { position: "asc" },
             select: { stageId: true, name: true, stageCode: true },
@@ -153,7 +203,16 @@ const studentContractSelect = {
           cardFeeCents: true,
         },
       },
-      installments: { where: { deletedAt: null }, select: { amountCents: true } },
+      installments: {
+        where: { deletedAt: null },
+        select: {
+          amountCents: true,
+          adjustments: {
+            where: { deletedAt: null, renegotiationId: { not: null } },
+            select: { amountCents: true },
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.ContractSelect;
@@ -161,12 +220,17 @@ type StudentContract = Prisma.ContractGetPayload<{ select: typeof studentContrac
 type StudentContractView = {
   id: string;
   hasDetail: boolean;
+  scholarshipPct: number;
+  scholarshipAgreement: string | null;
+  baseMonthlyAmountCents: number | null;
+  monthlyAmountCents: number | null;
   studentName: string;
   payerName: string;
   startsOn: string | null;
   endsOn: string | null;
   durationMonths: number | null;
   punctualityDiscountPct: number;
+  renegotiations?: { newAmountCents: number; installmentCount: number; reductionCents: number }[];
   schedules: {
     id: string;
     dueDay: number | null;
@@ -176,7 +240,11 @@ type StudentContractView = {
     kind: StudentContract["orders"][number]["kind"];
     materialName: string | null;
     material:
-      | (Omit<NonNullable<StudentContract["orders"][number]["material"]>, "cardFeePct"> & {
+      | (Omit<
+          NonNullable<StudentContract["orders"][number]["material"]>,
+          "cardFeePct" | "scholarshipPct"
+        > & {
+          scholarshipPct: number;
           cardFeePct: number | null;
         })
       | null;
@@ -199,7 +267,10 @@ async function readStudentContractTerms(
       studentId,
       terminatedAt: null,
       deletedAt: null,
-      orders: { some: { deletedAt: null, cancelledAt: null, kind: "TUITION" } },
+      OR: [
+        { orders: { some: { deletedAt: null, cancelledAt: null, kind: "TUITION" } } },
+        { scholarshipPct: 100 },
+      ],
     },
     select: studentContractSelect,
     orderBy: { startsOn: "desc" },
@@ -213,34 +284,50 @@ const projectStudentContract = (
 ): StudentContractView => ({
   id: contract.id,
   hasDetail: Boolean(contract.commandId),
+  scholarshipPct: Number(contract.scholarshipPct),
+  scholarshipAgreement: contract.scholarshipAgreement,
+  baseMonthlyAmountCents: contract.baseMonthlyAmountCents,
+  monthlyAmountCents: contract.monthlyAmountCents,
   studentName: contract.student.fullName,
   payerName: contract.payer.name,
   startsOn: contract.startsOn ? toDateOnlyString(contract.startsOn) : null,
   endsOn: contract.endsOn ? toDateOnlyString(contract.endsOn) : null,
   durationMonths: contract.durationMonths,
   punctualityDiscountPct: Number(contract.punctualityDiscountPct ?? 0),
+  renegotiations: contract.renegotiations,
   schedules: contract.orders.map((order) => ({
     id: order.id,
     dueDay: order.dueDay,
     firstDueDate: order.firstDueDate ? toDateOnlyString(order.firstDueDate) : null,
-    totalCents: order.principalAmountCents,
+    totalCents:
+      order.principalAmountCents +
+      order.installments.reduce((sum, row) => sum + renegotiatedAdjustment(row), 0),
     collection: itemCollection(balances.filter((row) => row.orderId === order.id)),
     kind: order.kind,
     materialName: order.material?.name ?? null,
     material: order.material
       ? {
           ...order.material,
+          scholarshipPct: Number(order.material.scholarshipPct),
           cardFeePct: order.material.cardFeePct === null ? null : Number(order.material.cardFeePct),
         }
       : null,
     installmentCount: order.installments.length,
     uniformAmountCents:
       order.installments.length > 0 &&
-      order.installments.every((row) => row.amountCents === order.installments[0]!.amountCents)
-        ? order.installments[0]!.amountCents
+      order.installments.every(
+        (row) =>
+          row.amountCents + renegotiatedAdjustment(row) ===
+          order.installments[0]!.amountCents + renegotiatedAdjustment(order.installments[0]!),
+      )
+        ? order.installments[0]!.amountCents + renegotiatedAdjustment(order.installments[0]!)
         : null,
   })),
 });
+
+function renegotiatedAdjustment(row: { adjustments: { amountCents: number }[] }): number {
+  return row.adjustments.reduce((sum, adjustment) => sum + adjustment.amountCents, 0);
+}
 
 function itemCollection(rows: ItemBalance[]): {
   receivedCents: number;

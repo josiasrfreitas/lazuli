@@ -1,0 +1,118 @@
+.slot {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  width: 52px;
+  flex: none;
+}
+.slot[data-pinned="true"] {
+  width: 340px;
+}
+.drawer {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 10;
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+}
+.drawer[data-open="true"] {
+  width: 340px;
+  box-shadow: var(--lz-shadow-lg);
+}
+.slot[data-pinned="true"] .drawer {
+  box-shadow: none;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px;
+  flex: none;
+}
+.heading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  color: var(--heading);
+  white-space: nowrap;
+}
+.heading h2 {
+  margin: 0;
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.heading > svg {
+  color: var(--muted-foreground);
+  flex: none;
+}
+.summary {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 4px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.summary > span:last-child {
+  writing-mode: vertical-rl;
+  font-size: var(--lz-text-caption);
+  font-weight: 500;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.hint {
+  padding: 0 16px 16px;
+  margin: 0;
+  font-size: var(--lz-text-micro);
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+}
+.heading[hidden],
+.summary[hidden],
+.content[hidden] {
+  display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .drawer {
+    transition: width 180ms ease-out;
+  }
+}
+@media (max-width: 760px) {
+  .slot,
+  .slot[data-pinned="true"] {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+  .slot[data-mobile-open="false"] {
+    display: none;
+  }
+  .drawer,
+  .drawer[data-open="true"] {
+    position: static;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    box-shadow: none;
+  }
+  .pin {
+    display: none;
+  }
+  .header {
+    justify-content: flex-start;
+  }
+}
