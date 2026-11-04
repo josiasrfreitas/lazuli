@@ -59,9 +59,11 @@ atrasar um aviso de preparação, mas não explica o marco medido do calendário
 estabelecem p95.
 
 O primeiro byte do RSC apareceu por volta de 150 ms nas rotas medidas. Onde o navegador precisa
-baixar scripts descobertos após o RSC, há uma segunda espera de rede antes da pintura. Isso torna
-o alvo p95 < 300 ms difícil com a atual sequência de requisições. A prioridade com evidência mais
-direta é eliminar a rodada tardia de `healthBatch` em alunos, preservando o resultado dos scores;
-depois medir o efeito de adiar o cadastro fechado. Os demais cortes de bundle, prefetch de código
-e refatorações de renderização precisam de um experimento isolado antes de serem tratados como
+baixar scripts descobertos na resposta RSC, há uma segunda espera de rede antes da pintura. Isso
+torna o alvo p95 < 300 ms difícil com a atual sequência de requisições. A [decomposição com traces
+de Chrome](staging-causal-costs-2026-11-04.md) mostra que a chamada tardia de `healthBatch`
+acrescenta 253–293 ms aos scores em dois cliques, mas embuti-la no RSC pode serializar as leituras.
+O experimento de menor complexidade é medir o efeito de adiar o cadastro fechado em Alunos, que
+precede a tabela e a chamada dos scores. Os demais cortes de bundle, prefetch de código e
+refatorações de renderização precisam de um experimento isolado antes de serem tratados como
 ganho. Nenhuma otimização de produto foi aplicada nesta rodada.

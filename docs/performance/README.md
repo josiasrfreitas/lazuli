@@ -3,7 +3,9 @@
 A meta é **p95 < 300 ms** do clique na navegação interna até a tela funcionalmente pronta. A
 aplicação medida em staging é a revisão `da8b3b11`; não houve novo deploy na rodada de diagnóstico.
 O [mapa empírico por módulo](staging-module-costs-2026-11-04.md) reúne os marcos de RSC, JS,
-chamadas de API e pintura, com amostras brutas sanitizadas.
+chamadas de API e pintura, com amostras brutas sanitizadas. A [decomposição com traces de
+Chrome](staging-causal-costs-2026-11-04.md) identifica o trabalho após a rede e os limites da
+atribuição de custo no servidor.
 
 | Tela       | Primeira navegação em staging              | Limite do número                                                                |
 | ---------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
@@ -20,8 +22,10 @@ mostra um smoke por imagem e **não** representa p95. Os números históricos de
 usaram um marcador de pintura diferente e não entram na comparação válida. O [baseline original de
 p99 da API](staging-general-2026-11-03.md) mede chamadas sob carga, não clique até tela pronta.
 
-O maior custo demonstrado nesta rodada é a segunda chamada de dados dos scores de alunos:
-`students.healthBatch` inicia após o JS da lista e termina antes de a tela inteira ficar pronta.
+O maior atraso adicional demonstrado nesta rodada é a segunda chamada de dados dos scores de
+alunos: `students.healthBatch` inicia após o JS da lista e termina antes de a tela inteira ficar
+pronta. O chunk JS grande da lista antecede também essa chamada; adiá-lo é o primeiro experimento
+simples a validar, sem prometer economia antes da medição.
 Nas outras telas, RSC, descoberta tardia de scripts e renderização dividem o caminho crítico; o
 mapa distingue medidas de hipóteses de otimização. Nenhuma mudança de produto foi aplicada nesta
 investigação. O [plano e medições locais](local-optimization-action-plan-2026-11-04.md) preserva
