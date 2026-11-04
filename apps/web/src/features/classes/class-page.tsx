@@ -2,18 +2,19 @@
 import { useEffect, useState, type ReactElement } from "react";
 import {
   BookOpen,
+  LayoutDashboard,
   AlertCircle,
   CalendarDays,
   ChartNoAxesCombined,
-  UserRoundPlus,
-  UsersRound,
 } from "lucide-react";
 import { parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
-import { Button, Tabs, TabsList, TabsPanel, TabsTab, useStickyBoundary } from "@lazuli/ui";
+import { Button, Tabs, TabsList, TabsPanel, TabsTab } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
+import { useSectionCarousel } from "~/lib/use-section-carousel";
+import { ClassRecentOccurrences } from "./class-recent-occurrences";
 import { ClassPageLoading } from "./class-page-loading";
-import { ClassOverview } from "./class-overview";
+import { ClassIdentityHeader, ClassOverview } from "./class-overview";
 import { MembershipDialog } from "./membership-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
 import { ClassPerformance } from "~/features/assessments/class-performance";
@@ -24,15 +25,16 @@ import styles from "./class-page.module.css";
 import { PlanningWorkspace } from "~/features/stage-planning/workspace";
 import planningStyles from "~/features/stage-planning/planning.module.css";
 
-const SECTIONS = ["alunos", "desempenho", "aulas", "planejamento"] as const;
+const OVERVIEW_SECTION = "visao-geral";
+const SECTIONS = [OVERVIEW_SECTION, "alunos", "desempenho", "aulas", "planejamento"] as const;
 const REDUCED_ARRIVAL_DELAY_MS = 100;
 const ARRIVAL_DELAY_MS = 460;
 
 export function ClassPage({ id }: { id: string }): ReactElement {
   const query = trpc.classes.byId.useQuery({ id }, { retry: false });
   return (
-    <div className={styles.scrollport}>
-      <div className="grid w-full min-w-0 gap-4 px-4 pt-5 sm:px-6 lg:px-8">
+    <div data-page-scroll="internal" className={styles.scrollport}>
+      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
         {query.isError && (
           <div role="alert" className="space-y-2">
             <p>
@@ -71,8 +73,11 @@ function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] 
   const [membershipOpen, setMembershipOpen] = useState(false);
   return (
     <>
-      <ClassOverview detail={detail} onAssign={() => setAssigning(true)} />
-      <ClassSections detail={detail} enroll={() => setMembershipOpen(true)} />
+      <ClassSections
+        detail={detail}
+        onAssign={() => setAssigning(true)}
+        enroll={() => setMembershipOpen(true)}
+      />
       {assigning && (
         <AssignmentDialog
           classId={detail.id}
@@ -97,50 +102,84 @@ function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] 
 function ClassSections({
   detail,
   enroll,
+  onAssign,
 }: {
+  onAssign: () => void;
   detail: RouterOutputs["classes"]["byId"];
   enroll: () => void;
 }): ReactElement {
   const [section, setSection] = useQueryState(
     "secao",
-    parseAsStringLiteral(SECTIONS).withDefault("alunos"),
+    parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION),
   );
   const pendingLessons = usePendingLessonCount(detail.id);
+  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "classCarousel" });
   const changeSection = (value: string): void => {
-    const selected = SECTIONS.find((candidate) => candidate === value) ?? "alunos";
-    void setSection(selected);
+    const selected = SECTIONS.find((candidate) => candidate === value) ?? OVERVIEW_SECTION;
+    switchSection(activeSection, { next: selected, update: () => void setSection(selected) });
   };
+  // Old links to the roster now open the combined overview.
+  const activeSection =
+    section === "alunos" || (section === "planejamento" && detail.scheduleType !== "REGULAR")
+      ? OVERVIEW_SECTION
+      : section;
   return (
     <div
       className={styles.sections}
       data-planning={(section === "planejamento" && detail.scheduleType === "REGULAR") || undefined}
       data-lessons={section === "aulas" || undefined}
+      data-overview={activeSection === OVERVIEW_SECTION || undefined}
     >
-      <Tabs
-        value={section === "planejamento" && detail.scheduleType !== "REGULAR" ? "alunos" : section}
-        variant="underline"
-        size="md"
-        onValueChange={changeSection}
-      >
-        <ClassNavigation
-          regular={detail.scheduleType === "REGULAR"}
-          planning={section === "planejamento" && detail.scheduleType === "REGULAR"}
-          pendingLessons={pendingLessons}
-          enroll={enroll}
-        />
-        <TabsPanel value="alunos">
-          <RosterSection classId={detail.id} showStage={detail.scheduleType === "PERSONALIZED"} />
-        </TabsPanel>
-        <TabsPanel value="desempenho">
-          <ClassPerformance classId={detail.id} />
-        </TabsPanel>
-        <TabsPanel value="aulas" className="flex flex-1 flex-col">
-          <ClassLessons classId={detail.id} />
-        </TabsPanel>
-        {detail.scheduleType === "REGULAR" && <ClassPlanningPanel classId={detail.id} />}
-        <GenerationNotice classId={detail.id} />
+      <Tabs value={activeSection} variant="underline" size="md" onValueChange={changeSection}>
+        <div className={styles.header}>
+          <ClassIdentityHeader
+            detail={detail}
+            onAssign={onAssign}
+            navigation={
+              <div className={styles.tabNavigation}>
+                <ClassTabs
+                  regular={detail.scheduleType === "REGULAR"}
+                  pendingLessons={pendingLessons}
+                />
+              </div>
+            }
+          />
+        </div>
+        <ClassSectionPanels detail={detail} enroll={enroll} />
       </Tabs>
     </div>
+  );
+}
+
+function ClassSectionPanels({
+  detail,
+  enroll,
+}: {
+  detail: RouterOutputs["classes"]["byId"];
+  enroll: () => void;
+}): ReactElement {
+  return (
+    <>
+      <TabsPanel value={OVERVIEW_SECTION}>
+        <ClassOverview detail={detail} />
+        <div className={styles.overviewWorkspace}>
+          <ClassRecentOccurrences classId={detail.id} />
+          <RosterSection
+            classId={detail.id}
+            showStage={detail.scheduleType === "PERSONALIZED"}
+            enroll={enroll}
+          />
+        </div>
+      </TabsPanel>
+      <TabsPanel value="desempenho">
+        <ClassPerformance classId={detail.id} />
+      </TabsPanel>
+      <TabsPanel value="aulas" className="flex flex-1 flex-col">
+        <ClassLessons classId={detail.id} />
+      </TabsPanel>
+      {detail.scheduleType === "REGULAR" && <ClassPlanningPanel classId={detail.id} />}
+      <GenerationNotice classId={detail.id} />
+    </>
   );
 }
 
@@ -162,40 +201,6 @@ function ClassPlanningPanel({ classId }: { classId: string }): ReactElement {
   );
 }
 
-function ClassNavigation({
-  regular,
-  planning,
-  pendingLessons,
-  enroll,
-}: {
-  regular: boolean;
-  planning: boolean;
-  pendingLessons: number;
-  enroll: () => void;
-}): ReactElement {
-  const { sentinelRef, stuck } = useStickyBoundary(true);
-  return (
-    <>
-      <span
-        ref={sentinelRef}
-        aria-hidden="true"
-        className="pointer-events-none absolute top-0 h-px w-px"
-      />
-      <div className={styles.navigation} data-stuck={stuck || undefined}>
-        <ClassTabs regular={regular} pendingLessons={pendingLessons} />
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {!planning && (
-            <Button size="sm" onClick={enroll}>
-              <UserRoundPlus aria-hidden="true" />
-              Matricular aluno
-            </Button>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
 function ClassTabs({
   regular,
   pendingLessons,
@@ -205,9 +210,9 @@ function ClassTabs({
 }): ReactElement {
   return (
     <TabsList aria-label="Seções da turma">
-      <TabsTab value="alunos">
-        <UsersRound aria-hidden="true" />
-        Alunos
+      <TabsTab value={OVERVIEW_SECTION}>
+        <LayoutDashboard aria-hidden="true" />
+        Visão geral
       </TabsTab>
       <TabsTab value="desempenho">
         <ChartNoAxesCombined aria-hidden="true" />

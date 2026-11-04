@@ -1,0 +1,90 @@
+.workspace {
+  composes: surface from "../classes/class-panel.module.css";
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0.875rem;
+  padding: 1.125rem;
+  container-type: inline-size;
+}
+.content {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.65fr);
+  gap: 1.25rem;
+}
+.content:not([data-comparing="true"]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.header {
+  display: grid;
+  gap: 0.5rem;
+}
+.headingRow,
+.headerControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  gap: 0.75rem;
+}
+.headingRow {
+  justify-content: space-between;
+}
+.headerControls {
+  max-width: 100%;
+}
+.studentDetails {
+  min-height: 0;
+  overflow: auto;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+.studentDetails:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.chart {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.plot {
+  flex: 1;
+  min-height: 10rem;
+}
+.heading {
+  color: var(--academic-panel-foreground);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+.loading {
+  composes: surface from "../classes/class-panel.module.css";
+}
+@media (max-width: 900px), (max-height: 639px) {
+  .workspace {
+    flex: none;
+  }
+  .content,
+  .content:not([data-comparing="true"]) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  .plot {
+    flex: none;
+    height: 15rem;
+  }
+  .studentDetails {
+    overflow: visible;
+    border-left: 0;
+    padding-left: 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+}

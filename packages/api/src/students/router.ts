@@ -36,14 +36,20 @@ import { setStudentStatus } from "./status.js";
 import { readStudentPedagogy } from "./pedagogy.js";
 import { readStudentAttendanceHistory } from "./attendance-history.js";
 import { completeStudent } from "./completion.js";
-import { readStudentHealth } from "./health.js";
+import { readStudentHealth, readStudentHealthBatch } from "./health.js";
 import { readStudentAgenda } from "./agenda.js";
 
 const FILTER_OPTION_LIMIT = 50;
+const HEALTH_PAGE_LIMIT = 50;
 const MAX_AGENDA_DAYS = 31;
 const DAY_MS = 86_400_000;
 
 export const studentsRouter = router({
+  healthBatch: adminProcedure
+    .input(z.object({ ids: z.array(z.string().uuid()).max(HEALTH_PAGE_LIMIT) }).strict())
+    .query(({ ctx, input }) =>
+      readStudentHealthBatch({ database: ctx.db, ids: input.ids, now: ctx.now ?? new Date() }),
+    ),
   health: adminProcedure
     .input(studentIdInputSchema)
     .query(({ ctx, input }) =>

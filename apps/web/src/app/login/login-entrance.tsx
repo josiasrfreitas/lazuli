@@ -41,9 +41,6 @@ export function LoginEntrance({
         </div>
       </div>
       <div className={transition.point} data-login-point aria-hidden="true" />
-      <button className={transition.skip} type="button" data-login-skip>
-        Ir para o login
-      </button>
     </div>
   );
 }
@@ -116,7 +113,6 @@ function bindInterruptions(
   const stopOnInteraction = (event: Event): void => {
     if (event.target instanceof Element && event.target.closest("[data-login-scene]")) finish();
   };
-  container.querySelector("[data-login-skip]")?.addEventListener("click", finish, { signal });
   container.addEventListener("focusin", stopOnInteraction, { signal });
   container.addEventListener("pointerdown", stopOnInteraction, { signal });
   media.addEventListener("change", finish, { signal });
@@ -142,9 +138,8 @@ function claimEntrance(skip: boolean): boolean {
 
 function focusLoginField(container: HTMLElement): void {
   const active = document.activeElement;
-  const skipped = active?.matches("[data-login-skip]") === true;
   const desktop = globalThis.matchMedia("(min-width: 981px)").matches;
-  if (skipped || (desktop && active === document.body)) {
+  if (desktop && active === document.body) {
     container
       .querySelector<HTMLInputElement>("input[name='email']")
       ?.focus({ preventScroll: true });

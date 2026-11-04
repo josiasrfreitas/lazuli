@@ -2,8 +2,16 @@
 
 import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
-import { useId, useState } from "react";
-import { Check, ChevronRight, CircleDashed, ListFilter, UserRoundPlus, X } from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
+import {
+  Check,
+  ChevronRight,
+  CircleDashed,
+  ListFilter,
+  Search,
+  UserRoundPlus,
+  X,
+} from "lucide-react";
 import { Avatar, Button, Input } from "@lazuli/ui";
 import type { ClassRecord } from "./shared";
 import {
@@ -29,6 +37,8 @@ const searchKey = (value: string): string =>
 
 type AttendanceProps = {
   data: ClassRecord;
+  compactHeading?: boolean;
+  content?: ReactNode;
   teacher?: boolean;
   onAppointment: (id: string) => void;
   onExperimental: (id: string) => void;
@@ -38,20 +48,19 @@ export function RecordAttendance({
   onAppointment,
   onExperimental,
   teacher = false,
+  compactHeading = false,
+  content,
 }: AttendanceProps): ReactJSX.Element {
   const headingId = useId();
   const [search, setSearch] = useState("");
   const [guestsOnly, setGuestsOnly] = useState(false);
   const participants = lessonParticipants(data);
   const guests = participants.filter((person) => person.kind !== "student").length;
-  const visible = participants.filter(
-    (person) =>
-      (!guestsOnly || person.kind !== "student") &&
-      searchKey(person.name).includes(searchKey(search)),
-  );
+  const visible = filterParticipants(participants, { search, guestsOnly });
   return (
     <section className={styles.attendance} aria-labelledby={headingId}>
       <AttendanceHeading
+        compact={compactHeading}
         headingId={headingId}
         participants={participants}
         guests={guests}
@@ -60,6 +69,7 @@ export function RecordAttendance({
         setSearch={setSearch}
         setGuestsOnly={setGuestsOnly}
       />
+      {content}
       {visible.length > 0 ? (
         <AttendanceRoster
           visible={visible}
@@ -81,7 +91,20 @@ export function RecordAttendance({
   );
 }
 
+function filterParticipants(
+  participants: LessonParticipant[],
+  { search, guestsOnly }: { search: string; guestsOnly: boolean },
+): LessonParticipant[] {
+  const normalizedSearch = searchKey(search);
+  return participants.filter(
+    (person) =>
+      (!guestsOnly || person.kind !== "student") &&
+      searchKey(person.name).includes(normalizedSearch),
+  );
+}
+
 type HeadingProps = {
+  compact: boolean;
   headingId: string;
   participants: LessonParticipant[];
   guests: number;
@@ -91,6 +114,7 @@ type HeadingProps = {
   setGuestsOnly: (value: boolean) => void;
 };
 function AttendanceHeading({
+  compact,
   headingId,
   participants,
   guests,
@@ -100,7 +124,7 @@ function AttendanceHeading({
   setGuestsOnly,
 }: HeadingProps): ReactJSX.Element {
   return (
-    <div className={styles.listHeading}>
+    <div className={styles.listHeading} data-compact={compact || undefined}>
       <div className={styles.sectionHeading}>
         <h2 id={headingId}>
           {guests ? "Alunos e convidados" : "Alunos"}
@@ -116,6 +140,7 @@ function AttendanceHeading({
           <div className={styles.search}>
             <Input
               type="search"
+              leadingIcon={<Search aria-hidden="true" />}
               size="sm"
               aria-label="Buscar aluno ou convidado"
               placeholder="Buscar pelo nome"

@@ -12,6 +12,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { formatAttendancePercent, toWhatsAppUrl } from "~/lib/format";
 import { gradeLabel } from "~/features/assessments/shared";
 import { rosterStatus, type RosterRow } from "./roster-status";
+import { StudentScore, StudentScores } from "~/features/students/student-score";
 import { studentAgeLabel } from "./student-age";
 import { formatTrackName } from "./labels";
 import { StudentAssessmentsDialog } from "~/features/students/profile/student-assessments-dialog";
@@ -29,6 +30,7 @@ type Props = {
   resume?: ((row: RosterRow) => void) | undefined;
   showStage: boolean;
   filtered?: boolean;
+  condensed?: boolean;
 };
 const PAGE_SIZE = 25;
 const TONES = {
@@ -40,18 +42,20 @@ const TONES = {
 } as const;
 export function RosterList(props: Props): ReactElement {
   return (
-    <DataTable
-      label="Alunos da turma"
-      columns={rosterColumns(props)}
-      state={rosterState(props)}
-      onRetry={props.refetch}
-      errorTitle="Não foi possível carregar os alunos"
-      empty={{
-        title: "Nenhum vínculo encontrado",
-        description: "Matricule um aluno para começar esta turma.",
-      }}
-      pagination={rosterPagination(props)}
-    />
+    <StudentScores ids={props.data?.rows.map((row) => row.studentId) ?? []}>
+      <DataTable
+        label="Alunos da turma"
+        columns={rosterColumns(props)}
+        state={rosterState(props)}
+        onRetry={props.refetch}
+        errorTitle="Não foi possível carregar os alunos"
+        empty={{
+          title: "Nenhum vínculo encontrado",
+          description: "Matricule um aluno para começar esta turma.",
+        }}
+        pagination={rosterPagination(props)}
+      />
+    </StudentScores>
   );
 }
 function rosterState(props: Props): DataTableState<RosterRow> {
@@ -76,18 +80,26 @@ function rosterColumns(props: Props): DataTableColumn<RosterRow>[] {
   const columns: DataTableColumn<RosterRow>[] = [
     {
       id: "student",
-      header: "Aluno",
-      width: "wide",
-      cell: (row) => <StudentIdentity row={row} today={today} />,
+      header: props.condensed && props.showStage ? "Aluno / estágio" : "Aluno",
+      width: props.condensed ? "medium" : "wide",
+      cell: (row) => (
+        <StudentIdentity
+          row={row}
+          today={today}
+          condensed={props.condensed ?? false}
+          showStage={props.showStage}
+        />
+      ),
     },
-    {
+  ];
+  if (!props.condensed)
+    columns.push({
       id: "contact",
       header: "Contato",
       width: "medium",
       cell: (row) => <StudentContact row={row} />,
-    },
-  ];
-  if (props.showStage)
+    });
+  if (props.showStage && !props.condensed)
     columns.push({
       id: "stage",
       header: "Estágio / trilha",
@@ -95,16 +107,14 @@ function rosterColumns(props: Props): DataTableColumn<RosterRow>[] {
       cell: (row) => <StudentLearningContext row={row} />,
     });
   columns.push(...rosterMetricColumns());
-  return [
-    ...columns,
-    {
+  if (!props.condensed)
+    columns.push({
       id: "membership",
       header: "Vínculo",
       width: "medium",
       cell: (row) => <StudentMembership row={row} today={today} />,
-    },
-    rosterActionsColumn(props, today),
-  ];
+    });
+  return [...columns, rosterActionsColumn(props, today)];
 }
 function rosterActionsColumn(props: Props, today: string): DataTableColumn<RosterRow> {
   return {
@@ -127,6 +137,13 @@ function rosterActionsColumn(props: Props, today: string): DataTableColumn<Roste
 }
 function rosterMetricColumns(): DataTableColumn<RosterRow>[] {
   return [
+    {
+      id: "score",
+      header: "Score",
+      numeric: true,
+      width: "narrow",
+      cell: (row) => <StudentScore studentId={row.studentId} />,
+    },
     {
       id: "gradeAverage",
       header: "Média",
@@ -158,20 +175,44 @@ function rosterMetricColumns(): DataTableColumn<RosterRow>[] {
     },
   ];
 }
-function StudentIdentity({ row, today }: { row: RosterRow; today: string }): ReactElement {
+function StudentIdentity({
+  row,
+  today,
+  condensed,
+  showStage,
+}: {
+  row: RosterRow;
+  today: string;
+  condensed: boolean;
+  showStage: boolean;
+}): ReactElement {
+  const status = rosterStatus(row, today) as keyof typeof TONES;
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <Avatar name={row.student.fullName} colorKey={row.studentId} size="sm" />
+      <Avatar name={row.student.fullName} colorKey={row.studentId} size="md" />
       <div className="grid min-w-0 gap-1">
         <Link
-          className="font-medium text-interactive hover:underline"
+          className="truncate font-medium text-interactive hover:underline"
           href={`/alunos/${row.studentId}`}
+          title={row.student.fullName}
         >
           {row.student.fullName}
         </Link>
-        <span className="text-caption text-muted-foreground">
-          {studentAgeLabel(row.student.birthDate, today)}
-        </span>
+        {!condensed && (
+          <span className="text-caption text-muted-foreground">
+            {studentAgeLabel(row.student.birthDate, today)}
+          </span>
+        )}
+        {condensed && showStage && (
+          <span className="truncate text-caption text-muted-foreground">
+            {row.progressRecords[0]?.stage.name ?? "Estágio não informado"}
+          </span>
+        )}
+        {condensed && status !== "Vigente" && (
+          <span>
+            <Badge variant={TONES[status]}>{status}</Badge>
+          </span>
+        )}
       </div>
     </div>
   );

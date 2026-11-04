@@ -46,6 +46,9 @@
   display: grid;
   gap: 1rem;
 }
+.body:empty {
+  display: none;
+}
 .attendance {
   min-width: 0;
   container: lesson-roster / inline-size;
@@ -55,6 +58,27 @@
   gap: 0.5rem;
   padding-block: 0.5rem;
   border-bottom: 1px solid var(--border);
+}
+.listHeading[data-compact] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding-top: 0;
+}
+.listHeading[data-compact] .listControls {
+  flex: 1 1 18rem;
+  max-width: 24rem;
+}
+.listHeading[data-compact] .search {
+  flex-basis: 18rem;
+  max-width: none;
+}
+.listHeading[data-compact] .sectionHeading {
+  flex: 1 1 7rem;
+  min-width: 0;
+  gap: 0.25rem 0.75rem;
 }
 .sectionHeading {
   display: flex;
@@ -191,16 +215,6 @@
   color: var(--muted-foreground);
   font-size: var(--lz-text-caption);
   text-align: center;
-}
-.history {
-  display: grid;
-  gap: 0.75rem;
-  justify-items: start;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-}
-.history > section {
-  width: 100%;
 }
 .note {
   display: grid;

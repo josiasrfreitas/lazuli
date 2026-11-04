@@ -260,11 +260,13 @@ o docente que ministrou a aula permanecem fatos distintos. A chamada e a baixa s
 ao docente efetivo. Somente nas aulas deste recorte, os horários sintéticos de frequência passam
 para cinco minutos após o término e a baixa para dez minutos após, no dia civil de São Paulo.
 
-Três aulas podem ter correção: uma regular e uma PPT recebem complemento do relato pelo docente
-no mesmo dia; outra PPT tem presença corrigida pela administração às 15h do dia seguinte. Nesse
-caso, o conteúdo do aluno fica na primeira versão, enquanto a versão atual o mostra ausente sem
-conteúdo realizado. Motivo, autoria e horário ficam nas revisões, nos metadados de frequência
-alterada e no Log. Datas insuficientes ou dependências impedem o cenário, sem fabricar evidência.
+Up to three lessons can be corrected: one regular and one PPT lesson receive additional content
+from the teacher on the same day; another PPT lesson has attendance corrected by administration
+at 15:00 the following day. Only the current lesson record is stored. In the attendance correction,
+the student becomes absent and their performed content is removed. The numeric version still
+protects concurrent edits, but neither the seed nor the application creates lesson-record revision
+snapshots. Existing revision rows are left untouched. Attribution remains in attendance metadata
+and the general activity log. Insufficient dates or dependencies omit the scenario.
 
 Cancelamento, ausência total e troca de presença exigem sessão segura: nenhuma nota naquela data,
 ocorrência ou acompanhamento dependente, visita ou reposição afetada. Para cancelamento/ausência

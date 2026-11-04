@@ -8,6 +8,8 @@ import { RosterList } from "../../src/features/classes/roster-list.js";
 import type { RosterRow } from "../../src/features/classes/roster-status.js";
 import { studentAgeLabel } from "../../src/features/classes/student-age.js";
 
+import { renderWithQueries } from "../support/query-render.js";
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 const row: RosterRow = {
   id: "enrollment",
@@ -61,7 +63,7 @@ void it("explains the missing schedule instead of showing a blank agenda", () =>
 });
 
 void it("shows identity, age, phone and placement without a redundant current status", () => {
-  const markup = renderToStaticMarkup(rosterElement({ row, today: "2026-10-07", close: () => {} }));
+  const markup = renderWithQueries(rosterElement({ row, today: "2026-10-07", close: () => {} }));
   assert.match(markup, /Ana Beatriz/u);
   assert.match(markup, /13 anos/u);
   assert.match(markup, /\(11\) 98801-2233/u);
@@ -72,7 +74,7 @@ void it("shows identity, age, phone and placement without a redundant current st
 });
 
 void it("shows overdue scheduled closure in the roster", () => {
-  const markup = renderToStaticMarkup(
+  const markup = renderWithQueries(
     rosterElement({
       row: {
         ...row,
@@ -94,7 +96,7 @@ void it("updates age on the birthday using the school's civil date", () => {
 });
 
 void it("keeps missing student information explicit and omits shared stage for regular classes", () => {
-  const markup = renderToStaticMarkup(
+  const markup = renderWithQueries(
     rosterElement({
       row: { ...row, student: { fullName: "Ana Beatriz", phone: null, birthDate: null } },
       today: "2026-10-08",

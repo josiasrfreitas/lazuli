@@ -1,7 +1,6 @@
 import { sessionEndInstant, saoPauloDateOnly } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import type { classRecordListSchema, z } from "@lazuli/validators";
-import { classRecordSnapshotSchema } from "@lazuli/validators";
 import {
   canRead,
   dateOnly,
@@ -16,14 +15,8 @@ import {
 } from "./data.js";
 import { usualTeacherOn } from "../teachers/responsibility.js";
 import { initialSnapshot } from "./planned.js";
-import type {
-  SessionSummary,
-  ClassRecordDetail,
-  ClassRecordRevision,
-  RevisionPage,
-} from "./types.js";
+import type { SessionSummary, ClassRecordDetail } from "./types.js";
 import { sessionGuests, type SessionLeadGuest } from "./guests.js";
-const HISTORY_PAGE_SIZE = 20;
 
 export async function listClassRecords(
   context: RecordContext,
@@ -183,37 +176,6 @@ async function recordAttendanceDetails(
   );
   return { attendance, declarations, hasAttendanceWindows };
 }
-export async function classRecordHistory(
-  context: RecordContext,
-  input: { sessionId: string; cursor?: number | undefined },
-): Promise<RevisionPage<ClassRecordRevision>> {
-  const session = await loadRecordSession(context, input.sessionId);
-  if (!session.classRecord) return { items: [], nextCursor: undefined };
-  const rows = await context.database.classSessionRecordRevision.findMany({
-    where: {
-      recordId: session.classRecord.id,
-      ...(input.cursor ? { version: { lt: input.cursor } } : {}),
-    },
-    orderBy: { version: "desc" },
-    take: HISTORY_PAGE_SIZE + 1,
-    include: { recordedBy: { select: { name: true } } },
-  });
-  const items = rows.slice(0, HISTORY_PAGE_SIZE).map((row) => {
-    const snapshot = classRecordSnapshotSchema.parse(row.snapshot);
-    const origin = snapshot.attendanceOrigin?.priorState ? snapshot.attendanceOrigin : undefined;
-    return {
-      id: row.id,
-      version: row.version,
-      reason: row.reason,
-      author: origin ? (origin.confirmedBy?.name ?? "Autoria não registrada") : row.recordedBy.name,
-      authorId: origin ? (origin.confirmedBy?.id ?? null) : row.recordedById,
-      recordedAt: row.createdAt,
-      snapshot,
-    };
-  });
-  return { items, nextCursor: rows.length > HISTORY_PAGE_SIZE ? items.at(-1)?.version : undefined };
-}
-
 const PENDING_PAGE_SIZE = 25;
 /** Pending records remain discoverable after the encounter's week has ended. */
 export async function pendingClassRecords(

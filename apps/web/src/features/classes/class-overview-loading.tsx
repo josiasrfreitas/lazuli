@@ -1,34 +1,17 @@
-import type { JSX as ReactJSX } from "react";
-import { InlineSkeleton } from "@lazuli/ui";
-import styles from "./class-page.module.css";
-export function ClassOverviewLoading(): ReactJSX.Element {
+import type { ReactElement } from "react";
+import { DetailHeader, InlineSkeleton } from "@lazuli/ui";
+export function ClassOverviewLoading(): ReactElement {
   return (
-    <header className={styles.overview} aria-busy="true" aria-label="Carregando turma">
-      <div className={styles.overviewGrid}>
-        <div className={styles.identity}>
-          <InlineSkeleton className="h-9 w-48 max-w-full" />
+    <DetailHeader
+      size="sm"
+      title={<InlineSkeleton className="h-7 w-48" />}
+      metadata={
+        <div className="flex flex-wrap gap-4" aria-hidden="true">
           <InlineSkeleton className="h-4 w-32" />
-          <InlineSkeleton className="h-3 w-40" />
-          <InlineSkeleton className="h-4 w-36" />
+          <InlineSkeleton className="h-4 w-40" />
         </div>
-        <div className={styles.schedule}>
-          <InlineSkeleton className="h-3 w-24" />
-          <div className="mt-4 grid gap-3">
-            <InlineSkeleton className="h-5 w-36" />
-            <InlineSkeleton className="h-4 w-40" />
-          </div>
-        </div>
-        {[0, 1, 2].map((item) => (
-          <div
-            key={item}
-            className={`${styles.occupancy} ${item === 2 ? styles.stageProgress : ""}`}
-          >
-            <InlineSkeleton className="h-3 w-24 max-w-full" />
-            <InlineSkeleton className="h-7 w-20" />
-            <InlineSkeleton className="h-3 w-28 max-w-full" />
-          </div>
-        ))}
-      </div>
-    </header>
+      }
+      actions={<InlineSkeleton className="h-8 w-lg max-w-full" />}
+    />
   );
 }

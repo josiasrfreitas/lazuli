@@ -46,10 +46,10 @@ export function ClassGradeAverage({ classId }: { classId: string }): ReactElemen
     );
   }
   return (
-    <section className={styles.occupancy} aria-label="Média da turma">
+    <section className={styles.occupancy} aria-label="Média das notas">
       <h2 className="flex items-center gap-2 text-caption text-muted-foreground">
         <ChartNoAxesCombined aria-hidden="true" className="size-4" />
-        Média da turma
+        Média das notas
       </h2>
       {content}
     </section>

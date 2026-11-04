@@ -42,5 +42,6 @@ export type UUIDEntity = {
   deletedAt: Date | null;
 };
 
+export { readStudentHealthBatch } from "./student-health-batch.js";
 export { readStudentHealth } from "./student-health.js";
 export { computeEnrollmentPercentInWindow } from "./attendance-percent.js";

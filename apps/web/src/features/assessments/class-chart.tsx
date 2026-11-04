@@ -12,7 +12,6 @@ import {
 } from "recharts";
 import {
   AXIS,
-  CHART_HEIGHT,
   COMPETENCES,
   COMPETENCE_LABELS,
   MAX,
@@ -21,6 +20,7 @@ import {
   gradeLabel,
   type Assessment,
 } from "./shared";
+import styles from "./class-performance.module.css";
 
 const LOW_SCORE_TICK = 20;
 const MID_SCORE_TICK = 40;
@@ -50,7 +50,7 @@ export function ClassPerformanceChart({
 }): ReactElement {
   const points = classChartPoints(rows, selected);
   return (
-    <div className="grid min-w-0 gap-3">
+    <div className={styles.chart}>
       <ClassChartPlot points={points} selected={selected} />
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {points.map((point) => (
@@ -65,7 +65,7 @@ export function ClassPerformanceChart({
         ))}
       </dl>
       <p className="text-caption text-muted-foreground">
-        Azul: turma · Dourado: aluno selecionado. Cada média usa somente competências com as duas
+        Dourado: turma · Branco: aluno selecionado. Cada média usa somente competências com as duas
         unidades registradas, incluindo a recuperação quando houver.
       </p>
     </div>
@@ -80,10 +80,11 @@ function ClassChartPlot({
 }): ReactElement {
   return (
     <div
+      className={styles.plot}
       role="img"
       aria-label="Média por competência e comparação com o aluno selecionado. Quantidades e valores abaixo do gráfico."
     >
-      <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={0}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart
           data={points}
           margin={{ top: 12, right: 12, bottom: 0, left: -16 }}
@@ -106,7 +107,7 @@ function ClassChartPlot({
           <Bar
             dataKey="average"
             name="Média da turma"
-            fill="var(--info)"
+            fill="var(--academic-panel-accent)"
             maxBarSize={32}
             isAnimationActive={false}
           />
@@ -122,7 +123,7 @@ function selectedStudentBar(selected: Assessment | undefined): ReactElement | nu
     <Bar
       dataKey="student"
       name={selected.student.fullName}
-      fill="var(--warning)"
+      fill="var(--academic-panel-foreground)"
       maxBarSize={32}
       isAnimationActive={false}
     />

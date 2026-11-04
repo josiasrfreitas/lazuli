@@ -33,6 +33,29 @@ The header button switches directly between light and dark. The browser's prefer
 the initial theme; an explicit choice is stored on that browser and applied before the first
 paint. Login and access-restriction screens keep their navy entrance surface.
 
+### Academic reading panels
+
+The class page retains its blue overview summary and uses shared dark reading panels for recent
+occurrences, performance, and lessons. These panel roles retain the same values in light and dark
+mode. The compact, responsive composition uses shared UI controls with their dark-theme variants.
+
+| Role                        | Use                                                                        |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `academic-panel-surface`    | Persistent near-black background of academic reading panels                |
+| `academic-panel-foreground` | Neutral white titles, names, main content, and selected-student chart bars |
+| `academic-panel-muted`      | Dates, authors, supporting labels, and reading position                    |
+| `academic-panel-accent`     | Restrained gold for chart data, lesson selection, and reading interactions |
+| `academic-panel-divider`    | Separators, contextual hover surfaces, and scrollbar thumbs                |
+
+Titles and names inside these panels stay neutral white, including student names that link to
+profiles. Gold is exceptional: the performance chart uses it for the class average, with white
+for the selected student; selected lessons use a subtle gold tint and a thin edge marker.
+Occurrences use gold for category text, the detail link, state icons, and focus indicators.
+Scope panel colors through the shared panel roles while preserving the shared controls' variants.
+
+Gold does not encode severity or operational status. Keep status explicit in text and retain the
+ordinary status roles, including success for recorded lessons, when status color is needed.
+
 ## Status meanings
 
 Use the matching `Badge` variants for status labels. These meanings apply in both themes.

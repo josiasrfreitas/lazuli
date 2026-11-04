@@ -1,25 +1,86 @@
-[data-type="onboarding"] {
+.lz-toast {
   opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity var(--lz-duration-base) var(--lz-ease-standard),
-    transform var(--lz-duration-slow) var(--lz-ease-standard);
+  transform: translateX(0);
+  animation: lz-toast-slide-in 600ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
-[data-type="onboarding"][data-starting-style] {
-  opacity: 0;
-  transform: translateY(0.75rem);
+
+.lz-toast[data-ending-style] {
+  animation: lz-toast-slide-out 320ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
-[data-type="onboarding"][data-ending-style] {
-  opacity: 0;
-  transform: translateY(0.375rem);
-  transition-duration: var(--lz-duration-fast);
+
+@keyframes lz-toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(100% + 2rem)) skewX(-6deg);
+  }
+  45% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(-14px) skewX(1deg);
+  }
+  86% {
+    transform: translateX(5px) skewX(0deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) skewX(0deg);
+  }
 }
+
+@keyframes lz-toast-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(calc(100% + 2rem));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lz-toast-icon {
+    animation: lz-toast-icon-enter 400ms 140ms var(--lz-ease-standard) backwards;
+  }
+}
+
+@keyframes lz-toast-icon-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  [data-type="onboarding"],
-  [data-type="onboarding"][data-starting-style],
-  [data-type="onboarding"][data-ending-style] {
+  .lz-toast {
     transform: none;
-    transition-property: opacity;
-    transition-duration: var(--lz-duration-fast);
+    animation: lz-toast-fade-in var(--lz-duration-fast) ease-out backwards;
+  }
+
+  .lz-toast[data-ending-style] {
+    animation: lz-toast-fade-out var(--lz-duration-fast) ease-in forwards;
+  }
+}
+
+@keyframes lz-toast-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lz-toast-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }

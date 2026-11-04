@@ -206,7 +206,7 @@ void it("closes manual attendance with page-free regular content and preserves t
     0,
   );
 });
-void it("corrects PPT presence and actual content together while retaining the attributed original and rejecting stale or legacy writes", async () => {
+void it("updates the current PPT record without revision history and rejects stale or legacy writes", async () => {
   const fixtureData = await fixture(false);
   const input = {
     sessionId: fixtureData.session.id,
@@ -253,18 +253,18 @@ void it("corrects PPT presence and actual content together while retaining the a
   const current = await caller().classRecords.detail({ sessionId: fixtureData.session.id });
   assert.equal(current.snapshot.entries[0]?.status, "ABSENT");
   assert.equal(current.snapshot.entries[0]?.content, null);
-  const history = await caller().classRecords.history({
-    sessionId: fixtureData.session.id,
-    direction: "forward",
-  });
-  assert.deepEqual(
-    history.items.map((row) => row.version),
-    [2, 1],
+  assert.equal(current.version, 2);
+  assert.equal(
+    await db.classSessionRecordRevision.count({
+      where: { record: { classSessionId: fixtureData.session.id } },
+    }),
+    0,
   );
-  assert.equal(history.items[1]?.snapshot.entries[0]?.status, "PRESENT");
-  assert.equal(history.items[1]?.snapshot.entries[0]?.content?.account, content.account);
-  assert.equal(history.items[0]?.reason, correction.reason);
-  assert.equal(history.items[0]?.authorId, admin.id);
+  const correctionEvent = await db.activityEvent.findFirstOrThrow({
+    where: { subjectId: fixtureData.group.id, action: "classRecords.correct" },
+  });
+  assert.equal(correctionEvent.actorId, admin.id);
+  assert.ok(correctionEvent.description?.includes(correction.reason));
   assert.equal(
     await db.activityEvent.count({
       where: {
@@ -395,11 +395,13 @@ void it("authorizes the dated substitute, freezes responsibility and keeps teach
     }),
     { code: "FORBIDDEN" },
   );
-  const history = await caller().classRecords.history({ sessionId: fixtureData.session.id });
-  assert.equal(history.items[0]?.author, "Substituta");
+  const event = await db.activityEvent.findFirstOrThrow({
+    where: { subjectId: fixtureData.group.id, action: "classRecords.confirm" },
+  });
+  assert.equal(event.actorName, "Substituta");
 });
 
-void it("detects an intervening attendance-only write and preserves its original statuses when completing with a justified correction", async () => {
+void it("detects an intervening attendance-only write and preserves attribution without creating record revisions", async () => {
   const fixtureData = await fixture();
   await caller("2076-02-15T13:10:00Z", teacher).attendance.confirmSession({
     sessionId: fixtureData.session.id,
@@ -439,28 +441,27 @@ void it("detects an intervening attendance-only write and preserves its original
     attendanceStamp: refreshed.attendanceStamp,
     reason: "Presença conferida pessoalmente antes da baixa.",
   });
-  const history = await caller().classRecords.history({ sessionId: fixtureData.session.id });
-  assert.deepEqual(
-    history.items.map((row) => row.version),
-    [2, 1],
-  );
-  const original = history.items[1]!;
-  const corrected = history.items[0]!;
-  assert.equal(original.snapshot.entries[0]!.status, "ABSENT");
-  assert.equal(original.authorId, teacher.id);
-  assert.equal(original.recordedAt.toISOString(), "2076-02-15T13:10:00.000Z");
-  assert.equal(corrected.authorId, admin.id);
-  assert.equal(corrected.recordedAt.toISOString(), "2076-02-15T14:00:00.000Z");
-  const originalAttendance = original.snapshot.attendanceOrigin!.entries.find(
+  const corrected = await caller().classRecords.detail({ sessionId: fixtureData.session.id });
+  assert.equal(corrected.version, 1);
+  assert.equal(corrected.recordedAt?.toISOString(), "2076-02-15T14:00:00.000Z");
+  const origin = corrected.snapshot.attendanceOrigin!;
+  assert.equal(origin.confirmedBy!.id, teacher.id);
+  assert.equal(origin.confirmedAt, "2076-02-15T13:10:00.000Z");
+  const originalAttendance = origin.entries.find(
     (row) => row.enrollmentId === fixtureData.rows[0]!.enrollmentId,
   )!;
   assert.equal(originalAttendance.recordedBy!.id, teacher.id);
   assert.equal(originalAttendance.recordedAt, attendanceBefore.recordedAt.toISOString());
   assert.equal(originalAttendance.modifiedBy!.id, admin.id);
   assert.equal(originalAttendance.modifiedAt, "2076-02-15T13:20:00.000Z");
-  assert.equal(original.snapshot.sharedContent, null);
   assert.equal(corrected.snapshot.entries[0]?.status, "PRESENT");
   assert.equal(corrected.snapshot.sharedContent?.account, content.account);
+  assert.equal(
+    await db.classSessionRecordRevision.count({
+      where: { record: { classSessionId: fixtureData.session.id } },
+    }),
+    0,
+  );
   const session = await db.classSession.findUniqueOrThrow({
     where: { id: fixtureData.session.id },
   });
@@ -552,9 +553,11 @@ void it("lets the responsible teacher close an overdue first record without gran
   const pendingAfterRecord = await overdue.classRecords.pending({ page: 1 });
   assert.equal(pendingAfterRecord.total, 0);
   assert.match(saved.restriction ?? "", /administração pode corrigir/);
-  const history = await overdue.classRecords.history({ sessionId: fixtureData.session.id });
-  assert.equal(history.items[0]?.authorId, teacher.id);
-  assert.equal(history.items[0]?.recordedAt.toISOString(), "2076-03-17T14:00:00.000Z");
+  assert.equal(saved.recordedAt?.toISOString(), "2076-03-17T14:00:00.000Z");
+  const event = await db.activityEvent.findFirstOrThrow({
+    where: { subjectId: fixtureData.group.id, action: "classRecords.confirm" },
+  });
+  assert.equal(event.actorId, teacher.id);
   await assert.rejects(
     overdue.classRecords.save({
       sessionId: fixtureData.session.id,
@@ -662,9 +665,11 @@ void it("allows overdue narrative completion but reserves changes to confirmed a
   assert.equal(origin.confirmedBy!.id, admin.id);
   assert.equal(origin.confirmedAt, "2076-02-15T13:10:00.000Z");
   assert.equal(origin.priorState, false);
-  const history = await overdue.classRecords.history({ sessionId: fixtureData.session.id });
-  assert.equal(history.items[0]!.authorId, teacher.id);
-  assert.equal(history.items[0]!.recordedAt.toISOString(), "2076-02-16T14:00:00.000Z");
+  assert.equal(completed.recordedAt?.toISOString(), "2076-02-16T14:00:00.000Z");
+  const event = await db.activityEvent.findFirstOrThrow({
+    where: { subjectId: fixtureData.group.id, action: "classRecords.confirm" },
+  });
+  assert.equal(event.actorId, teacher.id);
   assert.deepEqual(
     completed.snapshot.entries.map((row) => row.status),
     ["PRESENT", "PRESENT"],

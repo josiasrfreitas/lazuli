@@ -15,3 +15,12 @@ export async function readStudentHealth(input: {
   const { readStudentHealth: readHealth } = await import("@lazuli/db");
   return readHealth(input);
 }
+
+export async function readStudentHealthBatch(input: {
+  database: Context["db"];
+  ids: string[];
+  now: Date;
+}): Promise<Awaited<ReturnType<(typeof import("@lazuli/db"))["readStudentHealthBatch"]>>> {
+  const { readStudentHealthBatch: readHealth } = await import("@lazuli/db");
+  return readHealth(input);
+}

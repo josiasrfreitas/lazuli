@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactElement } from "react";
-import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { Button, InlineSkeleton } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
@@ -9,19 +8,16 @@ import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import styles from "./class-page.module.css";
 
-type Props = { classId: string; className: string; personalized: boolean };
+type Props = { classId: string; personalized: boolean };
 type LatestProgress = RouterOutputs["classRecords"]["progress"]["latest"];
 
 export function ClassStageProgress(props: Props): ReactElement {
   const query = trpc.classRecords.progress.useQuery({ classId: props.classId });
   return (
-    <section
-      className={`${styles.occupancy} ${styles.stageProgress}`}
-      aria-label="Progresso do estágio"
-    >
+    <section className={styles.occupancy} aria-label="Último conteúdo">
       <h2 className="flex items-center gap-2 text-caption text-muted-foreground">
         <BookOpen aria-hidden="true" className="size-4 shrink-0" />
-        Progresso do estágio
+        Último conteúdo
       </h2>
       <StageProgressContent
         pending={query.isPending}
@@ -30,14 +26,6 @@ export function ClassStageProgress(props: Props): ReactElement {
         personalized={props.personalized}
         onRetry={() => void query.refetch()}
       />
-      <Button
-        variant="link"
-        size="inline"
-        nativeButton={false}
-        render={<Link href={`/turmas/${props.classId}?secao=aulas#aulas-da-turma`} />}
-      >
-        Ver aulas da turma
-      </Button>
     </section>
   );
 }
@@ -59,14 +47,14 @@ function StageProgressContent({
     return (
       <div role="status">
         <InlineSkeleton className="h-8 w-24" />
-        <span className="sr-only">Carregando progresso</span>
+        <span className="sr-only">Carregando último conteúdo</span>
       </div>
     );
   }
   if (error) {
     return (
       <>
-        <p className="text-caption text-muted-foreground">Progresso indisponível</p>
+        <p className="text-caption text-muted-foreground">Conteúdo indisponível</p>
         <Button variant="link" size="inline" onClick={onRetry}>
           Tentar novamente
         </Button>

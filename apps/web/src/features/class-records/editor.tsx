@@ -127,7 +127,7 @@ function EditorActions({
     <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
       <p className="text-caption text-muted-foreground">
         {opened.version
-          ? "A versão anterior ficará preservada no histórico."
+          ? "Confira as alterações antes de salvar a correção."
           : "Confira a chamada e o conteúdo antes de confirmar a baixa."}
       </p>
       {!externalSubmit && (

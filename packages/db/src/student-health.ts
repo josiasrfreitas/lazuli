@@ -7,7 +7,7 @@ import type { Prisma } from "./generated/prisma/client.js";
 import { computeEnrollmentPercentInWindow } from "./attendance-percent.js";
 
 const DATE_ONLY_LENGTH = 10;
-const healthEnrollmentSelect = (today: Date) =>
+export const healthEnrollmentSelect = (today: Date) =>
   ({
     id: true,
     classId: true,
@@ -29,12 +29,12 @@ const healthEnrollmentSelect = (today: Date) =>
       },
     },
   }) as const;
-type HealthEnrollment = Prisma.EnrollmentGetPayload<{
+export type HealthEnrollment = Prisma.EnrollmentGetPayload<{
   select: ReturnType<typeof healthEnrollmentSelect>;
 }>;
 type HealthWindow = { classId: string; exitDate: Date | null; startDate: Date; endDate: Date };
 type HealthOccurrence = { interventions: Array<{ interventionId: string }> };
-type HealthResult = ReturnType<typeof calculateStudentHealth> & {
+export type HealthResult = ReturnType<typeof calculateStudentHealth> & {
   from: string | null;
   through: string;
   heldSessions: number;
@@ -60,6 +60,21 @@ export async function readStudentHealth({
     healthAttendance(database, { enrollments, today }),
     healthOccurrences(database, { id, today, windows }),
   ]);
+  return summarizeHealth({ enrollments, attendance, occurrences, now });
+}
+
+export function summarizeHealth({
+  enrollments,
+  attendance,
+  occurrences,
+  now,
+}: {
+  enrollments: HealthEnrollment[];
+  attendance: Array<Awaited<ReturnType<typeof computeEnrollmentPercentInWindow>>>;
+  occurrences: HealthOccurrence[];
+  now: Date;
+}): HealthResult {
+  const windows = healthWindows(enrollments);
   const minutes = attendance.reduce((sum, row) => sum + row.heldMinutes, 0);
   const attended = attendance.reduce(
     (sum, row) => sum + row.presentMinutes + row.compensatedMinutes,
@@ -126,7 +141,7 @@ async function activeHealthEnrollments(
   });
 }
 
-function healthWindows(enrollments: HealthEnrollment[]): HealthWindow[] {
+export function healthWindows(enrollments: HealthEnrollment[]): HealthWindow[] {
   return enrollments.flatMap((enrollment) => {
     const window = intersectEnrollmentSemesterWindows({
       enrollment,

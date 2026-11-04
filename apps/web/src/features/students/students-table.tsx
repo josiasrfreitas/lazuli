@@ -21,6 +21,7 @@ import {
   TableSkeleton,
 } from "@lazuli/ui";
 
+import { StudentScore, StudentScores } from "./student-score";
 import { EM_DASH, firstTwoNames } from "~/lib/format";
 import type { TablePaginationAdapterProps } from "~/lib/pagination";
 import {
@@ -38,6 +39,7 @@ const COLUMNS = [
   { label: "Aluno", numeric: false },
   { label: "Turma", numeric: false },
   { label: "Professor", numeric: false },
+  { label: "Score", numeric: true },
   { label: "Frequência", numeric: true },
   { label: "Financeiro", numeric: true },
 ] as const satisfies readonly { label: string; numeric: boolean }[];
@@ -154,6 +156,9 @@ export function StudentsTableRow({
       </TableCell>
       <EnrollmentCell enrollment={row.enrollment} />
       <TableCell>{row.enrollment?.teacherName ?? EM_DASH}</TableCell>
+      <TableCell numeric>
+        <StudentScore studentId={row.id} />
+      </TableCell>
       <FactCell vm={attendanceCellVm(row.attendance)} />
       <FactCell vm={financeCellVm(row.finance)} />
       <StudentActions row={row} onContinue={onContinue} />
@@ -234,10 +239,17 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
       return <TableHead className="w-[25%]">{column.label}</TableHead>;
     }
     case "Turma": {
-      return <TableHead className="w-[30%]">{column.label}</TableHead>;
+      return <TableHead className="w-1/5">{column.label}</TableHead>;
     }
     case "Professor": {
       return <TableHead className="w-[17%]">{column.label}</TableHead>;
+    }
+    case "Score": {
+      return (
+        <TableHead className="w-16" numeric>
+          {column.label}
+        </TableHead>
+      );
     }
     case "Frequência": {
       return (
@@ -270,32 +282,39 @@ export function StudentsTable({
   pagination: StudentsTablePagination;
 }): ReactElement {
   return (
-    <TableContainer footer={<StudentsPagination pagination={pagination} />} viewportBound>
-      <Table
-        aria-busy={state.kind === "loading"}
-        aria-label="Lista de alunos"
-        className="min-w-2xl table-fixed"
-      >
-        <TableHeader sticky>
-          <TableRow className="hover:bg-transparent">
-            {COLUMNS.map((column) => (
-              <StudentsTableHead column={column} key={column.label} />
-            ))}
-            <TableHead className="w-16 text-center">
-              <span className="sr-only">Ações</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {state.kind === "data" ? (
-            state.rows.map((row) => (
-              <StudentsTableRow key={row.id} onOpen={onOpenRow} onContinue={onContinue} row={row} />
-            ))
-          ) : (
-            <StatesRow onRetry={onRetry} state={state} />
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <StudentScores ids={state.kind === "data" ? state.rows.map((row) => row.id) : []}>
+      <TableContainer footer={<StudentsPagination pagination={pagination} />} viewportBound>
+        <Table
+          aria-busy={state.kind === "loading"}
+          aria-label="Lista de alunos"
+          className="min-w-2xl table-fixed"
+        >
+          <TableHeader sticky>
+            <TableRow className="hover:bg-transparent">
+              {COLUMNS.map((column) => (
+                <StudentsTableHead column={column} key={column.label} />
+              ))}
+              <TableHead className="w-16 text-center">
+                <span className="sr-only">Ações</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {state.kind === "data" ? (
+              state.rows.map((row) => (
+                <StudentsTableRow
+                  key={row.id}
+                  onOpen={onOpenRow}
+                  onContinue={onContinue}
+                  row={row}
+                />
+              ))
+            ) : (
+              <StatesRow onRetry={onRetry} state={state} />
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </StudentScores>
   );
 }
