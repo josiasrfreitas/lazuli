@@ -22,6 +22,7 @@ import {
 } from "./sessions.js";
 import {
   listOccurrences,
+  recentClassOccurrences,
   listInterventions,
   occurrenceDetail,
   interventionDetail,
@@ -47,6 +48,9 @@ const context = (ctx: Context & { staffUser: StaffUser }): FollowUpContext => ({
   now: ctx.now ?? new Date(),
 });
 export const occurrencesRouter = router({
+  recentForClass: staffProcedure
+    .input(z.object({ classId: z.string().uuid() }).strict())
+    .query(({ ctx, input }) => recentClassOccurrences(context(ctx), input.classId)),
   changeStatus: adminProcedure
     .input(occurrenceStatusChangeSchema)
     .mutation(({ ctx, input }) =>

@@ -334,8 +334,7 @@ async function correctPresence(
     snapshot,
     author: input.admin,
     at,
-    reason:
-      "Após conferência com o professor, corrigir uma presença marcada indevidamente; preservar o relato anterior no histórico.",
+    reason: "Após conferência com o professor, corrigir uma presença marcada indevidamente.",
   };
 }
 
@@ -358,18 +357,6 @@ async function persistRecord(
     },
   });
   for (const [index, version] of versions.entries()) {
-    await database.classSessionRecordRevision.create({
-      data: {
-        id: stableUuid(["class-session-record-revision", id, String(index + 1)]),
-        recordId: id,
-        version: index + 1,
-        snapshot: version.snapshot,
-        reason: version.reason,
-        recordedById: version.author.id,
-        createdAt: version.at,
-        updatedAt: version.at,
-      },
-    });
     await recordActivity(database, {
       context: { staffUser: version.author, now: version.at },
       action: index === 0 ? "classRecords.confirm" : "classRecords.correct",

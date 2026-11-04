@@ -1,17 +1,24 @@
 "use client";
 import { RefreshCw } from "lucide-react";
-import { useState, type ReactElement } from "react";
-import { Alert, Button } from "@lazuli/ui";
+import { useState, type ReactElement, type ReactNode } from "react";
+import { Alert, Button, Field, Label, SearchSelect } from "@lazuli/ui";
+import { normalizeSearch } from "@lazuli/domain";
 import { ClassPerformanceLoading } from "./assessment-loading";
 import { trpc } from "~/lib/trpc";
 import { SelectControl } from "~/features/classes/form-controls";
 import { ClassPerformanceChart } from "./class-chart";
 import { AssessmentSummary } from "./assessment-summary";
 import { STATUS_LABELS, type Assessment } from "./shared";
+import styles from "./class-performance.module.css";
 
 export function ClassPerformance({ classId }: { classId: string }): ReactElement {
   const query = trpc.assessments.class.useQuery({ classId });
-  if (query.isPending) return <ClassPerformanceLoading />;
+  if (query.isPending)
+    return (
+      <div className={`dark ${styles.loading}`}>
+        <ClassPerformanceLoading />
+      </div>
+    );
   if (query.isError)
     return (
       <Alert variant="destructive">
@@ -31,10 +38,7 @@ function PerformanceWorkspace({ rows }: { rows: Assessment[] }): ReactElement {
   const visible = stageId === "all" ? rows : rows.filter((row) => row.stage.id === stageId);
   const selected = visible.find((row) => row.student.id === studentId);
   return (
-    <section
-      className="grid min-w-0 shrink-0 gap-3 rounded-lg border border-border bg-card p-3 sm:p-4"
-      aria-label="Desempenho da turma"
-    >
+    <section className={`dark ${styles.workspace}`} aria-label="Desempenho da turma">
       <PerformanceHeader
         stages={stages}
         stageId={stageId}
@@ -42,7 +46,9 @@ function PerformanceWorkspace({ rows }: { rows: Assessment[] }): ReactElement {
           setStageId(value);
           setStudentId("none");
         }}
-      />
+      >
+        <StudentSearch key={stageId} rows={visible} selected={selected} onChange={setStudentId} />
+      </PerformanceHeader>
       {rows.length === 0 ? (
         <p className="text-caption text-muted-foreground">
           O desempenho aparece quando houver alunos com percurso vigente nesta turma.
@@ -50,28 +56,64 @@ function PerformanceWorkspace({ rows }: { rows: Assessment[] }): ReactElement {
       ) : (
         <>
           <PerformanceCounts rows={visible} />
-          <ClassPerformanceChart rows={visible} selected={selected} />
           <MixedStagesNotice show={stages.length > 1 && stageId === "all"} />
-          <div className="w-full sm:max-w-sm">
-            <SelectControl
-              name="performance-student"
-              label="Comparar e acompanhar um aluno"
-              value={selected?.student.id ?? "none"}
-              onChange={setStudentId}
-              choices={[
-                { value: "none", label: "Visão da turma" },
-                ...visible.map((row) => ({ value: row.student.id, label: row.student.fullName })),
-              ]}
-            />
+          <div className={styles.content} data-comparing={!!selected}>
+            <ClassPerformanceChart rows={visible} selected={selected} />
+            {selected && <StudentAssessment selected={selected} />}
           </div>
-          {selected && (
-            <div className="border-t border-border pt-3">
-              <AssessmentSummary key={selected.progressId} data={selected} chart={false} />
-            </div>
-          )}
         </>
       )}
     </section>
+  );
+}
+function StudentSearch({
+  rows,
+  selected,
+  onChange,
+}: {
+  rows: Assessment[];
+  selected: Assessment | undefined;
+  onChange: (value: string) => void;
+}): ReactElement {
+  const [search, setSearch] = useState("");
+  const students = [...new Map(rows.map((row) => [row.student.id, row.student])).values()];
+  return (
+    <Field name="performance-student" className="w-80 max-w-full">
+      <Label className="sr-only">Comparar com um aluno</Label>
+      <SearchSelect
+        name="performance-student"
+        placeholder="Buscar aluno para comparar"
+        showSearchIcon
+        openOnFocus
+        query={search}
+        onQueryChange={setSearch}
+        value={selected ? { id: selected.student.id, label: selected.student.fullName } : null}
+        options={students
+          .filter((student) => normalizeSearch(student.fullName).includes(normalizeSearch(search)))
+          .map((student) => ({ id: student.id, label: student.fullName }))}
+        onSelect={(option) => {
+          onChange(option.id);
+          setSearch("");
+        }}
+        onClear={() => {
+          onChange("none");
+          setSearch("");
+        }}
+        emptyMessage="Nenhum aluno encontrado nesta turma."
+      />
+    </Field>
+  );
+}
+function StudentAssessment({ selected }: { selected: Assessment }): ReactElement {
+  return (
+    <div
+      className={styles.studentDetails}
+      tabIndex={0}
+      role="region"
+      aria-label="Avaliações do aluno selecionado"
+    >
+      <AssessmentSummary key={selected.progressId} data={selected} chart={false} />
+    </div>
   );
 }
 function MixedStagesNotice({ show }: { show: boolean }): ReactElement | null {
@@ -87,34 +129,40 @@ function PerformanceHeader({
   stages,
   stageId,
   onStageChange,
+  children,
 }: {
   stages: [string, string][];
   stageId: string;
   onStageChange: (value: string) => void;
+  children: ReactNode;
 }): ReactElement {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 className="text-sm font-semibold">Desempenho da turma</h2>
-        <p className="mt-1 text-caption text-muted-foreground">
-          Aprendizagem por competência · Alunos com vínculo vigente
-        </p>
-      </div>
-      {stages.length > 1 && (
-        <div className="w-full sm:w-56">
-          <SelectControl
-            name="performance-stage"
-            label="Estágio"
-            value={stageId}
-            onChange={onStageChange}
-            choices={[
-              { value: "all", label: "Todos os estágios" },
-              ...stages.map(([value, label]) => ({ value, label })),
-            ]}
-          />
+    <header className={styles.header}>
+      <div className={styles.headingRow}>
+        <h2 className={styles.heading}>Desempenho da turma</h2>
+        <div className={styles.headerControls}>
+          {stages.length > 1 && (
+            <div className="w-full sm:w-56">
+              <SelectControl
+                name="performance-stage"
+                label="Estágio"
+                hideLabel
+                value={stageId}
+                onChange={onStageChange}
+                choices={[
+                  { value: "all", label: "Todos os estágios" },
+                  ...stages.map(([value, label]) => ({ value, label })),
+                ]}
+              />
+            </div>
+          )}
+          {children}
         </div>
-      )}
-    </div>
+      </div>
+      <p className="text-caption text-muted-foreground">
+        Aprendizagem por competência · Alunos com vínculo vigente
+      </p>
+    </header>
   );
 }
 function PerformanceCounts({ rows }: { rows: Assessment[] }): ReactElement {

@@ -45,14 +45,5 @@ export type ClassRecordDetail = {
   restriction: string | null;
   snapshot: ClassRecordSnapshot;
 };
-export type ClassRecordRevision = {
-  id: string;
-  version: number;
-  reason: string;
-  author: string;
-  authorId: string | null;
-  recordedAt: Date;
-  snapshot: ClassRecordSnapshot;
-};
 export type RevisionPage<T> = { items: T[]; nextCursor: number | undefined };
 export type VersionedResult = { id: string; version: number };

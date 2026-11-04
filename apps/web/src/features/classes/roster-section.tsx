@@ -1,6 +1,8 @@
 "use client";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
+import { Button } from "@lazuli/ui";
+import { UserRoundPlus } from "lucide-react";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { CloseMembershipDialog } from "./close-dialog";
 import { MembershipDialog } from "./membership-dialog";
@@ -11,14 +13,17 @@ import styles from "./class-page.module.css";
 export function RosterSection({
   classId,
   showStage,
+  enroll,
 }: {
   classId: string;
   showStage: boolean;
+  enroll: () => void;
 }): ReactElement {
   const state = useRoster(classId);
   const [returning, setReturning] = useState<RosterRow | null>(null);
   return (
-    <section aria-label="Alunos da turma" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+    <section aria-label="Alunos da turma" className={styles.roster}>
+      <RosterHeading count={state.query.data?.total} enroll={enroll} />
       <div className={styles.rosterContent} data-ready={Boolean(state.query.data) || undefined}>
         <RosterList
           key={state.page}
@@ -28,6 +33,7 @@ export function RosterSection({
           page={state.page}
           setPage={state.setPage}
           showStage={showStage}
+          condensed
           resume={setReturning}
           close={(row) => state.setClosing({ id: row.id, studentName: row.student.fullName })}
         />
@@ -46,6 +52,25 @@ export function RosterSection({
         }}
       />
     </section>
+  );
+}
+
+function RosterHeading({
+  count,
+  enroll,
+}: {
+  count: number | undefined;
+  enroll: () => void;
+}): ReactElement {
+  return (
+    <header className={styles.rosterHeading}>
+      <h2>
+        Alunos <span>{count ?? ""}</span>
+      </h2>
+      <Button size="sm" onClick={enroll}>
+        <UserRoundPlus aria-hidden="true" /> Matricular aluno
+      </Button>
+    </header>
   );
 }
 

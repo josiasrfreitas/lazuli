@@ -225,3 +225,16 @@ export async function studentOccurrences(
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
 }
+
+/** Recent reports from lessons of this class, with the existing visibility rules. */
+export async function recentClassOccurrences(
+  context: FollowUpContext,
+  classId: string,
+): Promise<OccurrenceRow[]> {
+  return context.database.pedagogicalOccurrence.findMany({
+    where: { ...occurrenceScope(context), classSession: { classId } },
+    include: occurrenceInclude,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 6,
+  });
+}

@@ -17,6 +17,8 @@ import {
   StudentsControls,
 } from "../../src/features/students/students-page.js";
 
+import { renderWithQueries } from "../support/query-render.js";
+
 const PAGE_SIZE = 10;
 const LARGE_PAGE_SIZE = 25;
 const FACT_COLUMN_COUNT = 2;
@@ -74,7 +76,7 @@ const missing: { data?: never } = {};
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 function studentRowMarkup(row: StudentListRow): string {
-  return renderToStaticMarkup(createElement(StudentsTableRow, { onOpen: () => {}, row }));
+  return renderWithQueries(createElement(StudentsTableRow, { onOpen: () => {}, row }));
 }
 
 void test("first load preserves pagination furniture and only skeletonizes fetched values", () => {
@@ -167,7 +169,7 @@ void test("selected student filter fields expose an active-filter menu and clear
 });
 
 void test("fixed student columns and fact tones survive a static class declaration", () => {
-  const tableMarkup = renderToStaticMarkup(
+  const tableMarkup = renderWithQueries(
     createElement(StudentsTable, {
       state: { kind: "data", rows: [TABLE_ROW] },
       onRetry: () => {},
@@ -188,7 +190,8 @@ void test("fixed student columns and fact tones survive a static class declarati
   const emptyFactsMarkup = studentRowMarkup(EMPTY_FACTS_ROW);
 
   assert.match(tableMarkup, /w-\[25%\]/u);
-  assert.match(tableMarkup, /w-\[30%\]/u);
+  assert.match(tableMarkup, /w-1\/5/u);
+  assert.match(tableMarkup, />Score</u);
   assert.match(tableMarkup, /w-\[17%\]/u);
   assert.equal((tableMarkup.match(/w-\[10%\]/gu) ?? []).length, FACT_COLUMN_COUNT);
   assert.match(

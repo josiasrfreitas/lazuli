@@ -21,7 +21,6 @@ import { initialSnapshot } from "./planned.js";
 import type { VersionedResult } from "./types.js";
 type RecordState = {
   session: RecordSession;
-  before: ClassRecordSnapshot;
   snapshot: ClassRecordSnapshot;
   changedAttendance: boolean;
 };
@@ -84,7 +83,7 @@ async function prepareRecord(context: RecordContext, input: ClassRecordSave): Pr
         snapshot.entries.find((next) => next.enrollmentId === row.enrollmentId)?.status !==
         row.status,
     );
-  const state = { session, before, snapshot, changedAttendance };
+  const state = { session, snapshot, changedAttendance };
   await prepareAttendance(context, { state, priorRecord: Boolean(previous) });
   if (changedAttendance && !input.reason)
     throw badRequest("Informe o motivo para corrigir a chamada já confirmada.");
@@ -105,7 +104,6 @@ async function prepareAttendance(
     });
   if (!priorRecord && state.session.attendanceConfirmedAt) {
     const origin = await preserveAttendance(context, state.session);
-    state.before.attendanceOrigin = origin;
     state.snapshot.attendanceOrigin = { ...origin, priorState: false };
   }
 }
@@ -153,7 +151,7 @@ async function persistRecord(
 ): Promise<VersionedResult> {
   const { input, state } = values;
   const { session, snapshot } = state;
-  const version = input.version + (state.changedAttendance ? 2 : 1);
+  const version = input.version + 1;
   const record = session.classRecord
     ? await context.database.classSessionRecord.update({
         where: { id: session.classRecord.id },
@@ -169,44 +167,9 @@ async function persistRecord(
           updatedAt: context.now,
         },
       });
-  if (state.changedAttendance)
-    await createRevision(context, {
-      recordId: record.id,
-      version: 1,
-      snapshot: state.before,
-      recordedById: state.before.attendanceOrigin?.confirmedBy?.id ?? context.staffUser.id,
-      createdAt: session.attendanceConfirmedAt ?? context.now,
-      reason: "Chamada anterior à baixa, preservada antes da correção de presença.",
-    });
-  await createRevision(context, {
-    recordId: record.id,
-    version,
-    snapshot,
-    reason: revisionReason(input, session),
-  });
   return { id: record.id, version };
 }
-async function createRevision(
-  context: RecordContext,
-  input: {
-    recordId: string;
-    version: number;
-    snapshot: ClassRecordSnapshot;
-    reason: string;
-    recordedById?: string;
-    createdAt?: Date;
-  },
-): Promise<void> {
-  await context.database.classSessionRecordRevision.create({
-    data: {
-      ...input,
-      recordedById: input.recordedById ?? context.staffUser.id,
-      createdAt: input.createdAt ?? context.now,
-      updatedAt: context.now,
-    },
-  });
-}
-function revisionReason(input: ClassRecordSave, session: RecordSession): string {
+function recordReason(input: ClassRecordSave, session: RecordSession): string {
   return (
     input.reason ??
     (session.attendanceConfirmedAt
@@ -216,7 +179,7 @@ function revisionReason(input: ClassRecordSave, session: RecordSession): string 
 }
 function recordDescription(input: ClassRecordSave, state: RecordState): string {
   const present = state.snapshot.entries.filter((row) => row.status === "PRESENT").length;
-  return `${dateOnly(state.session.date).split("-").toReversed().join("/")} · ${present} presentes, ${state.snapshot.entries.length - present} faltas. ${revisionReason(input, state.session)}`;
+  return `${dateOnly(state.session.date).split("-").toReversed().join("/")} · ${present} presentes, ${state.snapshot.entries.length - present} faltas. ${recordReason(input, state.session)}`;
 }
 function mergeRecord(
   base: ClassRecordSnapshot,

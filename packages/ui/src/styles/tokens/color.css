@@ -30,6 +30,14 @@
   --lz-ref-blue-gray-800: #2c3c51;
   --lz-ref-blue-gray-850: #1e2c3e;
   --lz-ref-blue-gray-900: #182230;
+
+  /* Academic reading panels retain their dark surface in either theme.
+     Gold highlights data and interactions; headings and names remain neutral. */
+  --academic-panel-surface: var(--lz-ref-neutral-950);
+  --academic-panel-foreground: var(--lz-ref-white);
+  --academic-panel-muted: var(--lz-ref-neutral-300);
+  --academic-panel-accent: var(--lz-ref-gold);
+  --academic-panel-divider: var(--lz-ref-neutral-800);
 }
 
 :root,

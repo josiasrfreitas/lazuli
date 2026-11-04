@@ -9,21 +9,38 @@ import {
   ChevronRight,
   CircleDashed,
   Clock3,
+  NotebookPen,
+  Paperclip,
   type LucideIcon,
 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Badge, Button, PencilLoader } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { KIND_LABELS } from "~/features/stage-planning/shared";
 import { LessonDetails } from "~/features/class-records/lesson-details";
 import { RecordState } from "~/features/class-records/shared";
+import { lessonParticipants } from "~/features/class-records/record-participants";
 import styles from "./class-lessons.module.css";
+import panelStyles from "./class-panel.module.css";
+import { ClassLessonsLoading, LessonPresenceLoading } from "./class-lessons-loading";
 
 type Lesson = RouterOutputs["classRecords"]["progress"]["rows"][number];
 type LessonDetail = RouterOutputs["classRecords"]["detail"];
+type LessonQuery = {
+  data: LessonDetail | undefined;
+  isPending: boolean;
+  error: { message: string } | null;
+  refetch: () => void;
+};
 type PresenceState = { label: string; icon: LucideIcon; recorded: boolean };
+const lessonDateLabel = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "UTC",
+});
 
 function presenceState(lesson: Lesson): PresenceState {
   if (lesson.state === "CANCELLED") return { label: "Cancelada", icon: Ban, recorded: false };
@@ -47,12 +64,7 @@ export function ClassLessons({ classId }: { classId: string }): ReactJSX.Element
     deepLinkScrolled.current = true;
     document.querySelector("#aulas-da-turma")?.scrollIntoView({ block: "start" });
   }, [query.isSuccess, selected, active?.id]);
-  if (query.isPending)
-    return (
-      <div className={styles.loading}>
-        <PencilLoader size="sm" label="Carregando aulas da turma" />
-      </div>
-    );
+  if (query.isPending) return <ClassLessonsLoading />;
   if (query.isError)
     return <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />;
   if (!active)
@@ -92,10 +104,17 @@ function ClassLessonsView({
   onSelect: (id: string) => void;
   onShowList: () => void;
 }): ReactJSX.Element {
+  const query = useLessonDetail(active.id);
   return (
     <div id="aulas-da-turma" className={styles.container}>
-      <div className={styles.desk} data-show-list={showList}>
-        <LessonRail rows={rows} activeId={active.id} detailId={detailId} onSelect={onSelect} />
+      <div className={`dark ${panelStyles.surface} ${styles.desk}`} data-show-list={showList}>
+        <LessonRail
+          rows={rows}
+          activeId={active.id}
+          detailId={detailId}
+          onSelect={onSelect}
+          activeData={query.data}
+        />
         <section
           id={detailId}
           className={styles.detail}
@@ -107,7 +126,11 @@ function ClassLessonsView({
               Todas as aulas
             </Button>
           </div>
-          <ClassLessonPresence key={active.id} lesson={active} />
+          <ClassLessonPresence
+            key={active.id}
+            query={query}
+            pendingEmpty={!active.content && !active.attendanceRecorded}
+          />
         </section>
       </div>
     </div>
@@ -115,11 +138,13 @@ function ClassLessonsView({
 }
 
 function LessonRail({
+  activeData,
   rows,
   activeId,
   detailId,
   onSelect,
 }: {
+  activeData: LessonDetail | undefined;
   rows: Lesson[];
   activeId: string;
   detailId: string;
@@ -139,6 +164,7 @@ function LessonRail({
             key={lesson.id}
             lesson={lesson}
             active={activeId === lesson.id}
+            data={activeId === lesson.id ? activeData : undefined}
             detailId={detailId}
             onSelect={onSelect}
           />
@@ -150,11 +176,13 @@ function LessonRail({
 
 function LessonRailItem({
   lesson,
+  data,
   active,
   detailId,
   onSelect,
 }: {
   lesson: Lesson;
+  data: LessonDetail | undefined;
   active: boolean;
   detailId: string;
   onSelect: (id: string) => void;
@@ -170,12 +198,13 @@ function LessonRailItem({
         onClick={() => onSelect(lesson.id)}
       >
         <span className={styles.lessonDate}>
-          <time dateTime={lesson.date}>{formatDateOnlyBR(lesson.date)}</time>
+          <time dateTime={lesson.date}>{lessonDateLabel.format(new Date(lesson.date))}</time>
           <ChevronRight aria-hidden="true" />
         </span>
         <span className={styles.time}>
           {lesson.startTime}–{lesson.endTime}
         </span>
+        {data && <span className={styles.time}>{sessionDescription(data.session)}</span>}
         <span className={styles.contentPreview}>{lessonPreview(lesson)}</span>
         <span className={styles.status} data-recorded={recorded}>
           <Icon aria-hidden="true" />
@@ -194,107 +223,117 @@ function lessonPreview(lesson: Lesson): string {
   return `${KIND_LABELS[content.kind]} · Pág. ${content.pageFrom}${pageTo}`;
 }
 
-function ClassLessonPresence({ lesson }: { lesson: Lesson }): ReactJSX.Element {
-  const query = trpc.classRecords.detail.useQuery(
-    { sessionId: lesson.id },
+function useLessonDetail(sessionId: string): LessonQuery {
+  return trpc.classRecords.detail.useQuery(
+    { sessionId },
     { retry: false, refetchInterval: 30_000 },
   );
-  const data = query.data;
-  return (
-    <>
-      <LessonPresenceHeading lesson={lesson} data={data} />
-      <div
-        className={styles.detailBody}
-        aria-busy={query.isPending}
-        tabIndex={0}
-        role="region"
-        aria-label="Alunos e presença"
-      >
-        {query.isPending ? (
-          <div className={styles.loading}>
-            <PencilLoader size="sm" label="Carregando presença" />
-          </div>
-        ) : (
-          <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
-        )}
-        {data && (
-          <>
-            {data.session.scheduleType === "REGULAR" && <LessonContentRecord data={data} />}
-            <LessonDetails data={data} />
-          </>
-        )}
-      </div>
-    </>
-  );
 }
 
-function LessonPresenceHeading({
-  lesson,
-  data,
+function ClassLessonPresence({
+  query,
+  pendingEmpty,
 }: {
-  lesson: Lesson;
-  data: LessonDetail | undefined;
+  query: ReturnType<typeof useLessonDetail>;
+  pendingEmpty: boolean;
 }): ReactJSX.Element {
-  const session = data?.session;
-  const { recorded, cancelled, label } = lessonPresenceStatus(data, lesson);
+  const data = query.data;
+  const unrecorded = data && isUnrecordedLesson(data);
   return (
-    <header className={styles.detailHeading}>
-      <div className={styles.detailTitle}>
-        <h2>Aula de {formatDateOnlyBR(lesson.date)}</h2>
-        <Badge variant={recorded && !cancelled ? "success" : "neutral"}>{label}</Badge>
-      </div>
-      <p>
-        {lesson.startTime}–{lesson.endTime}
-        {session && sessionDescription(session)}
-      </p>
-      {session?.usualTeacher && session.usualTeacher !== session.teacher && (
-        <p>Titular: {session.usualTeacher}</p>
+    <div
+      className={styles.detailBody}
+      data-empty={unrecorded || (query.isPending && pendingEmpty) || undefined}
+      aria-busy={query.isPending}
+      tabIndex={0}
+      role="region"
+      aria-label="Alunos e presença"
+    >
+      {query.isPending ? (
+        <LessonPresenceLoading empty={pendingEmpty} />
+      ) : (
+        <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
       )}
-    </header>
+      {data &&
+        (unrecorded ? (
+          <MissingLessonRecord />
+        ) : (
+          <LessonDetails
+            data={data}
+            compactHeading
+            content={data.session.scheduleType === "REGULAR" && <LessonContentRecord data={data} />}
+          />
+        ))}
+    </div>
   );
 }
 
-function lessonPresenceStatus(
-  data: LessonDetail | undefined,
-  lesson: Lesson,
-): {
-  recorded: boolean;
-  cancelled: boolean;
-  label: string;
-} {
-  const recorded = data ? data.version > 0 || data.attendanceOnly : lesson.attendanceRecorded;
-  const cancelled = data?.session.cancelled ?? lesson.state === "CANCELLED";
-  let label = "Presença não registrada";
-  if (cancelled) label = "Cancelada";
-  else if (recorded) label = "Presença registrada";
-  return { recorded, cancelled, label };
+function isUnrecordedLesson(data: LessonDetail): boolean {
+  return (
+    !data.session.cancelled &&
+    data.version === 0 &&
+    !data.attendanceOnly &&
+    !data.snapshot.sharedContent &&
+    !data.snapshot.note &&
+    !data.snapshot.entries.some((entry) => entry.content) &&
+    !lessonParticipants(data).some(
+      (person) => person.status === "present" || person.status === "absent",
+    )
+  );
+}
+
+function MissingLessonRecord(): ReactJSX.Element {
+  return (
+    <div className={styles.unrecorded} role="status">
+      <NotebookPen aria-hidden="true" />
+      <h2>Aula sem registro</h2>
+      <p>O conteúdo e a presença ainda não foram registrados.</p>
+    </div>
+  );
 }
 
 function sessionDescription(session: LessonDetail["session"]): string {
   const teacher = session.teacher ?? "Professor a definir";
   const format = session.format === "ONLINE" ? "Online" : "Presencial";
-  return ` · ${teacher} · ${format}`;
+  const usualTeacher =
+    session.usualTeacher && session.usualTeacher !== session.teacher
+      ? ` · Titular: ${session.usualTeacher}`
+      : "";
+  return `${teacher} · ${format}${usualTeacher}`;
 }
 
 function LessonContentRecord({ data }: { data: LessonDetail }): ReactJSX.Element {
   const content = data.snapshot.sharedContent;
+  if (!content) return <MissingLessonContent />;
   return (
     <section className={styles.contentRecord} aria-label="Conteúdo apresentado">
-      <h3>Conteúdo apresentado</h3>
-      {content ? (
-        <>
-          <p className={styles.contentMeta}>
-            {KIND_LABELS[content.kind]}
-            {content.pageFrom === null
-              ? ""
-              : ` · Pág. ${content.pageFrom}${content.pageTo && content.pageTo !== content.pageFrom ? `–${content.pageTo}` : ""}`}
-          </p>
-          <p>{content.account}</p>
-          {content.reference && <p className={styles.contentMeta}>{content.reference}</p>}
-        </>
-      ) : (
-        <p className={styles.contentMeta}>O professor ainda não registrou o conteúdo desta aula.</p>
+      <header className={styles.contentHeading}>
+        <h3>Conteúdo apresentado</h3>
+        <p className={styles.contentMeta}>
+          {KIND_LABELS[content.kind]}
+          {content.pageFrom === null
+            ? ""
+            : ` · Pág. ${content.pageFrom}${content.pageTo && content.pageTo !== content.pageFrom ? `–${content.pageTo}` : ""}`}
+        </p>
+      </header>
+      <p>{content.account}</p>
+      {content.reference && (
+        <p className={styles.contentReference}>
+          <Paperclip aria-hidden="true" />
+          {content.reference}
+        </p>
       )}
+    </section>
+  );
+}
+
+function MissingLessonContent(): ReactJSX.Element {
+  return (
+    <section className={styles.contentEmpty} aria-label="Conteúdo não registrado">
+      <NotebookPen aria-hidden="true" />
+      <div>
+        <h3>Conteúdo não registrado</h3>
+        <p>Por enquanto, o diário desta aula está em branco.</p>
+      </div>
     </section>
   );
 }

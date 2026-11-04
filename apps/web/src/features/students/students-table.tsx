@@ -21,6 +21,7 @@ import {
   TableSkeleton,
 } from "@lazuli/ui";
 
+import { StudentScore } from "./student-score";
 import { EM_DASH, firstTwoNames } from "~/lib/format";
 import type { TablePaginationAdapterProps } from "~/lib/pagination";
 import {
@@ -38,6 +39,7 @@ const COLUMNS = [
   { label: "Aluno", numeric: false },
   { label: "Turma", numeric: false },
   { label: "Professor", numeric: false },
+  { label: "Score", numeric: true },
   { label: "Frequência", numeric: true },
   { label: "Financeiro", numeric: true },
 ] as const satisfies readonly { label: string; numeric: boolean }[];
@@ -154,6 +156,9 @@ export function StudentsTableRow({
       </TableCell>
       <EnrollmentCell enrollment={row.enrollment} />
       <TableCell>{row.enrollment?.teacherName ?? EM_DASH}</TableCell>
+      <TableCell numeric>
+        <StudentScore studentId={row.id} />
+      </TableCell>
       <FactCell vm={attendanceCellVm(row.attendance)} />
       <FactCell vm={financeCellVm(row.finance)} />
       <StudentActions row={row} onContinue={onContinue} />
@@ -234,10 +239,17 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
       return <TableHead className="w-[25%]">{column.label}</TableHead>;
     }
     case "Turma": {
-      return <TableHead className="w-[30%]">{column.label}</TableHead>;
+      return <TableHead className="w-1/5">{column.label}</TableHead>;
     }
     case "Professor": {
       return <TableHead className="w-[17%]">{column.label}</TableHead>;
+    }
+    case "Score": {
+      return (
+        <TableHead className="w-16" numeric>
+          {column.label}
+        </TableHead>
+      );
     }
     case "Frequência": {
       return (

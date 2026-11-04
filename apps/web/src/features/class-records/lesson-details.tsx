@@ -1,23 +1,34 @@
 "use client";
 
 import type { JSX as ReactJSX } from "react";
-import { useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
-import { History } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import {
+  useState,
+  type Dispatch,
+  type ReactElement,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
+import { Alert } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { StudentAppointmentDialog } from "~/features/appointments/student-appointment-dialog";
 import { CalendarExperimentalDialog } from "./calendar-experimental-dialog";
-import { ClassRecordHistory } from "./history";
 import { RecordAttendance } from "./record-attendance";
 import type { ClassRecord } from "./shared";
 import { kindLabels } from "./shared";
 import type { ClassRecordContent } from "@lazuli/validators";
 import styles from "./class-record-dialog.module.css";
 
-export function LessonDetails({ data }: { data: ClassRecord }): ReactElement {
+export function LessonDetails({
+  data,
+  content,
+  compactHeading = false,
+}: {
+  data: ClassRecord;
+  content?: ReactNode;
+  compactHeading?: boolean;
+}): ReactElement {
   const [appointment, setAppointment] = useState<string | null>(null);
   const [experimental, setExperimental] = useState<string | null>(null);
-  const [history, setHistory] = useState(false);
   const me = trpc.me.useQuery();
   const admin = me.data?.role === "ADMIN" || me.data?.role === "SYSTEM_ADMIN";
   const visit = data.leadGuests.find((item) => item.id === experimental);
@@ -30,23 +41,16 @@ export function LessonDetails({ data }: { data: ClassRecord }): ReactElement {
       )}
       <RecordAttendance
         data={data}
+        compactHeading={compactHeading}
+        content={content}
         teacher={!admin}
         onAppointment={setAppointment}
         onExperimental={setExperimental}
       />
-      <LessonPerformedContent data={data} admin={admin} />
-      {data.session.scheduleType === "REGULAR" && data.snapshot.note && (
-        <section className={styles.note}>
-          <h3>Observação da aula</h3>
-          <p>{data.snapshot.note}</p>
-        </section>
-      )}
-      <LessonHistory
-        data={data}
-        admin={admin}
-        open={history}
-        onToggle={() => setHistory(!history)}
-      />
+      <div className={styles.body}>
+        <LessonPerformedContent data={data} admin={admin} />
+        <LessonNote data={data} />
+      </div>
       <LessonDialogs
         appointment={appointment}
         visit={visit}
@@ -55,6 +59,16 @@ export function LessonDetails({ data }: { data: ClassRecord }): ReactElement {
         setExperimental={setExperimental}
       />
     </div>
+  );
+}
+
+function LessonNote({ data }: { data: ClassRecord }): ReactElement | null {
+  if (data.session.scheduleType !== "REGULAR" || !data.snapshot.note) return null;
+  return (
+    <section className={styles.note}>
+      <h3>Observação da aula</h3>
+      <p>{data.snapshot.note}</p>
+    </section>
   );
 }
 
@@ -77,29 +91,6 @@ function LessonPerformedContent({
           .map((row) => (
             <PerformedContent key={row.enrollmentId} title={row.name} content={row.content!} />
           ))}
-    </section>
-  );
-}
-
-function LessonHistory({
-  data,
-  admin,
-  open,
-  onToggle,
-}: {
-  data: ClassRecord;
-  admin: boolean;
-  open: boolean;
-  onToggle: () => void;
-}): ReactJSX.Element | null {
-  if ((data.session.scheduleType !== "REGULAR" && admin) || data.version === 0) return null;
-  return (
-    <section className={styles.history}>
-      <Button variant="ghost" size="sm" aria-expanded={open} onClick={onToggle}>
-        <History aria-hidden="true" />
-        {open ? "Fechar histórico" : "Histórico do registro"}
-      </Button>
-      {open && <ClassRecordHistory sessionId={data.session.id} />}
     </section>
   );
 }

@@ -4,6 +4,7 @@ import type { LoginMode } from "./login-form";
 
 const DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
 const HTTP_TOO_MANY_REQUESTS = 429;
+const HTTP_UNAUTHORIZED = 401;
 const LINK_SEND_ERROR = "Não foi possível enviar o link. Tente novamente em alguns instantes.";
 
 type LoginFailure = { message: string; expired?: boolean };
@@ -16,7 +17,9 @@ function passwordError(error: {
   if (error.status === HTTP_TOO_MANY_REQUESTS)
     return { message: "Muitas tentativas. Aguarde um pouco e tente novamente." };
   if (error.code === "STAFF_ACCESS_DENIED") return { message: DENIED_MESSAGE };
-  return { message: "Não foi possível entrar. Confira email e senha ou recupere sua senha." };
+  if (error.status === HTTP_UNAUTHORIZED || error.code === "INVALID_EMAIL_OR_PASSWORD")
+    return { message: "Email ou senha incorretos. Confira os dados e tente novamente." };
+  return { message: "Não foi possível entrar agora. Tente novamente em instantes." };
 }
 
 async function signInWithPassword(email: string, password: string): Promise<LoginFailure | null> {

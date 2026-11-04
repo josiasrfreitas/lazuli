@@ -142,37 +142,12 @@
   pointer-events: none;
 }
 
-.skip {
-  position: absolute;
-  z-index: 6;
-  right: 24px;
-  bottom: 24px;
-  padding: 12px 16px;
-  color: var(--marquee-muted);
-  font-size: 14px;
-  text-underline-offset: 4px;
-  cursor: pointer;
-}
-
-.skip:hover,
-.skip:focus-visible {
-  color: var(--marquee-foreground);
-  text-decoration: underline;
-}
-
-.skip:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 2px;
-}
-
-.stage[data-phase="loading"] > .curtain,
-.stage[data-phase="loading"] > .skip {
+.stage[data-phase="loading"] > .curtain {
   animation: release-cover 12s step-end forwards;
 }
 
 .stage[data-phase="ready"] > .curtain,
-.stage[data-phase="ready"] > .point,
-.stage[data-phase="ready"] > .skip {
+.stage[data-phase="ready"] > .point {
   display: none;
 }
 
@@ -195,8 +170,7 @@
   }
 
   .curtain,
-  .point,
-  .skip {
+  .point {
     display: none;
   }
 }

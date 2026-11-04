@@ -12,9 +12,10 @@ import {
   type SetStateAction,
 } from "react";
 
-import { Alert, AlertDescription, Button } from "@lazuli/ui";
+import { Button, toastManager } from "@lazuli/ui";
 
 import { submitLogin } from "./login-actions";
+import { showLoginError } from "./login-error-toast";
 import { LoginForm, type LoginMode } from "./login-form";
 import styles from "./login-entrance.module.css";
 
@@ -180,6 +181,14 @@ function useLoginCard({
 
 export function LoginCard(props: LoginCardInput): ReactNode {
   const view = useLoginCard(props);
+  useEffect(() => {
+    const message = view.invalidReset
+      ? "Link inválido ou expirado. Solicite um novo para definir sua senha."
+      : view.error;
+    if (!message) return;
+    const id = showLoginError(message);
+    return () => toastManager.close(id);
+  }, [view.error, view.invalidReset]);
   return <LoginCardView {...view} />;
 }
 
@@ -219,7 +228,6 @@ function LoginCardView({
       ref={container}
       className={styles.accessContent}
       data-login-reveal="form"
-      data-error={error !== null || undefined}
       data-mode-change={modeDirection ?? undefined}
     >
       <LoginCardHeading mode={mode} complete={complete} definingPassword={definingPassword} />
@@ -300,11 +308,6 @@ function LoginCardMethods({
       </p>
       <div key={`methods-${mode}`} className={styles.methods}>
         <div className={styles.controlStack}>
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           {invalidReset ? (
             <InvalidResetNotice onRequest={() => changeMode(requestMode)} />
           ) : (
@@ -331,16 +334,7 @@ function LoginCardMethods({
 }
 
 function InvalidResetNotice({ onRequest }: { onRequest: () => void }): ReactNode {
-  return (
-    <>
-      <Alert variant="destructive">
-        <AlertDescription>
-          Link inválido ou expirado. Solicite um novo para definir sua senha.
-        </AlertDescription>
-      </Alert>
-      <Button onClick={onRequest}>Solicitar novo link</Button>
-    </>
-  );
+  return <Button onClick={onRequest}>Solicitar novo link</Button>;
 }
 
 function title(mode: LoginMode): ReactNode {

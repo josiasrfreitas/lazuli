@@ -1,43 +1,7 @@
-import { useEffect, useRef } from "react";
-import { flushSync } from "react-dom";
+import { useSectionCarousel as useCarousel } from "~/lib/use-section-carousel";
 
 const SECTION_ORDER = ["visao-geral", "cadastro", "pedagogico", "planejamento", "financeiro"];
 
-/** Snapshot the departing panel so only the selected section stays mounted. */
-export function useSectionCarousel() {
-  const transitionRef = useRef<ViewTransition | null>(null);
-
-  useEffect(
-    () => () => {
-      transitionRef.current?.skipTransition();
-    },
-    [],
-  );
-
-  return (current: string, { next, update }: { next: string; update: () => void }) => {
-    if (current === next) return;
-    transitionRef.current?.skipTransition();
-
-    if (
-      !document.startViewTransition ||
-      globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      update();
-      return;
-    }
-
-    document.documentElement.dataset.studentCarousel =
-      SECTION_ORDER.indexOf(next) > SECTION_ORDER.indexOf(current) ? "forward" : "backward";
-    const transition = document.startViewTransition(() => {
-      flushSync(update);
-    });
-    transitionRef.current = transition;
-    void transition.finished
-      .catch(() => {})
-      .finally(() => {
-        if (transitionRef.current !== transition) return;
-        transitionRef.current = null;
-        delete document.documentElement.dataset.studentCarousel;
-      });
-  };
+export function useSectionCarousel(): ReturnType<typeof useCarousel> {
+  return useCarousel({ order: SECTION_ORDER, scope: "studentCarousel" });
 }

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Alert, Badge, Button, type BadgeVariant } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { ClassRecordEditor } from "./editor";
-import { ClassRecordHistory } from "./history";
 import { RecordState, SnapshotView, dateLabel, type ClassRecord } from "./shared";
 
 const DECLARATION_POLL_MS = 5000;
@@ -43,7 +42,6 @@ export function ClassRecordPage({ id }: { id: string }): ReactElement {
                 snapshot={query.data.snapshot}
                 draft={!query.data.version && !query.data.attendanceOnly}
               />
-              {query.data.version > 0 && <ClassRecordHistory sessionId={id} />}
             </>
           )}
         </>
@@ -65,8 +63,7 @@ function RecordHeader({ data }: { data: ClassRecord }): ReactElement {
       </p>
       {data.recordedAt && (
         <p className="text-caption text-muted-foreground">
-          Registro em {data.recordedAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} ·
-          versão {data.version}
+          Registro em {data.recordedAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
         </p>
       )}
     </header>

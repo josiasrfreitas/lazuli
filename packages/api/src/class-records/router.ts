@@ -1,11 +1,6 @@
 import { z, classRecordListSchema, classRecordSaveSchema } from "@lazuli/validators";
 import { router, staffProcedure } from "../trpc/init.js";
-import {
-  classRecordHistory,
-  listClassRecords,
-  readClassRecord,
-  pendingClassRecords,
-} from "./read.js";
+import { listClassRecords, readClassRecord, pendingClassRecords } from "./read.js";
 import { saveClassRecord } from "./write.js";
 import { classStageProgress } from "./progress.js";
 import { individualExperimentalSessions } from "./experimental-sessions.js";
@@ -49,19 +44,6 @@ export const classRecordsRouter = router({
       readClassRecord(
         { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
         input.sessionId,
-      ),
-    ),
-  history: staffProcedure
-    .input(
-      target.extend({
-        cursor: z.number().int().positive().optional(),
-        direction: z.enum(["forward", "backward"]).optional(),
-      }),
-    )
-    .query(({ ctx, input }) =>
-      classRecordHistory(
-        { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-        input,
       ),
     ),
   save: staffProcedure

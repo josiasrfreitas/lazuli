@@ -527,3 +527,51 @@ void it("keeps history readable but refuses new pedagogical activity after the e
     1,
   );
 });
+
+void it("limits recent class reports to visible, undeleted records from that class", async () => {
+  const data = await fixture();
+  const reports = await Promise.all(
+    Array.from({ length: 7 }, (_unused, index) =>
+      db.pedagogicalOccurrence.create({
+        data: {
+          studentId: data.ana.id,
+          classSessionId: data.session.id,
+          recordedById: admin.id,
+          title: `Recent report ${index}`,
+          category: "HOMEWORK",
+          account: "Atividade pendente.",
+          createdAt: new Date(`2074-02-${String(16 + index).padStart(2, "0")}T12:00:00Z`),
+        },
+      }),
+    ),
+  );
+  await db.pedagogicalOccurrence.update({
+    where: { id: reports[6]!.id },
+    data: { deletedAt: now },
+  });
+  const result = await caller().occurrences.recentForClass({ classId: data.session.classId });
+  assert.deepEqual(
+    result.map((row) => row.title),
+    [
+      "Recent report 5",
+      "Recent report 4",
+      "Recent report 3",
+      "Recent report 2",
+      "Recent report 1",
+      "Recent report 0",
+    ],
+  );
+  assert.equal(result[0]?.student.id, data.ana.id);
+  assert.equal(result[0]?.student.fullName, `${config.prefix}Ana`);
+  const visible = await caller(teacher).occurrences.recentForClass({
+    classId: data.session.classId,
+  });
+  assert.deepEqual(
+    new Set(visible.map((row) => row.id)),
+    new Set([data.first.id, data.second.id, data.third.id]),
+  );
+  const unrelated = await caller().occurrences.recentForClass({
+    classId: "00000000-0000-0000-0000-000000000001",
+  });
+  assert.deepEqual(unrelated, []);
+});

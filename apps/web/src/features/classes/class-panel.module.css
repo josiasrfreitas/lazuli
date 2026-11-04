@@ -1,0 +1,24 @@
+/* Scoped to academic reading panels; controls retain the shared dark-theme roles. */
+.surface {
+  --foreground: var(--academic-panel-foreground);
+  --heading: var(--academic-panel-foreground);
+  --muted-foreground: var(--academic-panel-muted);
+  --card: var(--academic-panel-surface);
+  --card-foreground: var(--academic-panel-foreground);
+  --border: var(--academic-panel-divider);
+  --interactive: var(--academic-panel-accent);
+  --interactive-hover: var(--academic-panel-foreground);
+  --ring: var(--academic-panel-accent);
+  --accent: var(--academic-panel-divider);
+  --accent-foreground: var(--academic-panel-foreground);
+  --accent-hover: var(--academic-panel-divider);
+  --accent-active: var(--academic-panel-divider);
+  --brand-link: var(--academic-panel-accent);
+  --brand-link-hover: var(--academic-panel-foreground);
+  --scrollbar-thumb: var(--academic-panel-divider);
+  --scrollbar-thumb-hover: var(--academic-panel-muted);
+  min-width: 0;
+  color: var(--academic-panel-foreground);
+  background: var(--academic-panel-surface);
+  border-radius: 0.75rem;
+}
