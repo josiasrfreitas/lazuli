@@ -1,0 +1,387 @@
+--- a/class-records/data.ts
++++ b/class-records/data.ts
+@@ -36,18 +36,7 @@
+   },
+ } satisfies Prisma.ClassSessionInclude;
+ export type RecordSession = Prisma.ClassSessionGetPayload<{ include: typeof recordSessionInclude }>;
+-type ResponsibleSession = Pick<
+-  RecordSession,
+-  "id" | "date" | "scheduleSlotId" | "responsibilityFrozenAt" | "usualTeacherId" | "classRecord"
+-> & {
+-  class: Pick<
+-    RecordSession["class"],
+-    "teacherId" | "teacher" | "teacherAssignments" | "substitutions"
+-  >;
+-};
+-export function responsibleTeacher(
+-  session: ResponsibleSession,
+-): { id: string; name: string } | null {
++export function responsibleTeacher(session: RecordSession): { id: string; name: string } | null {
+   if (session.classRecord) return session.classRecord.teachingTeacher;
+   const substitute = session.class.substitutions.find(
+     (row) =>
+--- a/dashboard/home-lessons.ts
++++ b/dashboard/home-lessons.ts
+@@ -1,56 +1,21 @@
+ import type { Prisma } from "@lazuli/db";
+ import { sessionEndInstant } from "@lazuli/domain";
+-import { responsibleTeacher, timeOnly } from "../class-records/data.js";
+-import { loadTeacherIdentities, type TeacherIdentity } from "../teachers/identity-data.js";
+-import { responsibilitySelect } from "../teachers/responsibility.js";
++import {
++  recordSessionInclude,
++  responsibleTeacher,
++  timeOnly,
++  type RecordSession,
++} from "../class-records/data.js";
+ import { dateOnly, endedWhere } from "./home-model.js";
+ import { pendingClassRecordCutoff } from "../class-records/pending-policy.js";
+
+-const pendingSessionSelect = {
+-  id: true,
+-  classId: true,
+-  date: true,
+-  startTime: true,
+-  endTime: true,
+-  scheduleSlotId: true,
+-  responsibilityFrozenAt: true,
+-  usualTeacherId: true,
+-  attendanceConfirmedAt: true,
+-  class: {
+-    select: {
+-      ...responsibilitySelect,
+-      teacher: false,
+-      teacherAssignments: {
+-        ...responsibilitySelect.teacherAssignments,
+-        select: { id: true, effectiveDate: true, teacherId: true },
+-      },
+-      scheduleType: true,
+-      sharedStage: { select: { name: true } },
+-      substitutions: {
+-        where: { revokedAt: null, deletedAt: null },
+-        orderBy: { recordedAt: "desc" },
+-        select: {
+-          teacherId: true,
+-          date: true,
+-          scheduleSlotId: true,
+-          classSessionId: true,
+-        },
+-      },
+-    },
+-  },
+-} satisfies Prisma.ClassSessionSelect;
+-type LoadedPendingSession = Prisma.ClassSessionGetPayload<{ select: typeof pendingSessionSelect }>;
+-type ResponsibleClass = Parameters<typeof responsibleTeacher>[0]["class"];
+-type PendingSession = Omit<LoadedPendingSession, "class"> & {
+-  class: ResponsibleClass & Pick<LoadedPendingSession["class"], "scheduleType" | "sharedStage">;
+-};
+-type Database = Parameters<typeof loadTeacherIdentities>[0] & {
++type Database = {
+   classSession: {
+     findMany: (args: {
+       where: Prisma.ClassSessionWhereInput;
+       orderBy: Prisma.ClassSessionOrderByWithRelationInput[];
+-      select: typeof pendingSessionSelect;
+-    }) => Promise<LoadedPendingSession[]>;
++      include: typeof recordSessionInclude;
++    }) => Promise<RecordSession[]>;
+   };
+ };
+
+@@ -78,11 +43,21 @@
+
+ /** A class record atomically confirms attendance, required content and completion. */
+ export async function readPendingLessons(database: Database, now: Date): Promise<TeacherLessons[]> {
+-  const rows = await loadPendingLessonRows(database, now);
++  const rows = await database.classSession.findMany({
++    where: {
++      deletedAt: null,
++      status: { not: "CANCELLED" },
++      classRecord: null,
++      class: { deletedAt: null },
++      ...endedWhere(pendingClassRecordCutoff(now)),
++    },
++    orderBy: [{ date: "asc" }, { endTime: "asc" }, { id: "asc" }],
++    include: recordSessionInclude,
++  });
+   const teachers = new Map<string | null, TeacherLessons>();
+   for (const row of rows) {
+     const ageDays = Math.floor((now.getTime() - sessionEndInstant(row).getTime()) / DAY_MS);
+-    const teacher = responsibleTeacher({ ...row, classRecord: null });
++    const teacher = responsibleTeacher(row);
+     const teacherId = teacher?.id ?? null;
+     const group: TeacherLessons = teachers.get(teacherId) ?? {
+       teacherId,
+@@ -110,12 +85,12 @@
+   return [...teachers.values()].toSorted(compareTeachers);
+ }
+
+-function pendingClassName(row: PendingSession): string {
++function pendingClassName(row: RecordSession): string {
+   if (row.class.scheduleType === "PERSONALIZED") return "PPT";
+   return row.class.sharedStage?.name ?? "Sem estágio";
+ }
+
+-function pendingMissing(row: PendingSession): string[] {
++function pendingMissing(row: RecordSession): string[] {
+   return row.attendanceConfirmedAt ? ["progresso"] : ["chamada", "progresso"];
+ }
+
+@@ -128,47 +103,3 @@
+     left.teacherName.localeCompare(right.teacherName, "pt-BR")
+   );
+ }
+-
+-async function loadPendingLessonRows(database: Database, now: Date): Promise<PendingSession[]> {
+-  const rows = await database.classSession.findMany({
+-    where: {
+-      deletedAt: null,
+-      status: { not: "CANCELLED" },
+-      classRecord: null,
+-      class: { deletedAt: null },
+-      ...endedWhere(pendingClassRecordCutoff(now)),
+-    },
+-    orderBy: [{ date: "asc" }, { endTime: "asc" }, { id: "asc" }],
+-    select: pendingSessionSelect,
+-  });
+-  const classes = new Map(rows.map((row) => [row.classId, row.class]));
+-  const teachers = await loadTeacherIdentities(
+-    database,
+-    [...classes.values()].flatMap((row) => [
+-      row.teacherId,
+-      ...row.teacherAssignments.map((item) => item.teacherId),
+-      ...row.substitutions.map((item) => item.teacherId),
+-    ]),
+-  );
+-  const hydrated = new Map(
+-    [...classes].map(([id, row]) => [id, hydratePendingClass(row, teachers)]),
+-  );
+-  return rows.map((row) => ({ ...row, class: hydrated.get(row.classId)! }));
+-}
+-function hydratePendingClass(
+-  row: LoadedPendingSession["class"],
+-  teachers: Map<string, TeacherIdentity>,
+-): PendingSession["class"] {
+-  return {
+-    ...row,
+-    teacher: teachers.get(row.teacherId)!,
+-    teacherAssignments: row.teacherAssignments.map((item) => ({
+-      ...item,
+-      teacher: teachers.get(item.teacherId)!,
+-    })),
+-    substitutions: row.substitutions.map((item) => ({
+-      ...item,
+-      teacher: teachers.get(item.teacherId)!,
+-    })),
+-  };
+-}
+--- a/dashboard/home-pending.ts
++++ b/dashboard/home-pending.ts
+@@ -7,9 +7,8 @@
+ import { pendingClassRecordCutoff as pendingRecordCutoff } from "../class-records/pending-policy.js";
+ import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
+ import { readCoverage } from "./home-schedule.js";
+-import { loadPendingLessonSessions } from "./home-lesson-data.js";
+ import { readSemesterPending } from "./home-semester.js";
+-import { responsibleTeacher, timeOnly } from "../class-records/data.js";
++import { recordSessionInclude, responsibleTeacher, timeOnly } from "../class-records/data.js";
+ import {
+   dateOnly,
+   endedWhere,
+@@ -381,7 +380,12 @@
+   };
+   const [total, rows] = await Promise.all([
+     database.classSession.count({ where }),
+-    loadPendingLessonSessions(database, { where, page }),
++    database.classSession.findMany({
++      where,
++      ...page,
++      orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
++      include: recordSessionInclude,
++    }),
+   ]);
+   return {
+     total,
+--- a/teachers/identity-data.ts
++++ b/teachers/identity-data.ts
+@@ -1,22 +1,8 @@
+ import type { Prisma } from "@lazuli/db";
+-
+-const identitySelect = {
+-  id: true,
+-  name: true,
+-  teacherProfile: { select: { departureDate: true } },
+-} satisfies Prisma.UserSelect;
+-type IdentityDatabase = {
+-  user: {
+-    findMany: (args: {
+-      where: Prisma.UserWhereInput;
+-      select: typeof identitySelect;
+-    }) => Promise<TeacherIdentity[]>;
+-  };
+-};
+
+ /** Batch the same identities used by responsibility, sessions and substitutions. */
+ export async function loadTeacherIdentities(
+-  database: IdentityDatabase,
++  database: Prisma.TransactionClient,
+   ids: Iterable<string | null>,
+ ): Promise<Map<string, TeacherIdentity>> {
+   const unique = [...new Set([...ids].filter((id): id is string => id !== null))];
+@@ -24,7 +10,7 @@
+   const rows = await database.user.findMany({
+     // Relation reads include historical identities even after soft deletion.
+     where: { id: { in: unique }, deletedAt: {} },
+-    select: identitySelect,
++    select: { id: true, name: true, teacherProfile: { select: { departureDate: true } } },
+   });
+   return new Map(rows.map((row) => [row.id, row]));
+ }
+--- a/teachers/schedule-data.ts
++++ b/teachers/schedule-data.ts
+@@ -1,7 +1,5 @@
+-import { weekdayOf } from "@lazuli/domain";
+ import type { Prisma } from "@lazuli/db";
+ import { responsibilitySelect } from "./responsibility.js";
+-import { loadTeacherIdentities } from "./identity-data.js";
+
+ export const classSelect = {
+   ...responsibilitySelect,
+@@ -57,105 +55,31 @@
+   sessions: ScheduleSession[];
+   substitutions: ScheduleSubstitution[];
+ };
+-type ScheduleRange = { gte: Date; lte: Date };
+-type LoadedScheduleData = {
+-  classes: Array<
+-    Omit<ScheduleClass, "teacher" | "teacherAssignments"> & {
+-      teacherAssignments: Array<Omit<ScheduleClass["teacherAssignments"][number], "teacher">>;
+-    }
+-  >;
+-  closedDays: ScheduleData["closedDays"];
+-  sessions: Array<Omit<ScheduleSession, "usualTeacher">>;
+-  substitutions: Array<Omit<ScheduleSubstitution, "teacher">>;
+-};
+-const ISO_DATE_LENGTH = 10;
+-function scheduleClassWhere(range: ScheduleRange): Prisma.ClassWhereInput {
+-  return {
+-    deletedAt: null,
+-    // A day preview cannot produce a meeting without a matching slot or stored session.
+-    ...(range.gte.getTime() === range.lte.getTime()
+-      ? {
+-          AND: [
+-            {
+-              OR: [
+-                {
+-                  scheduleSlots: {
+-                    some: {
+-                      deletedAt: null,
+-                      weekday: weekdayOf(range.gte.toISOString().slice(0, ISO_DATE_LENGTH)),
+-                    },
+-                  },
+-                },
+-                { sessions: { some: { date: range } } },
+-              ],
+-            },
+-          ],
+-        }
+-      : {}),
+-    OR: [
+-      { semester: { startDate: { lte: range.lte }, endDate: { gte: range.gte } } },
+-      { sessions: { some: { date: range } } },
+-    ],
+-  };
+-}
+-async function hydrateScheduleTeachers(
+-  database: Prisma.TransactionClient,
+-  { classes, closedDays, sessions, substitutions }: LoadedScheduleData,
+-): Promise<ScheduleData> {
+-  const teachers = await loadTeacherIdentities(database, [
+-    ...classes.flatMap((row) => [
+-      row.teacherId,
+-      ...row.teacherAssignments.map((item) => item.teacherId),
+-    ]),
+-    ...sessions.map((row) => row.usualTeacherId),
+-    ...substitutions.map((row) => row.teacherId),
+-  ]);
+-  return {
+-    classes: classes.map((row) => ({
+-      ...row,
+-      teacher: teachers.get(row.teacherId)!,
+-      teacherAssignments: row.teacherAssignments.map((assignment) => ({
+-        ...assignment,
+-        teacher: teachers.get(assignment.teacherId)!,
+-      })),
+-    })),
+-    closedDays,
+-    sessions: sessions.map((row) => ({
+-      ...row,
+-      usualTeacher: row.usualTeacherId ? teachers.get(row.usualTeacherId)! : null,
+-    })),
+-    substitutions: substitutions.map((row) => ({ ...row, teacher: teachers.get(row.teacherId)! })),
+-  };
+-}
+ export async function loadScheduleData(
+   database: Prisma.TransactionClient,
+   range: { gte: Date; lte: Date },
+ ): Promise<ScheduleData> {
+   const [classes, closedDays, sessions, substitutions] = await Promise.all([
+     database.class.findMany({
+-      where: scheduleClassWhere(range),
+-      select: {
+-        ...classSelect,
+-        teacher: false,
+-        teacherAssignments: {
+-          ...responsibilitySelect.teacherAssignments,
+-          select: { id: true, effectiveDate: true, teacherId: true },
+-        },
++      where: {
++        deletedAt: null,
++        OR: [
++          { semester: { startDate: { lte: range.lte }, endDate: { gte: range.gte } } },
++          { sessions: { some: { date: range } } },
++        ],
+       },
++      select: classSelect,
+     }),
+     database.schoolClosedDay.findMany({
+       where: { deletedAt: null, date: range },
+       select: { date: true },
+     }),
+-    database.classSession.findMany({
+-      where: { date: range },
+-      select: { ...sessionSelect, usualTeacher: false },
+-    }),
++    database.classSession.findMany({ where: { date: range }, select: sessionSelect }),
+     database.classSubstitution.findMany({
+       where: { date: range },
+       orderBy: [{ recordedAt: "asc" }, { id: "asc" }],
+-      select: { ...substitutionSelect, teacher: false },
++      select: substitutionSelect,
+     }),
+   ]);
+-  return hydrateScheduleTeachers(database, { classes, closedDays, sessions, substitutions });
++  return { classes, closedDays, sessions, substitutions };
+ }
+--- a/teachers/schedule.ts
++++ b/teachers/schedule.ts
+@@ -87,18 +87,7 @@
+   const context = projectionContext(data, now);
+   const result = new Map<string, TeacherMeeting>();
+   for (const classRow of data.classes) {
+-    const candidates = new Map(
+-      classCandidates(classRow, { range, sessions: data.sessions, now }).map((candidate) => [
+-        meetingKey({
+-          classId: classRow.id,
+-          slotId: candidate.slotId,
+-          sessionId: candidate.sessionId,
+-          date: candidate.date,
+-        }),
+-        candidate,
+-      ]),
+-    );
+-    for (const candidate of candidates.values()) {
++    for (const candidate of classCandidates(classRow, { range, sessions: data.sessions, now })) {
+       const meeting = projectMeeting(candidate, context);
+       if (meeting) result.set(meetingKey(meeting), meeting);
+     }

@@ -1,0 +1,44 @@
+{
+  "schema": "lazuli.admin-home-request-gates.v1",
+  "environment": "local-development",
+  "method": "Hold the business batch response, inspect outgoing endpoint names, then release it; separately simulate business.overdueCents=0 across three polling rounds",
+  "businessResponseGate": {
+    "before": {
+      "whileHeld": ["dashboard.pendingLessons", "dashboard.home", "dashboard.business"],
+      "afterRelease": ["dashboard.overdueContracts"],
+      "finalCallsPerEndpoint": 1,
+      "financeVisibleAfterRelease": true
+    },
+    "after": {
+      "whileHeld": [
+        "dashboard.overdueContracts",
+        "dashboard.pendingLessons",
+        "dashboard.home",
+        "dashboard.business"
+      ],
+      "afterRelease": [],
+      "finalCallsPerEndpoint": 1,
+      "financeVisibleAfterRelease": true
+    }
+  },
+  "zeroOverdueExperiment": {
+    "before": {
+      "homeCalls": 3,
+      "businessCalls": 3,
+      "pendingLessonsCalls": 3,
+      "overdueContractsCalls": 0,
+      "financeVisible": false
+    },
+    "after": {
+      "homeCalls": 3,
+      "businessCalls": 3,
+      "pendingLessonsCalls": 3,
+      "overdueContractsCalls": 1,
+      "financeVisible": false
+    }
+  },
+  "limits": [
+    "Development-mode request ordering, not production interaction latency",
+    "Zero-overdue experiment uses a controlled response override"
+  ]
+}

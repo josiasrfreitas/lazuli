@@ -1,0 +1,122 @@
+{
+  "schema": "lazuli.receivables-benchmark.v1",
+  "label": "before-grouping",
+  "dataset": "local-2026-11-03",
+  "environment": "local",
+  "startedAt": "2026-11-03T15:36:23.905Z",
+  "businessDate": "2026-11-03",
+  "runtime": {
+    "node": "v26.3.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "method": {
+    "poolMax": 4,
+    "samples": 20,
+    "warmupCalls": 2,
+    "profileCalls": 5
+  },
+  "snapshot": {
+    "expectedThisMonthCents": 5120000,
+    "receivedThisMonthCents": 43227,
+    "overdueCents": 1012000,
+    "ageBuckets": {
+      "days1To7Cents": 0,
+      "days8To30Cents": 390000,
+      "days30PlusCents": 622000
+    }
+  },
+  "runs": [
+    {
+      "concurrency": 1,
+      "latencyMs": {
+        "n": 20,
+        "p50": 429.51,
+        "p99": 487.28,
+        "max": 487.28,
+        "mean": 432.08
+      },
+      "wallMs": 8643.92,
+      "cpuMs": 8519.26,
+      "cpuMsPerCall": 425.96,
+      "callsPerSecond": 2.31,
+      "samplesMs": [
+        449.65, 487.28, 472, 458.98, 435.4, 429.52, 422.53, 415.13, 409.51, 456.69, 405.7, 446.63,
+        429.51, 475.18, 429.78, 400.13, 416.43, 390.45, 417.06, 393.96
+      ]
+    },
+    {
+      "concurrency": 4,
+      "latencyMs": {
+        "n": 20,
+        "p50": 1735.48,
+        "p99": 2298.11,
+        "max": 2298.11,
+        "mean": 1702.22
+      },
+      "wallMs": 9020.31,
+      "cpuMs": 8859.63,
+      "cpuMsPerCall": 442.98,
+      "callsPerSecond": 2.22,
+      "samplesMs": [
+        1142.85, 1292.48, 1493.47, 1935.18, 1742.16, 1723.8, 2246.97, 2095.05, 1942.31, 2298.11,
+        2281.9, 1806.7, 1183.11, 1093.02, 1735.48, 1829.93, 1508.21, 1372.76, 1802.67, 1518.34
+      ]
+    }
+  ],
+  "profile": {
+    "samples": [
+      {
+        "wallMs": 420.62,
+        "cpuMs": 413.07,
+        "queryCount": 11,
+        "queryDurationSumMs": 69.69
+      },
+      {
+        "wallMs": 404.79,
+        "cpuMs": 390.62,
+        "queryCount": 11,
+        "queryDurationSumMs": 58.73
+      },
+      {
+        "wallMs": 426.23,
+        "cpuMs": 421.21,
+        "queryCount": 11,
+        "queryDurationSumMs": 70.59
+      },
+      {
+        "wallMs": 393.76,
+        "cpuMs": 388.49,
+        "queryCount": 11,
+        "queryDurationSumMs": 50.97
+      },
+      {
+        "wallMs": 408.51,
+        "cpuMs": 402.46,
+        "queryCount": 11,
+        "queryDurationSumMs": 58.39
+      }
+    ],
+    "cpuMs": {
+      "n": 5,
+      "p50": 402.46,
+      "p99": 421.21,
+      "max": 421.21,
+      "mean": 403.17
+    },
+    "queryCount": {
+      "n": 5,
+      "p50": 11,
+      "p99": 11,
+      "max": 11,
+      "mean": 11
+    },
+    "queryDurationSumMs": {
+      "n": 5,
+      "p50": 58.73,
+      "p99": 70.59,
+      "max": 70.59,
+      "mean": 61.67
+    }
+  }
+}

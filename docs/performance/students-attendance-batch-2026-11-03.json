@@ -1,0 +1,132 @@
+{
+  "scope": "local, students.list via createCaller, no HTTP",
+  "now": "2026-11-03T15:00:00Z",
+  "poolMax": 4,
+  "concurrency": 1,
+  "warmupPerPageSize": 1,
+  "before": [
+    {
+      "pageSize": 10,
+      "runs": [
+        {
+          "ms": 22.242042000000083,
+          "queries": 51,
+          "digest": "dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"
+        },
+        {
+          "ms": 25.9498329999999,
+          "queries": 51,
+          "digest": "dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"
+        },
+        {
+          "ms": 22.487540999999965,
+          "queries": 51,
+          "digest": "dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"
+        }
+      ]
+    },
+    {
+      "pageSize": 25,
+      "runs": [
+        {
+          "ms": 49.79187499999989,
+          "queries": 90,
+          "digest": "9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"
+        },
+        {
+          "ms": 35.93337500000007,
+          "queries": 90,
+          "digest": "9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"
+        },
+        {
+          "ms": 38.65795800000001,
+          "queries": 90,
+          "digest": "9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"
+        }
+      ]
+    },
+    {
+      "pageSize": 50,
+      "runs": [
+        {
+          "ms": 68.16733299999987,
+          "queries": 162,
+          "digest": "15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"
+        },
+        {
+          "ms": 66.75041699999997,
+          "queries": 162,
+          "digest": "15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"
+        },
+        {
+          "ms": 63.35579199999984,
+          "queries": 162,
+          "digest": "15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "pageSize": 10,
+      "runs": [
+        {
+          "ms": 25.338625000000093,
+          "queries": 27,
+          "digest": "dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"
+        },
+        {
+          "ms": 22.263916999999992,
+          "queries": 27,
+          "digest": "dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"
+        },
+        {
+          "ms": 21.06487500000003,
+          "queries": 27,
+          "digest": "dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"
+        }
+      ]
+    },
+    {
+      "pageSize": 25,
+      "runs": [
+        {
+          "ms": 31.91604099999995,
+          "queries": 27,
+          "digest": "9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"
+        },
+        {
+          "ms": 31.59266700000012,
+          "queries": 27,
+          "digest": "9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"
+        },
+        {
+          "ms": 30.418125000000146,
+          "queries": 27,
+          "digest": "9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"
+        }
+      ]
+    },
+    {
+      "pageSize": 50,
+      "runs": [
+        {
+          "ms": 51.2947079999999,
+          "queries": 27,
+          "digest": "15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"
+        },
+        {
+          "ms": 53.69100000000003,
+          "queries": 27,
+          "digest": "15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"
+        },
+        {
+          "ms": 50.85333300000002,
+          "queries": 27,
+          "digest": "15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"
+        }
+      ]
+    }
+  ],
+  "fullResponsesEqual": true
+}

@@ -161,8 +161,19 @@ function ClosingBasis({ incompleteCount }: { incompleteCount: number }): ReactEl
   );
 }
 
-export function ContractClosings({ data }: { data: Analytics }): ReactElement {
-  const query = trpc.finance.contractClosings.useQuery({ year: data.year });
+export function ContractClosings({
+  data,
+  initial,
+}: {
+  data: Analytics;
+  initial?: { data: Closings; updatedAt: number } | undefined;
+}): ReactElement {
+  const query = trpc.finance.contractClosings.useQuery(
+    { year: data.year },
+    initial?.data.year === data.year
+      ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt }
+      : {},
+  );
   if (query.isError)
     return (
       <div role="alert">

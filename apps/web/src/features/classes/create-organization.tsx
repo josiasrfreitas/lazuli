@@ -5,6 +5,7 @@ import {
   Field,
   FieldError,
   FormRow,
+  Input,
   Label,
   SearchSelect,
   SegmentedControl,
@@ -12,6 +13,7 @@ import {
 } from "@lazuli/ui";
 import type { ClassFieldsProps } from "./create-fields";
 import { SelectControl } from "./form-controls";
+import { maskDateBR } from "~/lib/masks";
 
 function TeacherAndFormat(props: ClassFieldsProps): ReactElement {
   const { draft, change } = props;
@@ -88,8 +90,9 @@ function TeacherSearch({ draft, change, options, errors }: ClassFieldsProps): Re
 
 function SemesterAndStage(props: ClassFieldsProps): ReactElement {
   const { draft, change, options, errors } = props;
+  const selectedPeriod = options.semesters.find((period) => period.id === draft.semesterId);
   return (
-    <FormRow columns={2}>
+    <FormRow columns={draft.scheduleType === "REGULAR" ? 3 : 2}>
       <SelectControl
         name="semesterId"
         label="Período"
@@ -111,6 +114,27 @@ function SemesterAndStage(props: ClassFieldsProps): ReactElement {
           error={errors.sharedStageId}
         />
       )}
+      <Field name="startDate">
+        <Label htmlFor="startDate">Início das aulas</Label>
+        <Input
+          id="startDate"
+          name="startDate"
+          autoComplete="off"
+          inputMode="numeric"
+          placeholder="dd/mm/aaaa"
+          size="sm"
+          value={draft.startDate}
+          invalid={Boolean(errors.startDate)}
+          onChange={(event) => change("startDate", maskDateBR(event.target.value))}
+        />
+        <FieldError match={Boolean(errors.startDate)}>{errors.startDate}</FieldError>
+        {selectedPeriod && (
+          <p className="text-caption text-muted-foreground">
+            {selectedPeriod.startDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })} a{" "}
+            {selectedPeriod.endDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+          </p>
+        )}
+      </Field>
     </FormRow>
   );
 }

@@ -50,6 +50,8 @@ export const financeInstallmentsInputSchema = z
   .object({
     view: financeInstallmentViewSchema.default("all"),
     studentId: z.string().uuid().optional(),
+    /** The student screen can choose its initial filter without waiting for a summary. */
+    studentFilter: z.enum(["auto", "all", "overdue", "paid"]).optional(),
     page: financeInstallmentsPaginationPolicy.pageSchema,
     pageSize: financeInstallmentsPaginationPolicy.pageSizeSchema,
     search: z.string().trim().max(FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH).optional(),
@@ -74,6 +76,15 @@ export const financeInstallmentsInputSchema = z
       value.amountToCents === undefined ||
       value.amountFromCents <= value.amountToCents,
     { path: ["amountToCents"], message: "O máximo deve ser igual ou maior que o mínimo." },
+  )
+  .refine(
+    (value) =>
+      value.studentFilter === undefined ||
+      (value.studentId !== undefined && value.view === "all" && value.statuses === undefined),
+    {
+      path: ["studentFilter"],
+      message: "O filtro automático exige um aluno e a visão de parcelas sem outros status.",
+    },
   );
 
 export const financeStudentSummaryInputSchema = z.object({ studentId: z.string().uuid() }).strict();
@@ -146,6 +157,7 @@ export const financeInstallmentsOutputSchema = z.discriminatedUnion("view", [
       view: z.literal("all"),
       ...financeInstallmentsOutputFields,
       rows: z.array(financeInstallmentRowSchema),
+      studentFilter: z.enum(["all", "overdue", "paid"]).optional(),
     })
     .strict(),
   z

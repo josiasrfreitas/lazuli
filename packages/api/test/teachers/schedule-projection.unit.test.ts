@@ -17,6 +17,7 @@ function candidate(): MeetingCandidate {
       portalClassName: "Regular 1",
       scheduleType: "REGULAR",
       format: "ONLINE",
+      startDate: null,
       sharedStage: { name: "Stage 2" },
       semester: { startDate: new Date("2026-07-01"), endDate: new Date("2026-12-01") },
       scheduleSlots: [],

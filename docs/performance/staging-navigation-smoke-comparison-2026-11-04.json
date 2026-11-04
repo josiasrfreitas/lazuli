@@ -1,0 +1,35 @@
+{
+  "protocol": "in-page-paint-marks-v2",
+  "profile": "first",
+  "samplesPerRoute": 1,
+  "environment": "staging",
+  "note": "One diagnostic sample per route with the default 2 GiB Colima profile active. Not a p95 or a causal before/after estimate.",
+  "runs": [
+    {
+      "label": "Inicial",
+      "measuredAt": "2026-11-04T20:25:34.391Z",
+      "imageDigest": "sha256:5d346733b11c7f526abd0c9e1cfc7ed5ff37eb505eb0a51dda5eb886e9ddebd2",
+      "routes": [
+        { "path": "/", "readyMs": 1036, "firstApiStartMs": 489, "lastApiEndMs": 949 },
+        { "path": "/alunos", "readyMs": 589, "firstApiStartMs": 378, "lastApiEndMs": 568 },
+        { "path": "/turmas", "readyMs": 551, "firstApiStartMs": 343, "lastApiEndMs": 520 },
+        { "path": "/recebiveis", "readyMs": 647, "firstApiStartMs": 348, "lastApiEndMs": 599 },
+        { "path": "/financeiro", "readyMs": 499, "firstApiStartMs": 322, "lastApiEndMs": 479 },
+        { "path": "/aulas", "readyMs": 703, "firstApiStartMs": 391, "lastApiEndMs": 668 }
+      ]
+    },
+    {
+      "label": "Nova imagem",
+      "measuredAt": "2026-11-04T21:18:00.960Z",
+      "imageDigest": "sha256:0d20eedd26791cdf885cfaa87da6a6f75193a7d4a98672c53288df13dd3c6ad7",
+      "routes": [
+        { "path": "/", "readyMs": 1154, "firstApiStartMs": 379, "lastApiEndMs": 1068 },
+        { "path": "/alunos", "readyMs": 623, "firstApiStartMs": 401, "lastApiEndMs": 595 },
+        { "path": "/turmas", "readyMs": 542, "firstApiStartMs": 338, "lastApiEndMs": 514 },
+        { "path": "/recebiveis", "readyMs": 640, "firstApiStartMs": 342, "lastApiEndMs": 594 },
+        { "path": "/financeiro", "readyMs": 383, "firstApiStartMs": null, "lastApiEndMs": null },
+        { "path": "/aulas", "readyMs": 805, "firstApiStartMs": 458, "lastApiEndMs": 769 }
+      ]
+    }
+  ]
+}

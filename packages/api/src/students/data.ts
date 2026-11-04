@@ -1,3 +1,4 @@
+import { saoPauloDateOnly } from "@lazuli/domain";
 import { currentScholarshipContractWhere } from "./scholarship.js";
 import type { Prisma } from "@lazuli/db";
 import {
@@ -36,12 +37,26 @@ export async function readStudentProfile(input: {
   id: string;
   now?: Date;
 }): Promise<StudentProfile> {
+  const now = input.now ?? new Date();
+  const today = new Date(saoPauloDateOnly(now));
   const student = await input.database.student.findUnique({
     where: { id: input.id },
     include: {
+      _count: {
+        select: {
+          enrollments: {
+            where: {
+              deletedAt: null,
+              class: { deletedAt: null },
+              entryDate: { lte: today },
+              OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+            },
+          },
+        },
+      },
       ...studentProfileInclude,
       contracts: {
-        where: currentScholarshipContractWhere(input.now ?? new Date()),
+        where: currentScholarshipContractWhere(now),
         select: { id: true },
         take: 1,
       },

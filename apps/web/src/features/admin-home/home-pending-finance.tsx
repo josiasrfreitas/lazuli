@@ -35,10 +35,14 @@ function ReceivablesLink(): ReactElement {
 function FinanceSummary({
   contracts,
   loaded,
+  open,
+  error,
   total,
 }: {
   contracts: OverdueContracts;
   loaded: boolean;
+  open: boolean;
+  error: boolean;
   total: number;
 }): ReactElement {
   const installmentCount = contracts.reduce((sum, contract) => sum + contract.installmentCount, 0);
@@ -52,7 +56,11 @@ function FinanceSummary({
         <span>
           {loaded
             ? `${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"} · ${installmentCount} ${installmentCount === 1 ? "parcela" : "parcelas"}`
-            : "Carregando contratos…"}
+            : error
+              ? "Não foi possível carregar contratos"
+              : open
+                ? "Carregando contratos…"
+                : "Abrir para ver contratos"}
         </span>
       </span>
       <strong className={styles.amount}>{money(total)}</strong>
@@ -111,9 +119,11 @@ function FinanceCases({
 }
 
 export function PendingFinance({ business }: { business: BusinessData }): ReactElement {
+  const [open, setOpen] = useState(false);
   const query = trpc.dashboard.overdueContracts.useQuery(undefined, {
+    enabled: open,
     staleTime: 0,
-    refetchInterval: 60_000,
+    refetchInterval: open ? 60_000 : false,
   });
   const contracts = query.data ?? [];
   const total = query.data
@@ -124,8 +134,15 @@ export function PendingFinance({ business }: { business: BusinessData }): ReactE
       <td className={styles.cell}>
         <PendingDisclosure
           action={<ReceivablesLink />}
+          onOpenChange={setOpen}
           summary={
-            <FinanceSummary contracts={contracts} loaded={Boolean(query.data)} total={total} />
+            <FinanceSummary
+              contracts={contracts}
+              loaded={Boolean(query.data)}
+              open={open}
+              error={query.isError}
+              total={total}
+            />
           }
         >
           <FinanceCases

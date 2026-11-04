@@ -1,0 +1,3672 @@
+{
+  "schema": "lazuli.students-list-diagnosis.v1",
+  "measuredAt": "2026-11-03T19:29:09.266Z",
+  "businessNow": "2026-11-03T15:00:00.000Z",
+  "environment": "local",
+  "poolMax": 4,
+  "readOnly": true,
+  "runtime": {
+    "node": "v26.3.0",
+    "arch": "arm64"
+  },
+  "method": {
+    "samplesPerScenario": 60,
+    "componentSamples": 10,
+    "instrumentation": "query hashes, ALS attribution and response SHA256 included in timings; observed modes add overhead",
+    "concurrency": [1, 4],
+    "pages": [10, 25, 50],
+    "cpu": "process batch CPU divided by completed calls; overlapping calls are not individually attributed",
+    "sqlTiming": "client-observed duration includes pool wait and transport; overlapping queries are not additive wall time",
+    "percentile": "empirical nearest rank; short local sample does not estimate production p99",
+    "components": "real exported functions measured separately, not additive endpoint wall times",
+    "observeIntl": false,
+    "cpuProfileWorkload": null
+  },
+  "datasets": [
+    {
+      "pageSize": 10,
+      "students": 10,
+      "enrollments": 9,
+      "classes": 7,
+      "attendance": {
+        "sessions": 237,
+        "attendanceRows": 305,
+        "coverages": 0,
+        "classSessionVisitsUpperBound": 305
+      },
+      "finance": {
+        "orders": 18,
+        "installments": 108,
+        "adjustments": 33,
+        "allocations": 33
+      }
+    },
+    {
+      "pageSize": 25,
+      "students": 25,
+      "enrollments": 22,
+      "classes": 14,
+      "attendance": {
+        "sessions": 468,
+        "attendanceRows": 724,
+        "coverages": 0,
+        "classSessionVisitsUpperBound": 742
+      },
+      "finance": {
+        "orders": 44,
+        "installments": 264,
+        "adjustments": 82,
+        "allocations": 87
+      }
+    },
+    {
+      "pageSize": 50,
+      "students": 50,
+      "enrollments": 46,
+      "classes": 17,
+      "attendance": {
+        "sessions": 581,
+        "attendanceRows": 1514,
+        "coverages": 0,
+        "classSessionVisitsUpperBound": 1568
+      },
+      "finance": {
+        "orders": 92,
+        "installments": 552,
+        "adjustments": 189,
+        "allocations": 195
+      }
+    }
+  ],
+  "captures": [
+    {
+      "name": "students.list.page10",
+      "concurrency": 1,
+      "samples": 60,
+      "wallMs": 2874.86,
+      "callsPerSecond": 20.87,
+      "eventLoopUtilization": 0.48,
+      "memoryBefore": {
+        "rss": 334544896,
+        "heapTotal": 150896640,
+        "heapUsed": 100644568,
+        "external": 19093610,
+        "arrayBuffers": 6097867
+      },
+      "memoryAfter": {
+        "rss": 332218368,
+        "heapTotal": 197296128,
+        "heapUsed": 135994728,
+        "external": 19114853,
+        "arrayBuffers": 6119646
+      },
+      "latencyP50Ms": 40.75,
+      "latencyP95Ms": 80.02,
+      "latencyP99Ms": 252.07,
+      "latenciesMs": [
+        57.66, 80.02, 54.71, 73.55, 64.1, 46.23, 59.53, 57.37, 40.84, 41.87, 53.74, 38.09, 40.72,
+        37.92, 36.02, 43.61, 41.74, 49.74, 41.2, 41.28, 40.18, 41.8, 39.25, 37.73, 37.68, 44.35,
+        38.52, 35.93, 34.3, 33.72, 31.15, 29.3, 27.45, 22.8, 37.88, 41.44, 252.07, 104.54, 56.76,
+        40.86, 37.16, 39.62, 47.49, 45.85, 39.99, 36.64, 34.06, 42.77, 44.74, 39.25, 39.42, 36.59,
+        34.54, 35.14, 40.75, 42.61, 37.62, 39.23, 37.1, 93.9
+      ],
+      "outputHashCount": 1,
+      "outputHashes": ["dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"],
+      "latencyMaxMs": 252.07,
+      "cpuMsPerCall": 31.12,
+      "serialProcessCpuMsPerCall": [
+        46.29, 59.23, 38.92, 63.46, 59.61, 50.06, 54.46, 44.5, 24.06, 33.6, 57.27, 33.28, 38.63,
+        30.65, 32.13, 56.85, 38.93, 54.24, 30.15, 44.53, 22.93, 20.56, 30.99, 29.04, 24.24, 23.97,
+        22.77, 30.71, 18.05, 18.45, 16.1, 20.64, 19.23, 11.37, 11.82, 21.49, 22.08, 25.89, 23.17,
+        29.56, 20.75, 20.71, 22.79, 32.86, 20.63, 29.88, 19.44, 30.98, 21.86, 21.63, 23.29, 33.73,
+        18.89, 19.72, 34.05, 65.68, 20.87, 20.71, 20.89, 32.57
+      ],
+      "queriesPerCall": [
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27
+      ],
+      "rowsPerCall": [
+        831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831,
+        831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831,
+        831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831,
+        831, 831, 831, 831, 831, 831
+      ],
+      "queryObservedSumMsPerCall": 106.94,
+      "poolWaitSumMsPerCall": 13.07,
+      "poolWaitP50Ms": 0.1,
+      "repeatedExactQueriesPerCall": [
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+      ],
+      "output": {
+        "total": 252,
+        "items": 10
+      },
+      "templates": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 3,
+          "rowsPerRequest": 3,
+          "observedMsPerRequest": 10.99
+        },
+        {
+          "shape": "c1cfeb919488",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 305,
+          "observedMsPerRequest": 8.27
+        },
+        {
+          "shape": "3b6ae4418e9c",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 8.18
+        },
+        {
+          "shape": "25126b7b5a8a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 18,
+          "observedMsPerRequest": 6.64
+        },
+        {
+          "shape": "980fddb01841",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 237,
+          "observedMsPerRequest": 6.23
+        },
+        {
+          "shape": "a40f7fec9e2a",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 108,
+          "observedMsPerRequest": 5.78
+        },
+        {
+          "shape": "41f525cbf49d",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 5.03
+        },
+        {
+          "shape": "a8175ce011a2",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 33,
+          "observedMsPerRequest": 4.94
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 10,
+          "observedMsPerRequest": 4.78
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 4.69
+        },
+        {
+          "shape": "9911f201f453",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 4.63
+        },
+        {
+          "shape": "b47de039b6f7",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 33,
+          "observedMsPerRequest": 4.37
+        },
+        {
+          "shape": "81f5e837e492",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 3.94
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 3.66
+        },
+        {
+          "shape": "c1fedef02121",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 3.46
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 3.4
+        },
+        {
+          "shape": "46b7e2e6cedd",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 3.36
+        },
+        {
+          "shape": "57652400afa3",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 3.25
+        },
+        {
+          "shape": "d0662e4fcce7",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 2.9
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 2.31
+        },
+        {
+          "shape": "03beb122867b",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.22
+        },
+        {
+          "shape": "aa5f10fa222e",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 2.08
+        },
+        {
+          "shape": "5877c6fa7b2a",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 1.82
+        }
+      ]
+    },
+    {
+      "name": "students.list.page10",
+      "concurrency": 4,
+      "samples": 60,
+      "wallMs": 1504.87,
+      "callsPerSecond": 39.87,
+      "eventLoopUtilization": 0.73,
+      "memoryBefore": {
+        "rss": 332234752,
+        "heapTotal": 197296128,
+        "heapUsed": 137028008,
+        "external": 19114853,
+        "arrayBuffers": 6119646
+      },
+      "memoryAfter": {
+        "rss": 392708096,
+        "heapTotal": 200884224,
+        "heapUsed": 103240152,
+        "external": 13454460,
+        "arrayBuffers": 5362922
+      },
+      "latencyP50Ms": 95.18,
+      "latencyP95Ms": 124.74,
+      "latencyP99Ms": 132.72,
+      "latenciesMs": [
+        93, 102.79, 114.34, 122.16, 122.27, 111.29, 130.81, 120.12, 87.88, 110.23, 100.65, 101.7,
+        93.31, 129.05, 121.96, 121.83, 84.51, 90.35, 91.29, 95.18, 82.7, 88.72, 87.52, 89.59, 92.82,
+        93.85, 111.78, 132.72, 121.17, 102.99, 101.52, 89.08, 79.13, 88.32, 83.78, 89.43, 79.33,
+        95.94, 98.31, 97, 81.86, 81.25, 82.82, 70.68, 94.68, 93.87, 100.62, 86.17, 94.35, 110.13,
+        115.02, 101.77, 124.74, 87.01, 95.65, 96.79, 96.09, 94.39, 85.21, 75.63
+      ],
+      "outputHashCount": 1,
+      "outputHashes": ["dd2874796fd3de0fa102bf7195d03b43c934f7eb0668548346788a00b57facc8"],
+      "latencyMaxMs": 132.72,
+      "cpuMsPerCall": 22.92,
+      "serialProcessCpuMsPerCall": null,
+      "queriesPerCall": [
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27
+      ],
+      "rowsPerCall": [
+        831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831,
+        831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831,
+        831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831, 831,
+        831, 831, 831, 831, 831, 831
+      ],
+      "queryObservedSumMsPerCall": 247.94,
+      "poolWaitSumMsPerCall": 146.56,
+      "poolWaitP50Ms": 4.84,
+      "repeatedExactQueriesPerCall": [
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+      ],
+      "output": {
+        "total": 252,
+        "items": 10
+      },
+      "templates": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 3,
+          "rowsPerRequest": 3,
+          "observedMsPerRequest": 29.67
+        },
+        {
+          "shape": "c1cfeb919488",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 305,
+          "observedMsPerRequest": 13.71
+        },
+        {
+          "shape": "a8175ce011a2",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 33,
+          "observedMsPerRequest": 12.66
+        },
+        {
+          "shape": "41f525cbf49d",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 12.43
+        },
+        {
+          "shape": "d0662e4fcce7",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 12.35
+        },
+        {
+          "shape": "a40f7fec9e2a",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 108,
+          "observedMsPerRequest": 11.11
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 10,
+          "observedMsPerRequest": 11.1
+        },
+        {
+          "shape": "3b6ae4418e9c",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 10.93
+        },
+        {
+          "shape": "57652400afa3",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 10.9
+        },
+        {
+          "shape": "b47de039b6f7",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 33,
+          "observedMsPerRequest": 10.85
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 10.64
+        },
+        {
+          "shape": "980fddb01841",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 237,
+          "observedMsPerRequest": 10.58
+        },
+        {
+          "shape": "46b7e2e6cedd",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 10.06
+        },
+        {
+          "shape": "9911f201f453",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 9.67
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 9.63
+        },
+        {
+          "shape": "c1fedef02121",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 9.38
+        },
+        {
+          "shape": "81f5e837e492",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 9.27
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 8.61
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 8.57
+        },
+        {
+          "shape": "25126b7b5a8a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 18,
+          "observedMsPerRequest": 8.23
+        },
+        {
+          "shape": "03beb122867b",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 6.2
+        },
+        {
+          "shape": "5877c6fa7b2a",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 5.75
+        },
+        {
+          "shape": "aa5f10fa222e",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 5.63
+        }
+      ]
+    },
+    {
+      "name": "page10.pageRelations",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 82.88,
+      "callsPerSecond": 120.66,
+      "eventLoopUtilization": 0.33,
+      "memoryBefore": {
+        "rss": 392757248,
+        "heapTotal": 200884224,
+        "heapUsed": 104239536,
+        "external": 13454460,
+        "arrayBuffers": 5362922
+      },
+      "memoryAfter": {
+        "rss": 392822784,
+        "heapTotal": 200884224,
+        "heapUsed": 112305840,
+        "external": 13808724,
+        "arrayBuffers": 5717186
+      },
+      "latencyP50Ms": 8.6,
+      "latencyP95Ms": 10.13,
+      "latencyP99Ms": 10.13,
+      "latenciesMs": [10.13, 9.1, 8.66, 8.82, 8.44, 8.6, 7.99, 7.47, 6.56, 6.93],
+      "outputHashCount": 1,
+      "outputHashes": ["feae0f81fba118b97c839ce87fdf68d5ad65a4fd4a5d4a0b17d5fddf556134ca"],
+      "latencyMaxMs": 10.13,
+      "cpuMsPerCall": 3.67,
+      "serialProcessCpuMsPerCall": [3.37, 2.83, 3.63, 11.21, 2.71, 2.56, 2.59, 3.36, 2.18, 2.16],
+      "queriesPerCall": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+      "rowsPerCall": [80, 80, 80, 80, 80, 80, 80, 80, 80, 80],
+      "queryObservedSumMsPerCall": 12.54,
+      "poolWaitSumMsPerCall": 0.32,
+      "poolWaitP50Ms": 0.03,
+      "repeatedExactQueriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "templates": [
+        {
+          "shape": "9911f201f453",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 2.4
+        },
+        {
+          "shape": "57652400afa3",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 1.89
+        },
+        {
+          "shape": "c1fedef02121",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 1.8
+        },
+        {
+          "shape": "d0662e4fcce7",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 1.75
+        },
+        {
+          "shape": "aa5f10fa222e",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 1.35
+        },
+        {
+          "shape": "03beb122867b",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.23
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 10,
+          "observedMsPerRequest": 1.17
+        },
+        {
+          "shape": "5877c6fa7b2a",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 0.95
+        }
+      ]
+    },
+    {
+      "name": "page10.tabCounts",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 14.25,
+      "callsPerSecond": 701.57,
+      "eventLoopUtilization": 0.36,
+      "memoryBefore": {
+        "rss": 392822784,
+        "heapTotal": 200884224,
+        "heapUsed": 112378432,
+        "external": 13808724,
+        "arrayBuffers": 5717186
+      },
+      "memoryAfter": {
+        "rss": 392839168,
+        "heapTotal": 200884224,
+        "heapUsed": 114106528,
+        "external": 13811144,
+        "arrayBuffers": 5719606
+      },
+      "latencyP50Ms": 1.44,
+      "latencyP95Ms": 1.55,
+      "latencyP99Ms": 1.55,
+      "latenciesMs": [1.55, 1.32, 1.37, 1.49, 1.44, 1.29, 1.38, 1.46, 1.44, 1.39],
+      "outputHashCount": 1,
+      "outputHashes": ["efc8359f5cdeac371c1e981a479439e08f35fa41c23716f590a62508f7991392"],
+      "latencyMaxMs": 1.55,
+      "cpuMsPerCall": 0.6,
+      "serialProcessCpuMsPerCall": [0.59, 0.48, 0.48, 0.5, 1.56, 0.46, 0.45, 0.5, 0.45, 0.46],
+      "queriesPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "rowsPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "queryObservedSumMsPerCall": 3.14,
+      "poolWaitSumMsPerCall": 0.15,
+      "poolWaitP50Ms": 0.05,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.1
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.05
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.98
+        }
+      ]
+    },
+    {
+      "name": "page10.header",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 8.69,
+      "callsPerSecond": 1151.21,
+      "eventLoopUtilization": 0.34,
+      "memoryBefore": {
+        "rss": 392839168,
+        "heapTotal": 200884224,
+        "heapUsed": 114137920,
+        "external": 13811144,
+        "arrayBuffers": 5719606
+      },
+      "memoryAfter": {
+        "rss": 392855552,
+        "heapTotal": 200884224,
+        "heapUsed": 115201800,
+        "external": 13878290,
+        "arrayBuffers": 5786752
+      },
+      "latencyP50Ms": 0.88,
+      "latencyP95Ms": 0.96,
+      "latencyP99Ms": 0.96,
+      "latenciesMs": [0.92, 0.96, 0.95, 0.9, 0.83, 0.74, 0.85, 0.88, 0.79, 0.81],
+      "outputHashCount": 1,
+      "outputHashes": ["b6ef409c54891f623b99638ee1fef4310cd3557bc0e982caae795ff4c130c81e"],
+      "latencyMaxMs": 0.96,
+      "cpuMsPerCall": 0.28,
+      "serialProcessCpuMsPerCall": [0.38, 0.26, 0.27, 0.26, 0.23, 0.24, 0.32, 0.23, 0.28, 0.26],
+      "queriesPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "rowsPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "queryObservedSumMsPerCall": 1.4,
+      "poolWaitSumMsPerCall": 0.05,
+      "poolWaitP50Ms": 0.02,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.7
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.7
+        }
+      ]
+    },
+    {
+      "name": "page10.total",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 6.59,
+      "callsPerSecond": 1517.87,
+      "eventLoopUtilization": 0.26,
+      "memoryBefore": {
+        "rss": 392855552,
+        "heapTotal": 200884224,
+        "heapUsed": 115241248,
+        "external": 13878290,
+        "arrayBuffers": 5786752
+      },
+      "memoryAfter": {
+        "rss": 392855552,
+        "heapTotal": 200884224,
+        "heapUsed": 115780872,
+        "external": 13879100,
+        "arrayBuffers": 5787562
+      },
+      "latencyP50Ms": 0.63,
+      "latencyP95Ms": 0.73,
+      "latencyP99Ms": 0.73,
+      "latenciesMs": [0.73, 0.69, 0.63, 0.71, 0.7, 0.63, 0.63, 0.61, 0.59, 0.63],
+      "outputHashCount": 1,
+      "outputHashes": ["d6e5a20b30f87216b2c758f5e7a23c437dbc3dfa1ccb177c474de152bb0ef731"],
+      "latencyMaxMs": 0.73,
+      "cpuMsPerCall": 0.17,
+      "serialProcessCpuMsPerCall": [0.35, 0.17, 0.17, 0.19, 0.15, 0.14, 0.14, 0.13, 0.13, 0.13],
+      "queriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "rowsPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "queryObservedSumMsPerCall": 0.57,
+      "poolWaitSumMsPerCall": 0.01,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.57
+        }
+      ]
+    },
+    {
+      "name": "page10.pendingRegistration",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 18.63,
+      "callsPerSecond": 536.62,
+      "eventLoopUtilization": 0.13,
+      "memoryBefore": {
+        "rss": 392855552,
+        "heapTotal": 200884224,
+        "heapUsed": 115801856,
+        "external": 13879100,
+        "arrayBuffers": 5787562
+      },
+      "memoryAfter": {
+        "rss": 392888320,
+        "heapTotal": 200884224,
+        "heapUsed": 116856896,
+        "external": 13879680,
+        "arrayBuffers": 5788142
+      },
+      "latencyP50Ms": 1.79,
+      "latencyP95Ms": 2.24,
+      "latencyP99Ms": 2.24,
+      "latenciesMs": [2.15, 1.92, 1.82, 1.79, 1.79, 1.7, 1.7, 2.24, 1.72, 1.76],
+      "outputHashCount": 1,
+      "outputHashes": ["4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"],
+      "latencyMaxMs": 2.24,
+      "cpuMsPerCall": 0.23,
+      "serialProcessCpuMsPerCall": [0.36, 0.24, 0.23, 0.21, 0.2, 0.2, 0.2, 0.2, 0.2, 0.21],
+      "queriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "rowsPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "queryObservedSumMsPerCall": 1.72,
+      "poolWaitSumMsPerCall": 0.01,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "3b6ae4418e9c",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.72
+        }
+      ]
+    },
+    {
+      "name": "page10.finance",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 58.07,
+      "callsPerSecond": 172.19,
+      "eventLoopUtilization": 0.48,
+      "memoryBefore": {
+        "rss": 392888320,
+        "heapTotal": 200884224,
+        "heapUsed": 116877304,
+        "external": 13879680,
+        "arrayBuffers": 5788142
+      },
+      "memoryAfter": {
+        "rss": 393478144,
+        "heapTotal": 200884224,
+        "heapUsed": 108631200,
+        "external": 13612780,
+        "arrayBuffers": 5521242
+      },
+      "latencyP50Ms": 5.74,
+      "latencyP95Ms": 6.58,
+      "latencyP99Ms": 6.58,
+      "latenciesMs": [6.25, 6.58, 5.7, 5.43, 5.31, 5.89, 5.51, 5.74, 5.65, 5.92],
+      "outputHashCount": 1,
+      "outputHashes": ["2c5e7dfd75b1385e27e5e745d9b2f52fea40f0c956565926af8617655bd2c206"],
+      "latencyMaxMs": 6.58,
+      "cpuMsPerCall": 4.15,
+      "serialProcessCpuMsPerCall": [3.05, 8.67, 2.59, 2.59, 2.51, 2.46, 2.5, 2.72, 2.58, 11.74],
+      "queriesPerCall": [6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+      "rowsPerCall": [201, 201, 201, 201, 201, 201, 201, 201, 201, 201],
+      "queryObservedSumMsPerCall": 7.25,
+      "poolWaitSumMsPerCall": 0.27,
+      "poolWaitP50Ms": 0.05,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "25126b7b5a8a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 18,
+          "observedMsPerRequest": 1.35
+        },
+        {
+          "shape": "b47de039b6f7",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 33,
+          "observedMsPerRequest": 1.32
+        },
+        {
+          "shape": "a8175ce011a2",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 33,
+          "observedMsPerRequest": 1.27
+        },
+        {
+          "shape": "a40f7fec9e2a",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 108,
+          "observedMsPerRequest": 1.22
+        },
+        {
+          "shape": "81f5e837e492",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 9,
+          "observedMsPerRequest": 1.07
+        },
+        {
+          "shape": "46b7e2e6cedd",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.02
+        }
+      ]
+    },
+    {
+      "name": "page10.attendance",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 93.93,
+      "callsPerSecond": 106.45,
+      "eventLoopUtilization": 0.46,
+      "memoryBefore": {
+        "rss": 393478144,
+        "heapTotal": 200884224,
+        "heapUsed": 108678832,
+        "external": 13612780,
+        "arrayBuffers": 5521242
+      },
+      "memoryAfter": {
+        "rss": 393756672,
+        "heapTotal": 200884224,
+        "heapUsed": 115413480,
+        "external": 13987160,
+        "arrayBuffers": 5895622
+      },
+      "latencyP50Ms": 9.03,
+      "latencyP95Ms": 11.38,
+      "latencyP99Ms": 11.38,
+      "latenciesMs": [10.06, 9.02, 9.07, 9.6, 9.03, 11.38, 8.83, 8.96, 8.86, 9.03],
+      "outputHashCount": 1,
+      "outputHashes": ["c56b2361a779177591d51c3e716e63975265696d2f6be6103ae1bd7e3375184a"],
+      "latencyMaxMs": 11.38,
+      "cpuMsPerCall": 5.22,
+      "serialProcessCpuMsPerCall": [9.01, 4.26, 4.08, 4.47, 9.7, 4.37, 4.17, 4, 4.06, 3.98],
+      "queriesPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "rowsPerCall": [542, 542, 542, 542, 542, 542, 542, 542, 542, 542],
+      "queryObservedSumMsPerCall": 6.23,
+      "poolWaitSumMsPerCall": 0.03,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "c1cfeb919488",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 305,
+          "observedMsPerRequest": 2.74
+        },
+        {
+          "shape": "980fddb01841",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 237,
+          "observedMsPerRequest": 1.78
+        },
+        {
+          "shape": "41f525cbf49d",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.7
+        }
+      ]
+    },
+    {
+      "name": "students.list.page25",
+      "concurrency": 1,
+      "samples": 60,
+      "wallMs": 2710.89,
+      "callsPerSecond": 22.13,
+      "eventLoopUtilization": 0.6,
+      "memoryBefore": {
+        "rss": 400162816,
+        "heapTotal": 200884224,
+        "heapUsed": 111267592,
+        "external": 13620161,
+        "arrayBuffers": 5528623
+      },
+      "memoryAfter": {
+        "rss": 365084672,
+        "heapTotal": 247808000,
+        "heapUsed": 189839304,
+        "external": 13620161,
+        "arrayBuffers": 5528623
+      },
+      "latencyP50Ms": 44.4,
+      "latencyP95Ms": 72.38,
+      "latencyP99Ms": 89.78,
+      "latenciesMs": [
+        29.57, 32.73, 30.21, 29.58, 32.15, 30.8, 30.08, 31.17, 31.11, 29.3, 40.54, 41.71, 45.39,
+        41.67, 41.86, 52.01, 56.19, 50.93, 56.46, 58.6, 72.38, 75.39, 53.39, 44.41, 45.08, 44.59,
+        42.39, 42.03, 41.97, 40.07, 42.48, 44.63, 39.15, 44.88, 42.27, 40.67, 44.4, 46.87, 44.87,
+        47.1, 42.12, 45.59, 43.13, 47.07, 47.42, 50.4, 50.67, 75.96, 89.78, 61.51, 56.33, 42.41,
+        46.84, 41.18, 36.71, 33.47, 34.1, 44.73, 42.43, 46.41
+      ],
+      "outputHashCount": 1,
+      "outputHashes": ["9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"],
+      "latencyMaxMs": 89.78,
+      "cpuMsPerCall": 31.32,
+      "serialProcessCpuMsPerCall": [
+        37.97, 28.54, 19.75, 24.46, 23.73, 24.25, 21.76, 18.42, 24.85, 18.49, 27.82, 25.86, 42.29,
+        26.57, 50.89, 26.88, 40.22, 31.27, 34.02, 45.44, 32.89, 53.81, 27.95, 33.86, 29.79, 36.44,
+        35.62, 32.32, 25.37, 25.21, 34, 25.74, 32.6, 45.12, 34.01, 25.86, 34.69, 26.32, 26.78,
+        34.57, 25.93, 36.81, 26.7, 35.12, 26.18, 37.08, 30.06, 30.34, 41.22, 29.77, 49.85, 26.79,
+        34.18, 27.01, 28.3, 21.45, 21.12, 34.63, 32.94, 36.64
+      ],
+      "queriesPerCall": [
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27
+      ],
+      "rowsPerCall": [
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851,
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851,
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851,
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851
+      ],
+      "queryObservedSumMsPerCall": 81.58,
+      "poolWaitSumMsPerCall": 9.27,
+      "poolWaitP50Ms": 0.09,
+      "repeatedExactQueriesPerCall": [
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+      ],
+      "output": {
+        "total": 252,
+        "items": 25
+      },
+      "templates": [
+        {
+          "shape": "6596c75f3558",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 724,
+          "observedMsPerRequest": 8.58
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 3,
+          "rowsPerRequest": 3,
+          "observedMsPerRequest": 7.07
+        },
+        {
+          "shape": "661b2ef1b02c",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 468,
+          "observedMsPerRequest": 5.95
+        },
+        {
+          "shape": "67a6f4b51b0f",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 5.9
+        },
+        {
+          "shape": "9aefe83db4fc",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 5.57
+        },
+        {
+          "shape": "0abd6a3c491b",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 264,
+          "observedMsPerRequest": 4.53
+        },
+        {
+          "shape": "70baecd94b2a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 44,
+          "observedMsPerRequest": 4.32
+        },
+        {
+          "shape": "72216bb244d4",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 87,
+          "observedMsPerRequest": 3.98
+        },
+        {
+          "shape": "f01f20ad9db1",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 82,
+          "observedMsPerRequest": 3.76
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 25,
+          "observedMsPerRequest": 3.36
+        },
+        {
+          "shape": "7349df2a4596",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 21,
+          "observedMsPerRequest": 3.13
+        },
+        {
+          "shape": "391812909458",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 2.94
+        },
+        {
+          "shape": "cbc2a4858fb6",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 2.94
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 2.88
+        },
+        {
+          "shape": "180dcf25ee10",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.5
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 2.4
+        },
+        {
+          "shape": "e6e4ba8bb3a1",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 2.37
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 2.04
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.9
+        },
+        {
+          "shape": "b138e3e92f90",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 28,
+          "observedMsPerRequest": 1.53
+        },
+        {
+          "shape": "6b5e4ac44141",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.49
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.32
+        },
+        {
+          "shape": "bf40bdf8ee74",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.13
+        }
+      ]
+    },
+    {
+      "name": "students.list.page25",
+      "concurrency": 4,
+      "samples": 60,
+      "wallMs": 2376.02,
+      "callsPerSecond": 25.25,
+      "eventLoopUtilization": 0.79,
+      "memoryBefore": {
+        "rss": 365101056,
+        "heapTotal": 247808000,
+        "heapUsed": 190836168,
+        "external": 13620161,
+        "arrayBuffers": 5528623
+      },
+      "memoryAfter": {
+        "rss": 346882048,
+        "heapTotal": 327499776,
+        "heapUsed": 270882456,
+        "external": 13795080,
+        "arrayBuffers": 5703542
+      },
+      "latencyP50Ms": 152.41,
+      "latencyP95Ms": 202.15,
+      "latencyP99Ms": 239.57,
+      "latenciesMs": [
+        126.65, 139.63, 166.83, 230.23, 232.18, 202.15, 239.57, 188.66, 137.46, 136.79, 143.28,
+        160.19, 147.53, 148.96, 153.19, 154.63, 138.94, 148.36, 167.63, 156.55, 139.16, 174.9,
+        144.23, 151.39, 141.72, 156.84, 142.83, 152.41, 147.37, 143.78, 137.26, 133.57, 155.13,
+        138.09, 159.62, 161.27, 146.42, 141.61, 165.29, 159.78, 109.34, 134.16, 187.16, 147.16,
+        134.65, 166.37, 150.27, 155.01, 127.24, 158.56, 139.67, 152.95, 141.51, 168.38, 165.01,
+        178.86, 163.67, 180.41, 161.03, 91.52
+      ],
+      "outputHashCount": 1,
+      "outputHashes": ["9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"],
+      "latencyMaxMs": 239.57,
+      "cpuMsPerCall": 34.39,
+      "serialProcessCpuMsPerCall": null,
+      "queriesPerCall": [
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27
+      ],
+      "rowsPerCall": [
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851,
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851,
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851,
+        1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851, 1851
+      ],
+      "queryObservedSumMsPerCall": 368.39,
+      "poolWaitSumMsPerCall": 209.84,
+      "poolWaitP50Ms": 5.87,
+      "repeatedExactQueriesPerCall": [
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+      ],
+      "output": {
+        "total": 252,
+        "items": 25
+      },
+      "templates": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 3,
+          "rowsPerRequest": 3,
+          "observedMsPerRequest": 40.4
+        },
+        {
+          "shape": "9aefe83db4fc",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 24.7
+        },
+        {
+          "shape": "6596c75f3558",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 724,
+          "observedMsPerRequest": 23.7
+        },
+        {
+          "shape": "72216bb244d4",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 87,
+          "observedMsPerRequest": 20.42
+        },
+        {
+          "shape": "0abd6a3c491b",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 264,
+          "observedMsPerRequest": 19.19
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 16.83
+        },
+        {
+          "shape": "f01f20ad9db1",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 82,
+          "observedMsPerRequest": 16.26
+        },
+        {
+          "shape": "661b2ef1b02c",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 468,
+          "observedMsPerRequest": 15.9
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 25,
+          "observedMsPerRequest": 15.85
+        },
+        {
+          "shape": "180dcf25ee10",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 15.67
+        },
+        {
+          "shape": "cbc2a4858fb6",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 15.63
+        },
+        {
+          "shape": "67a6f4b51b0f",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 14.94
+        },
+        {
+          "shape": "391812909458",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 14.88
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 14.38
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 13.07
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 12.45
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 12.31
+        },
+        {
+          "shape": "7349df2a4596",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 21,
+          "observedMsPerRequest": 12.04
+        },
+        {
+          "shape": "70baecd94b2a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 44,
+          "observedMsPerRequest": 11.73
+        },
+        {
+          "shape": "e6e4ba8bb3a1",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 11.65
+        },
+        {
+          "shape": "bf40bdf8ee74",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 9.25
+        },
+        {
+          "shape": "b138e3e92f90",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 28,
+          "observedMsPerRequest": 9.09
+        },
+        {
+          "shape": "6b5e4ac44141",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 8.07
+        }
+      ]
+    },
+    {
+      "name": "page25.pageRelations",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 106.55,
+      "callsPerSecond": 93.86,
+      "eventLoopUtilization": 0.36,
+      "memoryBefore": {
+        "rss": 346898432,
+        "heapTotal": 327499776,
+        "heapUsed": 271872488,
+        "external": 13795080,
+        "arrayBuffers": 5703542
+      },
+      "memoryAfter": {
+        "rss": 344260608,
+        "heapTotal": 327499776,
+        "heapUsed": 283791128,
+        "external": 14363036,
+        "arrayBuffers": 6271498
+      },
+      "latencyP50Ms": 10.56,
+      "latencyP95Ms": 12.32,
+      "latencyP99Ms": 12.32,
+      "latenciesMs": [12.22, 11.39, 11.55, 12.32, 9.83, 10.56, 10.25, 9.44, 10.26, 8.49],
+      "outputHashCount": 1,
+      "outputHashes": ["aa03817f9e8baefe42a6bcb6d196a1b1462b8f7752d846267a2a385431cda124"],
+      "latencyMaxMs": 12.32,
+      "cpuMsPerCall": 4.56,
+      "serialProcessCpuMsPerCall": [6.32, 9.44, 3.93, 3.72, 3.68, 3.88, 3.81, 3.71, 3.62, 3.34],
+      "queriesPerCall": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+      "rowsPerCall": [152, 152, 152, 152, 152, 152, 152, 152, 152, 152],
+      "queryObservedSumMsPerCall": 15.73,
+      "poolWaitSumMsPerCall": 0.34,
+      "poolWaitP50Ms": 0.04,
+      "repeatedExactQueriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "templates": [
+        {
+          "shape": "7349df2a4596",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 21,
+          "observedMsPerRequest": 3.26
+        },
+        {
+          "shape": "180dcf25ee10",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.47
+        },
+        {
+          "shape": "e6e4ba8bb3a1",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 2.42
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.99
+        },
+        {
+          "shape": "b138e3e92f90",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 28,
+          "observedMsPerRequest": 1.55
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 25,
+          "observedMsPerRequest": 1.43
+        },
+        {
+          "shape": "6b5e4ac44141",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.43
+        },
+        {
+          "shape": "bf40bdf8ee74",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.18
+        }
+      ]
+    },
+    {
+      "name": "page25.tabCounts",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 15.97,
+      "callsPerSecond": 626.28,
+      "eventLoopUtilization": 0.48,
+      "memoryBefore": {
+        "rss": 344260608,
+        "heapTotal": 327499776,
+        "heapUsed": 283863704,
+        "external": 14363036,
+        "arrayBuffers": 6271498
+      },
+      "memoryAfter": {
+        "rss": 347111424,
+        "heapTotal": 330645504,
+        "heapUsed": 263760912,
+        "external": 12907292,
+        "arrayBuffers": 4815754
+      },
+      "latencyP50Ms": 1.41,
+      "latencyP95Ms": 2.92,
+      "latencyP99Ms": 2.92,
+      "latenciesMs": [1.79, 1.36, 1.41, 2.92, 1.4, 1.44, 1.37, 1.47, 1.39, 1.33],
+      "outputHashCount": 1,
+      "outputHashes": ["efc8359f5cdeac371c1e981a479439e08f35fa41c23716f590a62508f7991392"],
+      "latencyMaxMs": 2.92,
+      "cpuMsPerCall": 1.33,
+      "serialProcessCpuMsPerCall": [0.69, 0.5, 0.42, 8.09, 0.46, 1.1, 0.55, 0.52, 0.45, 0.45],
+      "queriesPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "rowsPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "queryObservedSumMsPerCall": 3.7,
+      "poolWaitSumMsPerCall": 0.15,
+      "poolWaitP50Ms": 0.05,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.26
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.23
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.21
+        }
+      ]
+    },
+    {
+      "name": "page25.header",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 9.19,
+      "callsPerSecond": 1088.15,
+      "eventLoopUtilization": 0.35,
+      "memoryBefore": {
+        "rss": 347111424,
+        "heapTotal": 330645504,
+        "heapUsed": 263792032,
+        "external": 12907292,
+        "arrayBuffers": 4815754
+      },
+      "memoryAfter": {
+        "rss": 347111424,
+        "heapTotal": 330645504,
+        "heapUsed": 264808856,
+        "external": 12908902,
+        "arrayBuffers": 4817364
+      },
+      "latencyP50Ms": 0.88,
+      "latencyP95Ms": 1.07,
+      "latencyP99Ms": 1.07,
+      "latenciesMs": [0.98, 0.96, 0.94, 0.84, 0.88, 1.07, 0.86, 0.87, 0.86, 0.88],
+      "outputHashCount": 1,
+      "outputHashes": ["b6ef409c54891f623b99638ee1fef4310cd3557bc0e982caae795ff4c130c81e"],
+      "latencyMaxMs": 1.07,
+      "cpuMsPerCall": 0.31,
+      "serialProcessCpuMsPerCall": [0.38, 0.33, 0.31, 0.28, 0.26, 0.31, 0.28, 0.32, 0.3, 0.28],
+      "queriesPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "rowsPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "queryObservedSumMsPerCall": 1.48,
+      "poolWaitSumMsPerCall": 0.06,
+      "poolWaitP50Ms": 0.03,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.75
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.74
+        }
+      ]
+    },
+    {
+      "name": "page25.total",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 7.39,
+      "callsPerSecond": 1352.34,
+      "eventLoopUtilization": 0.24,
+      "memoryBefore": {
+        "rss": 347144192,
+        "heapTotal": 330645504,
+        "heapUsed": 264835304,
+        "external": 12908902,
+        "arrayBuffers": 4817364
+      },
+      "memoryAfter": {
+        "rss": 347160576,
+        "heapTotal": 330645504,
+        "heapUsed": 265356936,
+        "external": 12909712,
+        "arrayBuffers": 4818174
+      },
+      "latencyP50Ms": 0.74,
+      "latencyP95Ms": 0.82,
+      "latencyP99Ms": 0.82,
+      "latenciesMs": [0.74, 0.82, 0.75, 0.78, 0.71, 0.73, 0.69, 0.68, 0.69, 0.74],
+      "outputHashCount": 1,
+      "outputHashes": ["d6e5a20b30f87216b2c758f5e7a23c437dbc3dfa1ccb177c474de152bb0ef731"],
+      "latencyMaxMs": 0.82,
+      "cpuMsPerCall": 0.17,
+      "serialProcessCpuMsPerCall": [0.19, 0.16, 0.17, 0.19, 0.18, 0.15, 0.16, 0.16, 0.14, 0.16],
+      "queriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "rowsPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "queryObservedSumMsPerCall": 0.65,
+      "poolWaitSumMsPerCall": 0.01,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.65
+        }
+      ]
+    },
+    {
+      "name": "page25.pendingRegistration",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 20.82,
+      "callsPerSecond": 480.27,
+      "eventLoopUtilization": 0.16,
+      "memoryBefore": {
+        "rss": 347160576,
+        "heapTotal": 330645504,
+        "heapUsed": 265377376,
+        "external": 12909712,
+        "arrayBuffers": 4818174
+      },
+      "memoryAfter": {
+        "rss": 347160576,
+        "heapTotal": 330645504,
+        "heapUsed": 266578568,
+        "external": 13041364,
+        "arrayBuffers": 4949826
+      },
+      "latencyP50Ms": 2.15,
+      "latencyP95Ms": 2.56,
+      "latencyP99Ms": 2.56,
+      "latenciesMs": [2.56, 2.23, 2.15, 2.44, 2.2, 1.76, 1.89, 1.76, 1.97, 1.79],
+      "outputHashCount": 1,
+      "outputHashes": ["4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"],
+      "latencyMaxMs": 2.56,
+      "cpuMsPerCall": 0.31,
+      "serialProcessCpuMsPerCall": [0.4, 0.34, 0.32, 0.38, 0.32, 0.28, 0.27, 0.25, 0.25, 0.28],
+      "queriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "rowsPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "queryObservedSumMsPerCall": 1.88,
+      "poolWaitSumMsPerCall": 0.01,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "67a6f4b51b0f",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.88
+        }
+      ]
+    },
+    {
+      "name": "page25.finance",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 95.26,
+      "callsPerSecond": 104.98,
+      "eventLoopUtilization": 0.56,
+      "memoryBefore": {
+        "rss": 347160576,
+        "heapTotal": 330645504,
+        "heapUsed": 266598976,
+        "external": 13041364,
+        "arrayBuffers": 4949826
+      },
+      "memoryAfter": {
+        "rss": 349863936,
+        "heapTotal": 333004800,
+        "heapUsed": 274140256,
+        "external": 13524874,
+        "arrayBuffers": 5433336
+      },
+      "latencyP50Ms": 9.69,
+      "latencyP95Ms": 10.05,
+      "latencyP99Ms": 10.05,
+      "latenciesMs": [9.68, 9.15, 9.88, 9.69, 8.76, 9.96, 8.9, 9.8, 9.3, 10.05],
+      "outputHashCount": 1,
+      "outputHashes": ["07b0938682a279d8478169df8ee1ff965dedb08850cbeda91cc15e6ff141ec21"],
+      "latencyMaxMs": 10.05,
+      "cpuMsPerCall": 5.72,
+      "serialProcessCpuMsPerCall": [5.19, 5.17, 5.16, 5.37, 4.93, 5.1, 5.02, 10.98, 5.22, 5.05],
+      "queriesPerCall": [6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+      "rowsPerCall": [499, 499, 499, 499, 499, 499, 499, 499, 499, 499],
+      "queryObservedSumMsPerCall": 10.27,
+      "poolWaitSumMsPerCall": 0.39,
+      "poolWaitP50Ms": 0.07,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "f01f20ad9db1",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 82,
+          "observedMsPerRequest": 2.02
+        },
+        {
+          "shape": "72216bb244d4",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 87,
+          "observedMsPerRequest": 1.94
+        },
+        {
+          "shape": "0abd6a3c491b",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 264,
+          "observedMsPerRequest": 1.77
+        },
+        {
+          "shape": "70baecd94b2a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 44,
+          "observedMsPerRequest": 1.59
+        },
+        {
+          "shape": "cbc2a4858fb6",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.52
+        },
+        {
+          "shape": "391812909458",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 1.43
+        }
+      ]
+    },
+    {
+      "name": "page25.attendance",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 161.09,
+      "callsPerSecond": 62.08,
+      "eventLoopUtilization": 0.53,
+      "memoryBefore": {
+        "rss": 349863936,
+        "heapTotal": 333004800,
+        "heapUsed": 274187320,
+        "external": 13524874,
+        "arrayBuffers": 5433336
+      },
+      "memoryAfter": {
+        "rss": 354222080,
+        "heapTotal": 339296256,
+        "heapUsed": 289876008,
+        "external": 14757517,
+        "arrayBuffers": 6665979
+      },
+      "latencyP50Ms": 16.22,
+      "latencyP95Ms": 16.86,
+      "latencyP99Ms": 16.86,
+      "latenciesMs": [16.01, 16.5, 14.81, 15.78, 16.29, 16.86, 16.48, 16.07, 15.95, 16.22],
+      "outputHashCount": 1,
+      "outputHashes": ["819739eb39f5b545e08cff45cba70f8963655f47329e7c06a8f5282f26573864"],
+      "latencyMaxMs": 16.86,
+      "cpuMsPerCall": 9.49,
+      "serialProcessCpuMsPerCall": [8.14, 8.14, 8.28, 14.48, 8.1, 8.48, 8.8, 14.26, 8.02, 8.08],
+      "queriesPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "rowsPerCall": [1192, 1192, 1192, 1192, 1192, 1192, 1192, 1192, 1192, 1192],
+      "queryObservedSumMsPerCall": 9.65,
+      "poolWaitSumMsPerCall": 0.03,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "6596c75f3558",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 724,
+          "observedMsPerRequest": 4.08
+        },
+        {
+          "shape": "9aefe83db4fc",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 2.81
+        },
+        {
+          "shape": "661b2ef1b02c",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 468,
+          "observedMsPerRequest": 2.76
+        }
+      ]
+    },
+    {
+      "name": "students.list.page50",
+      "concurrency": 1,
+      "samples": 60,
+      "wallMs": 4093.1,
+      "callsPerSecond": 14.66,
+      "eventLoopUtilization": 0.66,
+      "memoryBefore": {
+        "rss": 338558976,
+        "heapTotal": 341917696,
+        "heapUsed": 299983744,
+        "external": 14732929,
+        "arrayBuffers": 6641391
+      },
+      "memoryAfter": {
+        "rss": 338001920,
+        "heapTotal": 271400960,
+        "heapUsed": 162062880,
+        "external": 13438251,
+        "arrayBuffers": 5346713
+      },
+      "latencyP50Ms": 65.88,
+      "latencyP95Ms": 91.31,
+      "latencyP99Ms": 145.37,
+      "latenciesMs": [
+        54.7, 63.73, 65.43, 64.39, 66.81, 91.31, 70.41, 63.65, 65.47, 49.72, 53.66, 72.54, 74.42,
+        60.25, 60.76, 68.3, 56.76, 56.02, 59.95, 98.82, 68.97, 65.88, 63.24, 61.11, 81.23, 145.37,
+        93.97, 66.67, 70.86, 54, 52.89, 54.84, 61.88, 55.2, 84.35, 75.93, 74.54, 67.65, 84.35,
+        68.75, 61.81, 55.4, 61.96, 65.22, 71.95, 71.47, 84.26, 88.55, 64.17, 66.06, 68.06, 78.71,
+        66.11, 54.96, 55.72, 66.96, 68.94, 52.68, 63.88, 56.07
+      ],
+      "outputHashCount": 1,
+      "outputHashes": ["15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"],
+      "latencyMaxMs": 145.37,
+      "cpuMsPerCall": 53.18,
+      "serialProcessCpuMsPerCall": [
+        44.43, 46.92, 53.13, 44.7, 57.7, 59, 58.23, 46.44, 48.11, 42.4, 41.08, 48.73, 53.61, 47.2,
+        52.51, 41.59, 42.24, 43.2, 49.21, 43.4, 50.18, 50.96, 51.25, 42.31, 54.09, 59.61, 59.24,
+        45.34, 53.28, 42.14, 47.01, 34.22, 46.71, 43.98, 163.56, 156.85, 60.87, 49.16, 74.65, 51.52,
+        64.34, 39.2, 54.67, 58.88, 54.41, 43.26, 56.25, 52.87, 51.36, 42.83, 53.69, 60.17, 51.78,
+        36.53, 41.73, 50.02, 50.67, 38.37, 46.86, 41.42
+      ],
+      "queriesPerCall": [
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27
+      ],
+      "rowsPerCall": [
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411,
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411,
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411,
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411
+      ],
+      "queryObservedSumMsPerCall": 108.18,
+      "poolWaitSumMsPerCall": 10.8,
+      "poolWaitP50Ms": 0.13,
+      "repeatedExactQueriesPerCall": [
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+      ],
+      "output": {
+        "total": 252,
+        "items": 50
+      },
+      "templates": [
+        {
+          "shape": "913a0942eaf2",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1514,
+          "observedMsPerRequest": 16.03
+        },
+        {
+          "shape": "3871c6d668dc",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 9.72
+        },
+        {
+          "shape": "fc14d37f1a8b",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 581,
+          "observedMsPerRequest": 8.01
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 3,
+          "rowsPerRequest": 3,
+          "observedMsPerRequest": 7.5
+        },
+        {
+          "shape": "f4c6e096a61f",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 195,
+          "observedMsPerRequest": 6.97
+        },
+        {
+          "shape": "cab690c0a3da",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 6.7
+        },
+        {
+          "shape": "60749691ee03",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 189,
+          "observedMsPerRequest": 6.25
+        },
+        {
+          "shape": "d8596b5ca10a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 92,
+          "observedMsPerRequest": 5.86
+        },
+        {
+          "shape": "adfd53d0bd5d",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 552,
+          "observedMsPerRequest": 5.78
+        },
+        {
+          "shape": "f66a66add1da",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 42,
+          "observedMsPerRequest": 3.61
+        },
+        {
+          "shape": "1d70e8a67146",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 3.47
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 50,
+          "observedMsPerRequest": 3.43
+        },
+        {
+          "shape": "1c1b63c4c118",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 46,
+          "observedMsPerRequest": 3.39
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 3.01
+        },
+        {
+          "shape": "cfb8fe988058",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.67
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 2.5
+        },
+        {
+          "shape": "004e3f5b254e",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 46,
+          "observedMsPerRequest": 2.48
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.1
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 2.09
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.8
+        },
+        {
+          "shape": "382339834279",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 34,
+          "observedMsPerRequest": 1.7
+        },
+        {
+          "shape": "281a27bf3fc9",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 17,
+          "observedMsPerRequest": 1.58
+        },
+        {
+          "shape": "6b2385b6ba57",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 17,
+          "observedMsPerRequest": 1.54
+        }
+      ]
+    },
+    {
+      "name": "students.list.page50",
+      "concurrency": 4,
+      "samples": 60,
+      "wallMs": 3734.35,
+      "callsPerSecond": 16.07,
+      "eventLoopUtilization": 0.8,
+      "memoryBefore": {
+        "rss": 338001920,
+        "heapTotal": 271400960,
+        "heapUsed": 163061848,
+        "external": 13438251,
+        "arrayBuffers": 5346713
+      },
+      "memoryAfter": {
+        "rss": 327811072,
+        "heapTotal": 371539968,
+        "heapUsed": 310146880,
+        "external": 13039743,
+        "arrayBuffers": 4629859
+      },
+      "latencyP50Ms": 223.41,
+      "latencyP95Ms": 529.57,
+      "latencyP99Ms": 619.76,
+      "latenciesMs": [
+        91.87, 136.12, 167.96, 200.77, 246.22, 250.85, 246.28, 232.65, 197.99, 195.8, 184.56,
+        210.23, 238.79, 209.12, 210.85, 197.16, 207.19, 216.54, 239.09, 240.54, 218.92, 310.8,
+        357.25, 320.24, 222.83, 216.66, 267.28, 233.85, 168.87, 236.1, 187.8, 201.18, 215.81,
+        211.41, 199.94, 273.35, 261.56, 187.36, 249.82, 259.18, 218.55, 217.52, 221.99, 222, 223.88,
+        228.69, 226.56, 215.8, 535.48, 529.57, 563.31, 619.76, 206.46, 276.72, 247.91, 262.66,
+        223.41, 159.71, 234.42, 236.69
+      ],
+      "outputHashCount": 1,
+      "outputHashes": ["15a10128c5d1c494dd8f5654095ebbe46f7f0de945082fa2e6f59be65f3bc732"],
+      "latencyMaxMs": 619.76,
+      "cpuMsPerCall": 54.01,
+      "serialProcessCpuMsPerCall": null,
+      "queriesPerCall": [
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27
+      ],
+      "rowsPerCall": [
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411,
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411,
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411,
+        3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411, 3411
+      ],
+      "queryObservedSumMsPerCall": 557.33,
+      "poolWaitSumMsPerCall": 312.09,
+      "poolWaitP50Ms": 6.38,
+      "repeatedExactQueriesPerCall": [
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+      ],
+      "output": {
+        "total": 252,
+        "items": 50
+      },
+      "templates": [
+        {
+          "shape": "3871c6d668dc",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 64.87
+        },
+        {
+          "shape": "913a0942eaf2",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1514,
+          "observedMsPerRequest": 50.04
+        },
+        {
+          "shape": "f4c6e096a61f",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 195,
+          "observedMsPerRequest": 49.96
+        },
+        {
+          "shape": "60749691ee03",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 189,
+          "observedMsPerRequest": 46.98
+        },
+        {
+          "shape": "adfd53d0bd5d",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 552,
+          "observedMsPerRequest": 38.04
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 3,
+          "rowsPerRequest": 3,
+          "observedMsPerRequest": 36.38
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 32.56
+        },
+        {
+          "shape": "1d70e8a67146",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 32.22
+        },
+        {
+          "shape": "1c1b63c4c118",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 46,
+          "observedMsPerRequest": 30.2
+        },
+        {
+          "shape": "fc14d37f1a8b",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 581,
+          "observedMsPerRequest": 27.58
+        },
+        {
+          "shape": "cab690c0a3da",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 22.41
+        },
+        {
+          "shape": "d8596b5ca10a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 92,
+          "observedMsPerRequest": 17.97
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 50,
+          "observedMsPerRequest": 13.74
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 13.16
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 13.05
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 11.93
+        },
+        {
+          "shape": "f66a66add1da",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 42,
+          "observedMsPerRequest": 11.22
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 10.81
+        },
+        {
+          "shape": "004e3f5b254e",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 46,
+          "observedMsPerRequest": 10.67
+        },
+        {
+          "shape": "cfb8fe988058",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 9.32
+        },
+        {
+          "shape": "382339834279",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 34,
+          "observedMsPerRequest": 5.04
+        },
+        {
+          "shape": "6b2385b6ba57",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 17,
+          "observedMsPerRequest": 4.88
+        },
+        {
+          "shape": "281a27bf3fc9",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 17,
+          "observedMsPerRequest": 4.31
+        }
+      ]
+    },
+    {
+      "name": "page50.pageRelations",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 133.19,
+      "callsPerSecond": 75.08,
+      "eventLoopUtilization": 0.43,
+      "memoryBefore": {
+        "rss": 328171520,
+        "heapTotal": 371539968,
+        "heapUsed": 311143080,
+        "external": 13039743,
+        "arrayBuffers": 4629859
+      },
+      "memoryAfter": {
+        "rss": 311164928,
+        "heapTotal": 371539968,
+        "heapUsed": 329109168,
+        "external": 13582531,
+        "arrayBuffers": 5490993
+      },
+      "latencyP50Ms": 12.82,
+      "latencyP95Ms": 16.42,
+      "latencyP99Ms": 16.42,
+      "latenciesMs": [16.42, 14.97, 12.13, 13.54, 14.38, 12.53, 12.59, 12.82, 11.76, 11.85],
+      "outputHashCount": 1,
+      "outputHashes": ["28f482b910c519ed1897c248c8ad6189530c65700f824f83bdc09bfa2845fecb"],
+      "latencyMaxMs": 16.42,
+      "cpuMsPerCall": 6.61,
+      "serialProcessCpuMsPerCall": [6.84, 5.82, 5.25, 5.36, 15.63, 5.44, 5.71, 5.27, 5.23, 5.35],
+      "queriesPerCall": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+      "rowsPerCall": [234, 234, 234, 234, 234, 234, 234, 234, 234, 234],
+      "queryObservedSumMsPerCall": 17.56,
+      "poolWaitSumMsPerCall": 0.39,
+      "poolWaitP50Ms": 0.05,
+      "repeatedExactQueriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "templates": [
+        {
+          "shape": "f66a66add1da",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 42,
+          "observedMsPerRequest": 3.12
+        },
+        {
+          "shape": "cfb8fe988058",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.96
+        },
+        {
+          "shape": "004e3f5b254e",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 46,
+          "observedMsPerRequest": 2.53
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.33
+        },
+        {
+          "shape": "382339834279",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 34,
+          "observedMsPerRequest": 1.95
+        },
+        {
+          "shape": "558d86da44c2",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 50,
+          "observedMsPerRequest": 1.8
+        },
+        {
+          "shape": "281a27bf3fc9",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 17,
+          "observedMsPerRequest": 1.49
+        },
+        {
+          "shape": "6b2385b6ba57",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 17,
+          "observedMsPerRequest": 1.38
+        }
+      ]
+    },
+    {
+      "name": "page50.tabCounts",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 20.05,
+      "callsPerSecond": 498.83,
+      "eventLoopUtilization": 0.46,
+      "memoryBefore": {
+        "rss": 311164928,
+        "heapTotal": 371539968,
+        "heapUsed": 329180560,
+        "external": 13582531,
+        "arrayBuffers": 5490993
+      },
+      "memoryAfter": {
+        "rss": 315801600,
+        "heapTotal": 375209984,
+        "heapUsed": 308755944,
+        "external": 12723701,
+        "arrayBuffers": 4632163
+      },
+      "latencyP50Ms": 1.8,
+      "latencyP95Ms": 3.78,
+      "latencyP99Ms": 3.78,
+      "latenciesMs": [3.78, 1.82, 1.8, 2.06, 1.66, 1.8, 1.68, 1.89, 1.76, 1.71],
+      "outputHashCount": 1,
+      "outputHashes": ["efc8359f5cdeac371c1e981a479439e08f35fa41c23716f590a62508f7991392"],
+      "latencyMaxMs": 3.78,
+      "cpuMsPerCall": 1.69,
+      "serialProcessCpuMsPerCall": [11.43, 0.7, 0.58, 0.81, 0.62, 0.59, 0.57, 0.53, 0.5, 0.53],
+      "queriesPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "rowsPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "queryObservedSumMsPerCall": 4.5,
+      "poolWaitSumMsPerCall": 0.18,
+      "poolWaitP50Ms": 0.06,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.64
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.45
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.41
+        }
+      ]
+    },
+    {
+      "name": "page50.header",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 12.64,
+      "callsPerSecond": 791.2,
+      "eventLoopUtilization": 0.36,
+      "memoryBefore": {
+        "rss": 315867136,
+        "heapTotal": 375209984,
+        "heapUsed": 309231480,
+        "external": 12723701,
+        "arrayBuffers": 4632163
+      },
+      "memoryAfter": {
+        "rss": 307855360,
+        "heapTotal": 375209984,
+        "heapUsed": 309804056,
+        "external": 12790847,
+        "arrayBuffers": 4699309
+      },
+      "latencyP50Ms": 1.19,
+      "latencyP95Ms": 1.72,
+      "latencyP99Ms": 1.72,
+      "latenciesMs": [1.4, 1.08, 1.19, 1.72, 1.13, 1.14, 1.24, 1.4, 1.18, 1.09],
+      "outputHashCount": 1,
+      "outputHashes": ["b6ef409c54891f623b99638ee1fef4310cd3557bc0e982caae795ff4c130c81e"],
+      "latencyMaxMs": 1.72,
+      "cpuMsPerCall": 0.59,
+      "serialProcessCpuMsPerCall": [1.12, 0.35, 1.38, 0.7, 0.33, 0.38, 0.4, 0.49, 0.4, 0.34],
+      "queriesPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "rowsPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "queryObservedSumMsPerCall": 1.96,
+      "poolWaitSumMsPerCall": 0.08,
+      "poolWaitP50Ms": 0.04,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.02
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.94
+        }
+      ]
+    },
+    {
+      "name": "page50.total",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 9.91,
+      "callsPerSecond": 1009.13,
+      "eventLoopUtilization": 0.23,
+      "memoryBefore": {
+        "rss": 307888128,
+        "heapTotal": 375209984,
+        "heapUsed": 309830440,
+        "external": 12790847,
+        "arrayBuffers": 4699309
+      },
+      "memoryAfter": {
+        "rss": 307904512,
+        "heapTotal": 375209984,
+        "heapUsed": 310338712,
+        "external": 12791657,
+        "arrayBuffers": 4700119
+      },
+      "latencyP50Ms": 0.99,
+      "latencyP95Ms": 1.1,
+      "latencyP99Ms": 1.1,
+      "latenciesMs": [0.95, 0.93, 1.04, 1.1, 1.02, 0.91, 0.87, 1.09, 0.99, 0.94],
+      "outputHashCount": 1,
+      "outputHashes": ["d6e5a20b30f87216b2c758f5e7a23c437dbc3dfa1ccb177c474de152bb0ef731"],
+      "latencyMaxMs": 1.1,
+      "cpuMsPerCall": 0.22,
+      "serialProcessCpuMsPerCall": [0.23, 0.19, 0.22, 0.24, 0.21, 0.19, 0.2, 0.24, 0.21, 0.21],
+      "queriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "rowsPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "queryObservedSumMsPerCall": 0.87,
+      "poolWaitSumMsPerCall": 0.01,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.87
+        }
+      ]
+    },
+    {
+      "name": "page50.pendingRegistration",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 30.99,
+      "callsPerSecond": 322.71,
+      "eventLoopUtilization": 0.16,
+      "memoryBefore": {
+        "rss": 307904512,
+        "heapTotal": 375209984,
+        "heapUsed": 310359024,
+        "external": 12791657,
+        "arrayBuffers": 4700119
+      },
+      "memoryAfter": {
+        "rss": 308117504,
+        "heapTotal": 375209984,
+        "heapUsed": 311828512,
+        "external": 12857773,
+        "arrayBuffers": 4766235
+      },
+      "latencyP50Ms": 3.12,
+      "latencyP95Ms": 3.59,
+      "latencyP99Ms": 3.59,
+      "latenciesMs": [3.59, 3.12, 3.08, 2.96, 3.17, 3.23, 3.06, 3.12, 3.03, 2.55],
+      "outputHashCount": 1,
+      "outputHashes": ["4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"],
+      "latencyMaxMs": 3.59,
+      "cpuMsPerCall": 0.55,
+      "serialProcessCpuMsPerCall": [0.6, 0.45, 0.42, 0.42, 0.46, 1.26, 0.54, 0.46, 0.43, 0.41],
+      "queriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "rowsPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "queryObservedSumMsPerCall": 2.79,
+      "poolWaitSumMsPerCall": 0.01,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "cab690c0a3da",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 2.79
+        }
+      ]
+    },
+    {
+      "name": "page50.finance",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 163.53,
+      "callsPerSecond": 61.15,
+      "eventLoopUtilization": 0.66,
+      "memoryBefore": {
+        "rss": 308150272,
+        "heapTotal": 375209984,
+        "heapUsed": 311848840,
+        "external": 12857773,
+        "arrayBuffers": 4766235
+      },
+      "memoryAfter": {
+        "rss": 314261504,
+        "heapTotal": 380715008,
+        "heapUsed": 324443680,
+        "external": 13594844,
+        "arrayBuffers": 5503306
+      },
+      "latencyP50Ms": 16.08,
+      "latencyP95Ms": 19.26,
+      "latencyP99Ms": 19.26,
+      "latenciesMs": [18.29, 19.26, 16.08, 16.2, 15.7, 15.11, 15.83, 15.59, 16.21, 15.16],
+      "outputHashCount": 1,
+      "outputHashes": ["979e5a6def8dd4c1e035c636248756b25ff33bd48fb6f14d030d3b83e3d65af9"],
+      "latencyMaxMs": 19.26,
+      "cpuMsPerCall": 11.98,
+      "serialProcessCpuMsPerCall": [
+        11.81, 11.49, 10.07, 10.04, 20.1, 10.02, 9.98, 10.04, 16.2, 9.97
+      ],
+      "queriesPerCall": [6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+      "rowsPerCall": [1074, 1074, 1074, 1074, 1074, 1074, 1074, 1074, 1074, 1074],
+      "queryObservedSumMsPerCall": 14.62,
+      "poolWaitSumMsPerCall": 0.67,
+      "poolWaitP50Ms": 0.12,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "f4c6e096a61f",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 195,
+          "observedMsPerRequest": 3.15
+        },
+        {
+          "shape": "60749691ee03",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 189,
+          "observedMsPerRequest": 2.85
+        },
+        {
+          "shape": "adfd53d0bd5d",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 552,
+          "observedMsPerRequest": 2.77
+        },
+        {
+          "shape": "1d70e8a67146",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 2
+        },
+        {
+          "shape": "1c1b63c4c118",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 46,
+          "observedMsPerRequest": 1.97
+        },
+        {
+          "shape": "d8596b5ca10a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 92,
+          "observedMsPerRequest": 1.88
+        }
+      ]
+    },
+    {
+      "name": "page50.attendance",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 267.16,
+      "callsPerSecond": 37.43,
+      "eventLoopUtilization": 0.57,
+      "memoryBefore": {
+        "rss": 314294272,
+        "heapTotal": 380715008,
+        "heapUsed": 324490528,
+        "external": 13594844,
+        "arrayBuffers": 5503306
+      },
+      "memoryAfter": {
+        "rss": 303857664,
+        "heapTotal": 389890048,
+        "heapUsed": 353368816,
+        "external": 15143166,
+        "arrayBuffers": 7051628
+      },
+      "latencyP50Ms": 26.4,
+      "latencyP95Ms": 30.07,
+      "latencyP99Ms": 30.07,
+      "latenciesMs": [26.22, 30.07, 26.19, 24.78, 26.4, 24.85, 25.32, 26.84, 27.93, 28.44],
+      "outputHashCount": 1,
+      "outputHashes": ["f2c59a95f1b2ffbeef0f17741637a8b44d910b37477befc5dac898f79b028b01"],
+      "latencyMaxMs": 30.07,
+      "cpuMsPerCall": 16.71,
+      "serialProcessCpuMsPerCall": [
+        15.11, 24.85, 13.4, 12.75, 21.2, 12.96, 13.19, 22.28, 15.34, 15.95
+      ],
+      "queriesPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "rowsPerCall": [2095, 2095, 2095, 2095, 2095, 2095, 2095, 2095, 2095, 2095],
+      "queryObservedSumMsPerCall": 15.53,
+      "poolWaitSumMsPerCall": 0.03,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "913a0942eaf2",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1514,
+          "observedMsPerRequest": 6.33
+        },
+        {
+          "shape": "3871c6d668dc",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 5.12
+        },
+        {
+          "shape": "fc14d37f1a8b",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 581,
+          "observedMsPerRequest": 4.07
+        }
+      ]
+    },
+    {
+      "name": "semester",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 7.51,
+      "callsPerSecond": 1331.21,
+      "eventLoopUtilization": 0.29,
+      "memoryBefore": {
+        "rss": 307822592,
+        "heapTotal": 393560064,
+        "heapUsed": 342796240,
+        "external": 14079556,
+        "arrayBuffers": 5988018
+      },
+      "memoryAfter": {
+        "rss": 307937280,
+        "heapTotal": 393560064,
+        "heapUsed": 343343920,
+        "external": 14082626,
+        "arrayBuffers": 5991088
+      },
+      "latencyP50Ms": 0.71,
+      "latencyP95Ms": 1.13,
+      "latencyP99Ms": 1.13,
+      "latenciesMs": [1.13, 0.8, 0.8, 0.7, 0.71, 0.76, 0.7, 0.63, 0.63, 0.6],
+      "outputHashCount": 1,
+      "outputHashes": ["0ba16948f895f12a4ed46c31e9226f92978e4cc7ac6451552d8d1ebbd278aaa3"],
+      "latencyMaxMs": 1.13,
+      "cpuMsPerCall": 0.21,
+      "serialProcessCpuMsPerCall": [0.43, 0.25, 0.2, 0.17, 0.19, 0.19, 0.18, 0.15, 0.15, 0.14],
+      "queriesPerCall": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "rowsPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "queryObservedSumMsPerCall": 0.63,
+      "poolWaitSumMsPerCall": 0.01,
+      "poolWaitP50Ms": 0.01,
+      "repeatedExactQueriesPerCall": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "templates": [
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 0.63
+        }
+      ]
+    },
+    {
+      "name": "search.synthetic",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 588.94,
+      "callsPerSecond": 16.98,
+      "eventLoopUtilization": 0.56,
+      "memoryBefore": {
+        "rss": 324403200,
+        "heapTotal": 397492224,
+        "heapUsed": 335214424,
+        "external": 15221726,
+        "arrayBuffers": 4629859
+      },
+      "memoryAfter": {
+        "rss": 333529088,
+        "heapTotal": 411648000,
+        "heapUsed": 357779360,
+        "external": 13843997,
+        "arrayBuffers": 5752459
+      },
+      "latencyP50Ms": 59.14,
+      "latencyP95Ms": 68.65,
+      "latencyP99Ms": 68.65,
+      "latenciesMs": [56.83, 59.14, 59.71, 56.71, 53.9, 68.65, 63.85, 67.75, 56.29, 45.85],
+      "outputHashCount": 1,
+      "outputHashes": ["9834c3b12c6c09df66c088a18c8dcae54942b8c167c8a757015de079f00aa98a"],
+      "latencyMaxMs": 68.65,
+      "cpuMsPerCall": 37.75,
+      "serialProcessCpuMsPerCall": [
+        46.36, 41.9, 29.98, 46.42, 31.48, 42.88, 33.38, 42.88, 29.57, 32.51
+      ],
+      "queriesPerCall": [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      "rowsPerCall": [2125, 2125, 2125, 2125, 2125, 2125, 2125, 2125, 2125, 2125],
+      "queryObservedSumMsPerCall": 130.27,
+      "poolWaitSumMsPerCall": 22.48,
+      "poolWaitP50Ms": 0.09,
+      "repeatedExactQueriesPerCall": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      "output": {
+        "total": 252,
+        "items": 25
+      },
+      "templates": [
+        {
+          "shape": "1c4feb5615b5",
+          "tables": ["Student", "Enrollment", "Class", "User", "EnrollmentAction"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 20.3
+        },
+        {
+          "shape": "0300f92b9383",
+          "tables": ["Student", "Enrollment", "Class", "User", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 25,
+          "observedMsPerRequest": 10.94
+        },
+        {
+          "shape": "6596c75f3558",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 724,
+          "observedMsPerRequest": 9.59
+        },
+        {
+          "shape": "306fa9c404c1",
+          "tables": ["Student", "Enrollment", "Class", "User", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 9.23
+        },
+        {
+          "shape": "0dd18b9c47f8",
+          "tables": ["Student", "Enrollment", "Class", "User", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 8.96
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 6.21
+        },
+        {
+          "shape": "67a6f4b51b0f",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 5.27
+        },
+        {
+          "shape": "661b2ef1b02c",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 468,
+          "observedMsPerRequest": 5.06
+        },
+        {
+          "shape": "9aefe83db4fc",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 5.06
+        },
+        {
+          "shape": "70baecd94b2a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 44,
+          "observedMsPerRequest": 5
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 4.06
+        },
+        {
+          "shape": "0abd6a3c491b",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 264,
+          "observedMsPerRequest": 3.97
+        },
+        {
+          "shape": "72216bb244d4",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 87,
+          "observedMsPerRequest": 3.68
+        },
+        {
+          "shape": "bf6690b992d8",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 21,
+          "observedMsPerRequest": 3.55
+        },
+        {
+          "shape": "0018b637e9d6",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 247,
+          "observedMsPerRequest": 3.44
+        },
+        {
+          "shape": "f01f20ad9db1",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 82,
+          "observedMsPerRequest": 3.35
+        },
+        {
+          "shape": "391812909458",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 3.01
+        },
+        {
+          "shape": "cbc2a4858fb6",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 2.67
+        },
+        {
+          "shape": "ab4b78411f7c",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 22,
+          "observedMsPerRequest": 2.51
+        },
+        {
+          "shape": "180dcf25ee10",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 2.3
+        },
+        {
+          "shape": "fd184ac9c1dd",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 17,
+          "observedMsPerRequest": 2.2
+        },
+        {
+          "shape": "0ed4d7f5dee3",
+          "tables": ["User"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 10,
+          "observedMsPerRequest": 2.1
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.89
+        },
+        {
+          "shape": "bf40bdf8ee74",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.63
+        },
+        {
+          "shape": "b138e3e92f90",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 28,
+          "observedMsPerRequest": 1.54
+        },
+        {
+          "shape": "6b5e4ac44141",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 14,
+          "observedMsPerRequest": 1.48
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.26
+        }
+      ]
+    },
+    {
+      "name": "filter.class",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 232.05,
+      "callsPerSecond": 43.09,
+      "eventLoopUtilization": 0.52,
+      "memoryBefore": {
+        "rss": 321814528,
+        "heapTotal": 411648000,
+        "heapUsed": 363614568,
+        "external": 14203994,
+        "arrayBuffers": 6112456
+      },
+      "memoryAfter": {
+        "rss": 324648960,
+        "heapTotal": 417415168,
+        "heapUsed": 374567888,
+        "external": 14076847,
+        "arrayBuffers": 5985309
+      },
+      "latencyP50Ms": 23.41,
+      "latencyP95Ms": 30.71,
+      "latencyP99Ms": 30.71,
+      "latenciesMs": [28.03, 30.71, 24.64, 21.06, 23, 24.4, 23.41, 18.56, 19.05, 19.03],
+      "outputHashCount": 1,
+      "outputHashes": ["143332d52899fc13c51b4e774093d96b6cf360001a1b94da5bb1d45b7d80b596"],
+      "latencyMaxMs": 30.71,
+      "cpuMsPerCall": 13.65,
+      "serialProcessCpuMsPerCall": [
+        13.48, 28.56, 12.03, 11.31, 11.35, 19.11, 10.32, 9.73, 10.47, 10.02
+      ],
+      "queriesPerCall": [27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+      "rowsPerCall": [784, 784, 784, 784, 784, 784, 784, 784, 784, 784],
+      "queryObservedSumMsPerCall": 51.65,
+      "poolWaitSumMsPerCall": 6.38,
+      "poolWaitP50Ms": 0.05,
+      "repeatedExactQueriesPerCall": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      "output": {
+        "total": 12,
+        "items": 12
+      },
+      "templates": [
+        {
+          "shape": "4929d78f8068",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 3.37
+        },
+        {
+          "shape": "49a06e86ae64",
+          "tables": ["Student", "Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 3.32
+        },
+        {
+          "shape": "4302332e1615",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 24,
+          "observedMsPerRequest": 3.17
+        },
+        {
+          "shape": "973ed8322352",
+          "tables": ["Student", "Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 3.12
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 2.99
+        },
+        {
+          "shape": "d14c35624c27",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 378,
+          "observedMsPerRequest": 2.86
+        },
+        {
+          "shape": "45dc5c9c5966",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 70,
+          "observedMsPerRequest": 2.75
+        },
+        {
+          "shape": "1171f818c9bd",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 2.66
+        },
+        {
+          "shape": "7fbccc98bcb9",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 2.62
+        },
+        {
+          "shape": "a5143e1eb3bb",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 71,
+          "observedMsPerRequest": 2.56
+        },
+        {
+          "shape": "c7d01be01772",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 144,
+          "observedMsPerRequest": 2.49
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 2.48
+        },
+        {
+          "shape": "c297fc4a4769",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 2.03
+        },
+        {
+          "shape": "0f176b860e7b",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 33,
+          "observedMsPerRequest": 1.85
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.75
+        },
+        {
+          "shape": "ff4eb83761d3",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.72
+        },
+        {
+          "shape": "4f9fd178e943",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.63
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.53
+        },
+        {
+          "shape": "26f1f69554b6",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 12,
+          "observedMsPerRequest": 1.52
+        },
+        {
+          "shape": "5ab5dff4f02b",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.39
+        },
+        {
+          "shape": "4f9836d0b2cf",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.01
+        },
+        {
+          "shape": "6f4530a1433d",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 0.96
+        },
+        {
+          "shape": "de1af1417978",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 0.87
+        }
+      ]
+    },
+    {
+      "name": "filter.teacher",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 305.26,
+      "callsPerSecond": 32.76,
+      "eventLoopUtilization": 0.6,
+      "memoryBefore": {
+        "rss": 329318400,
+        "heapTotal": 419774464,
+        "heapUsed": 362789272,
+        "external": 13529303,
+        "arrayBuffers": 5437765
+      },
+      "memoryAfter": {
+        "rss": 338526208,
+        "heapTotal": 431046656,
+        "heapUsed": 373717840,
+        "external": 13496535,
+        "arrayBuffers": 5404997
+      },
+      "latencyP50Ms": 30.84,
+      "latencyP95Ms": 31.83,
+      "latencyP99Ms": 31.83,
+      "latenciesMs": [30.84, 29.9, 31.55, 29.01, 30.09, 30.17, 31.17, 30.89, 31.83, 29.58],
+      "outputHashCount": 1,
+      "outputHashes": ["b6a850be878b2dd326d6a65cf9575b15f412cdd75b40ec654a1fbd975579c1cd"],
+      "latencyMaxMs": 31.83,
+      "cpuMsPerCall": 20.36,
+      "serialProcessCpuMsPerCall": [
+        17.58, 24.66, 17.03, 17.45, 24.15, 18.45, 23.61, 16.67, 16.68, 26.9
+      ],
+      "queriesPerCall": [33, 33, 33, 33, 33, 33, 33, 33, 33, 33],
+      "rowsPerCall": [1635, 1635, 1635, 1635, 1635, 1635, 1635, 1635, 1635, 1635],
+      "queryObservedSumMsPerCall": 55.99,
+      "poolWaitSumMsPerCall": 6.09,
+      "poolWaitP50Ms": 0.04,
+      "repeatedExactQueriesPerCall": [6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+      "output": {
+        "total": 38,
+        "items": 25
+      },
+      "templates": [
+        {
+          "shape": "fa1b81c3c3af",
+          "tables": ["MakeupCoverage", "PedagogicalAppointment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 4.61
+        },
+        {
+          "shape": "320e7af72f75",
+          "tables": ["Attendance"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 805,
+          "observedMsPerRequest": 4.51
+        },
+        {
+          "shape": "835fc83c5b32",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 300,
+          "observedMsPerRequest": 3.48
+        },
+        {
+          "shape": "67a6f4b51b0f",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 3.32
+        },
+        {
+          "shape": "2d965ba23c33",
+          "tables": ["ClassSession"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 136,
+          "observedMsPerRequest": 3.28
+        },
+        {
+          "shape": "26835f2e760c",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 100,
+          "observedMsPerRequest": 3.22
+        },
+        {
+          "shape": "cc6579c06029",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 103,
+          "observedMsPerRequest": 3
+        },
+        {
+          "shape": "70baecd94b2a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 50,
+          "observedMsPerRequest": 2.6
+        },
+        {
+          "shape": "f71d696c7238",
+          "tables": ["Student", "Enrollment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 2.43
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 2.41
+        },
+        {
+          "shape": "463c2386549c",
+          "tables": ["Student", "Enrollment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 25,
+          "observedMsPerRequest": 2.31
+        },
+        {
+          "shape": "5ab5dff4f02b",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 4,
+          "rowsPerRequest": 4,
+          "observedMsPerRequest": 2.28
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.91
+        },
+        {
+          "shape": "56bab66b1c8a",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.91
+        },
+        {
+          "shape": "8ad944dc136c",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 20,
+          "observedMsPerRequest": 1.76
+        },
+        {
+          "shape": "ba96a0d5eb9a",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 25,
+          "observedMsPerRequest": 1.53
+        },
+        {
+          "shape": "81b60cdd8ed6",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 25,
+          "observedMsPerRequest": 1.51
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.41
+        },
+        {
+          "shape": "57652400afa3",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.36
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.34
+        },
+        {
+          "shape": "95662c2eab3f",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 1.3
+        },
+        {
+          "shape": "16ac4f9b7387",
+          "tables": ["Class", "ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 1.01
+        },
+        {
+          "shape": "dd3b72dbe8b8",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 8,
+          "observedMsPerRequest": 0.79
+        },
+        {
+          "shape": "aa5f10fa222e",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 7,
+          "observedMsPerRequest": 0.76
+        },
+        {
+          "shape": "3ae3c8dff227",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 4,
+          "observedMsPerRequest": 0.73
+        },
+        {
+          "shape": "fb7906908c50",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 4,
+          "observedMsPerRequest": 0.7
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 0.51
+        }
+      ]
+    },
+    {
+      "name": "filter.inactive",
+      "concurrency": 1,
+      "samples": 10,
+      "wallMs": 121.63,
+      "callsPerSecond": 82.22,
+      "eventLoopUtilization": 0.38,
+      "memoryBefore": {
+        "rss": 338706432,
+        "heapTotal": 431046656,
+        "heapUsed": 375762464,
+        "external": 13567251,
+        "arrayBuffers": 5475713
+      },
+      "memoryAfter": {
+        "rss": 341557248,
+        "heapTotal": 433668096,
+        "heapUsed": 371623712,
+        "external": 12934103,
+        "arrayBuffers": 4842565
+      },
+      "latencyP50Ms": 12.38,
+      "latencyP95Ms": 13.97,
+      "latencyP99Ms": 13.97,
+      "latenciesMs": [11.18, 10.53, 11, 11.45, 10.73, 13.8, 12.67, 12.38, 13.97, 13.78],
+      "outputHashCount": 1,
+      "outputHashes": ["cc528728cb884ee8ca59c8b9c8f9a3f1ffc0783dde31f6e0a20eff2564307905"],
+      "latencyMaxMs": 13.97,
+      "cpuMsPerCall": 5.59,
+      "serialProcessCpuMsPerCall": [4, 3.99, 6.77, 4.75, 4.03, 4.07, 10.22, 6.22, 7.12, 4.64],
+      "queriesPerCall": [24, 24, 24, 24, 24, 24, 24, 24, 24, 24],
+      "rowsPerCall": [28, 28, 28, 28, 28, 28, 28, 28, 28, 28],
+      "queryObservedSumMsPerCall": 26.78,
+      "poolWaitSumMsPerCall": 4.14,
+      "poolWaitP50Ms": 0.04,
+      "repeatedExactQueriesPerCall": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "output": {
+        "total": 20,
+        "items": 20
+      },
+      "templates": [
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 3.35
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 2.22
+        },
+        {
+          "shape": "f04cacc7ad51",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 20,
+          "observedMsPerRequest": 2.01
+        },
+        {
+          "shape": "ae3a6868610f",
+          "tables": ["Student", "Enrollment", "Class", "Semester", "Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.98
+        },
+        {
+          "shape": "61a138a71a1a",
+          "tables": ["Order", "Contract", "OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.87
+        },
+        {
+          "shape": "3cf9f3784cd1",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.82
+        },
+        {
+          "shape": "11b8c224eef3",
+          "tables": ["Contract", "Order", "MaterialOrder"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.48
+        },
+        {
+          "shape": "8b2e2948c03d",
+          "tables": ["Enrollment", "EnrollmentAction"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.37
+        },
+        {
+          "shape": "ef6ed66182d0",
+          "tables": ["Student"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 1,
+          "observedMsPerRequest": 1.28
+        },
+        {
+          "shape": "2b69b3e169f2",
+          "tables": ["User"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.24
+        },
+        {
+          "shape": "3626a2273642",
+          "tables": ["TeacherProfile"],
+          "callsPerRequest": 2,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 1.17
+        },
+        {
+          "shape": "d11df88b2ab6",
+          "tables": ["Contract"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.98
+        },
+        {
+          "shape": "d1a23d1b3c89",
+          "tables": ["OrderBeneficiary"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.92
+        },
+        {
+          "shape": "f5a15aa4a7eb",
+          "tables": ["ClassScheduleSlot"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.91
+        },
+        {
+          "shape": "702da8674acd",
+          "tables": ["ClassTeacherAssignment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.87
+        },
+        {
+          "shape": "69a286a44d00",
+          "tables": ["Installment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.87
+        },
+        {
+          "shape": "cd6d9acc3ff7",
+          "tables": ["Semester"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 2,
+          "observedMsPerRequest": 0.62
+        },
+        {
+          "shape": "6c5fcf88df9a",
+          "tables": ["PaymentAllocation"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.62
+        },
+        {
+          "shape": "2bb57301e8dd",
+          "tables": ["InstallmentAdjustment"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.62
+        },
+        {
+          "shape": "c9332d745b12",
+          "tables": ["Class"],
+          "callsPerRequest": 1,
+          "rowsPerRequest": 0,
+          "observedMsPerRequest": 0.58
+        }
+      ]
+    }
+  ]
+}

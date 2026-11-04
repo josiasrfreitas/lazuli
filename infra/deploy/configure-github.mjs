@@ -45,11 +45,13 @@ try {
     const branches = JSON.parse(
       gh(["api", `repos/${repository}/environments/${name}/deployment-branch-policies`]),
     ).branch_policies;
+    const allowedBranches = name === "app-staging" ? ["main", "staging/*"] : ["main"];
     assert.ok(
-      branches.every((policy) => policy.name === "main" && policy.type === "branch"),
-      `Environment ${name} allows branches/tags other than main`,
+      branches.every((policy) => allowedBranches.includes(policy.name) && policy.type === "branch"),
+      `Environment ${name} allows unexpected branches/tags`,
     );
-    if (branches.length === 0)
+    for (const branch of allowedBranches) {
+      if (branches.some((policy) => policy.name === branch)) continue;
       gh(
         [
           "api",
@@ -59,8 +61,9 @@ try {
           "--input",
           "-",
         ],
-        JSON.stringify({ name: "main", type: "branch" }),
+        JSON.stringify({ name: branch, type: "branch" }),
       );
+    }
   }
   gh([
     "variable",
@@ -98,7 +101,7 @@ try {
     ["secret", "set", "PULUMI_BILLING_CONFIG", "--repo", repository],
     readFileSync(new URL("../pulumi/Pulumi.billing.yaml", import.meta.url), "utf8"),
   );
-  console.log("Configured GitHub environments (main only), role variables and encrypted secrets.");
+  console.log("Configured GitHub environments, role variables and encrypted secrets.");
 } catch {
   console.error(
     "GitHub bootstrap incomplete. Check automation outputs and existing environments privately; no secret values were logged.",

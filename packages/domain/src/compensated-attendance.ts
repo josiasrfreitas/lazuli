@@ -30,13 +30,26 @@ export function computeCompensatedAttendance(
     if (session.status === "ABSENT")
       compensatedMinutes += Math.min(minutes, Math.max(0, session.compensatedMinutes));
   }
-  const percent = heldMinutes > 0 ? (presentMinutes + compensatedMinutes) / heldMinutes : null;
-  return {
+  return attendanceProgressFromTotals({
     heldSessions: sessions.length,
     presentCount,
     heldMinutes,
     presentMinutes,
     compensatedMinutes,
+  });
+}
+
+/** Totals must already cap compensation at each absent session's duration. */
+export function attendanceProgressFromTotals(
+  totals: Pick<
+    AttendanceProgress,
+    "heldSessions" | "presentCount" | "heldMinutes" | "presentMinutes" | "compensatedMinutes"
+  >,
+): AttendanceProgress {
+  const { heldMinutes, presentMinutes, compensatedMinutes } = totals;
+  const percent = heldMinutes > 0 ? (presentMinutes + compensatedMinutes) / heldMinutes : null;
+  return {
+    ...totals,
     missingMinutes: heldMinutes - presentMinutes - compensatedMinutes,
     percent,
     flagged: percent !== null && percent < MIN_ATTENDANCE_PERCENT,

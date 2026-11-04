@@ -19,6 +19,10 @@ test -s /opt/lazuli/rds-ca.pem
 docker network inspect lazuli >/dev/null 2>&1 || docker network create lazuli >/dev/null
 
 if [[ "$mode" == prepare ]]; then
+  # Keep images used by running and rollback containers; reclaim older deploys before a new pull.
+  if ! docker image inspect "$image" >/dev/null 2>&1; then
+    docker image prune -a -f >/dev/null
+  fi
   aws ecr get-login-password | docker login --username AWS --password-stdin "${repository%%/*}" >/dev/null 2>&1
   docker pull "$image" >/dev/null
   prefix="/lazuli/$environment/runtime"
@@ -80,6 +84,7 @@ common=(--detach --network lazuli --restart unless-stopped --init --stop-timeout
 docker run "${common[@]}" --name lazuli-web --publish 127.0.0.1:3000:3000 \
   "$image" pnpm start:remote >/dev/null
 docker run "${common[@]}" --name lazuli-worker \
+  --env LAZULI_DB_POOL_MAX=2 \
   --env LAZULI_WORKER_READY_FILE=/tmp/lazuli-worker-ready \
   "$image" pnpm start:worker:remote >/dev/null
 healthy=false

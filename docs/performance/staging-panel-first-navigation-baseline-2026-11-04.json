@@ -1,0 +1,1155 @@
+{
+  "measuredAt": "2026-11-04T21:49:03.051Z",
+  "baseUrl": "https://staging.lazuli.fisklagarto.com.br",
+  "browserVersion": "156.0.8078.80",
+  "benchmarkProtocol": "in-page-paint-marks-v2",
+  "profile": "first",
+  "method": "fresh authenticated context per sample, source fully loaded before first navigation; sidebar DOM click to in-page paint marks after two animation frames; desktop 1440x900; network idle before each click; sequential",
+  "samplesPerRoute": 20,
+  "routes": [
+    {
+      "path": "/",
+      "start": "/alunos",
+      "ready": "section[aria-label=\"Indicadores da escola\"]:not([aria-busy=\"true\"])",
+      "chart": "svg.recharts-surface",
+      "pending": "section[aria-labelledby=\"home-pending-title\"]"
+    }
+  ],
+  "summary": [
+    {
+      "route": "/",
+      "n": 20,
+      "p50": 979.9,
+      "p95": 1173.9,
+      "max": 1479.3,
+      "chartMounted": {
+        "n": 20,
+        "p50": 980,
+        "p95": 1184,
+        "max": 1479.5
+      },
+      "pendingReady": {
+        "n": 20,
+        "p50": 979.9,
+        "p95": 1173.9,
+        "max": 1457.2
+      },
+      "fullReady": {
+        "n": 20,
+        "p50": 980,
+        "p95": 1184,
+        "max": 1479.5
+      }
+    }
+  ],
+  "samples": [
+    {
+      "route": "/",
+      "durationMs": 895.7999999523163,
+      "chartMountedMs": 897.7999999523163,
+      "pendingReadyMs": 895.7999999523163,
+      "fullReadyMs": 897.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 146.8,
+          "endMs": 155.4,
+          "durationMs": 153,
+          "transferBytes": 1789
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 364.1,
+          "responseStartMs": 807.5,
+          "endMs": 808.7,
+          "durationMs": 444.6,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 895.5,
+          "responseStartMs": 1040.9,
+          "endMs": 1053.9,
+          "durationMs": 158.4,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 895.6,
+          "responseStartMs": 1045.3,
+          "endMs": 1054.2,
+          "durationMs": 158.6,
+          "transferBytes": 477
+        },
+        {
+          "kind": "rsc",
+          "startMs": 895.4,
+          "responseStartMs": 1050.2,
+          "endMs": 1054.6,
+          "durationMs": 159.2,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1055.1,
+          "responseStartMs": 1199.2,
+          "endMs": 1215.1,
+          "durationMs": 160,
+          "transferBytes": 1296
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1055.4,
+          "responseStartMs": 1205.1,
+          "endMs": 1215.3,
+          "durationMs": 159.9,
+          "transferBytes": 1291
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1054.6,
+          "responseStartMs": 1211.3,
+          "endMs": 1215.4,
+          "durationMs": 160.8,
+          "transferBytes": 1285
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 315.9
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 804,
+      "chartMountedMs": 804.1000001430511,
+      "pendingReadyMs": 799.5,
+      "fullReadyMs": 804.1000001430511,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 152.4,
+          "endMs": 161.7,
+          "durationMs": 158.9,
+          "transferBytes": 1789
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 368.6,
+          "responseStartMs": 729.2,
+          "endMs": 731,
+          "durationMs": 362.4,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 320.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 842,
+      "chartMountedMs": 842.1000001430511,
+      "pendingReadyMs": 832.5,
+      "fullReadyMs": 842.1000001430511,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.2,
+          "responseStartMs": 144.9,
+          "endMs": 157.1,
+          "durationMs": 154.9,
+          "transferBytes": 1790
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 373.1,
+          "responseStartMs": 712.2,
+          "endMs": 713.8,
+          "durationMs": 340.7,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 320
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 78,
+        "maxMs": 78
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 809.2999999523163,
+      "chartMountedMs": 809.4000000953674,
+      "pendingReadyMs": 804.6000001430511,
+      "fullReadyMs": 809.4000000953674,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 150.2,
+          "endMs": 157.8,
+          "durationMs": 155.3,
+          "transferBytes": 1788
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 364,
+          "responseStartMs": 730.6,
+          "endMs": 734.9,
+          "durationMs": 370.9,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 319.8
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 979.8999998569489,
+      "chartMountedMs": 980,
+      "pendingReadyMs": 979.8999998569489,
+      "fullReadyMs": 980,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 149.7,
+          "endMs": 158.9,
+          "durationMs": 156.6,
+          "transferBytes": 1789
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 494.9,
+          "responseStartMs": 908.5,
+          "endMs": 910.8,
+          "durationMs": 415.9,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 979.8,
+          "responseStartMs": 1132.9,
+          "endMs": 1139.1,
+          "durationMs": 159.3,
+          "transferBytes": 477
+        },
+        {
+          "kind": "rsc",
+          "startMs": 979.6,
+          "responseStartMs": 1128.4,
+          "endMs": 1139.2,
+          "durationMs": 159.6,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 979.6,
+          "responseStartMs": 1138.9,
+          "endMs": 1139.3,
+          "durationMs": 159.7,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1140.1,
+          "responseStartMs": 1290.8,
+          "endMs": 1299.9,
+          "durationMs": 159.8,
+          "transferBytes": 1289
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1140.4,
+          "responseStartMs": 1295.9,
+          "endMs": 1300,
+          "durationMs": 159.6,
+          "transferBytes": 1284
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1139.8,
+          "responseStartMs": 1285.7,
+          "endMs": 1300.1,
+          "durationMs": 160.3,
+          "transferBytes": 1298
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 450.1
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 775.9000000953674,
+      "chartMountedMs": 775.9000000953674,
+      "pendingReadyMs": 775.9000000953674,
+      "fullReadyMs": 775.9000000953674,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 148,
+          "endMs": 156.5,
+          "durationMs": 153.8,
+          "transferBytes": 1789
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 359.1,
+          "responseStartMs": 707.5,
+          "endMs": 707.8,
+          "durationMs": 348.7,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 313.8
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 840.9000000953674,
+      "chartMountedMs": 844.5999999046326,
+      "pendingReadyMs": 840.7999999523163,
+      "fullReadyMs": 844.5999999046326,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.2,
+          "responseStartMs": 149.4,
+          "endMs": 196.8,
+          "durationMs": 193.6,
+          "transferBytes": 1790
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 427.5,
+          "responseStartMs": 760.1,
+          "endMs": 760.4,
+          "durationMs": 332.9,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 357.1
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 53,
+        "maxMs": 53
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 974.5,
+      "chartMountedMs": 976.5999999046326,
+      "pendingReadyMs": 974.5,
+      "fullReadyMs": 976.5999999046326,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 6.2,
+          "responseStartMs": 158.2,
+          "endMs": 168.5,
+          "durationMs": 162.3,
+          "transferBytes": 1789
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 541.4,
+          "responseStartMs": 898.8,
+          "endMs": 899.8,
+          "durationMs": 358.4,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 450.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1111.7999999523163,
+      "chartMountedMs": 1112,
+      "pendingReadyMs": 1093.2999999523163,
+      "fullReadyMs": 1112,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 13.9,
+          "responseStartMs": 186.5,
+          "endMs": 192.3,
+          "durationMs": 178.4,
+          "transferBytes": 1788
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 601.4,
+          "responseStartMs": 926.3,
+          "endMs": 927.2,
+          "durationMs": 325.8,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1113.5,
+          "responseStartMs": 1284.7,
+          "endMs": 1294.5,
+          "durationMs": 181,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1113.2,
+          "responseStartMs": 1283.9,
+          "endMs": 1294.9,
+          "durationMs": 181.7,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1113.6,
+          "responseStartMs": 1294,
+          "endMs": 1295.3,
+          "durationMs": 181.7,
+          "transferBytes": 477
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1296.7,
+          "responseStartMs": 1447.3,
+          "endMs": 1449.7,
+          "durationMs": 153,
+          "transferBytes": 1291
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1362.1,
+          "responseStartMs": 1530.3,
+          "endMs": 1532.4,
+          "durationMs": 170.3,
+          "transferBytes": 1284
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1369.5,
+          "responseStartMs": 1523.2,
+          "endMs": 1534,
+          "durationMs": 164.5,
+          "transferBytes": 1297
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 487.3
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 105,
+        "maxMs": 105
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 862.8999998569489,
+      "chartMountedMs": 863.0999999046326,
+      "pendingReadyMs": 855.0999999046326,
+      "fullReadyMs": 863.0999999046326,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 147.7,
+          "endMs": 162.4,
+          "durationMs": 159.7,
+          "transferBytes": 1788
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 381.6,
+          "responseStartMs": 747,
+          "endMs": 747.5,
+          "durationMs": 365.9,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 323.1
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 74,
+        "maxMs": 74
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 821.8999998569489,
+      "chartMountedMs": 826.6999998092651,
+      "pendingReadyMs": 821.8999998569489,
+      "fullReadyMs": 826.6999998092651,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.5,
+          "responseStartMs": 149.7,
+          "endMs": 159.5,
+          "durationMs": 156,
+          "transferBytes": 1790
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 406.1,
+          "responseStartMs": 734.9,
+          "endMs": 735.4,
+          "durationMs": 329.3,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 319.6
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 59,
+        "maxMs": 59
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1076.2000000476837,
+      "chartMountedMs": 1076.3999998569489,
+      "pendingReadyMs": 1066.2999999523163,
+      "fullReadyMs": 1076.3999998569489,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 6,
+          "responseStartMs": 161.1,
+          "endMs": 171.8,
+          "durationMs": 165.8,
+          "transferBytes": 1787
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 561.9,
+          "responseStartMs": 922,
+          "endMs": 922.8,
+          "durationMs": 360.9,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 457.9
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 84,
+        "maxMs": 84
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1111.9000000953674,
+      "chartMountedMs": 1112.2000000476837,
+      "pendingReadyMs": 1102.2999999523163,
+      "fullReadyMs": 1112.2000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 17,
+          "responseStartMs": 171.5,
+          "endMs": 181.6,
+          "durationMs": 164.6,
+          "transferBytes": 1788
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 580.5,
+          "responseStartMs": 907.7,
+          "endMs": 911.1,
+          "durationMs": 330.6,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1115,
+          "responseStartMs": 1274.2,
+          "endMs": 1280.4,
+          "durationMs": 165.4,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1115.1,
+          "responseStartMs": 1279.7,
+          "endMs": 1280.9,
+          "durationMs": 165.8,
+          "transferBytes": 477
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1114.8,
+          "responseStartMs": 1278.4,
+          "endMs": 1281,
+          "durationMs": 166.2,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1284.2,
+          "responseStartMs": 1436.6,
+          "endMs": 1444.5,
+          "durationMs": 160.3,
+          "transferBytes": 1291
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1283.2,
+          "responseStartMs": 1432.5,
+          "endMs": 1447,
+          "durationMs": 163.8,
+          "transferBytes": 1284
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1284.8,
+          "responseStartMs": 1442.4,
+          "endMs": 1447.7,
+          "durationMs": 162.9,
+          "transferBytes": 1296
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 460.7
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 129,
+        "maxMs": 129
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1071.2000000476837,
+      "chartMountedMs": 1071.2999999523163,
+      "pendingReadyMs": 1063.2000000476837,
+      "fullReadyMs": 1071.2999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 14.4,
+          "responseStartMs": 164.1,
+          "endMs": 173,
+          "durationMs": 158.6,
+          "transferBytes": 1787
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 554.3,
+          "responseStartMs": 884,
+          "endMs": 886.6,
+          "durationMs": 332.3,
+          "transferBytes": 18063
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 453.6
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 112,
+        "maxMs": 112
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1068.5999999046326,
+      "chartMountedMs": 1081.5,
+      "pendingReadyMs": 1068.5,
+      "fullReadyMs": 1081.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 11.6,
+          "responseStartMs": 162.7,
+          "endMs": 174.5,
+          "durationMs": 162.9,
+          "transferBytes": 1790
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 557.3,
+          "responseStartMs": 885.1,
+          "endMs": 886,
+          "durationMs": 328.7,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1074.4,
+          "responseStartMs": 1219.6,
+          "endMs": 1235,
+          "durationMs": 160.6,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1074.6,
+          "responseStartMs": 1223.4,
+          "endMs": 1235.5,
+          "durationMs": 160.9,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1074.8,
+          "responseStartMs": 1228.6,
+          "endMs": 1235.8,
+          "durationMs": 161,
+          "transferBytes": 477
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 451.5
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 121,
+        "maxMs": 121
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1101.8999998569489,
+      "chartMountedMs": 1114.2000000476837,
+      "pendingReadyMs": 1101.8999998569489,
+      "fullReadyMs": 1114.2000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 9.1,
+          "responseStartMs": 170.9,
+          "endMs": 179.9,
+          "durationMs": 170.8,
+          "transferBytes": 1789
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 584.4,
+          "responseStartMs": 916.6,
+          "endMs": 918.4,
+          "durationMs": 334,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1107.4,
+          "responseStartMs": 1253.2,
+          "endMs": 1262.6,
+          "durationMs": 155.2,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1107.1,
+          "responseStartMs": 1257,
+          "endMs": 1262.9,
+          "durationMs": 155.8,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1107.6,
+          "responseStartMs": 1262.1,
+          "endMs": 1263.3,
+          "durationMs": 155.7,
+          "transferBytes": 477
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1264.1,
+          "responseStartMs": 1410.4,
+          "endMs": 1423.9,
+          "durationMs": 159.8,
+          "transferBytes": 1285
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1265,
+          "responseStartMs": 1416.3,
+          "endMs": 1424.8,
+          "durationMs": 159.8,
+          "transferBytes": 1292
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1269.6,
+          "responseStartMs": 1420.4,
+          "endMs": 1425.7,
+          "durationMs": 156.1,
+          "transferBytes": 1295
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 474
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 121,
+        "maxMs": 121
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1173.9000000953674,
+      "chartMountedMs": 1184,
+      "pendingReadyMs": 1173.9000000953674,
+      "fullReadyMs": 1184,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 14.4,
+          "responseStartMs": 167.7,
+          "endMs": 179.9,
+          "durationMs": 165.5,
+          "transferBytes": 1790
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 592.9,
+          "responseStartMs": 965,
+          "endMs": 971,
+          "durationMs": 378.1,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1181.9,
+          "responseStartMs": 1332.4,
+          "endMs": 1342.1,
+          "durationMs": 160.2,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1181.6,
+          "responseStartMs": 1339.1,
+          "endMs": 1342.4,
+          "durationMs": 160.8,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1182.1,
+          "responseStartMs": 1341.3,
+          "endMs": 1342.7,
+          "durationMs": 160.6,
+          "transferBytes": 477
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 468.7
+      },
+      "longTasks": {
+        "count": 2,
+        "totalMs": 176,
+        "maxMs": 126
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1152.9000000953674,
+      "chartMountedMs": 1163.9000000953674,
+      "pendingReadyMs": 1152.9000000953674,
+      "fullReadyMs": 1163.9000000953674,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 12.7,
+          "responseStartMs": 173.7,
+          "endMs": 188.6,
+          "durationMs": 175.9,
+          "transferBytes": 1787
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 612.4,
+          "responseStartMs": 950.1,
+          "endMs": 951,
+          "durationMs": 338.6,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1158.6,
+          "responseStartMs": 1311.6,
+          "endMs": 1314.9,
+          "durationMs": 156.3,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1158.9,
+          "responseStartMs": 1305.1,
+          "endMs": 1315.2,
+          "durationMs": 156.3,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1159,
+          "responseStartMs": 1308.3,
+          "endMs": 1316,
+          "durationMs": 157,
+          "transferBytes": 477
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 483.6
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 126,
+        "maxMs": 126
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1014.1999998092651,
+      "chartMountedMs": 1033.6999998092651,
+      "pendingReadyMs": 1014.1999998092651,
+      "fullReadyMs": 1033.6999998092651,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 15.9,
+          "responseStartMs": 178.1,
+          "endMs": 216.3,
+          "durationMs": 200.4,
+          "transferBytes": 1788
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 502.7,
+          "responseStartMs": 835.1,
+          "endMs": 835.9,
+          "durationMs": 333.2,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1019.4,
+          "responseStartMs": 1167.7,
+          "endMs": 1176.5,
+          "durationMs": 157.1,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1019.6,
+          "responseStartMs": 1170.4,
+          "endMs": 1177.7,
+          "durationMs": 158.1,
+          "transferBytes": 477
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1019.4,
+          "responseStartMs": 1175.5,
+          "endMs": 1178.4,
+          "durationMs": 159,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1180.6,
+          "responseStartMs": 1329,
+          "endMs": 1337,
+          "durationMs": 156.4,
+          "transferBytes": 1295
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1181.4,
+          "responseStartMs": 1334.1,
+          "endMs": 1338.6,
+          "durationMs": 157.2,
+          "transferBytes": 1291
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1178.6,
+          "responseStartMs": 1324.8,
+          "endMs": 1339.2,
+          "durationMs": 160.6,
+          "transferBytes": 1285
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 380.2
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 109,
+        "maxMs": 109
+      }
+    },
+    {
+      "route": "/",
+      "durationMs": 1479.2999999523163,
+      "chartMountedMs": 1479.5,
+      "pendingReadyMs": 1457.2000000476837,
+      "fullReadyMs": 1479.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 18.7,
+          "responseStartMs": 174.5,
+          "endMs": 187.9,
+          "durationMs": 169.2,
+          "transferBytes": 1789
+        },
+        {
+          "kind": "/api/trpc/dashboard.pendingLessonSummaries,dashboard.home,dashboard.business",
+          "startMs": 804.8,
+          "responseStartMs": 1238.2,
+          "endMs": 1240.8,
+          "durationMs": 436,
+          "transferBytes": 18063
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1481.7,
+          "responseStartMs": 1627.9,
+          "endMs": 1637.2,
+          "durationMs": 155.5,
+          "transferBytes": 478
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1481.9,
+          "responseStartMs": 1633.3,
+          "endMs": 1637.6,
+          "durationMs": 155.7,
+          "transferBytes": 473
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1482.1,
+          "responseStartMs": 1636.7,
+          "endMs": 1637.8,
+          "durationMs": 155.7,
+          "transferBytes": 477
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1938.9,
+          "responseStartMs": 2086,
+          "endMs": 2088.3,
+          "durationMs": 149.4,
+          "transferBytes": 1291
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1955,
+          "responseStartMs": 2099.7,
+          "endMs": 2109,
+          "durationMs": 154,
+          "transferBytes": 1285
+        },
+        {
+          "kind": "rsc",
+          "startMs": 1956,
+          "responseStartMs": 2106.5,
+          "endMs": 2224.3,
+          "durationMs": 268.3,
+          "transferBytes": 1299
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 144407,
+        "lastResponseMs": 623.7
+      },
+      "longTasks": {
+        "count": 4,
+        "totalMs": 316,
+        "maxMs": 132
+      }
+    }
+  ]
+}

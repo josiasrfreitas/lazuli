@@ -165,10 +165,16 @@ type StudentsListQueryInput = Pick<
 export function useStudentFilterOptions(
   kind: "class" | "teacher",
   search: string,
+  initial?: { data: Array<{ id: string; label: string }>; updatedAt: number },
 ): QueryResult<Array<{ id: string; label: string }>> {
   return trpc.students.listFilterOptions.useQuery(
     { kind, search },
-    { enabled: kind === "class" || search.trim().length > 0 },
+    {
+      enabled: kind === "class" || search.trim().length > 0,
+      ...(kind === "class" && search === "" && initial
+        ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt }
+        : {}),
+    },
   );
 }
 
@@ -266,7 +272,10 @@ export function useCreateStudent(handlers: CreateStudentHandlers): CreateStudent
 }
 
 /** Previous rows stay on screen while a page or filter change is in flight. */
-export function useStudentsList(filters: StudentsListQueryInput): StudentsListQuery {
+export function useStudentsList(
+  filters: StudentsListQueryInput,
+  initial?: { data: StudentListOutput; updatedAt: number },
+): StudentsListQuery {
   return trpc.students.list.useQuery(
     {
       page: filters.page,
@@ -279,6 +288,9 @@ export function useStudentsList(filters: StudentsListQueryInput): StudentsListQu
       ...(filters.registeredFrom ? { registeredFrom: filters.registeredFrom } : {}),
       ...(filters.registeredTo ? { registeredTo: filters.registeredTo } : {}),
     },
-    { placeholderData: keepPreviousData },
+    {
+      placeholderData: keepPreviousData,
+      ...(initial ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt } : {}),
+    },
   );
 }

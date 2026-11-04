@@ -1,0 +1,544 @@
+{
+  "schema": "lazuli.students-list-probes.v1",
+  "source": "Supplementary local read-only samples3 query probe and separate Intl + V8 profile capture; not an additional optimization",
+  "historicalResponseEquivalence": [
+    {
+      "pageSize": 10,
+      "matchesHistoricalFullResponseSha256": true
+    },
+    {
+      "pageSize": 25,
+      "matchesHistoricalFullResponseSha256": true
+    },
+    {
+      "pageSize": 50,
+      "matchesHistoricalFullResponseSha256": true
+    }
+  ],
+  "exactDuplicates": [
+    {
+      "name": "students.list.page10",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 3
+        },
+        {
+          "shape": "d0662e4fcce7",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "students.list.page10",
+      "concurrency": 4,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 3
+        },
+        {
+          "shape": "d0662e4fcce7",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "page10.pageRelations",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "d0662e4fcce7",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "students.list.page25",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 3
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "students.list.page25",
+      "concurrency": 4,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 3
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "page25.pageRelations",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "students.list.page50",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 3
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "students.list.page50",
+      "concurrency": 4,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 3
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "page50.pageRelations",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "search.synthetic",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "1c4feb5615b5",
+          "tables": ["Student", "Enrollment", "Class", "User", "EnrollmentAction"],
+          "calls": 2
+        },
+        {
+          "shape": "8b891f4bf7b6",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "filter.class",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 2
+        },
+        {
+          "shape": "4f9fd178e943",
+          "tables": ["User"],
+          "calls": 2
+        },
+        {
+          "shape": "5ab5dff4f02b",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "filter.teacher",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "57652400afa3",
+          "tables": ["User"],
+          "calls": 2
+        },
+        {
+          "shape": "5ab5dff4f02b",
+          "tables": ["TeacherProfile"],
+          "calls": 4
+        },
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 2
+        },
+        {
+          "shape": "95662c2eab3f",
+          "tables": ["User"],
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "name": "filter.inactive",
+      "concurrency": 1,
+      "groups": [
+        {
+          "shape": "34e8dd182b13",
+          "tables": ["Student"],
+          "calls": 2
+        },
+        {
+          "shape": "91f9221834b8",
+          "tables": ["Student"],
+          "calls": 2
+        },
+        {
+          "shape": "2b69b3e169f2",
+          "tables": ["User"],
+          "calls": 2
+        },
+        {
+          "shape": "3626a2273642",
+          "tables": ["TeacherProfile"],
+          "calls": 2
+        }
+      ]
+    }
+  ],
+  "cpuProfile": {
+    "samples": 2138,
+    "elapsedMs": 2798.34,
+    "sampledMs": 2797.54,
+    "categories": [
+      {
+        "category": "idle",
+        "sampledMs": 989.65,
+        "percent": 35.38
+      },
+      {
+        "category": "database-client-other",
+        "sampledMs": 961,
+        "percent": 34.35
+      },
+      {
+        "category": "other",
+        "sampledMs": 500.74,
+        "percent": 17.9
+      },
+      {
+        "category": "date-parts-ledger",
+        "sampledMs": 176.76,
+        "percent": 6.32
+      },
+      {
+        "category": "gc",
+        "sampledMs": 88.37,
+        "percent": 3.16
+      },
+      {
+        "category": "ledger-other",
+        "sampledMs": 44.61,
+        "percent": 1.59
+      },
+      {
+        "category": "date-parts-other",
+        "sampledMs": 36.41,
+        "percent": 1.3
+      }
+    ],
+    "topInclusive": [
+      {
+        "function": "studentOverdueTotals",
+        "file": "packages/api/src/finance/internal/student-balances.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 0,
+          "percent": 0
+        },
+        "inclusive": {
+          "sampledMs": 228.84,
+          "percent": 8.18
+        }
+      },
+      {
+        "function": "(anonymous)",
+        "file": "packages/api/src/finance/internal/student-balances.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 2.51,
+          "percent": 0.09
+        },
+        "inclusive": {
+          "sampledMs": 226.33,
+          "percent": 8.09
+        }
+      },
+      {
+        "function": "sumOverdueCents",
+        "file": "packages/api/src/finance/internal/student-balances.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 2.44,
+          "percent": 0.09
+        },
+        "inclusive": {
+          "sampledMs": 223.82,
+          "percent": 8
+        }
+      },
+      {
+        "function": "deriveInstallmentLedger",
+        "file": "packages/domain/src/finance-ledger.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 2.39,
+          "percent": 0.09
+        },
+        "inclusive": {
+          "sampledMs": 221.38,
+          "percent": 7.91
+        }
+      },
+      {
+        "function": "saoPauloDateOnly",
+        "file": "packages/domain/src/session-time.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 1.27,
+          "percent": 0.05
+        },
+        "inclusive": {
+          "sampledMs": 214.45,
+          "percent": 7.67
+        }
+      },
+      {
+        "function": "localDateTimeParts",
+        "file": "packages/domain/src/session-time.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 8.7,
+          "percent": 0.31
+        },
+        "inclusive": {
+          "sampledMs": 213.17,
+          "percent": 7.62
+        }
+      },
+      {
+        "function": "computeEnrollmentsPercentInWindow",
+        "file": "packages/db/src/attendance-percent.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 31,
+          "percent": 1.11
+        },
+        "inclusive": {
+          "sampledMs": 129.46,
+          "percent": 4.63
+        }
+      },
+      {
+        "function": "groupSessionsByClass",
+        "file": "packages/db/src/attendance-percent.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 73,
+          "percent": 2.61
+        },
+        "inclusive": {
+          "sampledMs": 95.95,
+          "percent": 3.43
+        }
+      },
+      {
+        "function": "buildRows",
+        "file": "packages/api/src/students/list.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 0,
+          "percent": 0
+        },
+        "inclusive": {
+          "sampledMs": 61.32,
+          "percent": 2.19
+        }
+      },
+      {
+        "function": "(anonymous)",
+        "file": "packages/api/src/students/list.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 0,
+          "percent": 0
+        },
+        "inclusive": {
+          "sampledMs": 53.82,
+          "percent": 1.92
+        }
+      },
+      {
+        "function": "toEnrollmentFacts",
+        "file": "packages/api/src/students/list.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 1.25,
+          "percent": 0.04
+        },
+        "inclusive": {
+          "sampledMs": 35,
+          "percent": 1.25
+        }
+      },
+      {
+        "function": "toDateOnly",
+        "file": "packages/domain/src/finance-ledger.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 27.55,
+          "percent": 0.98
+        },
+        "inclusive": {
+          "sampledMs": 27.55,
+          "percent": 0.98
+        }
+      },
+      {
+        "function": "teachingMinutes",
+        "file": "packages/domain/src/teacher-schedule.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 22.95,
+          "percent": 0.82
+        },
+        "inclusive": {
+          "sampledMs": 22.95,
+          "percent": 0.82
+        }
+      },
+      {
+        "function": "isMinorInSaoPaulo",
+        "file": "packages/api/src/students/date-rules.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 1.26,
+          "percent": 0.04
+        },
+        "inclusive": {
+          "sampledMs": 18.82,
+          "percent": 0.67
+        }
+      },
+      {
+        "function": "adultCutoffDateOnly",
+        "file": "packages/api/src/students/date-rules.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 0,
+          "percent": 0
+        },
+        "inclusive": {
+          "sampledMs": 17.56,
+          "percent": 0.63
+        }
+      },
+      {
+        "function": "__name",
+        "file": "packages/domain/src/session-time.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 8.79,
+          "percent": 0.31
+        },
+        "inclusive": {
+          "sampledMs": 17.38,
+          "percent": 0.62
+        }
+      },
+      {
+        "function": "listStudents",
+        "file": "packages/api/src/students/list.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 1.15,
+          "percent": 0.04
+        },
+        "inclusive": {
+          "sampledMs": 13.42,
+          "percent": 0.48
+        }
+      },
+      {
+        "function": "dateOnlyUtcMilliseconds",
+        "file": "packages/domain/src/finance-ledger.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 13.4,
+          "percent": 0.48
+        },
+        "inclusive": {
+          "sampledMs": 13.4,
+          "percent": 0.48
+        }
+      },
+      {
+        "function": "calendarDayDifference",
+        "file": "packages/domain/src/finance-ledger.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 0,
+          "percent": 0
+        },
+        "inclusive": {
+          "sampledMs": 13.4,
+          "percent": 0.48
+        }
+      },
+      {
+        "function": "toScheduleLabel",
+        "file": "packages/api/src/students/list-query.ts",
+        "line": 1,
+        "self": {
+          "sampledMs": 0,
+          "percent": 0
+        },
+        "inclusive": {
+          "sampledMs": 8.6,
+          "percent": 0.31
+        }
+      }
+    ]
+  },
+  "profileLimits": "Profile covers60 extra serial page50 calls with Intl observer and SHA256/query instrumentation; includes idle, profiler and harness cost. Percentages are sampled wall time, not exclusive product CPU percentages. TSX source lines are not original source lines.",
+  "hostLimits": "Coordinator observed8GB host,8.5GB swap and memory pressure after stopped Docker builds. No concurrent intentional benchmark/build ran during collection; OS compression/swap, GC and warmup remain confounders."
+}

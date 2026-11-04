@@ -75,6 +75,7 @@ export async function studentsWithPendingRegistration(
   },
 ): Promise<Set<string>> {
   const { ids, now } = options;
+  if (ids.length === 0) return new Set();
 
   const rows = await database.student.findMany({
     where: {

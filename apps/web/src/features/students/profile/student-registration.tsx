@@ -3,11 +3,10 @@
 import { useState, type ReactElement } from "react";
 import type { StudentProfile } from "./logic";
 import type { RegistrationEditTarget } from "./registration-editor";
-import { RegistrationFactsLoading, RegistrationFactsSections } from "./student-contact";
+import { RegistrationFactsSections } from "./student-contact";
 import { RegistrationEditDialog } from "./registration-edit-dialog";
-import { RegistrationDocuments, RegistrationDocumentsLoading } from "./registration-documents";
+import { RegistrationDocuments } from "./registration-documents";
 import styles from "./student-overview.module.css";
-import loading from "./student-loading.module.css";
 
 export function StudentRegistrationSection({
   profile,
@@ -39,19 +38,6 @@ export function StudentRegistrationSection({
           onClose={() => setEditing(null)}
         />
       )}
-    </div>
-  );
-}
-
-export function StudentRegistrationLoading(): ReactElement {
-  return (
-    <div className={styles.registration} aria-busy="true" aria-label="Carregando cadastro do aluno">
-      <div className={`${styles.registrationFacts} ${loading.surface}`}>
-        <RegistrationFactsLoading />
-      </div>
-      <div className={styles.registrationDocuments}>
-        <RegistrationDocumentsLoading />
-      </div>
     </div>
   );
 }

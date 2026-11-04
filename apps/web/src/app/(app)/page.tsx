@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createCaller, createTRPCContext } from "@lazuli/api";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { userAgent } from "next/server";
@@ -7,7 +8,7 @@ import type { ReactNode } from "react";
 import { getStaffIdentity } from "@lazuli/auth/server";
 import { EmptyState } from "@lazuli/ui";
 
-import { AdminHome } from "~/features/admin-home/home";
+import { AdminHome, type InitialDashboardData } from "~/features/admin-home/home";
 
 import { homeHrefFor } from "~/components/app-shell/nav-items";
 import { experienceActivationHref } from "~/lib/staff-experience";
@@ -37,7 +38,36 @@ export default async function HomePage({
 
   if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") {
     const params = await searchParams;
-    return <AdminHome name={identity.name} arriving={params.entrada === "1"} />;
+    const caller = createCaller(
+      await createTRPCContext({ session: { user: { email: identity.email } } }),
+    );
+    const [home, business, pendingLessons] = await Promise.all([
+      caller.dashboard.home().then(
+        (data) => ({ data, updatedAt: Date.now() }),
+        (): undefined => undefined,
+      ),
+      caller.dashboard.business().then(
+        (data) => ({ data, updatedAt: Date.now() }),
+        (): undefined => undefined,
+      ),
+      caller.dashboard.pendingLessonSummaries().then(
+        (data) => ({ data, updatedAt: Date.now() }),
+        (): undefined => undefined,
+      ),
+    ]);
+    const initial: InitialDashboardData = {
+      ...(home ? { home } : {}),
+      ...(business ? { business } : {}),
+      ...(pendingLessons ? { pendingLessons } : {}),
+    };
+    return (
+      <AdminHome
+        name={identity.name}
+        canViewFinance
+        arriving={params.entrada === "1"}
+        initial={initial}
+      />
+    );
   }
 
   const home = homeHrefFor(identity.role);

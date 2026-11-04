@@ -1,21 +1,56 @@
 import type { Prisma } from "@lazuli/db";
 import { sessionEndInstant } from "@lazuli/domain";
-import {
-  recordSessionInclude,
-  responsibleTeacher,
-  timeOnly,
-  type RecordSession,
-} from "../class-records/data.js";
+import { responsibleTeacher, timeOnly } from "../class-records/data.js";
+import { loadTeacherIdentities, type TeacherIdentity } from "../teachers/identity-data.js";
+import { responsibilitySelect } from "../teachers/responsibility.js";
 import { dateOnly, endedWhere } from "./home-model.js";
 import { pendingClassRecordCutoff } from "../class-records/pending-policy.js";
 
-type Database = {
+const pendingSessionSelect = {
+  id: true,
+  classId: true,
+  date: true,
+  startTime: true,
+  endTime: true,
+  scheduleSlotId: true,
+  responsibilityFrozenAt: true,
+  usualTeacherId: true,
+  attendanceConfirmedAt: true,
+  class: {
+    select: {
+      ...responsibilitySelect,
+      teacher: false,
+      teacherAssignments: {
+        ...responsibilitySelect.teacherAssignments,
+        select: { id: true, effectiveDate: true, teacherId: true },
+      },
+      scheduleType: true,
+      sharedStage: { select: { name: true } },
+      substitutions: {
+        where: { revokedAt: null, deletedAt: null },
+        orderBy: { recordedAt: "desc" },
+        select: {
+          teacherId: true,
+          date: true,
+          scheduleSlotId: true,
+          classSessionId: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.ClassSessionSelect;
+type LoadedPendingSession = Prisma.ClassSessionGetPayload<{ select: typeof pendingSessionSelect }>;
+type ResponsibleClass = Parameters<typeof responsibleTeacher>[0]["class"];
+type PendingSession = Omit<LoadedPendingSession, "class"> & {
+  class: ResponsibleClass & Pick<LoadedPendingSession["class"], "scheduleType" | "sharedStage">;
+};
+type Database = Parameters<typeof loadTeacherIdentities>[0] & {
   classSession: {
     findMany: (args: {
       where: Prisma.ClassSessionWhereInput;
       orderBy: Prisma.ClassSessionOrderByWithRelationInput[];
-      include: typeof recordSessionInclude;
-    }) => Promise<RecordSession[]>;
+      select: typeof pendingSessionSelect;
+    }) => Promise<LoadedPendingSession[]>;
   };
 };
 
@@ -40,24 +75,15 @@ type TeacherLessons = {
   low: number;
   lessons: PendingLesson[];
 };
+type TeacherLessonSummary = Omit<TeacherLessons, "lessons"> & { total: number };
 
 /** A class record atomically confirms attendance, required content and completion. */
 export async function readPendingLessons(database: Database, now: Date): Promise<TeacherLessons[]> {
-  const rows = await database.classSession.findMany({
-    where: {
-      deletedAt: null,
-      status: { not: "CANCELLED" },
-      classRecord: null,
-      class: { deletedAt: null },
-      ...endedWhere(pendingClassRecordCutoff(now)),
-    },
-    orderBy: [{ date: "asc" }, { endTime: "asc" }, { id: "asc" }],
-    include: recordSessionInclude,
-  });
+  const rows = await loadPendingLessonRows(database, now);
   const teachers = new Map<string | null, TeacherLessons>();
   for (const row of rows) {
     const ageDays = Math.floor((now.getTime() - sessionEndInstant(row).getTime()) / DAY_MS);
-    const teacher = responsibleTeacher(row);
+    const teacher = responsibleTeacher({ ...row, classRecord: null });
     const teacherId = teacher?.id ?? null;
     const group: TeacherLessons = teachers.get(teacherId) ?? {
       teacherId,
@@ -85,12 +111,36 @@ export async function readPendingLessons(database: Database, now: Date): Promise
   return [...teachers.values()].toSorted(compareTeachers);
 }
 
-function pendingClassName(row: RecordSession): string {
+/** The closed disclosures need counts, not every lesson's detail payload. */
+export async function readPendingLessonSummaries(
+  database: Database,
+  now: Date,
+): Promise<TeacherLessonSummary[]> {
+  return (await readPendingLessons(database, now)).map(({ lessons, ...teacher }) => ({
+    ...teacher,
+    total: lessons.length,
+  }));
+}
+
+export async function readPendingLessonPage(
+  database: Database,
+  now: Date,
+  input: { teacherId: string | null; page: number; pageSize: number },
+): Promise<{ total: number; lessons: PendingLesson[] }> {
+  const teacher = (await readPendingLessons(database, now)).find(
+    (group) => group.teacherId === input.teacherId,
+  );
+  const lessons = teacher?.lessons ?? [];
+  const start = (input.page - 1) * input.pageSize;
+  return { total: lessons.length, lessons: lessons.slice(start, start + input.pageSize) };
+}
+
+function pendingClassName(row: PendingSession): string {
   if (row.class.scheduleType === "PERSONALIZED") return "PPT";
   return row.class.sharedStage?.name ?? "Sem estágio";
 }
 
-function pendingMissing(row: RecordSession): string[] {
+function pendingMissing(row: PendingSession): string[] {
   return row.attendanceConfirmedAt ? ["progresso"] : ["chamada", "progresso"];
 }
 
@@ -102,4 +152,48 @@ function compareTeachers(left: TeacherLessons, right: TeacherLessons): number {
     ) ||
     left.teacherName.localeCompare(right.teacherName, "pt-BR")
   );
+}
+
+async function loadPendingLessonRows(database: Database, now: Date): Promise<PendingSession[]> {
+  const rows = await database.classSession.findMany({
+    where: {
+      deletedAt: null,
+      status: { not: "CANCELLED" },
+      classRecord: null,
+      class: { deletedAt: null },
+      ...endedWhere(pendingClassRecordCutoff(now)),
+    },
+    orderBy: [{ date: "asc" }, { endTime: "asc" }, { id: "asc" }],
+    select: pendingSessionSelect,
+  });
+  const classes = new Map(rows.map((row) => [row.classId, row.class]));
+  const teachers = await loadTeacherIdentities(
+    database,
+    [...classes.values()].flatMap((row) => [
+      row.teacherId,
+      ...row.teacherAssignments.map((item) => item.teacherId),
+      ...row.substitutions.map((item) => item.teacherId),
+    ]),
+  );
+  const hydrated = new Map(
+    [...classes].map(([id, row]) => [id, hydratePendingClass(row, teachers)]),
+  );
+  return rows.map((row) => ({ ...row, class: hydrated.get(row.classId)! }));
+}
+function hydratePendingClass(
+  row: LoadedPendingSession["class"],
+  teachers: Map<string, TeacherIdentity>,
+): PendingSession["class"] {
+  return {
+    ...row,
+    teacher: teachers.get(row.teacherId)!,
+    teacherAssignments: row.teacherAssignments.map((item) => ({
+      ...item,
+      teacher: teachers.get(item.teacherId)!,
+    })),
+    substitutions: row.substitutions.map((item) => ({
+      ...item,
+      teacher: teachers.get(item.teacherId)!,
+    })),
+  };
 }

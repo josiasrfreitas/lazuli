@@ -1,0 +1,1213 @@
+{
+  "schema": "lazuli.receivables-residual-diagnosis.v1",
+  "businessDate": "2026-11-03",
+  "dataset": "local-2026-11-03",
+  "runtime": {
+    "node": "v26.3.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "financialSnapshotEqual": true,
+  "method": {
+    "samplesPerConcurrency": 20,
+    "poolMax": 4,
+    "warmupCalls": 2,
+    "concurrencies": [1, 4],
+    "order": ["baseline-a", "observe", "reuse", "baseline-b"],
+    "cpuSampling": false,
+    "note": "Only the measured runs use the Intl probe. The separate five-call serial profile restores the original constructor."
+  },
+  "captures": [
+    {
+      "label": "baseline-a",
+      "source": "lazuli-receivables-confirm-baseline-a.json",
+      "startedAt": "2026-11-03T18:59:58.818Z",
+      "instrumentation": "none",
+      "runs": [
+        {
+          "concurrency": 1,
+          "latencyMs": {
+            "n": 20,
+            "p50": 394.23,
+            "p99": 769.25,
+            "max": 769.25,
+            "mean": 448
+          },
+          "wallMs": 8960.86,
+          "cpuMs": 8541.99,
+          "cpuMsPerCall": 427.1,
+          "callsPerSecond": 2.23,
+          "samplesMs": [
+            684.28, 769.25, 597.86, 382.51, 394.23, 386.78, 633.33, 424.08, 353.34, 374.92, 353.31,
+            362.95, 413.46, 366.64, 375.89, 384.69, 434.57, 458.42, 410.1, 399.31
+          ]
+        },
+        {
+          "concurrency": 4,
+          "latencyMs": {
+            "n": 20,
+            "p50": 1970.34,
+            "p99": 2899.83,
+            "max": 2899.83,
+            "mean": 1952.21
+          },
+          "wallMs": 10474.37,
+          "cpuMs": 9820.06,
+          "cpuMsPerCall": 491,
+          "callsPerSecond": 1.91,
+          "samplesMs": [
+            669.52, 1218.04, 1375.17, 1852.01, 2078.74, 1970.34, 2320.28, 1879.82, 2899.83, 2513,
+            2304.35, 2742.53, 1208.52, 1562.65, 1943.8, 1890.11, 2106.03, 2084.66, 2122.64, 2302.22
+          ]
+        }
+      ],
+      "unmodifiedSerialQueryCount": {
+        "n": 5,
+        "p50": 11,
+        "p99": 11,
+        "max": 11,
+        "mean": 11
+      }
+    },
+    {
+      "label": "observe",
+      "source": "lazuli-receivables-confirm-observe.json",
+      "startedAt": "2026-11-03T19:00:30.856Z",
+      "instrumentation": "Intl observe + event loop/pool hooks",
+      "runs": [
+        {
+          "concurrency": 1,
+          "latencyMs": {
+            "n": 20,
+            "p50": 510.72,
+            "p99": 826.09,
+            "max": 826.09,
+            "mean": 550.32
+          },
+          "wallMs": 11007.51,
+          "cpuMs": 10569.03,
+          "cpuMsPerCall": 528.45,
+          "callsPerSecond": 1.82,
+          "samplesMs": [
+            482.69, 399.47, 510.72, 799.95, 729.88, 752.48, 826.09, 543.53, 542.32, 381.96, 402.54,
+            627.27, 501.18, 459.02, 653.3, 550.03, 403.92, 380.78, 586.09, 473.2
+          ],
+          "diagnostics": {
+            "concurrency": 1,
+            "elapsedMs": 11008.25,
+            "intl": {
+              "mode": "observe",
+              "constructorCalls": 105620,
+              "cacheHits": 0,
+              "distinctConfigurations": 1,
+              "constructorMs": 6675.1
+            },
+            "eventLoop": {
+              "utilization": 92.88,
+              "activeMs": 10224.46,
+              "idleMs": 783.75,
+              "delayP50Ms": 13.25,
+              "delayP99Ms": 298.84,
+              "delayMaxMs": 341.05
+            },
+            "poolAcquisitionMs": {
+              "n": 220,
+              "p50": 0.08,
+              "p99": 0.55,
+              "sum": 38.57
+            },
+            "saturatedAcquisitions": 0,
+            "queryObservedWallMs": {
+              "n": 220,
+              "p50": 6.47,
+              "p99": 62.66,
+              "sum": 2538.17
+            },
+            "tables": [
+              {
+                "table": "Installment",
+                "calls": 20,
+                "rows": 52800,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 15.01,
+                  "p99": 59.78,
+                  "sum": 360.06
+                }
+              },
+              {
+                "table": "Order",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 7.92,
+                  "p99": 55.62,
+                  "sum": 262.29
+                }
+              },
+              {
+                "table": "Payer",
+                "calls": 40,
+                "rows": 4100,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 3.28,
+                  "p99": 36.21,
+                  "sum": 268.73
+                }
+              },
+              {
+                "table": "OrderBeneficiary",
+                "calls": 20,
+                "rows": 0,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 3.46,
+                  "p99": 48.63,
+                  "sum": 128.71
+                }
+              },
+              {
+                "table": "Contract",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 3.7,
+                  "p99": 12.93,
+                  "sum": 104.52
+                }
+              },
+              {
+                "table": "Student",
+                "calls": 40,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 3.44,
+                  "p99": 35.71,
+                  "sum": 334.8
+                }
+              },
+              {
+                "table": "InstallmentAdjustment",
+                "calls": 20,
+                "rows": 17860,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 27.4,
+                  "p99": 127.92,
+                  "sum": 642.54
+                }
+              },
+              {
+                "table": "PaymentAllocation",
+                "calls": 40,
+                "rows": 18120,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 7.99,
+                  "p99": 65.5,
+                  "sum": 436.52
+                }
+              }
+            ]
+          }
+        },
+        {
+          "concurrency": 4,
+          "latencyMs": {
+            "n": 20,
+            "p50": 2111.62,
+            "p99": 3646.44,
+            "max": 3646.44,
+            "mean": 2052.19
+          },
+          "wallMs": 10535.57,
+          "cpuMs": 10481.49,
+          "cpuMsPerCall": 524.07,
+          "callsPerSecond": 1.9,
+          "samplesMs": [
+            485.23, 1363.39, 1551.46, 2124.44, 2301.01, 2143.13, 1546.09, 2274.29, 1117.45, 1106.78,
+            2364.86, 2336.59, 3282.35, 2948.21, 2098.8, 3646.44, 2062.73, 1895.78, 2283.14, 2111.62
+          ],
+          "diagnostics": {
+            "concurrency": 4,
+            "elapsedMs": 10535.72,
+            "intl": {
+              "mode": "observe",
+              "constructorCalls": 105620,
+              "cacheHits": 0,
+              "distinctConfigurations": 1,
+              "constructorMs": 6817.42
+            },
+            "eventLoop": {
+              "utilization": 99.68,
+              "activeMs": 10502.45,
+              "idleMs": 33.29,
+              "delayP50Ms": 52.79,
+              "delayP99Ms": 661.13,
+              "delayMaxMs": 815.79
+            },
+            "poolAcquisitionMs": {
+              "n": 220,
+              "p50": 3.15,
+              "p99": 465.58,
+              "sum": 6105.94
+            },
+            "saturatedAcquisitions": 128,
+            "queryObservedWallMs": {
+              "n": 220,
+              "p50": 57.31,
+              "p99": 800.02,
+              "sum": 40556.4
+            },
+            "tables": [
+              {
+                "table": "Installment",
+                "calls": 20,
+                "rows": 52800,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 155.16,
+                  "p99": 763.86,
+                  "sum": 5601.76
+                }
+              },
+              {
+                "table": "Order",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 113.18,
+                  "p99": 649.38,
+                  "sum": 3734.34
+                }
+              },
+              {
+                "table": "Payer",
+                "calls": 40,
+                "rows": 4100,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 28.57,
+                  "p99": 691.6,
+                  "sum": 4297.77
+                }
+              },
+              {
+                "table": "OrderBeneficiary",
+                "calls": 20,
+                "rows": 0,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 28.21,
+                  "p99": 691.04,
+                  "sum": 2198.94
+                }
+              },
+              {
+                "table": "Contract",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 27.9,
+                  "p99": 687.26,
+                  "sum": 2080.37
+                }
+              },
+              {
+                "table": "Student",
+                "calls": 40,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 45.65,
+                  "p99": 707.11,
+                  "sum": 4751.69
+                }
+              },
+              {
+                "table": "InstallmentAdjustment",
+                "calls": 20,
+                "rows": 17860,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 164.44,
+                  "p99": 496.56,
+                  "sum": 3642.47
+                }
+              },
+              {
+                "table": "PaymentAllocation",
+                "calls": 40,
+                "rows": 18120,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 340.51,
+                  "p99": 1171.35,
+                  "sum": 14249.06
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "unmodifiedSerialQueryCount": {
+        "n": 5,
+        "p50": 11,
+        "p99": 11,
+        "max": 11,
+        "mean": 11
+      }
+    },
+    {
+      "label": "reuse",
+      "source": "lazuli-receivables-confirm-reuse.json",
+      "startedAt": "2026-11-03T19:01:03.060Z",
+      "instrumentation": "Intl formatter reuse + event loop/pool hooks",
+      "runs": [
+        {
+          "concurrency": 1,
+          "latencyMs": {
+            "n": 20,
+            "p50": 97.66,
+            "p99": 234.97,
+            "max": 234.97,
+            "mean": 107.3
+          },
+          "wallMs": 2146.51,
+          "cpuMs": 1935.65,
+          "cpuMsPerCall": 96.78,
+          "callsPerSecond": 9.32,
+          "samplesMs": [
+            125.71, 234.97, 102.4, 101.17, 99.51, 96.67, 115.07, 108.55, 99.13, 99.26, 104.49,
+            95.09, 94.44, 96.92, 97.66, 95.55, 96.47, 93.13, 94.64, 95.21
+          ],
+          "diagnostics": {
+            "concurrency": 1,
+            "elapsedMs": 2147.1,
+            "intl": {
+              "mode": "reuse-formatters",
+              "constructorCalls": 105620,
+              "cacheHits": 105619,
+              "distinctConfigurations": 1,
+              "constructorMs": 0.17
+            },
+            "eventLoop": {
+              "utilization": 72.84,
+              "activeMs": 1563.83,
+              "idleMs": 583.22,
+              "delayP50Ms": 16.2,
+              "delayP99Ms": 33.39,
+              "delayMaxMs": 35.06
+            },
+            "poolAcquisitionMs": {
+              "n": 220,
+              "p50": 0.03,
+              "p99": 0.21,
+              "sum": 26.7
+            },
+            "saturatedAcquisitions": 0,
+            "queryObservedWallMs": {
+              "n": 220,
+              "p50": 2.29,
+              "p99": 15.62,
+              "sum": 918.69
+            },
+            "tables": [
+              {
+                "table": "Installment",
+                "calls": 20,
+                "rows": 52800,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 4.93,
+                  "p99": 14.02,
+                  "sum": 114.14
+                }
+              },
+              {
+                "table": "Order",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 5.51,
+                  "p99": 9.95,
+                  "sum": 116.37
+                }
+              },
+              {
+                "table": "Payer",
+                "calls": 40,
+                "rows": 4100,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 1.7,
+                  "p99": 4.48,
+                  "sum": 76.08
+                }
+              },
+              {
+                "table": "OrderBeneficiary",
+                "calls": 20,
+                "rows": 0,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 1.77,
+                  "p99": 3.44,
+                  "sum": 41.43
+                }
+              },
+              {
+                "table": "Contract",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 2.13,
+                  "p99": 3.74,
+                  "sum": 46.06
+                }
+              },
+              {
+                "table": "Student",
+                "calls": 40,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 1.45,
+                  "p99": 15.62,
+                  "sum": 72.12
+                }
+              },
+              {
+                "table": "InstallmentAdjustment",
+                "calls": 20,
+                "rows": 17860,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 7.11,
+                  "p99": 115.93,
+                  "sum": 262.29
+                }
+              },
+              {
+                "table": "PaymentAllocation",
+                "calls": 40,
+                "rows": 18120,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 4.89,
+                  "p99": 13.12,
+                  "sum": 190.2
+                }
+              }
+            ]
+          }
+        },
+        {
+          "concurrency": 4,
+          "latencyMs": {
+            "n": 20,
+            "p50": 283.45,
+            "p99": 388.06,
+            "max": 388.06,
+            "mean": 296.52
+          },
+          "wallMs": 1530.51,
+          "cpuMs": 1699.1,
+          "cpuMsPerCall": 84.95,
+          "callsPerSecond": 13.07,
+          "samplesMs": [
+            283.45, 298.49, 314.34, 346.62, 276.6, 265.18, 301.16, 302.29, 245.55, 264.53, 277.62,
+            346.13, 267.62, 344.2, 273.58, 313.47, 234.48, 388.06, 256.77, 330.28
+          ],
+          "diagnostics": {
+            "concurrency": 4,
+            "elapsedMs": 1530.6,
+            "intl": {
+              "mode": "reuse-formatters",
+              "constructorCalls": 105620,
+              "cacheHits": 105619,
+              "distinctConfigurations": 1,
+              "constructorMs": 0.28
+            },
+            "eventLoop": {
+              "utilization": 97.44,
+              "activeMs": 1491.48,
+              "idleMs": 39.12,
+              "delayP50Ms": 25.61,
+              "delayP99Ms": 55.35,
+              "delayMaxMs": 74.91
+            },
+            "poolAcquisitionMs": {
+              "n": 220,
+              "p50": 1.1,
+              "p99": 30.91,
+              "sum": 1102.19
+            },
+            "saturatedAcquisitions": 132,
+            "queryObservedWallMs": {
+              "n": 220,
+              "p50": 25.98,
+              "p99": 82.57,
+              "sum": 6283.68
+            },
+            "tables": [
+              {
+                "table": "Installment",
+                "calls": 20,
+                "rows": 52800,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 25.98,
+                  "p99": 67.47,
+                  "sum": 576.6
+                }
+              },
+              {
+                "table": "Order",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 26.27,
+                  "p99": 69.42,
+                  "sum": 619.48
+                }
+              },
+              {
+                "table": "Contract",
+                "calls": 20,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 20.44,
+                  "p99": 53.87,
+                  "sum": 390.19
+                }
+              },
+              {
+                "table": "OrderBeneficiary",
+                "calls": 20,
+                "rows": 0,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 22.85,
+                  "p99": 82.57,
+                  "sum": 469.8
+                }
+              },
+              {
+                "table": "Payer",
+                "calls": 40,
+                "rows": 4100,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 21.56,
+                  "p99": 74.64,
+                  "sum": 860.06
+                }
+              },
+              {
+                "table": "Student",
+                "calls": 40,
+                "rows": 4400,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 22.53,
+                  "p99": 74.92,
+                  "sum": 1014.2
+                }
+              },
+              {
+                "table": "InstallmentAdjustment",
+                "calls": 20,
+                "rows": 17860,
+                "durationMs": {
+                  "n": 20,
+                  "p50": 31.2,
+                  "p99": 96.99,
+                  "sum": 797.52
+                }
+              },
+              {
+                "table": "PaymentAllocation",
+                "calls": 40,
+                "rows": 18120,
+                "durationMs": {
+                  "n": 40,
+                  "p50": 39.8,
+                  "p99": 105.06,
+                  "sum": 1555.83
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "unmodifiedSerialQueryCount": {
+        "n": 5,
+        "p50": 11,
+        "p99": 11,
+        "max": 11,
+        "mean": 11
+      }
+    },
+    {
+      "label": "baseline-b",
+      "source": "lazuli-receivables-confirm-baseline-b.json",
+      "startedAt": "2026-11-03T19:01:14.289Z",
+      "instrumentation": "none",
+      "runs": [
+        {
+          "concurrency": 1,
+          "latencyMs": {
+            "n": 20,
+            "p50": 369.02,
+            "p99": 417,
+            "max": 417,
+            "mean": 371.83
+          },
+          "wallMs": 7437.35,
+          "cpuMs": 7398.04,
+          "cpuMsPerCall": 369.9,
+          "callsPerSecond": 2.69,
+          "samplesMs": [
+            408.95, 369.79, 368.08, 360.09, 374.42, 349.2, 376.72, 356.92, 417, 349.89, 376.26,
+            356.41, 376.89, 354.14, 383.14, 353.58, 369.02, 397.64, 368.64, 369.9
+          ]
+        },
+        {
+          "concurrency": 4,
+          "latencyMs": {
+            "n": 20,
+            "p50": 1467.77,
+            "p99": 1740.91,
+            "max": 1740.91,
+            "mean": 1416.04
+          },
+          "wallMs": 7636.14,
+          "cpuMs": 7688.05,
+          "cpuMsPerCall": 384.4,
+          "callsPerSecond": 2.62,
+          "samplesMs": [
+            459.6, 941.42, 1370.49, 1514.41, 1700.8, 1740.91, 1470.28, 1674.32, 1443.45, 1254.78,
+            1435.85, 1501.31, 1404.03, 1438.79, 1451.82, 1467.77, 1529.31, 1509.23, 1534.23, 1478.1
+          ]
+        }
+      ],
+      "unmodifiedSerialQueryCount": {
+        "n": 5,
+        "p50": 11,
+        "p99": 11,
+        "max": 11,
+        "mean": 11
+      }
+    }
+  ],
+  "earlierSamplingCapture": {
+    "source": "lazuli-receivables-residual-20261103.json",
+    "samplesPerConcurrency": 12,
+    "runs": [
+      {
+        "concurrency": 1,
+        "latencyMs": {
+          "n": 12,
+          "p50": 233.47,
+          "p99": 290.19,
+          "max": 290.19,
+          "mean": 240.83
+        },
+        "wallMs": 2890.31,
+        "cpuMs": 2887.34,
+        "cpuMsPerCall": 240.61,
+        "callsPerSecond": 4.15,
+        "samplesMs": [
+          246.2, 223.55, 230.26, 235.63, 290.19, 228.17, 243.63, 220.86, 233.47, 230.36, 254.97,
+          252.71
+        ],
+        "diagnostics": {
+          "concurrency": 1,
+          "elapsedMs": 2891.01,
+          "eventLoop": {
+            "utilization": 97,
+            "activeMs": 2804.11,
+            "idleMs": 86.83,
+            "delayP50Ms": 18.81,
+            "delayP99Ms": 103.68,
+            "delayMaxMs": 103.81
+          },
+          "poolAcquisitionMs": {
+            "n": 132,
+            "p50": 0.03,
+            "p99": 0.16,
+            "sum": 7.15
+          },
+          "saturatedAcquisitions": 0,
+          "queryObservedWallMs": {
+            "n": 132,
+            "p50": 2.38,
+            "p99": 34.66,
+            "sum": 640.73
+          },
+          "tables": [
+            {
+              "table": "Installment",
+              "calls": 12,
+              "rows": 31680,
+              "durationMs": {
+                "n": 12,
+                "p50": 4.25,
+                "p99": 41.6,
+                "sum": 100.24
+              }
+            },
+            {
+              "table": "Order",
+              "calls": 12,
+              "rows": 2640,
+              "durationMs": {
+                "n": 12,
+                "p50": 3.73,
+                "p99": 19.4,
+                "sum": 70.71
+              }
+            },
+            {
+              "table": "Payer",
+              "calls": 24,
+              "rows": 2460,
+              "durationMs": {
+                "n": 24,
+                "p50": 1.45,
+                "p99": 19.17,
+                "sum": 52.54
+              }
+            },
+            {
+              "table": "Contract",
+              "calls": 12,
+              "rows": 2640,
+              "durationMs": {
+                "n": 12,
+                "p50": 1.71,
+                "p99": 5.77,
+                "sum": 26.34
+              }
+            },
+            {
+              "table": "OrderBeneficiary",
+              "calls": 12,
+              "rows": 0,
+              "durationMs": {
+                "n": 12,
+                "p50": 1.64,
+                "p99": 3.67,
+                "sum": 23.54
+              }
+            },
+            {
+              "table": "Student",
+              "calls": 24,
+              "rows": 2640,
+              "durationMs": {
+                "n": 24,
+                "p50": 1.12,
+                "p99": 19.39,
+                "sum": 66.08
+              }
+            },
+            {
+              "table": "InstallmentAdjustment",
+              "calls": 12,
+              "rows": 10716,
+              "durationMs": {
+                "n": 12,
+                "p50": 11.82,
+                "p99": 34.66,
+                "sum": 187.61
+              }
+            },
+            {
+              "table": "PaymentAllocation",
+              "calls": 24,
+              "rows": 10872,
+              "durationMs": {
+                "n": 24,
+                "p50": 4.38,
+                "p99": 17.52,
+                "sum": 113.67
+              }
+            }
+          ]
+        },
+        "sampling": {
+          "profile": "lazuli-receivables-residual-20261103-c1.cpuprofile",
+          "samples": 2341,
+          "elapsedMs": 2984.05,
+          "sampledMs": 2983.57,
+          "categories": [
+            {
+              "category": "snapshot-frame-unresolved",
+              "sampledMs": 1028.42,
+              "percent": 34.47
+            },
+            {
+              "category": "date-parts-ledger",
+              "sampledMs": 1022.68,
+              "percent": 34.28
+            },
+            {
+              "category": "other",
+              "sampledMs": 388.53,
+              "percent": 13.02
+            },
+            {
+              "category": "database-client-other",
+              "sampledMs": 254.69,
+              "percent": 8.54
+            },
+            {
+              "category": "idle",
+              "sampledMs": 216.29,
+              "percent": 7.25
+            },
+            {
+              "category": "gc",
+              "sampledMs": 40.58,
+              "percent": 1.36
+            },
+            {
+              "category": "ledger-other",
+              "sampledMs": 29.93,
+              "percent": 1
+            },
+            {
+              "category": "date-parts-month-check",
+              "sampledMs": 2.46,
+              "percent": 0.08
+            }
+          ],
+          "note": "Sampled elapsed time, including idle and profiler stop. Frame locations are transpiled; self attribution may include inlined callees.",
+          "topSelf": [
+            {
+              "function": "receivablesSnapshot",
+              "file": "packages/api/src/finance/internal/ledger-read.ts",
+              "self": {
+                "sampledMs": 1017.12,
+                "percent": 34.09
+              },
+              "inclusive": {
+                "sampledMs": 1030.88,
+                "percent": 34.55
+              }
+            },
+            {
+              "function": "localDateTimeParts",
+              "file": "packages/domain/src/session-time.ts",
+              "self": {
+                "sampledMs": 1011.32,
+                "percent": 33.9
+              },
+              "inclusive": {
+                "sampledMs": 1025.13,
+                "percent": 34.36
+              }
+            },
+            {
+              "function": "(program)",
+              "file": "",
+              "self": {
+                "sampledMs": 244.08,
+                "percent": 8.18
+              },
+              "inclusive": {
+                "sampledMs": 244.08,
+                "percent": 8.18
+              }
+            },
+            {
+              "function": "(idle)",
+              "file": "",
+              "self": {
+                "sampledMs": 216.29,
+                "percent": 7.25
+              },
+              "inclusive": {
+                "sampledMs": 216.29,
+                "percent": 7.25
+              }
+            },
+            {
+              "function": "post",
+              "file": "node:inspector",
+              "self": {
+                "sampledMs": 91.74,
+                "percent": 3.07
+              },
+              "inclusive": {
+                "sampledMs": 92.29,
+                "percent": 3.09
+              }
+            }
+          ]
+        }
+      },
+      {
+        "concurrency": 4,
+        "latencyMs": {
+          "n": 12,
+          "p50": 890.83,
+          "p99": 1100.42,
+          "max": 1100.42,
+          "mean": 899.74
+        },
+        "wallMs": 2950.68,
+        "cpuMs": 3003.32,
+        "cpuMsPerCall": 250.28,
+        "callsPerSecond": 4.07,
+        "samplesMs": [
+          623.93, 716.47, 807.59, 982.82, 935.03, 1018.68, 1048.72, 1100.42, 890.83, 799.85, 778.29,
+          1094.23
+        ],
+        "diagnostics": {
+          "concurrency": 4,
+          "elapsedMs": 2950.79,
+          "eventLoop": {
+            "utilization": 99.8,
+            "activeMs": 2944.8,
+            "idleMs": 6,
+            "delayP50Ms": 44.86,
+            "delayP99Ms": 362.28,
+            "delayMaxMs": 362.28
+          },
+          "poolAcquisitionMs": {
+            "n": 132,
+            "p50": 1.48,
+            "p99": 91.89,
+            "sum": 1154.37
+          },
+          "saturatedAcquisitions": 79,
+          "queryObservedWallMs": {
+            "n": 132,
+            "p50": 41.11,
+            "p99": 465.97,
+            "sum": 9932.26
+          },
+          "tables": [
+            {
+              "table": "Installment",
+              "calls": 12,
+              "rows": 31680,
+              "durationMs": {
+                "n": 12,
+                "p50": 87.68,
+                "p99": 265.9,
+                "sum": 1173.97
+              }
+            },
+            {
+              "table": "Order",
+              "calls": 12,
+              "rows": 2640,
+              "durationMs": {
+                "n": 12,
+                "p50": 55.93,
+                "p99": 263.15,
+                "sum": 1437.18
+              }
+            },
+            {
+              "table": "Payer",
+              "calls": 24,
+              "rows": 2460,
+              "durationMs": {
+                "n": 24,
+                "p50": 16.49,
+                "p99": 187.37,
+                "sum": 808.73
+              }
+            },
+            {
+              "table": "OrderBeneficiary",
+              "calls": 12,
+              "rows": 0,
+              "durationMs": {
+                "n": 12,
+                "p50": 8.23,
+                "p99": 126.6,
+                "sum": 317.8
+              }
+            },
+            {
+              "table": "Contract",
+              "calls": 12,
+              "rows": 2640,
+              "durationMs": {
+                "n": 12,
+                "p50": 8.17,
+                "p99": 126.44,
+                "sum": 316.83
+              }
+            },
+            {
+              "table": "Student",
+              "calls": 24,
+              "rows": 2640,
+              "durationMs": {
+                "n": 24,
+                "p50": 29.89,
+                "p99": 187.53,
+                "sum": 1025.42
+              }
+            },
+            {
+              "table": "InstallmentAdjustment",
+              "calls": 12,
+              "rows": 10716,
+              "durationMs": {
+                "n": 12,
+                "p50": 41.11,
+                "p99": 465.97,
+                "sum": 1016.42
+              }
+            },
+            {
+              "table": "PaymentAllocation",
+              "calls": 24,
+              "rows": 10872,
+              "durationMs": {
+                "n": 24,
+                "p50": 120.3,
+                "p99": 497.36,
+                "sum": 3835.91
+              }
+            }
+          ]
+        },
+        "sampling": {
+          "profile": "lazuli-receivables-residual-20261103-c4.cpuprofile",
+          "samples": 2375,
+          "elapsedMs": 3019.6,
+          "sampledMs": 3019.28,
+          "categories": [
+            {
+              "category": "snapshot-frame-unresolved",
+              "sampledMs": 1052.66,
+              "percent": 34.86
+            },
+            {
+              "category": "date-parts-ledger",
+              "sampledMs": 1052.06,
+              "percent": 34.84
+            },
+            {
+              "category": "other",
+              "sampledMs": 546.09,
+              "percent": 18.09
+            },
+            {
+              "category": "database-client-other",
+              "sampledMs": 277.58,
+              "percent": 9.19
+            },
+            {
+              "category": "gc",
+              "sampledMs": 49.5,
+              "percent": 1.64
+            },
+            {
+              "category": "ledger-other",
+              "sampledMs": 26.39,
+              "percent": 0.87
+            },
+            {
+              "category": "idle",
+              "sampledMs": 13.79,
+              "percent": 0.46
+            },
+            {
+              "category": "snapshot-other",
+              "sampledMs": 0.88,
+              "percent": 0.03
+            },
+            {
+              "category": "date-parts-month-check",
+              "sampledMs": 0.34,
+              "percent": 0.01
+            }
+          ],
+          "note": "Sampled elapsed time, including idle and profiler stop. Frame locations are transpiled; self attribution may include inlined callees.",
+          "topSelf": [
+            {
+              "function": "receivablesSnapshot",
+              "file": "packages/api/src/finance/internal/ledger-read.ts",
+              "self": {
+                "sampledMs": 1043.87,
+                "percent": 34.57
+              },
+              "inclusive": {
+                "sampledMs": 1053,
+                "percent": 34.88
+              }
+            },
+            {
+              "function": "localDateTimeParts",
+              "file": "packages/domain/src/session-time.ts",
+              "self": {
+                "sampledMs": 1033.57,
+                "percent": 34.23
+              },
+              "inclusive": {
+                "sampledMs": 1052.39,
+                "percent": 34.86
+              }
+            },
+            {
+              "function": "(program)",
+              "file": "",
+              "self": {
+                "sampledMs": 405.72,
+                "percent": 13.44
+              },
+              "inclusive": {
+                "sampledMs": 405.72,
+                "percent": 13.44
+              }
+            },
+            {
+              "function": "post",
+              "file": "node:inspector",
+              "self": {
+                "sampledMs": 68.47,
+                "percent": 2.27
+              },
+              "inclusive": {
+                "sampledMs": 68.47,
+                "percent": 2.27
+              }
+            },
+            {
+              "function": "(garbage collector)",
+              "file": "",
+              "self": {
+                "sampledMs": 49.5,
+                "percent": 1.64
+              },
+              "inclusive": {
+                "sampledMs": 49.5,
+                "percent": 1.64
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

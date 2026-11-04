@@ -1,0 +1,543 @@
+{
+  "schema": "lazuli.admin-home-local-comparison.v1",
+  "method": {
+    "order": ["baseline", "current", "current", "baseline"],
+    "samplesPerRun": 20,
+    "runsPerVariant": 2,
+    "warmupsPerEndpointPerRun": 5,
+    "median": "arithmetic mean of central two values for even samples",
+    "p95": "nearest rank",
+    "scope": "local API calls, not interaction-to-paint and not staging benchmark",
+    "baselineReconstruction": "copy current API source, apply admin-home-optimization-2026-11-04-baseline.patch; shared DB/domain and pre-existing edits retained"
+  },
+  "comparison": [
+    {
+      "endpoint": "dashboard.home",
+      "concurrency": 1,
+      "variants": {
+        "baseline": {
+          "samples": 40,
+          "p50Ms": 20.55,
+          "p95Ms": 23.43,
+          "queriesPerCall": [88],
+          "rowsPerCall": [914],
+          "meanCpuMsPerCall": 15.37,
+          "responseHashes": ["0e6d4684b883"]
+        },
+        "current": {
+          "samples": 40,
+          "p50Ms": 16.96,
+          "p95Ms": 20.29,
+          "queriesPerCall": [66],
+          "rowsPerCall": [846],
+          "meanCpuMsPerCall": 14.41,
+          "responseHashes": ["0e6d4684b883"]
+        }
+      }
+    },
+    {
+      "endpoint": "dashboard.home",
+      "concurrency": 4,
+      "variants": {
+        "baseline": {
+          "samples": 40,
+          "p50Ms": 75.47,
+          "p95Ms": 90.49,
+          "queriesPerCall": [88],
+          "rowsPerCall": [914],
+          "meanCpuMsPerCall": 13.12,
+          "responseHashes": ["0e6d4684b883"]
+        },
+        "current": {
+          "samples": 40,
+          "p50Ms": 62.5,
+          "p95Ms": 86.18,
+          "queriesPerCall": [66],
+          "rowsPerCall": [846],
+          "meanCpuMsPerCall": 11.19,
+          "responseHashes": ["0e6d4684b883"]
+        }
+      }
+    },
+    {
+      "endpoint": "dashboard.pendingLessons",
+      "concurrency": 1,
+      "variants": {
+        "baseline": {
+          "samples": 40,
+          "p50Ms": 33.38,
+          "p95Ms": 66.01,
+          "queriesPerCall": [12],
+          "rowsPerCall": [770],
+          "meanCpuMsPerCall": 40.51,
+          "responseHashes": ["0965350b0f8a"]
+        },
+        "current": {
+          "samples": 40,
+          "p50Ms": 26.05,
+          "p95Ms": 30.29,
+          "queriesPerCall": [7],
+          "rowsPerCall": [754],
+          "meanCpuMsPerCall": 25.48,
+          "responseHashes": ["0965350b0f8a"]
+        }
+      }
+    },
+    {
+      "endpoint": "dashboard.pendingLessons",
+      "concurrency": 4,
+      "variants": {
+        "baseline": {
+          "samples": 40,
+          "p50Ms": 114.27,
+          "p95Ms": 164.14,
+          "queriesPerCall": [12],
+          "rowsPerCall": [770],
+          "meanCpuMsPerCall": 34.83,
+          "responseHashes": ["0965350b0f8a"]
+        },
+        "current": {
+          "samples": 40,
+          "p50Ms": 89.29,
+          "p95Ms": 133.6,
+          "queriesPerCall": [7],
+          "rowsPerCall": [754],
+          "meanCpuMsPerCall": 25.88,
+          "responseHashes": ["0965350b0f8a"]
+        }
+      }
+    },
+    {
+      "endpoint": "agenda",
+      "concurrency": 1,
+      "variants": {
+        "baseline": {
+          "samples": 40,
+          "p50Ms": 5.54,
+          "p95Ms": 6.72,
+          "queriesPerCall": [19],
+          "rowsPerCall": [147],
+          "meanCpuMsPerCall": 3.25,
+          "responseHashes": ["3f056c014ca8"]
+        },
+        "current": {
+          "samples": 40,
+          "p50Ms": 4.49,
+          "p95Ms": 6.22,
+          "queriesPerCall": [14],
+          "rowsPerCall": [84],
+          "meanCpuMsPerCall": 2.39,
+          "responseHashes": ["3f056c014ca8"]
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "variant": "baseline",
+      "fingerprint": "bab250026de926555e4931f5cada6ec37ef827ad27547da2b92f2a60c74557ce",
+      "businessNow": "2026-11-03T18:00:00.000Z",
+      "poolMax": 4,
+      "readOnly": true,
+      "runtime": {
+        "node": "v26.3.0",
+        "arch": "arm64"
+      },
+      "warmupsPerEndpoint": 5,
+      "captures": [
+        {
+          "name": "dashboard.home",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            24.36, 21.25, 20.99, 21.12, 22.18, 19.44, 20.07, 20.57, 19.61, 21.49, 28.62, 20, 19.25,
+            20.6, 18.89, 18.84, 22.28, 19.72, 19.62, 20.41
+          ],
+          "queriesPerCall": [
+            88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88
+          ],
+          "rowsPerCall": [
+            914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914,
+            914, 914, 914
+          ],
+          "cpuMsPerCall": 15.26
+        },
+        {
+          "name": "dashboard.home",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            78.32, 80.53, 82.14, 83.73, 71.25, 70.96, 70.93, 71, 69.29, 68.29, 75.12, 73.19, 71.31,
+            74.92, 78.86, 74.99, 69.02, 67.59, 65.99, 64.48
+          ],
+          "queriesPerCall": [
+            88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88
+          ],
+          "rowsPerCall": [
+            914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914,
+            914, 914, 914
+          ],
+          "cpuMsPerCall": 12.94
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            80.73, 37.55, 29.92, 35.14, 30.86, 31.97, 36.75, 30.64, 39.56, 35.81, 32.08, 32.45,
+            33.25, 31.82, 31.69, 32.11, 31.24, 30.93, 31.28, 30.78
+          ],
+          "queriesPerCall": [
+            12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12
+          ],
+          "rowsPerCall": [
+            770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770,
+            770, 770, 770
+          ],
+          "cpuMsPerCall": 38.51
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            49.58, 73.38, 98.75, 124.48, 90.3, 90.65, 164.14, 116.16, 116.62, 91.49, 90.9, 170.92,
+            91.61, 142.2, 123.83, 120.41, 119.8, 122.12, 113.95, 111.21
+          ],
+          "queriesPerCall": [
+            12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12
+          ],
+          "rowsPerCall": [
+            770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770,
+            770, 770, 770
+          ],
+          "cpuMsPerCall": 33.14
+        },
+        {
+          "name": "agenda",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["3f056c014ca8"],
+          "latenciesMs": [
+            8.08, 5.15, 6.01, 4.57, 5.07, 5.01, 5.03, 5.5, 5.57, 5.38, 4.99, 5.61, 6.63, 5.23, 5.82,
+            4.9, 4.15, 4.45, 4.89, 4.5
+          ],
+          "queriesPerCall": [
+            19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19
+          ],
+          "rowsPerCall": [
+            147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147,
+            147, 147, 147
+          ],
+          "cpuMsPerCall": 3.07
+        }
+      ]
+    },
+    {
+      "variant": "current",
+      "fingerprint": "c328fd82dcb83c00c07c77ee6564d4317d2035a4e2b3cc24c0e1a0304e797d9a",
+      "businessNow": "2026-11-03T18:00:00.000Z",
+      "poolMax": 4,
+      "readOnly": true,
+      "runtime": {
+        "node": "v26.3.0",
+        "arch": "arm64"
+      },
+      "warmupsPerEndpoint": 5,
+      "captures": [
+        {
+          "name": "dashboard.home",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            17.83, 18.06, 16.88, 17.73, 18.64, 17.32, 16.96, 17.24, 15.7, 16.46, 15.78, 15.83,
+            17.57, 18.52, 17.41, 16.27, 15.49, 16.17, 17.77, 16.54
+          ],
+          "queriesPerCall": [
+            66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66
+          ],
+          "rowsPerCall": [
+            846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846,
+            846, 846, 846
+          ],
+          "cpuMsPerCall": 14.17
+        },
+        {
+          "name": "dashboard.home",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            61.03, 62.94, 64.62, 66.14, 60.67, 60.89, 60.95, 67.54, 59.89, 60.2, 65.35, 62.02, 63.2,
+            63.28, 63.19, 63.26, 62.54, 60.85, 59.67, 58.25
+          ],
+          "queriesPerCall": [
+            66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66
+          ],
+          "rowsPerCall": [
+            846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846,
+            846, 846, 846
+          ],
+          "cpuMsPerCall": 11.14
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            26.31, 25.41, 25.25, 26.05, 26.4, 27.55, 26.3, 25.55, 26.34, 25.77, 25.07, 25.26, 25.59,
+            25.36, 25.76, 26.52, 25.4, 25.62, 25.03, 26.31
+          ],
+          "queriesPerCall": [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+          "rowsPerCall": [
+            754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754,
+            754, 754, 754
+          ],
+          "cpuMsPerCall": 24.99
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            44.55, 61.31, 76.71, 93.64, 81.34, 125.65, 95.98, 133.6, 122.59, 92.13, 86.83, 147.5,
+            92.42, 99.98, 112.97, 109.99, 116.56, 84.61, 120.16, 165
+          ],
+          "queriesPerCall": [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+          "rowsPerCall": [
+            754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754,
+            754, 754, 754
+          ],
+          "cpuMsPerCall": 27.34
+        },
+        {
+          "name": "agenda",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["3f056c014ca8"],
+          "latenciesMs": [
+            6.85, 4.44, 7.15, 4.92, 4.96, 4.5, 4.62, 4.77, 6.22, 4.51, 4.95, 4.58, 4.06, 4.41, 4.4,
+            4.25, 4.62, 4.87, 4.86, 4.06
+          ],
+          "queriesPerCall": [
+            14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14
+          ],
+          "rowsPerCall": [
+            84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84
+          ],
+          "cpuMsPerCall": 2.36
+        }
+      ]
+    },
+    {
+      "variant": "current",
+      "fingerprint": "c328fd82dcb83c00c07c77ee6564d4317d2035a4e2b3cc24c0e1a0304e797d9a",
+      "businessNow": "2026-11-03T18:00:00.000Z",
+      "poolMax": 4,
+      "readOnly": true,
+      "runtime": {
+        "node": "v26.3.0",
+        "arch": "arm64"
+      },
+      "warmupsPerEndpoint": 5,
+      "captures": [
+        {
+          "name": "dashboard.home",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            20.84, 20.29, 19.89, 19.69, 18.36, 18.12, 21.24, 16.33, 14.66, 17.27, 15.72, 16.26,
+            15.96, 16.26, 15.88, 16.97, 16.9, 17.59, 16.02, 15.29
+          ],
+          "queriesPerCall": [
+            66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66
+          ],
+          "rowsPerCall": [
+            846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846,
+            846, 846, 846
+          ],
+          "cpuMsPerCall": 14.64
+        },
+        {
+          "name": "dashboard.home",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            59.02, 60.93, 62.47, 64.08, 59.79, 60.06, 65.04, 61.53, 61.6, 60.13, 63.24, 61.66,
+            63.09, 60.1, 63.14, 66.29, 87.54, 86.18, 84.92, 88.11
+          ],
+          "queriesPerCall": [
+            66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66
+          ],
+          "rowsPerCall": [
+            846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846,
+            846, 846, 846
+          ],
+          "cpuMsPerCall": 11.24
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            26, 24.69, 26.79, 25.07, 25.43, 26.8, 26.88, 26.04, 25.69, 27.98, 25.82, 25.32, 26.7,
+            26.19, 29.11, 30.29, 38.51, 32.37, 26.76, 26.91
+          ],
+          "queriesPerCall": [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+          "rowsPerCall": [
+            754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754,
+            754, 754, 754
+          ],
+          "cpuMsPerCall": 25.97
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            48.03, 64.59, 82.28, 98.29, 72.68, 105.01, 87.47, 88.22, 69.3, 106.91, 89.72, 95.85,
+            64.42, 101.93, 88.86, 86.41, 83.06, 84.22, 85.59, 81
+          ],
+          "queriesPerCall": [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+          "rowsPerCall": [
+            754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754, 754,
+            754, 754, 754
+          ],
+          "cpuMsPerCall": 24.43
+        },
+        {
+          "name": "agenda",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["3f056c014ca8"],
+          "latenciesMs": [
+            5.48, 5.1, 4, 4, 4.73, 4.24, 4.16, 4.11, 3.92, 4.16, 4.66, 4.93, 4.2, 4.39, 4.41, 4.48,
+            4.32, 4.2, 4.28, 5
+          ],
+          "queriesPerCall": [
+            14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14
+          ],
+          "rowsPerCall": [
+            84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84
+          ],
+          "cpuMsPerCall": 2.42
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "fingerprint": "bab250026de926555e4931f5cada6ec37ef827ad27547da2b92f2a60c74557ce",
+      "businessNow": "2026-11-03T18:00:00.000Z",
+      "poolMax": 4,
+      "readOnly": true,
+      "runtime": {
+        "node": "v26.3.0",
+        "arch": "arm64"
+      },
+      "warmupsPerEndpoint": 5,
+      "captures": [
+        {
+          "name": "dashboard.home",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            21.36, 23.43, 21.42, 20.76, 22.86, 20.22, 20.54, 21.04, 23.28, 19.79, 20.7, 20.68, 18.7,
+            20.89, 19.51, 19.41, 19.89, 19.46, 20.34, 20.29
+          ],
+          "queriesPerCall": [
+            88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88
+          ],
+          "rowsPerCall": [
+            914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914,
+            914, 914, 914
+          ],
+          "cpuMsPerCall": 15.48
+        },
+        {
+          "name": "dashboard.home",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0e6d4684b883"],
+          "latenciesMs": [
+            73.5, 76.63, 86.67, 108.91, 76.55, 76.28, 75.82, 82.1, 89.6, 90.28, 94.61, 79.86, 84.32,
+            82.87, 74.54, 90.49, 73.38, 76.05, 57.63, 55.57
+          ],
+          "queriesPerCall": [
+            88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88, 88
+          ],
+          "rowsPerCall": [
+            914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914, 914,
+            914, 914, 914
+          ],
+          "cpuMsPerCall": 13.31
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            33.36, 33.1, 33.41, 32.51, 30.75, 31.99, 32.26, 39.92, 41.44, 36.18, 36.95, 35.6, 35.75,
+            34.72, 34.86, 36.27, 36.19, 66.01, 71.41, 36.33
+          ],
+          "queriesPerCall": [
+            12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12
+          ],
+          "rowsPerCall": [
+            770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770,
+            770, 770, 770
+          ],
+          "cpuMsPerCall": 42.51
+        },
+        {
+          "name": "dashboard.pendingLessons",
+          "concurrency": 4,
+          "samples": 20,
+          "uniqueResponseHashes": ["0965350b0f8a"],
+          "latenciesMs": [
+            50.78, 75.83, 105.27, 134.38, 109.57, 110.27, 191.01, 138.29, 117.57, 111.5, 112.6,
+            114.38, 114.16, 91.77, 148.03, 121.35, 131.19, 130.41, 93.51, 152.44
+          ],
+          "queriesPerCall": [
+            12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12
+          ],
+          "rowsPerCall": [
+            770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770, 770,
+            770, 770, 770
+          ],
+          "cpuMsPerCall": 36.52
+        },
+        {
+          "name": "agenda",
+          "concurrency": 1,
+          "samples": 20,
+          "uniqueResponseHashes": ["3f056c014ca8"],
+          "latenciesMs": [
+            10, 5.97, 5.82, 6.59, 5.04, 5.5, 5.19, 5.33, 6.72, 5.81, 6.13, 5.89, 5.8, 6.27, 5.99,
+            5.38, 6.68, 5.41, 6.51, 5.72
+          ],
+          "queriesPerCall": [
+            19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19
+          ],
+          "rowsPerCall": [
+            147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147, 147,
+            147, 147, 147
+          ],
+          "cpuMsPerCall": 3.42
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,550 @@
+{
+  "method": "Next.js client-reference manifests; initial route assets, cold cache estimate",
+  "buildRoot": "apps/web/.next",
+  "routeCount": 62,
+  "routes": [
+    {
+      "route": "/workshop/acompanhamento",
+      "js": { "files": 37, "rawBytes": 2485780, "gzipBytes": 731735, "brotliBytes": 622068 },
+      "css": { "files": 5, "rawBytes": 413897, "gzipBytes": 63439, "brotliBytes": 53297 },
+      "incrementalJs": {
+        "files": 21,
+        "rawBytes": 1786825,
+        "gzipBytes": 519206,
+        "brotliBytes": 434255
+      },
+      "incrementalCss": { "files": 3, "rawBytes": 247827, "gzipBytes": 33958, "brotliBytes": 28885 }
+    },
+    {
+      "route": "/alunos/[id]",
+      "js": { "files": 36, "rawBytes": 2445432, "gzipBytes": 720342, "brotliBytes": 611922 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 20,
+        "rawBytes": 1746477,
+        "gzipBytes": 507813,
+        "brotliBytes": 424109
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/turmas/[id]",
+      "js": { "files": 31, "rawBytes": 2023144, "gzipBytes": 605415, "brotliBytes": 512589 },
+      "css": { "files": 5, "rawBytes": 393427, "gzipBytes": 60960, "brotliBytes": 51140 },
+      "incrementalJs": {
+        "files": 15,
+        "rawBytes": 1324189,
+        "gzipBytes": 392886,
+        "brotliBytes": 324776
+      },
+      "incrementalCss": { "files": 3, "rawBytes": 227357, "gzipBytes": 31479, "brotliBytes": 26728 }
+    },
+    {
+      "route": "/professor/alunos/[id]",
+      "js": { "files": 30, "rawBytes": 1999499, "gzipBytes": 594638, "brotliBytes": 503007 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 14,
+        "rawBytes": 1300544,
+        "gzipBytes": 382109,
+        "brotliBytes": 315194
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/professor/alunos",
+      "js": { "files": 30, "rawBytes": 1999499, "gzipBytes": 594638, "brotliBytes": 503007 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 14,
+        "rawBytes": 1300544,
+        "gzipBytes": 382109,
+        "brotliBytes": 315194
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/professor/turmas/[id]",
+      "js": { "files": 27, "rawBytes": 1482376, "gzipBytes": 446233, "brotliBytes": 380057 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 11,
+        "rawBytes": 783421,
+        "gzipBytes": 233704,
+        "brotliBytes": 192244
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/professor/turmas",
+      "js": { "files": 27, "rawBytes": 1482376, "gzipBytes": 446233, "brotliBytes": 380057 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 11,
+        "rawBytes": 783421,
+        "gzipBytes": 233704,
+        "brotliBytes": 192244
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/alunos",
+      "js": { "files": 27, "rawBytes": 1462228, "gzipBytes": 442680, "brotliBytes": 378007 },
+      "css": { "files": 3, "rawBytes": 277555, "gzipBytes": 44880, "brotliBytes": 37464 },
+      "incrementalJs": {
+        "files": 11,
+        "rawBytes": 763273,
+        "gzipBytes": 230151,
+        "brotliBytes": 190194
+      },
+      "incrementalCss": { "files": 1, "rawBytes": 111485, "gzipBytes": 15399, "brotliBytes": 13052 }
+    },
+    {
+      "route": "/professor",
+      "js": { "files": 27, "rawBytes": 1479523, "gzipBytes": 443697, "brotliBytes": 377781 },
+      "css": { "files": 5, "rawBytes": 449019, "gzipBytes": 68684, "brotliBytes": 57911 },
+      "incrementalJs": {
+        "files": 11,
+        "rawBytes": 780568,
+        "gzipBytes": 231168,
+        "brotliBytes": 189968
+      },
+      "incrementalCss": { "files": 3, "rawBytes": 282949, "gzipBytes": 39203, "brotliBytes": 33499 }
+    },
+    {
+      "route": "/interessados/[id]",
+      "js": { "files": 27, "rawBytes": 1452342, "gzipBytes": 437861, "brotliBytes": 374180 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 11,
+        "rawBytes": 753387,
+        "gzipBytes": 225332,
+        "brotliBytes": 186367
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/professor/agenda",
+      "js": { "files": 26, "rawBytes": 1464545, "gzipBytes": 439289, "brotliBytes": 373965 },
+      "css": { "files": 5, "rawBytes": 405276, "gzipBytes": 62995, "brotliBytes": 52863 },
+      "incrementalJs": {
+        "files": 10,
+        "rawBytes": 765590,
+        "gzipBytes": 226760,
+        "brotliBytes": 186152
+      },
+      "incrementalCss": { "files": 3, "rawBytes": 239206, "gzipBytes": 33514, "brotliBytes": 28451 }
+    },
+    {
+      "route": "/professor/pendencias",
+      "js": { "files": 26, "rawBytes": 1464545, "gzipBytes": 439289, "brotliBytes": 373965 },
+      "css": { "files": 5, "rawBytes": 405276, "gzipBytes": 62995, "brotliBytes": 52863 },
+      "incrementalJs": {
+        "files": 10,
+        "rawBytes": 765590,
+        "gzipBytes": 226760,
+        "brotliBytes": 186152
+      },
+      "incrementalCss": { "files": 3, "rawBytes": 239206, "gzipBytes": 33514, "brotliBytes": 28451 }
+    },
+    {
+      "route": "/aulas",
+      "js": { "files": 26, "rawBytes": 1463078, "gzipBytes": 438806, "brotliBytes": 373489 },
+      "css": { "files": 5, "rawBytes": 405276, "gzipBytes": 62995, "brotliBytes": 52863 },
+      "incrementalJs": {
+        "files": 10,
+        "rawBytes": 764123,
+        "gzipBytes": 226277,
+        "brotliBytes": 185676
+      },
+      "incrementalCss": { "files": 3, "rawBytes": 239206, "gzipBytes": 33514, "brotliBytes": 28451 }
+    },
+    {
+      "route": "/professor/agenda/[id]/chamada",
+      "js": { "files": 25, "rawBytes": 1427766, "gzipBytes": 428619, "brotliBytes": 364330 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 9,
+        "rawBytes": 728811,
+        "gzipBytes": 216090,
+        "brotliBytes": 176517
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/atendimentos/[id]",
+      "js": { "files": 24, "rawBytes": 1413266, "gzipBytes": 423564, "brotliBytes": 359417 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": {
+        "files": 8,
+        "rawBytes": 714311,
+        "gzipBytes": 211035,
+        "brotliBytes": 171604
+      },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/avaliacoes",
+      "js": { "files": 22, "rawBytes": 1287577, "gzipBytes": 389427, "brotliBytes": 337290 },
+      "css": { "files": 3, "rawBytes": 277555, "gzipBytes": 44880, "brotliBytes": 37464 },
+      "incrementalJs": {
+        "files": 6,
+        "rawBytes": 588622,
+        "gzipBytes": 176898,
+        "brotliBytes": 149477
+      },
+      "incrementalCss": { "files": 1, "rawBytes": 111485, "gzipBytes": 15399, "brotliBytes": 13052 }
+    },
+    {
+      "route": "/interessados",
+      "js": { "files": 22, "rawBytes": 1269826, "gzipBytes": 382164, "brotliBytes": 324013 },
+      "css": { "files": 3, "rawBytes": 277555, "gzipBytes": 44880, "brotliBytes": 37464 },
+      "incrementalJs": {
+        "files": 6,
+        "rawBytes": 570871,
+        "gzipBytes": 169635,
+        "brotliBytes": 136200
+      },
+      "incrementalCss": { "files": 1, "rawBytes": 111485, "gzipBytes": 15399, "brotliBytes": 13052 }
+    },
+    {
+      "route": "/financeiro",
+      "js": { "files": 20, "rawBytes": 1244851, "gzipBytes": 373188, "brotliBytes": 321888 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": {
+        "files": 4,
+        "rawBytes": 545896,
+        "gzipBytes": 160659,
+        "brotliBytes": 134075
+      },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/",
+      "js": { "files": 19, "rawBytes": 1207516, "gzipBytes": 355946, "brotliBytes": 306916 },
+      "css": { "files": 3, "rawBytes": 226251, "gzipBytes": 38259, "brotliBytes": 32058 },
+      "incrementalJs": {
+        "files": 3,
+        "rawBytes": 508561,
+        "gzipBytes": 143417,
+        "brotliBytes": 119103
+      },
+      "incrementalCss": { "files": 1, "rawBytes": 60181, "gzipBytes": 8778, "brotliBytes": 7646 }
+    },
+    {
+      "route": "/turmas",
+      "js": { "files": 22, "rawBytes": 993483, "gzipBytes": 302452, "brotliBytes": 266994 },
+      "css": { "files": 3, "rawBytes": 191249, "gzipBytes": 33449, "brotliBytes": 27817 },
+      "incrementalJs": { "files": 6, "rawBytes": 294528, "gzipBytes": 89923, "brotliBytes": 79181 },
+      "incrementalCss": { "files": 1, "rawBytes": 25179, "gzipBytes": 3968, "brotliBytes": 3405 }
+    },
+    {
+      "route": "/recebiveis",
+      "js": { "files": 22, "rawBytes": 945557, "gzipBytes": 291035, "brotliBytes": 257849 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 6, "rawBytes": 246602, "gzipBytes": 78506, "brotliBytes": 70036 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/contratos",
+      "js": { "files": 22, "rawBytes": 938602, "gzipBytes": 288887, "brotliBytes": 256131 },
+      "css": { "files": 3, "rawBytes": 277555, "gzipBytes": 44880, "brotliBytes": 37464 },
+      "incrementalJs": { "files": 6, "rawBytes": 239647, "gzipBytes": 76358, "brotliBytes": 68318 },
+      "incrementalCss": { "files": 1, "rawBytes": 111485, "gzipBytes": 15399, "brotliBytes": 13052 }
+    },
+    {
+      "route": "/professores",
+      "js": { "files": 21, "rawBytes": 875118, "gzipBytes": 270863, "brotliBytes": 240134 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 5, "rawBytes": 176163, "gzipBytes": 58334, "brotliBytes": 52321 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/aulas/[id]",
+      "js": { "files": 20, "rawBytes": 841748, "gzipBytes": 260183, "brotliBytes": 230424 },
+      "css": { "files": 3, "rawBytes": 277555, "gzipBytes": 44880, "brotliBytes": 37464 },
+      "incrementalJs": { "files": 4, "rawBytes": 142793, "gzipBytes": 47654, "brotliBytes": 42611 },
+      "incrementalCss": { "files": 1, "rawBytes": 111485, "gzipBytes": 15399, "brotliBytes": 13052 }
+    },
+    {
+      "route": "/atividades",
+      "js": { "files": 21, "rawBytes": 827018, "gzipBytes": 256162, "brotliBytes": 227066 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 5, "rawBytes": 128063, "gzipBytes": 43633, "brotliBytes": 39253 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/estagios",
+      "js": { "files": 20, "rawBytes": 803691, "gzipBytes": 248009, "brotliBytes": 219477 },
+      "css": { "files": 3, "rawBytes": 172454, "gzipBytes": 30878, "brotliBytes": 25557 },
+      "incrementalJs": { "files": 4, "rawBytes": 104736, "gzipBytes": 35480, "brotliBytes": 31664 },
+      "incrementalCss": { "files": 1, "rawBytes": 6384, "gzipBytes": 1397, "brotliBytes": 1145 }
+    },
+    {
+      "route": "/professores/[id]",
+      "js": { "files": 19, "rawBytes": 782187, "gzipBytes": 239959, "brotliBytes": 212311 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 3, "rawBytes": 83232, "gzipBytes": 27430, "brotliBytes": 24498 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/professor/chamada/previa",
+      "js": { "files": 19, "rawBytes": 769318, "gzipBytes": 238077, "brotliBytes": 210657 },
+      "css": { "files": 4, "rawBytes": 388838, "gzipBytes": 59906, "brotliBytes": 50265 },
+      "incrementalJs": { "files": 3, "rawBytes": 70363, "gzipBytes": 25548, "brotliBytes": 22844 },
+      "incrementalCss": { "files": 2, "rawBytes": 222768, "gzipBytes": 30425, "brotliBytes": 25853 }
+    },
+    {
+      "route": "/planejamento",
+      "js": { "files": 19, "rawBytes": 773314, "gzipBytes": 237983, "brotliBytes": 210532 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 3, "rawBytes": 74359, "gzipBytes": 25454, "brotliBytes": 22719 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/professor/acompanhamento",
+      "js": { "files": 18, "rawBytes": 742263, "gzipBytes": 227503, "brotliBytes": 201143 },
+      "css": { "files": 3, "rawBytes": 277353, "gzipBytes": 44507, "brotliBytes": 37213 },
+      "incrementalJs": { "files": 2, "rawBytes": 43308, "gzipBytes": 14974, "brotliBytes": 13330 },
+      "incrementalCss": { "files": 1, "rawBytes": 111283, "gzipBytes": 15026, "brotliBytes": 12801 }
+    },
+    {
+      "route": "/ajustes",
+      "js": { "files": 17, "rawBytes": 731562, "gzipBytes": 223662, "brotliBytes": 197853 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 1, "rawBytes": 32607, "gzipBytes": 11133, "brotliBytes": 10040 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/configuracoes/presenca",
+      "js": { "files": 17, "rawBytes": 720685, "gzipBytes": 220405, "brotliBytes": 194839 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 1, "rawBytes": 21730, "gzipBytes": 7876, "brotliBytes": 7026 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/acompanhamento/ocorrencias/[id]",
+      "js": { "files": 17, "rawBytes": 703729, "gzipBytes": 214604, "brotliBytes": 189599 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 1, "rawBytes": 4774, "gzipBytes": 2075, "brotliBytes": 1786 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/acompanhamento/intervencoes/[id]",
+      "js": { "files": 17, "rawBytes": 703735, "gzipBytes": 214603, "brotliBytes": 189598 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 1, "rawBytes": 4780, "gzipBytes": 2074, "brotliBytes": 1785 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/acompanhamento",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/atendimentos",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/materiais",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/organizacao",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/professor/atendimentos",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/professor/experimentais",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/proximo-semestre",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/workshop/materiais",
+      "js": { "files": 16, "rawBytes": 698955, "gzipBytes": 212529, "brotliBytes": 187813 },
+      "css": { "files": 2, "rawBytes": 166070, "gzipBytes": 29481, "brotliBytes": 24412 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/documentos",
+      "js": { "files": 11, "rawBytes": 539054, "gzipBytes": 158197, "brotliBytes": 139413 },
+      "css": { "files": 2, "rawBytes": 271278, "gzipBytes": 43587, "brotliBytes": 36386 },
+      "incrementalJs": { "files": 5, "rawBytes": 259610, "gzipBytes": 73863, "brotliBytes": 65002 },
+      "incrementalCss": { "files": 1, "rawBytes": 111485, "gzipBytes": 15399, "brotliBytes": 13052 }
+    },
+    {
+      "route": "/presenca",
+      "js": { "files": 10, "rawBytes": 462525, "gzipBytes": 134181, "brotliBytes": 117945 },
+      "css": { "files": 1, "rawBytes": 159793, "gzipBytes": 28188, "brotliBytes": 23334 },
+      "incrementalJs": { "files": 4, "rawBytes": 183081, "gzipBytes": 49847, "brotliBytes": 43534 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/presenca/projecao",
+      "js": { "files": 9, "rawBytes": 446799, "gzipBytes": 129143, "brotliBytes": 113485 },
+      "css": { "files": 1, "rawBytes": 159793, "gzipBytes": 28188, "brotliBytes": 23334 },
+      "incrementalJs": { "files": 3, "rawBytes": 167355, "gzipBytes": 44809, "brotliBytes": 39074 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/cadastrar-senha",
+      "js": { "files": 10, "rawBytes": 404662, "gzipBytes": 126972, "brotliBytes": 112144 },
+      "css": { "files": 2, "rawBytes": 174284, "gzipBytes": 31030, "brotliBytes": 25759 },
+      "incrementalJs": { "files": 4, "rawBytes": 125218, "gzipBytes": 42638, "brotliBytes": 37733 },
+      "incrementalCss": { "files": 1, "rawBytes": 14491, "gzipBytes": 2842, "brotliBytes": 2425 }
+    },
+    {
+      "route": "/login",
+      "js": { "files": 10, "rawBytes": 404662, "gzipBytes": 126972, "brotliBytes": 112144 },
+      "css": { "files": 2, "rawBytes": 174284, "gzipBytes": 31030, "brotliBytes": 25759 },
+      "incrementalJs": { "files": 4, "rawBytes": 125218, "gzipBytes": 42638, "brotliBytes": 37733 },
+      "incrementalCss": { "files": 1, "rawBytes": 14491, "gzipBytes": 2842, "brotliBytes": 2425 }
+    },
+    {
+      "route": "/403",
+      "js": { "files": 9, "rawBytes": 364832, "gzipBytes": 114067, "brotliBytes": 100546 },
+      "css": { "files": 1, "rawBytes": 159793, "gzipBytes": 28188, "brotliBytes": 23334 },
+      "incrementalJs": { "files": 3, "rawBytes": 85388, "gzipBytes": 29733, "brotliBytes": 26135 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/presenca/previa",
+      "js": { "files": 9, "rawBytes": 340018, "gzipBytes": 104749, "brotliBytes": 92398 },
+      "css": { "files": 1, "rawBytes": 159793, "gzipBytes": 28188, "brotliBytes": 23334 },
+      "incrementalJs": { "files": 3, "rawBytes": 60574, "gzipBytes": 20415, "brotliBytes": 17987 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/presenca/previa/projecao",
+      "js": { "files": 7, "rawBytes": 296728, "gzipBytes": 90826, "brotliBytes": 80212 },
+      "css": { "files": 1, "rawBytes": 159793, "gzipBytes": 28188, "brotliBytes": 23334 },
+      "incrementalJs": { "files": 1, "rawBytes": 17284, "gzipBytes": 6492, "brotliBytes": 5801 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/perfil",
+      "js": { "files": 7, "rawBytes": 281342, "gzipBytes": 85416, "brotliBytes": 75365 },
+      "css": { "files": 1, "rawBytes": 159793, "gzipBytes": 28188, "brotliBytes": 23334 },
+      "incrementalJs": { "files": 1, "rawBytes": 1898, "gzipBytes": 1082, "brotliBytes": 954 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/_not-found",
+      "js": { "files": 6, "rawBytes": 279444, "gzipBytes": 84334, "brotliBytes": 74411 },
+      "css": { "files": 1, "rawBytes": 159793, "gzipBytes": 28188, "brotliBytes": 23334 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/_global-error",
+      "js": { "files": 2, "rawBytes": 58156, "gzipBytes": 14398, "brotliBytes": 12616 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 2, "rawBytes": 58156, "gzipBytes": 14398, "brotliBytes": 12616 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/assessment-files/[id]/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/assessment-files/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/auth/[...all]/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/payment-proofs/[id]/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/payment-proofs/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/student-document-files/[id]/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/student-documents/[kind]/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/student-documents/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    },
+    {
+      "route": "/api/trpc/[trpc]/route",
+      "js": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "css": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalJs": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 },
+      "incrementalCss": { "files": 0, "rawBytes": 0, "gzipBytes": 0, "brotliBytes": 0 }
+    }
+  ],
+  "largestAssets": [
+    { "path": "chunks/345vt2f_rls_l.js", "raw": 399092, "gzip": 115048, "brotli": 93641 },
+    { "path": "chunks/2nbc5ga_psf-m.js", "raw": 399092, "gzip": 114433, "brotli": 93617 },
+    { "path": "chunks/09x-a4b01tgum.js", "raw": 399092, "gzip": 114308, "brotli": 93568 },
+    { "path": "chunks/01cxpc0k9cho7.js", "raw": 399092, "gzip": 115110, "brotli": 93554 },
+    { "path": "chunks/0kgmafnn618lp.js", "raw": 389950, "gzip": 109214, "brotli": 82474 },
+    { "path": "chunks/0toshm2obanvn.js", "raw": 389950, "gzip": 109533, "brotli": 82473 },
+    { "path": "chunks/3-qo5xlivv5jq.js", "raw": 389950, "gzip": 109534, "brotli": 82428 },
+    { "path": "chunks/2qdoj2p9mpixy.js", "raw": 389950, "gzip": 109556, "brotli": 82413 },
+    { "path": "chunks/1v0b87oir2s0j.js", "raw": 389950, "gzip": 109531, "brotli": 82347 },
+    { "path": "chunks/14m1j7w9caisq.js", "raw": 186627, "gzip": 48151, "brotli": 39974 },
+    { "path": "chunks/1v7-getuid0hh.js", "raw": 116156, "gzip": 30532, "brotli": 26080 },
+    { "path": "chunks/3peqf-vd9738l.js", "raw": 107316, "gzip": 29216, "brotli": 25477 }
+  ]
+}

@@ -24,8 +24,20 @@ export type DatabaseClient = Omit<PrismaClient, "$transaction"> &
     ): Promise<Result>;
   } & Pick<PrismaClient, "$transaction">;
 
+const DEFAULT_POOL_MAX = 4;
+
+function databasePoolMax(): number {
+  const configured = process.env.LAZULI_DB_POOL_MAX;
+  if (configured === undefined) return DEFAULT_POOL_MAX;
+  const max = Number(configured);
+  if (!Number.isInteger(max) || max < 1 || max > 10) {
+    throw new Error("LAZULI_DB_POOL_MAX must be an integer between 1 and 10");
+  }
+  return max;
+}
+
 export function createDbClient(databaseUrl = getDatabaseUrl()): DatabaseClient {
-  const adapter = new PrismaPg({ connectionString: databaseUrl });
+  const adapter = new PrismaPg({ connectionString: databaseUrl, max: databasePoolMax() });
   const client = new PrismaClient({ adapter });
 
   const extendedClient = client.$extends(softDeleteExtension as never).$extends(

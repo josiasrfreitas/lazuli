@@ -44,4 +44,7 @@ export type UUIDEntity = {
 
 export { readStudentHealthBatch } from "./student-health-batch.js";
 export { readStudentHealth } from "./student-health.js";
-export { computeEnrollmentPercentInWindow } from "./attendance-percent.js";
+export {
+  computeEnrollmentPercentInWindow,
+  computeEnrollmentsPercentInWindow,
+} from "./attendance-percent.js";

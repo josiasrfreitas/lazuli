@@ -1,0 +1,34 @@
+{
+  "measuredAt": "2026-11-03T14:37:15.754Z",
+  "baseUrl": "https://staging.lazuli.fisklagarto.com.br",
+  "browserVersion": "156.0.8078.80",
+  "method": "cold Chrome navigation of public login; no response bodies retained",
+  "summary": [
+    {
+      "route": "/login",
+      "mode": "desktop",
+      "samples": 5,
+      "dclMs": { "n": 5, "p50": 897, "p95": 972, "min": 810, "max": 972 },
+      "lcpMs": { "n": 5, "p50": 916, "p95": 1020, "min": 828, "max": 1020 },
+      "longTaskMs": { "n": 5, "p50": 0, "p95": 0, "min": 0, "max": 0 },
+      "taskMs": { "n": 5, "p50": 201, "p95": 265, "min": 186, "max": 265 },
+      "transferBytes": { "n": 5, "p50": 608052, "p95": 608061, "min": 608034, "max": 608061 },
+      "scriptBytes": { "n": 5, "p50": 261204, "p95": 261223, "min": 261181, "max": 261223 },
+      "apiRequests": { "n": 5, "p50": 0, "p95": 0, "min": 0, "max": 0 },
+      "heapBytes": { "n": 5, "p50": 6242287, "p95": 6293281, "min": 6225161, "max": 6293281 }
+    },
+    {
+      "route": "/login",
+      "mode": "slow4g",
+      "samples": 5,
+      "dclMs": { "n": 5, "p50": 1110, "p95": 1380, "min": 1092, "max": 1380 },
+      "lcpMs": { "n": 5, "p50": 1128, "p95": 1400, "min": 1116, "max": 1400 },
+      "longTaskMs": { "n": 5, "p50": 113, "p95": 121, "min": 112, "max": 121 },
+      "taskMs": { "n": 5, "p50": 1180, "p95": 1364, "min": 1162, "max": 1364 },
+      "transferBytes": { "n": 5, "p50": 608074, "p95": 608082, "min": 608032, "max": 608082 },
+      "scriptBytes": { "n": 5, "p50": 261208, "p95": 261231, "min": 261163, "max": 261231 },
+      "apiRequests": { "n": 5, "p50": 0, "p95": 0, "min": 0, "max": 0 },
+      "heapBytes": { "n": 5, "p50": 6420545, "p95": 6433185, "min": 6407257, "max": 6433185 }
+    }
+  ]
+}

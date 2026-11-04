@@ -1,0 +1,493 @@
+{
+  "date": "2026-11-04",
+  "route": "/alunos/[id]",
+  "versions": {
+    "next": "16.2.12",
+    "browser": "Chrome/150.0.7871.250",
+    "orca": "1.4.203"
+  },
+  "method": "Same local production Next/Turbopack configuration; final entryJSFiles of profile client-reference manifest; unique initial assets; Brotli per file with Node default compression. No async assets added to the initial set.",
+  "configurationSha256": "c32458e3e981cbdcb4f78a390fa860ae2e0b68311c9c6e73f8994b8256b5c7bc",
+  "baselineDirtyDiffSha256": "1552cc48b73b79cda2c91282a58cd9760e90d3f1a1abd38d919a8c0f9e34f259",
+  "studentPageSha256": {
+    "before": "e6b78f7007983926923ac9aca2556f041c162bf423aa75277db9c3b5de402708",
+    "after": "fb7f4d2a2cb6962d5ae06a74f9e7d4d8e65356709e9534cb8cb17265b0874aa3"
+  },
+  "before": {
+    "build": "tmIngeOLP0nTjgej9UbGf",
+    "assets": [
+      {
+        "path": "static/chunks/3ymubj6d3jm8b.js",
+        "raw": 17028,
+        "brotli": 5702
+      },
+      {
+        "path": "static/chunks/1p2zv5pr6qmb_.js",
+        "raw": 23304,
+        "brotli": 7246
+      },
+      {
+        "path": "static/chunks/0tkyxotdwthks.js",
+        "raw": 25883,
+        "brotli": 8716
+      },
+      {
+        "path": "static/chunks/3peqf-vd9738l.js",
+        "raw": 107316,
+        "brotli": 25477
+      },
+      {
+        "path": "static/chunks/00mwk2b9hiau1.js",
+        "raw": 54776,
+        "brotli": 11345
+      },
+      {
+        "path": "static/chunks/3-6i25wri9nd7.js",
+        "raw": 51137,
+        "brotli": 15925
+      },
+      {
+        "path": "static/chunks/29vsped5xi2cw.js",
+        "raw": 19453,
+        "brotli": 5629
+      },
+      {
+        "path": "static/chunks/3rwqmzvsgfio7.js",
+        "raw": 35575,
+        "brotli": 10215
+      },
+      {
+        "path": "static/chunks/1myautwzexb9_.js",
+        "raw": 31303,
+        "brotli": 10128
+      },
+      {
+        "path": "static/chunks/0z201t58u9mpw.js",
+        "raw": 28520,
+        "brotli": 7712
+      },
+      {
+        "path": "static/chunks/3g7hocgzw7poz.js",
+        "raw": 39446,
+        "brotli": 12789
+      },
+      {
+        "path": "static/chunks/3c1n2bmo9pcd6.js",
+        "raw": 30640,
+        "brotli": 9106
+      },
+      {
+        "path": "static/chunks/39z2pub4z32x6.js",
+        "raw": 37982,
+        "brotli": 11012
+      },
+      {
+        "path": "static/chunks/0qeb4qwxq58th.js",
+        "raw": 49621,
+        "brotli": 13420
+      },
+      {
+        "path": "static/chunks/0kwks-3pvt39j.js",
+        "raw": 29558,
+        "brotli": 9203
+      },
+      {
+        "path": "static/chunks/0weslffa6-3zy.js",
+        "raw": 117759,
+        "brotli": 24294
+      },
+      {
+        "path": "static/chunks/1tdpshfq-qqm_.js",
+        "raw": 29343,
+        "brotli": 9246
+      },
+      {
+        "path": "static/chunks/411wyjer7y5em.js",
+        "raw": 22478,
+        "brotli": 7043
+      },
+      {
+        "path": "static/chunks/1n7rr6r960g_o.js",
+        "raw": 25898,
+        "brotli": 7637
+      },
+      {
+        "path": "static/chunks/09r5uzd-n8t1m.js",
+        "raw": 29163,
+        "brotli": 8933
+      },
+      {
+        "path": "static/chunks/0y4g3942ocoko.js",
+        "raw": 46246,
+        "brotli": 12831
+      },
+      {
+        "path": "static/chunks/23pj322joph61.js",
+        "raw": 31750,
+        "brotli": 9633
+      },
+      {
+        "path": "static/chunks/28lz3m-a6n8gl.js",
+        "raw": 27302,
+        "brotli": 9061
+      },
+      {
+        "path": "static/chunks/01winf2r5k2u0.js",
+        "raw": 46772,
+        "brotli": 14364
+      },
+      {
+        "path": "static/chunks/43soifgectjl4.js",
+        "raw": 26724,
+        "brotli": 7572
+      },
+      {
+        "path": "static/chunks/2zzjxy2lr9e8-.js",
+        "raw": 62427,
+        "brotli": 15668
+      },
+      {
+        "path": "static/chunks/0w6zl6a6knoeg.js",
+        "raw": 187197,
+        "brotli": 40113
+      },
+      {
+        "path": "static/chunks/2qdoj2p9mpixy.js",
+        "raw": 389950,
+        "brotli": 82413
+      },
+      {
+        "path": "static/chunks/0ywe90xmxr82e.js",
+        "raw": 38949,
+        "brotli": 11576
+      },
+      {
+        "path": "static/chunks/2sku9ft7qq29o.js",
+        "raw": 65878,
+        "brotli": 17217
+      },
+      {
+        "path": "static/chunks/2m6v8hxum7bl3.js",
+        "raw": 38583,
+        "brotli": 10736
+      },
+      {
+        "path": "static/chunks/3myqlafl7twvt.js",
+        "raw": 105584,
+        "brotli": 23597
+      },
+      {
+        "path": "static/chunks/3y1mq7v-87bro.js",
+        "raw": 63318,
+        "brotli": 15434
+      },
+      {
+        "path": "static/chunks/2__p-goemtufx.js",
+        "raw": 66298,
+        "brotli": 14526
+      },
+      {
+        "path": "static/chunks/30jhba4m9jaq3.js",
+        "raw": 44167,
+        "brotli": 13113
+      },
+      {
+        "path": "static/chunks/01cxpc0k9cho7.js",
+        "raw": 399092,
+        "brotli": 93554
+      }
+    ],
+    "totalRaw": 2446420,
+    "totalBrotli": 612186
+  },
+  "after": {
+    "build": "o2MzbfW8sPypWyGXGayqu",
+    "assets": [
+      {
+        "path": "static/chunks/3ymubj6d3jm8b.js",
+        "raw": 17028,
+        "brotli": 5702
+      },
+      {
+        "path": "static/chunks/1p2zv5pr6qmb_.js",
+        "raw": 23304,
+        "brotli": 7246
+      },
+      {
+        "path": "static/chunks/0tkyxotdwthks.js",
+        "raw": 25883,
+        "brotli": 8716
+      },
+      {
+        "path": "static/chunks/3peqf-vd9738l.js",
+        "raw": 107316,
+        "brotli": 25477
+      },
+      {
+        "path": "static/chunks/00mwk2b9hiau1.js",
+        "raw": 54776,
+        "brotli": 11345
+      },
+      {
+        "path": "static/chunks/3-6i25wri9nd7.js",
+        "raw": 51137,
+        "brotli": 15925
+      },
+      {
+        "path": "static/chunks/1o-9ccs9jbc3q.js",
+        "raw": 24637,
+        "brotli": 7450
+      },
+      {
+        "path": "static/chunks/3rwqmzvsgfio7.js",
+        "raw": 35575,
+        "brotli": 10215
+      },
+      {
+        "path": "static/chunks/1myautwzexb9_.js",
+        "raw": 31303,
+        "brotli": 10128
+      },
+      {
+        "path": "static/chunks/0z201t58u9mpw.js",
+        "raw": 28520,
+        "brotli": 7712
+      },
+      {
+        "path": "static/chunks/367z6h99t7fsj.js",
+        "raw": 34262,
+        "brotli": 11265
+      },
+      {
+        "path": "static/chunks/0weslffa6-3zy.js",
+        "raw": 117759,
+        "brotli": 24294
+      },
+      {
+        "path": "static/chunks/3c1n2bmo9pcd6.js",
+        "raw": 30640,
+        "brotli": 9106
+      },
+      {
+        "path": "static/chunks/39z2pub4z32x6.js",
+        "raw": 37982,
+        "brotli": 11012
+      },
+      {
+        "path": "static/chunks/0ttesri72melu.js",
+        "raw": 29558,
+        "brotli": 9185
+      },
+      {
+        "path": "static/chunks/0qeb4qwxq58th.js",
+        "raw": 49621,
+        "brotli": 13420
+      },
+      {
+        "path": "static/chunks/411wyjer7y5em.js",
+        "raw": 22478,
+        "brotli": 7043
+      },
+      {
+        "path": "static/chunks/3gmhl9zgqxlxn.js",
+        "raw": 29455,
+        "brotli": 9095
+      },
+      {
+        "path": "static/chunks/06zmnai74d2zn.js",
+        "raw": 32702,
+        "brotli": 8688
+      },
+      {
+        "path": "static/chunks/125zjny3vbjtk.js",
+        "raw": 51640,
+        "brotli": 14371
+      },
+      {
+        "path": "static/chunks/2sku9ft7qq29o.js",
+        "raw": 65878,
+        "brotli": 17217
+      },
+      {
+        "path": "static/chunks/0y1ts523p7k_p.js",
+        "raw": 390313,
+        "brotli": 82559
+      },
+      {
+        "path": "static/chunks/2w53l_x85z27v.js",
+        "raw": 47022,
+        "brotli": 14499
+      },
+      {
+        "path": "static/chunks/0ywe90xmxr82e.js",
+        "raw": 38949,
+        "brotli": 11576
+      },
+      {
+        "path": "static/chunks/02gh8vvxdimew.js",
+        "raw": 40717,
+        "brotli": 10853
+      },
+      {
+        "path": "static/chunks/1ibua33b1g3ax.js",
+        "raw": 71416,
+        "brotli": 18743
+      }
+    ],
+    "totalRaw": 1489871,
+    "totalBrotli": 382842
+  },
+  "reduction": {
+    "rawBytes": 956549,
+    "brotliBytes": 229344,
+    "rawPercent": 39.09995013121213,
+    "brotliPercent": 37.463123952524235
+  },
+  "nativeAnalyzer": {
+    "method": "Next 16.2 experimental-analyze client emitted module sizes; includes deferred chunks, not initial transfer or CPU",
+    "packages": [
+      {
+        "name": "workspace",
+        "rawBytes": 982433
+      },
+      {
+        "name": "next",
+        "rawBytes": 659149
+      },
+      {
+        "name": "pdfjs-dist",
+        "rawBytes": 432181
+      },
+      {
+        "name": "@base-ui/react",
+        "rawBytes": 316001
+      },
+      {
+        "name": "recharts",
+        "rawBytes": 289934
+      },
+      {
+        "name": "react-big-calendar",
+        "rawBytes": 167397
+      },
+      {
+        "name": "scanic",
+        "rawBytes": 105381
+      },
+      {
+        "name": "zod",
+        "rawBytes": 61584
+      },
+      {
+        "name": "date-fns",
+        "rawBytes": 43699
+      },
+      {
+        "name": "@tanstack/query-core",
+        "rawBytes": 38856
+      },
+      {
+        "name": "lodash",
+        "rawBytes": 33588
+      },
+      {
+        "name": "lucide-react",
+        "rawBytes": 31321
+      },
+      {
+        "name": "tailwind-merge",
+        "rawBytes": 27776
+      },
+      {
+        "name": "@trpc/react-query",
+        "rawBytes": 20265
+      },
+      {
+        "name": "react-overlays",
+        "rawBytes": 18337
+      }
+    ],
+    "productModules": [
+      {
+        "path": "/[project]/apps/web/src/features/students/new-student/new-student-view.tsx",
+        "rawBytes": 11390
+      },
+      {
+        "path": "/[project]/apps/web/src/features/installments/payment/payment-grid.tsx",
+        "rawBytes": 11351
+      },
+      {
+        "path": "/[project]/apps/web/src/features/contracts/contract-setup-material.tsx",
+        "rawBytes": 9917
+      },
+      {
+        "path": "/[project]/apps/web/src/features/admissions/placement-visit-details.tsx",
+        "rawBytes": 9906
+      },
+      {
+        "path": "/[project]/apps/web/src/features/appointments/schedule-dialog.tsx",
+        "rawBytes": 9658
+      },
+      {
+        "path": "/[project]/apps/web/src/features/appointments/class-meeting-step.tsx",
+        "rawBytes": 9550
+      },
+      {
+        "path": "/[project]/apps/web/src/features/students/profile/student-agenda-dialog.tsx",
+        "rawBytes": 9508
+      },
+      {
+        "path": "/[project]/apps/web/src/features/appointments/detail.tsx",
+        "rawBytes": 9069
+      },
+      {
+        "path": "/[project]/apps/web/src/features/financial-treatments/treatment-fields.tsx",
+        "rawBytes": 8810
+      },
+      {
+        "path": "/[project]/apps/web/src/features/admissions/lead-capture-dialog.tsx",
+        "rawBytes": 8106
+      },
+      {
+        "path": "/[project]/apps/web/src/features/contracts/contract-setup-sections.tsx",
+        "rawBytes": 7996
+      },
+      {
+        "path": "/[project]/apps/web/src/features/contracts/contract-setup.tsx",
+        "rawBytes": 7839
+      }
+    ]
+  },
+  "runtime": {
+    "comparableValidSamples": 0,
+    "status": "No latency improvement established. Unstable foreground/animation-frame scheduling and incomplete focus evidence invalidated attempts; no p95, TBT, or field INP reported.",
+    "coverage": "No precise JavaScript Coverage command exposed by the installed Orca browser surface.",
+    "firstAgendaOpen": {
+      "deferredScriptFiles": 4,
+      "decodedScriptBytes": 207768,
+      "note": "Observed after the optimization. This is deferred work, not deleted code or compressed transfer."
+    }
+  },
+  "smoke": {
+    "overview": true,
+    "registrationDocuments": true,
+    "financeCharges": true,
+    "pedagogyCurrentEnrollment": true,
+    "agendaCalendarAndFocusInside": true,
+    "agendaEscapeAndReopenAndReturnFocus": true,
+    "photoChooseFileAndCancel": true,
+    "appointmentDeepLinkNotFoundOpensDialog": true,
+    "validAppointmentDeepLink": "not exercised",
+    "actualUploadPerformed": false
+  },
+  "checks": {
+    "productionBuildBefore": "pass",
+    "productionBuildAfter": "pass",
+    "webTypecheck": "pass",
+    "focusedWebLint": {
+      "errors": 0,
+      "preexistingWarnings": 3
+    },
+    "fullSuite": "deferred to delivery gate"
+  }
+}

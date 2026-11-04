@@ -8,7 +8,7 @@ import {
 } from "@lazuli/domain";
 import type { StudentListInput, StudentListOutput, StudentListRow } from "@lazuli/validators";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
-import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
+import { computeEnrollmentsPercentInWindow } from "../attendance/percent.js";
 import { finance, type StudentOverdueTotal } from "../finance/index.js";
 import { notFound } from "../trpc/errors.js";
 import { isMinorInSaoPaulo } from "./date-rules.js";
@@ -53,19 +53,35 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
   await applyTeacherFilter(input, where);
   const semester = await resolveCurrentSemester(input.database, input.values.now);
   const { page, pageSize } = input.values;
+  const countsPromise = countStudentsByTab({
+    database: input.database,
+    search: input.values.search,
+    searchWhere,
+    now: input.values.now,
+  });
+  const hasExtraFilters = Boolean(
+    input.values.situations?.length ||
+    input.values.classIds?.length ||
+    input.values.teacherIds?.length ||
+    input.values.registeredFrom ||
+    input.values.registeredTo,
+  );
   const [students, counts, header, total] = await Promise.all([
     findStudentPage({
       database: input.database,
       values: { where, page, pageSize, now: input.values.now },
     }),
-    countStudentsByTab({
+    countsPromise,
+    countHeaderFacts({
       database: input.database,
-      search: input.values.search,
-      searchWhere,
-      now: input.values.now,
+      semesterId: semester?.id ?? null,
+      ...(!input.values.search
+        ? { totalStudents: countsPromise.then((counts) => counts.all) }
+        : {}),
     }),
-    countHeaderFacts({ database: input.database, semesterId: semester?.id ?? null }),
-    input.database.student.count({ where }),
+    hasExtraFilters
+      ? input.database.student.count({ where })
+      : countsPromise.then((counts) => counts[input.values.status]),
   ]);
 
   return {
@@ -141,28 +157,37 @@ export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]
     status: student.status,
     isScholarshipStudent: student.contracts.length > 0,
     phone: student.phone,
-    enrollment: toEnrollmentFacts(student.enrollments[0], input.values.now),
+    enrollment: toEnrollmentFacts(student.enrollments[0]),
     attendance: attendanceByStudent.get(student.id) ?? NO_ATTENDANCE_DATA,
     finance: toFinanceFacts(financeByStudent.get(student.id)),
   }));
 }
 
-/** One windowed percent per row; a page is bounded by the validated page size. */
+/** One batch for the page, preserving the window of each selected enrollment. */
 async function readAttendanceByStudent(
   input: BuildRowsInput,
 ): Promise<Map<string, AttendanceFacts>> {
-  const entries = await Promise.all(
-    input.students.map(async (student) => {
-      const facts = await readAttendance({
-        database: input.database,
-        values: { enrollment: student.enrollments[0], semester: input.semester },
-      });
-
-      return [student.id, facts] as const;
+  if (input.semester === null) return new Map();
+  const enrollments = input.students.flatMap((student) => student.enrollments.slice(0, 1));
+  const byEnrollment = await computeEnrollmentsPercentInWindow({
+    database: input.database,
+    values: { enrollments, semester: input.semester },
+  });
+  return new Map(
+    input.students.map((student) => {
+      const enrollment = student.enrollments[0];
+      const progress = enrollment === undefined ? undefined : byEnrollment.get(enrollment.id);
+      return [
+        student.id,
+        progress === undefined
+          ? NO_ATTENDANCE_DATA
+          : {
+              percent: progress.percent,
+              flagged: progress.flagged,
+            },
+      ];
     }),
   );
-
-  return new Map(entries);
 }
 
 async function readFinanceByStudent(
@@ -176,24 +201,8 @@ async function readFinanceByStudent(
   return new Map(totals.map((total) => [total.studentId, total]));
 }
 
-async function readAttendance(input: ReadAttendanceInput): Promise<AttendanceFacts> {
-  const { enrollment, semester } = input.values;
-
-  if (enrollment === undefined || semester === null) {
-    return NO_ATTENDANCE_DATA;
-  }
-
-  const { percent, flagged } = await computeEnrollmentPercentInWindow({
-    database: input.database,
-    values: { enrollment, semester },
-  });
-
-  return { percent, flagged };
-}
-
 function toEnrollmentFacts(
   enrollment: OpenEnrollmentRow | undefined,
-  now: Date,
 ): StudentListRow["enrollment"] {
   if (enrollment === undefined) {
     return null;
@@ -204,8 +213,7 @@ function toEnrollmentFacts(
     classId: enrollment.classId,
     classCode: enrollment.class.portalClassName,
     scheduleLabel: toScheduleLabel(enrollment.class.scheduleSlots),
-    teacherName:
-      usualTeacherOn(enrollment.class, new Date(saoPauloDateOnly(now)))?.name ?? "Sem professor",
+    teacherName: enrollment.class.teacherName,
   };
 }
 
@@ -283,8 +291,3 @@ async function applyTeacherFilter(
     ];
   }
 }
-
-type ReadAttendanceInput = {
-  database: StudentListDatabase;
-  values: { enrollment: OpenEnrollmentRow | undefined; semester: SemesterWindow | null };
-};

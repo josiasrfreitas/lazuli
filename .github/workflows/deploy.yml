@@ -24,7 +24,9 @@ permissions:
 jobs:
   deploy:
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.ref == 'refs/heads/main' ||
+        (inputs.environment == 'staging' && startsWith(github.ref, 'refs/heads/staging/')))) ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
@@ -49,14 +51,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Require a main revision approved by CI
+      - name: Select an approved main or ad hoc staging revision
         id: revision
         env:
           GH_TOKEN: ${{ github.token }}
           AUTO_TRIGGER: ${{ github.event_name == 'workflow_run' }}
           REVISION: ${{ inputs.revision || github.event.workflow_run.head_sha || github.sha }}
+          INPUT_REVISION: ${{ inputs.revision }}
+          ADHOC_STAGING: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' && startsWith(github.ref, 'refs/heads/staging/') }}
         run: |
           set -euo pipefail
+          if [[ "$ADHOC_STAGING" == true ]]; then
+            [[ "$DEPLOY_ENVIRONMENT" == staging && "$GITHUB_REF_NAME" =~ ^staging/[a-zA-Z0-9._-]+$ ]]
+            [[ -z "$INPUT_REVISION" && "$REVISION" == "$(git rev-parse HEAD)" ]]
+            git checkout --detach "$REVISION"
+            echo "DEPLOY_SHA=$REVISION" >> "$GITHUB_ENV"
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "Ad hoc staging source: $GITHUB_REF_NAME ($REVISION)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           [[ "$REVISION" =~ ^[a-f0-9]{40}$ ]]
           git merge-base --is-ancestor "$REVISION" origin/main
           if [[ "$AUTO_TRIGGER" == true && "$REVISION" != "$(git rev-parse origin/main)" ]]; then

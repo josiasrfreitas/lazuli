@@ -1,0 +1,81 @@
+{
+  "schema": "lazuli.receivables-comparison.v1",
+  "before": "before-grouping",
+  "after": "after-grouping",
+  "financialSnapshotEqual": true,
+  "snapshot": {
+    "expectedThisMonthCents": 5120000,
+    "receivedThisMonthCents": 43227,
+    "overdueCents": 1012000,
+    "ageBuckets": {
+      "days1To7Cents": 0,
+      "days8To30Cents": 390000,
+      "days30PlusCents": 622000
+    }
+  },
+  "runs": [
+    {
+      "concurrency": 1,
+      "p50Ms": {
+        "before": 429.51,
+        "after": 371.48,
+        "changePercent": -13.51
+      },
+      "p99Ms": {
+        "before": 487.28,
+        "after": 432.4,
+        "changePercent": -11.26
+      },
+      "cpuMsPerCall": {
+        "before": 425.96,
+        "after": 374.62,
+        "changePercent": -12.05
+      },
+      "callsPerSecond": {
+        "before": 2.31,
+        "after": 2.66,
+        "changePercent": 15.15
+      }
+    },
+    {
+      "concurrency": 4,
+      "p50Ms": {
+        "before": 1735.48,
+        "after": 1445.48,
+        "changePercent": -16.71
+      },
+      "p99Ms": {
+        "before": 2298.11,
+        "after": 1827.66,
+        "changePercent": -20.47
+      },
+      "cpuMsPerCall": {
+        "before": 442.98,
+        "after": 383.48,
+        "changePercent": -13.43
+      },
+      "callsPerSecond": {
+        "before": 2.22,
+        "after": 2.65,
+        "changePercent": 19.37
+      }
+    }
+  ],
+  "profile": {
+    "cpuP50Ms": {
+      "before": 402.46,
+      "after": 371.81,
+      "changePercent": -7.62
+    },
+    "queriesPerCall": {
+      "before": 11,
+      "after": 11,
+      "changePercent": 0
+    },
+    "queryDurationSumP50Ms": {
+      "before": 58.73,
+      "after": 65.76,
+      "changePercent": 11.97
+    }
+  }
+}

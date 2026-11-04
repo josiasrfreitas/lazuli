@@ -53,6 +53,7 @@ export async function publishPlacements(
     current,
     plan,
     semester,
+    selected,
   });
   for (const row of selected) {
     if (!row.stageId) throw badRequest("Confirme o estágio.");
@@ -206,7 +207,12 @@ async function assertPublicationTeacher(
 
 async function publicationClass(
   context: OrganizationContext,
-  { current, plan, semester }: { current: CurrentPlan; plan: Plan; semester: Period },
+  {
+    current,
+    plan,
+    semester,
+    selected,
+  }: { current: CurrentPlan; plan: Plan; semester: Period; selected: BoardPlacement[] },
 ): Promise<{ classId: string; generationRequestId: string | null }> {
   if (!current.teacherId) throw badRequest(TEACHER_REQUIRED);
   const classRow = current.classId
@@ -220,6 +226,9 @@ async function publicationClass(
           format: current.format,
           sharedStageId: current.sharedStageId,
           semesterId: semester.id,
+          startDate: selected
+            .map((row) => dateOnly(row.effectiveDate ?? semester.startDate))
+            .toSorted()[0]!,
           slots: current.slots,
         },
       });

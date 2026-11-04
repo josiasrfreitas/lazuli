@@ -3,6 +3,7 @@ import {
   intersectEnrollmentSemesterWindows,
   saoPauloDateOnly,
 } from "@lazuli/domain";
+import type { TransactionClient } from "./client.js";
 import type { Prisma } from "./generated/prisma/client.js";
 import { computeEnrollmentPercentInWindow } from "./attendance-percent.js";
 
@@ -49,7 +50,7 @@ export async function readStudentHealth({
   id,
   now,
 }: {
-  database: Prisma.TransactionClient;
+  database: TransactionClient;
   id: string;
   now: Date;
 }): Promise<HealthResult> {
@@ -107,7 +108,7 @@ export function summarizeHealth({
 }
 
 function healthAttendance(
-  database: Prisma.TransactionClient,
+  database: TransactionClient,
   { enrollments, today }: { enrollments: HealthEnrollment[]; today: Date },
 ): Promise<Array<Awaited<ReturnType<typeof computeEnrollmentPercentInWindow>>>> {
   return Promise.all(
@@ -124,7 +125,7 @@ function healthAttendance(
 }
 
 async function activeHealthEnrollments(
-  database: Prisma.TransactionClient,
+  database: TransactionClient,
   { id, today }: { id: string; today: Date },
 ): Promise<HealthEnrollment[]> {
   return database.enrollment.findMany({
@@ -154,7 +155,7 @@ export function healthWindows(enrollments: HealthEnrollment[]): HealthWindow[] {
 }
 
 async function healthOccurrences(
-  database: Prisma.TransactionClient,
+  database: TransactionClient,
   { id, today, windows }: { id: string; today: Date; windows: HealthWindow[] },
 ): Promise<HealthOccurrence[]> {
   if (windows.length === 0) return [];

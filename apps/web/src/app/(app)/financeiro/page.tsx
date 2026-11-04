@@ -18,9 +18,15 @@ export default async function FinanceiroRoute(): Promise<ReactElement> {
 async function FinanceAnalyticsData({ email }: { email: string }): Promise<ReactElement> {
   const year = Number(toDateOnlySaoPaulo(new Date()).split("-")[0]);
   const caller = createCaller(await createTRPCContext({ session: { user: { email } } }));
-  const initial = await caller.finance.analytics({ year }).then(
-    (data) => ({ data, updatedAt: Date.now() }),
-    (): undefined => {},
-  );
-  return <FinanceAnalyticsPage initial={initial} />;
+  const [initial, initialClosings] = await Promise.all([
+    caller.finance.analytics({ year }).then(
+      (data) => ({ data, updatedAt: Date.now() }),
+      (): undefined => {},
+    ),
+    caller.finance.contractClosings({ year }).then(
+      (data) => ({ data, updatedAt: Date.now() }),
+      (): undefined => {},
+    ),
+  ]);
+  return <FinanceAnalyticsPage initial={initial} initialClosings={initialClosings} />;
 }

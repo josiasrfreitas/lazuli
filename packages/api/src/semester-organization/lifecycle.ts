@@ -181,7 +181,12 @@ async function openClassPlan(
         classId: plan.classId,
         teacherId: plan.teacherId,
       })
-    : await createClassPlan(context, { plan, semester, teacherId: plan.teacherId });
+    : await createClassPlan(context, {
+        plan,
+        semester,
+        teacherId: plan.teacherId,
+        startDate: from,
+      });
   const preparing = await context.database.sessionGenerationRequest.findFirst({
     where: {
       classId,
@@ -230,13 +235,19 @@ async function reopenClassPlan(
 
 async function createClassPlan(
   context: OrganizationContext,
-  { plan, semester, teacherId }: { plan: ClassPlan; semester: Period; teacherId: string },
+  {
+    plan,
+    semester,
+    teacherId,
+    startDate,
+  }: { plan: ClassPlan; semester: Period; teacherId: string; startDate: string },
 ): Promise<string> {
   const created = await createClass({
     database: context.database,
     recordedById: context.staffUser.id,
     values: {
       semesterId: semester.id,
+      startDate,
       teacherId,
       scheduleType: plan.scheduleType,
       format: plan.format,

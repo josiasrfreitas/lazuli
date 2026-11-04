@@ -13,9 +13,20 @@
   Sem essa variável, não há deploy automático. O modo automático implanta a aplicação
   completa da revisão aprovada pela CI. O acionamento manual em `main` continua disponível:
   escolhe `staging`/`prod`, `smoke`/`application` e opcionalmente um SHA completo. O SHA
-  precisa pertencer a `main` e ter a CI aprovada. Nenhuma branch arbitrária pode acessar
-  os environments de aplicação. Uma revisão automática já substituída em `main` é
-  ignorada antes de assumir a role AWS.
+  precisa pertencer a `main` e ter a CI aprovada. Para experimentos, o workflow manual
+  também pode rodar numa branch `staging/*` e publicar somente em staging, sem exigir CI.
+  O build ARM acontece no GitHub; o environment e a role AWS continuam limitados a staging.
+  Produção mantém a regra de revisão de `main` aprovada pela CI. Uma revisão automática já
+  substituída em `main` é ignorada antes de assumir a role AWS.
+
+Para publicar um experimento após enviar uma branch `staging/*` ao GitHub:
+
+```sh
+gh workflow run deploy.yml --ref staging/perf-227 -f environment=staging -f mode=application
+```
+
+O resumo do job registra o SHA exato selecionado. Esse caminho não usa Colima nem faz
+build na máquina local; ainda aplica as migrações da imagem selecionada e verifica web/worker.
 
 Para validar o CD sem afetar produção, definir temporariamente
 `gh variable set CD_TARGET_ENVIRONMENT --body staging`, integrar uma mudança pequena em
@@ -123,10 +134,12 @@ Ordem do deploy:
 
 1. EC2 ligada e acessível via SSM; baixar imagem e gerar arquivo de ambiente privado.
 2. Preflight remoto: recusa URL HTTPS e segredos necessários ausentes antes de qualquer migração.
-3. Runner abre túnel SSM para RDS e executa Prisma usando a role SQL **owner**. O hostname
-   do certificado é preservado; a resolução para localhost ocorre só no container de migração.
-   Credencial temporária fica em arquivo 0600 no runner, removido ao encerrar. A EC2 não
-   recebe acesso ao parâmetro de migração. Nenhum seed é executado.
+3. Runner abre túnel SSM para RDS e executa Prisma usando a role SQL **owner**. No Linux da CI,
+   o hostname do certificado é preservado; a resolução para localhost ocorre só no container de
+   migração. A credencial temporária fica em arquivo 0600 no runner, removido ao encerrar. No Mac,
+   a migração usa o Node local pelo mesmo túnel, com CA verificada e destino fixado pelo SSM;
+   a credencial fica apenas no ambiente do processo filho. A EC2 não recebe acesso ao parâmetro
+   de migração. Nenhum seed é executado.
 4. Revogar acesso do runtime a `_prisma_migrations`, conferir TLS e conexão do runtime.
 5. Parar web/worker antigos, guardar containers anteriores e iniciar os novos.
 6. Conferir `/login`, registro inicial do worker no Hatchet e HTTPS público.
@@ -134,6 +147,8 @@ Ordem do deploy:
 Há breve indisponibilidade durante a troca. Em falha de startup/healthcheck, o script
 restaura os containers anteriores. **Não desfaz migrações:** elas precisam ser compatíveis
 com a versão anterior. Falhas de migração param o deploy antes da troca de containers.
+Antes de baixar uma imagem nova, o host remove imagens Docker sem contêineres associados;
+as imagens da versão ativa e do contêiner anterior reservado para rollback permanecem.
 O marcador do worker comprova registro inicial; não substitui um job real nem monitoramento
 contínuo de conexão. Smoke funcional de negócio e teste de restauração continuam separados.
 

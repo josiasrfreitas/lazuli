@@ -26,32 +26,46 @@ export async function freezeStartedMeetings(input: {
         : row.usualTeacherId === input.teacherId || row.substituteTeacherId === input.teacherId) &&
       sessionEndInstant({ date: row.date, endTime: row.startTime }) <= input.now,
   );
-  // Only the elapsed meetings on this business day are materialized, never a semester.
-  for (const row of started) {
-    if (!row.sessionId && row.slotId) {
-      await input.database.classSession.createMany({
-        data: [
+  // Only elapsed meetings on this business day are materialized, never a semester.
+  const date = new Date(today);
+  const missing = started.flatMap((row) =>
+    !row.sessionId && row.slotId
+      ? [
           {
             classId: row.classId,
             scheduleSlotId: row.slotId,
-            date: new Date(today),
+            date,
             startTime: timeStringToDate(row.startTime),
             endTime: timeStringToDate(row.endTime),
             usualTeacherId: row.usualTeacherId,
             responsibilityFrozenAt: input.now,
           },
-        ],
-        skipDuplicates: true,
-      });
-    }
+        ]
+      : [],
+  );
+  if (missing.length > 0) {
+    await input.database.classSession.createMany({
+      data: missing,
+      skipDuplicates: true,
+    });
+  }
+  const byTeacher = new Map<string | null, typeof started>();
+  for (const row of started) {
+    const group = byTeacher.get(row.usualTeacherId) ?? [];
+    group.push(row);
+    byTeacher.set(row.usualTeacherId, group);
+  }
+  for (const [usualTeacherId, rows] of byTeacher) {
     await input.database.classSession.updateMany({
       where: {
-        ...(row.sessionId
-          ? { id: row.sessionId }
-          : { classId: row.classId, scheduleSlotId: row.slotId, date: new Date(today) }),
+        OR: rows.map((row) =>
+          row.sessionId
+            ? { id: row.sessionId }
+            : { classId: row.classId, scheduleSlotId: row.slotId, date },
+        ),
         responsibilityFrozenAt: null,
       },
-      data: { usualTeacherId: row.usualTeacherId, responsibilityFrozenAt: input.now },
+      data: { usualTeacherId, responsibilityFrozenAt: input.now },
     });
   }
 }

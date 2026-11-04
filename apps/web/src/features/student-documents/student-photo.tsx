@@ -13,9 +13,12 @@ import {
   Alert,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { DocumentCapture } from "./capture";
+import dynamic from "next/dynamic";
+
 import { DOCUMENTS } from "./model";
 import styles from "./documents.module.css";
+
+const DocumentCapture = dynamic(() => import("./capture").then((module) => module.DocumentCapture));
 
 type PhotoSession = { id: string; token: string };
 type StudentPhotoProps = { studentId: string; name: string };
