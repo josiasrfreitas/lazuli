@@ -1,0 +1,274 @@
+{
+  "measuredAt": "2026-11-04T22:43:21.954Z",
+  "baseUrl": "https://staging.lazuli.fisklagarto.com.br",
+  "browserVersion": "156.0.8078.80",
+  "benchmarkProtocol": "in-page-paint-marks-v2",
+  "profile": "first",
+  "method": "fresh authenticated context per sample, source fully loaded before first navigation; sidebar DOM click to in-page paint marks after two animation frames; desktop 1440x900; network idle before each click; sequential",
+  "samplesPerRoute": 8,
+  "routes": [
+    {
+      "path": "/aulas",
+      "start": "/alunos",
+      "ready": ".lz-week-calendar[aria-busy=\"false\"]"
+    }
+  ],
+  "summary": [
+    {
+      "route": "/aulas",
+      "n": 8,
+      "p50": 455.8,
+      "max": 487.5
+    }
+  ],
+  "samples": [
+    {
+      "route": "/aulas",
+      "durationMs": 487.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 148.1,
+          "endMs": 215.2,
+          "durationMs": 212.4,
+          "transferBytes": 7746
+        },
+        {
+          "kind": "/api/trpc/me,sessionGeneration.status",
+          "startMs": 467.4,
+          "responseStartMs": 627.8,
+          "endMs": 628,
+          "durationMs": 160.6,
+          "transferBytes": 5666
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 381.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/aulas",
+      "durationMs": 463.09999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 151.6,
+          "endMs": 202.4,
+          "durationMs": 200.1,
+          "transferBytes": 7742
+        },
+        {
+          "kind": "/api/trpc/me,sessionGeneration.status",
+          "startMs": 433.5,
+          "responseStartMs": 595,
+          "endMs": 595.3,
+          "durationMs": 161.8,
+          "transferBytes": 5666
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 368.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/aulas",
+      "durationMs": 456.10000014305115,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 152.7,
+          "endMs": 200.1,
+          "durationMs": 197.7,
+          "transferBytes": 7742
+        },
+        {
+          "kind": "/api/trpc/me,sessionGeneration.status",
+          "startMs": 433,
+          "responseStartMs": 591.3,
+          "endMs": 591.6,
+          "durationMs": 158.6,
+          "transferBytes": 5666
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 366.8
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/aulas",
+      "durationMs": 443.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.4,
+          "responseStartMs": 147,
+          "endMs": 193.4,
+          "durationMs": 190,
+          "transferBytes": 7744
+        },
+        {
+          "kind": "/api/trpc/me,sessionGeneration.status",
+          "startMs": 438.7,
+          "responseStartMs": 597.8,
+          "endMs": 598.1,
+          "durationMs": 159.4,
+          "transferBytes": 5666
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 357.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/aulas",
+      "durationMs": 455,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 148.1,
+          "endMs": 194.7,
+          "durationMs": 192.3,
+          "transferBytes": 7745
+        },
+        {
+          "kind": "/api/trpc/me,sessionGeneration.status",
+          "startMs": 426.1,
+          "responseStartMs": 585,
+          "endMs": 585.3,
+          "durationMs": 159.2,
+          "transferBytes": 5666
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 360.1
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/aulas",
+      "durationMs": 452.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 148.8,
+          "endMs": 194.5,
+          "durationMs": 191.8,
+          "transferBytes": 7743
+        },
+        {
+          "kind": "/api/trpc/me,sessionGeneration.status",
+          "startMs": 426.9,
+          "responseStartMs": 584.8,
+          "endMs": 585,
+          "durationMs": 158.1,
+          "transferBytes": 5666
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 363.1
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/aulas",
+      "durationMs": 455.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 147.8,
+          "endMs": 194.6,
+          "durationMs": 191.9,
+          "transferBytes": 7742
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 362.2
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/aulas",
+      "durationMs": 466.39999985694885,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 147.6,
+          "endMs": 200.6,
+          "durationMs": 198.3,
+          "transferBytes": 7745
+        },
+        {
+          "kind": "/api/trpc/me,sessionGeneration.status",
+          "startMs": 437.6,
+          "responseStartMs": 594.3,
+          "endMs": 594.5,
+          "durationMs": 156.9,
+          "transferBytes": 5666
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 204193,
+        "lastResponseMs": 366.6
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    }
+  ]
+}

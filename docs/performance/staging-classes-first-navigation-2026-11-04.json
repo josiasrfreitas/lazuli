@@ -1,0 +1,1787 @@
+{
+  "measuredAt": "2026-11-04T22:42:31.411Z",
+  "baseUrl": "https://staging.lazuli.fisklagarto.com.br",
+  "browserVersion": "156.0.8078.80",
+  "benchmarkProtocol": "in-page-paint-marks-v2",
+  "profile": "first",
+  "method": "fresh authenticated context per sample, source fully loaded before first navigation; sidebar DOM click to in-page paint marks after two animation frames; desktop 1440x900; network idle before each click; sequential",
+  "samplesPerRoute": 20,
+  "routes": [
+    {
+      "path": "/turmas",
+      "start": "/alunos",
+      "ready": "table[aria-label=\"Turmas\"] tbody tr[tabindex=\"0\"]"
+    }
+  ],
+  "summary": [
+    {
+      "route": "/turmas",
+      "n": 20,
+      "p50": 412.7,
+      "p95": 428.2,
+      "max": 460.1
+    }
+  ],
+  "samples": [
+    {
+      "route": "/turmas",
+      "durationMs": 460.09999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 148,
+          "endMs": 237.5,
+          "durationMs": 234.8,
+          "transferBytes": 8261
+        },
+        {
+          "kind": "rsc",
+          "startMs": 435.4,
+          "responseStartMs": 586.4,
+          "endMs": 599.8,
+          "durationMs": 164.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 435.5,
+          "responseStartMs": 587.3,
+          "endMs": 599.9,
+          "durationMs": 164.4,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 435.5,
+          "responseStartMs": 593.2,
+          "endMs": 599.9,
+          "durationMs": 164.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 435.6,
+          "responseStartMs": 595.7,
+          "endMs": 600,
+          "durationMs": 164.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 600.5,
+          "responseStartMs": 744.3,
+          "endMs": 760.3,
+          "durationMs": 159.8,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 600.8,
+          "responseStartMs": 748.2,
+          "endMs": 760.5,
+          "durationMs": 159.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 601.1,
+          "responseStartMs": 752.8,
+          "endMs": 760.6,
+          "durationMs": 159.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 601.3,
+          "responseStartMs": 756.6,
+          "endMs": 760.8,
+          "durationMs": 159.5,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 388.1
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 422.2999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 150.4,
+          "endMs": 181.9,
+          "durationMs": 178.9,
+          "transferBytes": 8265
+        },
+        {
+          "kind": "rsc",
+          "startMs": 391.5,
+          "responseStartMs": 541.4,
+          "endMs": 554.7,
+          "durationMs": 163.2,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 391.5,
+          "responseStartMs": 541.3,
+          "endMs": 554.8,
+          "durationMs": 163.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 391.6,
+          "responseStartMs": 544.8,
+          "endMs": 555.7,
+          "durationMs": 164.1,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 391.6,
+          "responseStartMs": 548.8,
+          "endMs": 555.9,
+          "durationMs": 164.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 557.7,
+          "responseStartMs": 711.1,
+          "endMs": 719.3,
+          "durationMs": 161.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 556.1,
+          "responseStartMs": 706.9,
+          "endMs": 719.4,
+          "durationMs": 163.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555.7,
+          "responseStartMs": 702.7,
+          "endMs": 719.5,
+          "durationMs": 163.8,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 558,
+          "responseStartMs": 716.8,
+          "endMs": 719.5,
+          "durationMs": 161.5,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 333.3
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 411.30000019073486,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 148,
+          "endMs": 179.4,
+          "durationMs": 177,
+          "transferBytes": 8265
+        },
+        {
+          "kind": "rsc",
+          "startMs": 381,
+          "responseStartMs": 525.9,
+          "endMs": 540.7,
+          "durationMs": 159.7,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 380.9,
+          "responseStartMs": 529.4,
+          "endMs": 540.9,
+          "durationMs": 160,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 381,
+          "responseStartMs": 533.2,
+          "endMs": 541,
+          "durationMs": 160,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 381.1,
+          "responseStartMs": 540.5,
+          "endMs": 541.8,
+          "durationMs": 160.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 541.5,
+          "responseStartMs": 685.9,
+          "endMs": 702.4,
+          "durationMs": 160.9,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 542,
+          "responseStartMs": 689.8,
+          "endMs": 702.4,
+          "durationMs": 160.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 542.3,
+          "responseStartMs": 699.8,
+          "endMs": 703.7,
+          "durationMs": 161.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 542.5,
+          "responseStartMs": 699.7,
+          "endMs": 703.7,
+          "durationMs": 161.2,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 329
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 403.60000014305115,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.1,
+          "responseStartMs": 153.2,
+          "endMs": 177.7,
+          "durationMs": 175.6,
+          "transferBytes": 8265
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.4,
+          "responseStartMs": 520.2,
+          "endMs": 535.5,
+          "durationMs": 161.1,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.4,
+          "responseStartMs": 524.5,
+          "endMs": 535.6,
+          "durationMs": 161.2,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.6,
+          "responseStartMs": 528.5,
+          "endMs": 535.9,
+          "durationMs": 161.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.4,
+          "responseStartMs": 535.2,
+          "endMs": 536,
+          "durationMs": 161.6,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 536.2,
+          "responseStartMs": 685.8,
+          "endMs": 697.5,
+          "durationMs": 161.3,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 536.9,
+          "responseStartMs": 689.6,
+          "endMs": 697.7,
+          "durationMs": 160.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 537.3,
+          "responseStartMs": 693,
+          "endMs": 697.8,
+          "durationMs": 160.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 536.6,
+          "responseStartMs": 686.1,
+          "endMs": 697.9,
+          "durationMs": 161.3,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 329.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 404.40000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.2,
+          "responseStartMs": 153.8,
+          "endMs": 182.4,
+          "durationMs": 179.2,
+          "transferBytes": 8264
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.4,
+          "responseStartMs": 520.6,
+          "endMs": 536.7,
+          "durationMs": 162.3,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.3,
+          "responseStartMs": 524.1,
+          "endMs": 536.9,
+          "durationMs": 162.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.5,
+          "responseStartMs": 536.5,
+          "endMs": 539,
+          "durationMs": 164.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 374.5,
+          "responseStartMs": 536.6,
+          "endMs": 539.1,
+          "durationMs": 164.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 538.3,
+          "responseStartMs": 685.8,
+          "endMs": 709.8,
+          "durationMs": 171.5,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 538.7,
+          "responseStartMs": 688.3,
+          "endMs": 710,
+          "durationMs": 171.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.4,
+          "responseStartMs": 692.1,
+          "endMs": 710.1,
+          "durationMs": 170.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.8,
+          "responseStartMs": 702.7,
+          "endMs": 710.3,
+          "durationMs": 170.5,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 331.6
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 412.7000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.9,
+          "responseStartMs": 148.2,
+          "endMs": 175.2,
+          "durationMs": 172.3,
+          "transferBytes": 8265
+        },
+        {
+          "kind": "rsc",
+          "startMs": 382,
+          "responseStartMs": 525.3,
+          "endMs": 538.5,
+          "durationMs": 156.5,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 382.1,
+          "responseStartMs": 531.8,
+          "endMs": 538.7,
+          "durationMs": 156.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 382.1,
+          "responseStartMs": 531.9,
+          "endMs": 538.7,
+          "durationMs": 156.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 382,
+          "responseStartMs": 538.4,
+          "endMs": 538.8,
+          "durationMs": 156.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.3,
+          "responseStartMs": 681.7,
+          "endMs": 698.3,
+          "durationMs": 159,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.6,
+          "responseStartMs": 685.7,
+          "endMs": 698.4,
+          "durationMs": 158.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 540.1,
+          "responseStartMs": 693.5,
+          "endMs": 698.5,
+          "durationMs": 158.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.9,
+          "responseStartMs": 689.7,
+          "endMs": 698.6,
+          "durationMs": 158.7,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 323.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 415.7000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.2,
+          "responseStartMs": 147,
+          "endMs": 180.1,
+          "durationMs": 177.9,
+          "transferBytes": 8265
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384.7,
+          "responseStartMs": 531.6,
+          "endMs": 542.2,
+          "durationMs": 157.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384.7,
+          "responseStartMs": 535.2,
+          "endMs": 542.4,
+          "durationMs": 157.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384.6,
+          "responseStartMs": 540.2,
+          "endMs": 542.5,
+          "durationMs": 157.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384.6,
+          "responseStartMs": 528,
+          "endMs": 542.6,
+          "durationMs": 158,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 542.9,
+          "responseStartMs": 684.7,
+          "endMs": 699.6,
+          "durationMs": 156.7,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 543.2,
+          "responseStartMs": 688.6,
+          "endMs": 699.7,
+          "durationMs": 156.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 543.4,
+          "responseStartMs": 692.5,
+          "endMs": 699.8,
+          "durationMs": 156.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 543.7,
+          "responseStartMs": 697.1,
+          "endMs": 700,
+          "durationMs": 156.3,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 328.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 426.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 149.9,
+          "endMs": 179,
+          "durationMs": 176,
+          "transferBytes": 8267
+        },
+        {
+          "kind": "rsc",
+          "startMs": 395.6,
+          "responseStartMs": 540.9,
+          "endMs": 554.4,
+          "durationMs": 158.8,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 395.7,
+          "responseStartMs": 544.9,
+          "endMs": 554.5,
+          "durationMs": 158.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 395.7,
+          "responseStartMs": 548.6,
+          "endMs": 554.6,
+          "durationMs": 158.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 395.6,
+          "responseStartMs": 554.2,
+          "endMs": 554.7,
+          "durationMs": 159.1,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555.2,
+          "responseStartMs": 700.4,
+          "endMs": 716.2,
+          "durationMs": 161,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555.4,
+          "responseStartMs": 704.4,
+          "endMs": 716.3,
+          "durationMs": 160.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555.9,
+          "responseStartMs": 709.6,
+          "endMs": 716.4,
+          "durationMs": 160.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555.8,
+          "responseStartMs": 712.4,
+          "endMs": 716.5,
+          "durationMs": 160.7,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 332.3
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 409.80000019073486,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.1,
+          "responseStartMs": 148.3,
+          "endMs": 176.7,
+          "durationMs": 173.6,
+          "transferBytes": 8266
+        },
+        {
+          "kind": "rsc",
+          "startMs": 378.9,
+          "responseStartMs": 523.1,
+          "endMs": 539.7,
+          "durationMs": 160.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 379,
+          "responseStartMs": 528,
+          "endMs": 540,
+          "durationMs": 161,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 379,
+          "responseStartMs": 532.6,
+          "endMs": 540.1,
+          "durationMs": 161.1,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 379.1,
+          "responseStartMs": 539.5,
+          "endMs": 540.4,
+          "durationMs": 161.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 540.9,
+          "responseStartMs": 683.8,
+          "endMs": 699.8,
+          "durationMs": 158.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 541.2,
+          "responseStartMs": 689.2,
+          "endMs": 699.8,
+          "durationMs": 158.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 540.6,
+          "responseStartMs": 692.1,
+          "endMs": 699.9,
+          "durationMs": 159.3,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 541.3,
+          "responseStartMs": 697.3,
+          "endMs": 700,
+          "durationMs": 158.7,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 326.5
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 421.40000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 146.7,
+          "endMs": 177.5,
+          "durationMs": 175.2,
+          "transferBytes": 8266
+        },
+        {
+          "kind": "rsc",
+          "startMs": 392.6,
+          "responseStartMs": 536.2,
+          "endMs": 554,
+          "durationMs": 161.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 392.6,
+          "responseStartMs": 539.9,
+          "endMs": 554.1,
+          "durationMs": 161.5,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 392.7,
+          "responseStartMs": 544,
+          "endMs": 554.2,
+          "durationMs": 161.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 392.8,
+          "responseStartMs": 549.3,
+          "endMs": 554.4,
+          "durationMs": 161.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 554.7,
+          "responseStartMs": 698,
+          "endMs": 715.4,
+          "durationMs": 160.7,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555.3,
+          "responseStartMs": 701.4,
+          "endMs": 715.5,
+          "durationMs": 160.2,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555.4,
+          "responseStartMs": 705.7,
+          "endMs": 717,
+          "durationMs": 161.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 555,
+          "responseStartMs": 715.2,
+          "endMs": 717.2,
+          "durationMs": 162.2,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 329.2
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 395.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 147.1,
+          "endMs": 173.1,
+          "durationMs": 170.3,
+          "transferBytes": 8263
+        },
+        {
+          "kind": "rsc",
+          "startMs": 365.7,
+          "responseStartMs": 509.7,
+          "endMs": 525.3,
+          "durationMs": 159.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 365.8,
+          "responseStartMs": 515.9,
+          "endMs": 525.4,
+          "durationMs": 159.6,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 365.9,
+          "responseStartMs": 519.6,
+          "endMs": 525.5,
+          "durationMs": 159.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 365.9,
+          "responseStartMs": 525.1,
+          "endMs": 525.7,
+          "durationMs": 159.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 526.2,
+          "responseStartMs": 668.1,
+          "endMs": 682.8,
+          "durationMs": 156.6,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 526.7,
+          "responseStartMs": 671.7,
+          "endMs": 682.9,
+          "durationMs": 156.2,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 527.1,
+          "responseStartMs": 675.3,
+          "endMs": 683,
+          "durationMs": 155.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 527.3,
+          "responseStartMs": 678.8,
+          "endMs": 683,
+          "durationMs": 155.7,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 320.8
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 399,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 148.3,
+          "endMs": 178.2,
+          "durationMs": 175.5,
+          "transferBytes": 8263
+        },
+        {
+          "kind": "rsc",
+          "startMs": 375.5,
+          "responseStartMs": 524.1,
+          "endMs": 533.3,
+          "durationMs": 157.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 375.7,
+          "responseStartMs": 520.1,
+          "endMs": 533.3,
+          "durationMs": 157.6,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 375.7,
+          "responseStartMs": 527.7,
+          "endMs": 533.5,
+          "durationMs": 157.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 375.7,
+          "responseStartMs": 533.1,
+          "endMs": 533.6,
+          "durationMs": 157.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 534.5,
+          "responseStartMs": 681.6,
+          "endMs": 695.5,
+          "durationMs": 161,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 535.3,
+          "responseStartMs": 688.1,
+          "endMs": 695.7,
+          "durationMs": 160.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 535.7,
+          "responseStartMs": 692.8,
+          "endMs": 695.7,
+          "durationMs": 160,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 535,
+          "responseStartMs": 685.2,
+          "endMs": 695.8,
+          "durationMs": 160.8,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 326.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 392.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.2,
+          "responseStartMs": 147.8,
+          "endMs": 175.1,
+          "durationMs": 171.9,
+          "transferBytes": 8264
+        },
+        {
+          "kind": "rsc",
+          "startMs": 366.3,
+          "responseStartMs": 508.6,
+          "endMs": 522.5,
+          "durationMs": 156.2,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 366.2,
+          "responseStartMs": 513.4,
+          "endMs": 522.6,
+          "durationMs": 156.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 366.4,
+          "responseStartMs": 516.9,
+          "endMs": 522.8,
+          "durationMs": 156.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 366.4,
+          "responseStartMs": 522.3,
+          "endMs": 522.9,
+          "durationMs": 156.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 524.5,
+          "responseStartMs": 679.1,
+          "endMs": 684.1,
+          "durationMs": 159.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 524.1,
+          "responseStartMs": 674.3,
+          "endMs": 684.2,
+          "durationMs": 160.1,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 523.4,
+          "responseStartMs": 671.4,
+          "endMs": 684.3,
+          "durationMs": 160.9,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 523.8,
+          "responseStartMs": 666.4,
+          "endMs": 684.3,
+          "durationMs": 160.5,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 321.2
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 413.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.6,
+          "responseStartMs": 146.1,
+          "endMs": 171.8,
+          "durationMs": 169.2,
+          "transferBytes": 8268
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.8,
+          "responseStartMs": 530.1,
+          "endMs": 539,
+          "durationMs": 155.2,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.8,
+          "responseStartMs": 526.4,
+          "endMs": 539,
+          "durationMs": 155.2,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.8,
+          "responseStartMs": 533.3,
+          "endMs": 539.2,
+          "durationMs": 155.4,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.8,
+          "responseStartMs": 538.7,
+          "endMs": 539.3,
+          "durationMs": 155.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.7,
+          "responseStartMs": 682.3,
+          "endMs": 697.3,
+          "durationMs": 157.6,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 540.3,
+          "responseStartMs": 686.3,
+          "endMs": 697.4,
+          "durationMs": 157.1,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 540,
+          "responseStartMs": 689.5,
+          "endMs": 697.6,
+          "durationMs": 157.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 540.4,
+          "responseStartMs": 694.4,
+          "endMs": 697.6,
+          "durationMs": 157.2,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 321.5
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 406.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.6,
+          "responseStartMs": 153.4,
+          "endMs": 173.2,
+          "durationMs": 170.6,
+          "transferBytes": 8263
+        },
+        {
+          "kind": "rsc",
+          "startMs": 376.1,
+          "responseStartMs": 518.6,
+          "endMs": 531.6,
+          "durationMs": 155.5,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 376.1,
+          "responseStartMs": 522.1,
+          "endMs": 531.8,
+          "durationMs": 155.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 376.1,
+          "responseStartMs": 525.6,
+          "endMs": 532,
+          "durationMs": 155.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 376.2,
+          "responseStartMs": 531.4,
+          "endMs": 532.2,
+          "durationMs": 156,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 533.1,
+          "responseStartMs": 675.1,
+          "endMs": 688.7,
+          "durationMs": 155.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 533.5,
+          "responseStartMs": 678.7,
+          "endMs": 688.8,
+          "durationMs": 155.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 533.9,
+          "responseStartMs": 683.4,
+          "endMs": 688.9,
+          "durationMs": 155,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 532.7,
+          "responseStartMs": 687,
+          "endMs": 689.1,
+          "durationMs": 156.4,
+          "transferBytes": 529
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 322
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 397.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 4,
+          "responseStartMs": 147,
+          "endMs": 173.9,
+          "durationMs": 169.9,
+          "transferBytes": 8264
+        },
+        {
+          "kind": "rsc",
+          "startMs": 368,
+          "responseStartMs": 510.6,
+          "endMs": 523.5,
+          "durationMs": 155.5,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 368,
+          "responseStartMs": 514.7,
+          "endMs": 523.6,
+          "durationMs": 155.6,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 368.1,
+          "responseStartMs": 519.8,
+          "endMs": 523.7,
+          "durationMs": 155.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 368.3,
+          "responseStartMs": 523.3,
+          "endMs": 523.9,
+          "durationMs": 155.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 525.2,
+          "responseStartMs": 692.1,
+          "endMs": 708.9,
+          "durationMs": 183.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 524.9,
+          "responseStartMs": 677.2,
+          "endMs": 709,
+          "durationMs": 184.1,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 524.3,
+          "responseStartMs": 674.4,
+          "endMs": 709.1,
+          "durationMs": 184.8,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 524.6,
+          "responseStartMs": 674.6,
+          "endMs": 709.2,
+          "durationMs": 184.6,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 319.3
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 414.59999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 146.8,
+          "endMs": 172.9,
+          "durationMs": 170.1,
+          "transferBytes": 8263
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.9,
+          "responseStartMs": 525.6,
+          "endMs": 537.7,
+          "durationMs": 153.8,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.9,
+          "responseStartMs": 528.4,
+          "endMs": 537.8,
+          "durationMs": 153.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384,
+          "responseStartMs": 532,
+          "endMs": 537.9,
+          "durationMs": 153.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384,
+          "responseStartMs": 537.4,
+          "endMs": 538,
+          "durationMs": 154,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.1,
+          "responseStartMs": 681.1,
+          "endMs": 694.9,
+          "durationMs": 155.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.5,
+          "responseStartMs": 683.9,
+          "endMs": 695.3,
+          "durationMs": 155.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 539.7,
+          "responseStartMs": 687.7,
+          "endMs": 695.5,
+          "durationMs": 155.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 538.7,
+          "responseStartMs": 691,
+          "endMs": 695.8,
+          "durationMs": 157.1,
+          "transferBytes": 529
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 322.3
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 415.09999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 147.5,
+          "endMs": 173.6,
+          "durationMs": 171.2,
+          "transferBytes": 8265
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.9,
+          "responseStartMs": 527.9,
+          "endMs": 540.5,
+          "durationMs": 156.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 383.9,
+          "responseStartMs": 530.9,
+          "endMs": 540.6,
+          "durationMs": 156.7,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384.1,
+          "responseStartMs": 534.3,
+          "endMs": 540.7,
+          "durationMs": 156.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 384,
+          "responseStartMs": 537.2,
+          "endMs": 541,
+          "durationMs": 157,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 541.4,
+          "responseStartMs": 685.5,
+          "endMs": 704.7,
+          "durationMs": 163.3,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 541.8,
+          "responseStartMs": 688.3,
+          "endMs": 704.9,
+          "durationMs": 163.1,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 542.2,
+          "responseStartMs": 691.8,
+          "endMs": 705,
+          "durationMs": 162.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 542.5,
+          "responseStartMs": 696.5,
+          "endMs": 705.4,
+          "durationMs": 162.9,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 324.3
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 428.2000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 149.1,
+          "endMs": 177,
+          "durationMs": 174.3,
+          "transferBytes": 8264
+        },
+        {
+          "kind": "rsc",
+          "startMs": 397.6,
+          "responseStartMs": 545.6,
+          "endMs": 558.3,
+          "durationMs": 160.7,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 397.6,
+          "responseStartMs": 553.1,
+          "endMs": 558.4,
+          "durationMs": 160.8,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 397.6,
+          "responseStartMs": 555.5,
+          "endMs": 558.5,
+          "durationMs": 160.9,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 397.4,
+          "responseStartMs": 549.3,
+          "endMs": 558.6,
+          "durationMs": 161.2,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 558.9,
+          "responseStartMs": 703.3,
+          "endMs": 717.8,
+          "durationMs": 158.9,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 559.2,
+          "responseStartMs": 706.9,
+          "endMs": 717.9,
+          "durationMs": 158.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 559.5,
+          "responseStartMs": 710.2,
+          "endMs": 718.1,
+          "durationMs": 158.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 559.6,
+          "responseStartMs": 715.2,
+          "endMs": 718.1,
+          "durationMs": 158.5,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 331.8
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/turmas",
+      "durationMs": 416.40000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 148.9,
+          "endMs": 178.8,
+          "durationMs": 175.8,
+          "transferBytes": 8267
+        },
+        {
+          "kind": "rsc",
+          "startMs": 387,
+          "responseStartMs": 532.2,
+          "endMs": 542.4,
+          "durationMs": 155.4,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 386.9,
+          "responseStartMs": 534,
+          "endMs": 542.5,
+          "durationMs": 155.6,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 387,
+          "responseStartMs": 536.7,
+          "endMs": 542.7,
+          "durationMs": 155.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 387.1,
+          "responseStartMs": 542.2,
+          "endMs": 542.8,
+          "durationMs": 155.7,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 543.7,
+          "responseStartMs": 688.1,
+          "endMs": 701,
+          "durationMs": 157.3,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 543.3,
+          "responseStartMs": 690.8,
+          "endMs": 701.2,
+          "durationMs": 157.9,
+          "transferBytes": 529
+        },
+        {
+          "kind": "rsc",
+          "startMs": 543.8,
+          "responseStartMs": 694.2,
+          "endMs": 701.2,
+          "durationMs": 157.4,
+          "transferBytes": 530
+        },
+        {
+          "kind": "rsc",
+          "startMs": 544.1,
+          "responseStartMs": 698.7,
+          "endMs": 701.4,
+          "durationMs": 157.3,
+          "transferBytes": 530
+        }
+      ],
+      "javascript": {
+        "count": 3,
+        "transferBytes": 54623,
+        "lastResponseMs": 332.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    }
+  ]
+}

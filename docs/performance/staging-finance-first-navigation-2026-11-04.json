@@ -1,0 +1,534 @@
+{
+  "measuredAt": "2026-11-04T22:54:16.709Z",
+  "baseUrl": "https://staging.lazuli.fisklagarto.com.br",
+  "browserVersion": "156.0.8078.80",
+  "benchmarkProtocol": "in-page-paint-marks-v2",
+  "profile": "first",
+  "method": "fresh authenticated context per sample, source fully loaded before first navigation; sidebar DOM click to in-page paint marks after two animation frames; desktop 1440x900; network idle before each click; sequential",
+  "samplesPerRoute": 20,
+  "routes": [
+    {
+      "path": "/financeiro",
+      "start": "/alunos",
+      "ready": "section[aria-labelledby=\"contract-closings-title\"] svg.recharts-surface",
+      "chart": "svg.recharts-surface"
+    }
+  ],
+  "summary": [
+    {
+      "route": "/financeiro",
+      "n": 20,
+      "p50": 379.6,
+      "p95": 395.5,
+      "max": 670.2,
+      "chartMounted": {
+        "n": 20,
+        "p50": 379.6,
+        "p95": 395.5,
+        "max": 670.2
+      }
+    }
+  ],
+  "samples": [
+    {
+      "route": "/financeiro",
+      "durationMs": 395.5,
+      "chartMountedMs": 395.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.5,
+          "responseStartMs": 149.4,
+          "endMs": 234,
+          "durationMs": 230.5,
+          "transferBytes": 3667
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 161.9
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 70,
+        "maxMs": 70
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 384.7999999523163,
+      "chartMountedMs": 384.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 148.8,
+          "endMs": 225.9,
+          "durationMs": 223.1,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 157.3
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 382.7999999523163,
+      "chartMountedMs": 382.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 148.1,
+          "endMs": 229.3,
+          "durationMs": 226.8,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 156.5
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 379.60000014305115,
+      "chartMountedMs": 379.60000014305115,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.2,
+          "responseStartMs": 145.2,
+          "endMs": 217.1,
+          "durationMs": 214.9,
+          "transferBytes": 3667
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 153.9
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 60,
+        "maxMs": 60
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 374.40000009536743,
+      "chartMountedMs": 374.40000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 147.1,
+          "endMs": 228.4,
+          "durationMs": 226.1,
+          "transferBytes": 3669
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 157.4
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 382,
+      "chartMountedMs": 382,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 146.5,
+          "endMs": 225.5,
+          "durationMs": 222.7,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 157.3
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 374.10000014305115,
+      "chartMountedMs": 374.10000014305115,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 149.4,
+          "endMs": 233.8,
+          "durationMs": 231.1,
+          "transferBytes": 3668
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 155.9
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 375.7000000476837,
+      "chartMountedMs": 375.7000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 147.4,
+          "endMs": 229,
+          "durationMs": 226.6,
+          "transferBytes": 3667
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 163.7
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 375.09999990463257,
+      "chartMountedMs": 375.09999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 146.1,
+          "endMs": 282.1,
+          "durationMs": 279.3,
+          "transferBytes": 3667
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 153.9
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 58,
+        "maxMs": 58
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 379.59999990463257,
+      "chartMountedMs": 379.59999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 147.8,
+          "endMs": 222.6,
+          "durationMs": 220.3,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 155.9
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 56,
+        "maxMs": 56
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 381.90000009536743,
+      "chartMountedMs": 381.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 147.3,
+          "endMs": 219.6,
+          "durationMs": 217.3,
+          "transferBytes": 3668
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 153.8
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 63,
+        "maxMs": 63
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 377,
+      "chartMountedMs": 377,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 146.1,
+          "endMs": 222.5,
+          "durationMs": 219.7,
+          "transferBytes": 3669
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 154.7
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 56,
+        "maxMs": 56
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 380.19999980926514,
+      "chartMountedMs": 380.19999980926514,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.3,
+          "responseStartMs": 145.3,
+          "endMs": 227.8,
+          "durationMs": 225.5,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 151.6
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 377.59999990463257,
+      "chartMountedMs": 377.59999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 148.5,
+          "endMs": 236.4,
+          "durationMs": 233.7,
+          "transferBytes": 3667
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 158
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 58,
+        "maxMs": 58
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 381.5,
+      "chartMountedMs": 381.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.4,
+          "responseStartMs": 151,
+          "endMs": 226.5,
+          "durationMs": 223.1,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 161.3
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 58,
+        "maxMs": 58
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 670.1999998092651,
+      "chartMountedMs": 670.1999998092651,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 167.7,
+          "endMs": 411.6,
+          "durationMs": 409.1,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 193.9
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 56,
+        "maxMs": 56
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 377.2999999523163,
+      "chartMountedMs": 377.2999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 146.5,
+          "endMs": 226,
+          "durationMs": 223.5,
+          "transferBytes": 3668
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 156.4
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 58,
+        "maxMs": 58
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 384.90000009536743,
+      "chartMountedMs": 384.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 4.4,
+          "responseStartMs": 151.1,
+          "endMs": 246.8,
+          "durationMs": 242.4,
+          "transferBytes": 3666
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 156.2
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 61,
+        "maxMs": 61
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 374.09999990463257,
+      "chartMountedMs": 374.09999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 147.9,
+          "endMs": 224.3,
+          "durationMs": 221.9,
+          "transferBytes": 3667
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 155.1
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 55,
+        "maxMs": 55
+      }
+    },
+    {
+      "route": "/financeiro",
+      "durationMs": 378.40000009536743,
+      "chartMountedMs": 378.40000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 148.9,
+          "endMs": 228.4,
+          "durationMs": 225.4,
+          "transferBytes": 3668
+        }
+      ],
+      "javascript": {
+        "count": 1,
+        "transferBytes": 1183,
+        "lastResponseMs": 157.2
+      },
+      "longTasks": {
+        "count": 1,
+        "totalMs": 57,
+        "maxMs": 57
+      }
+    }
+  ]
+}

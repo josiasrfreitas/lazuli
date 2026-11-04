@@ -50,7 +50,8 @@ const routes = [
   {
     path: "/alunos",
     start: "/turmas",
-    ready: 'table[aria-label="Lista de alunos"][aria-busy="false"]',
+    ready:
+      'table[aria-label="Lista de alunos"][aria-busy="false"]:not(:has([aria-label="Carregando score"]))',
   },
   { path: "/turmas", start: "/alunos", ready: 'table[aria-label="Turmas"] tbody tr[tabindex="0"]' },
   {

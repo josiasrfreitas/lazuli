@@ -1,0 +1,507 @@
+{
+  "measuredAt": "2026-11-04T22:45:03.202Z",
+  "baseUrl": "https://staging.lazuli.fisklagarto.com.br",
+  "browserVersion": "156.0.8078.80",
+  "benchmarkProtocol": "in-page-paint-marks-v2",
+  "profile": "first",
+  "method": "fresh authenticated context per sample, source fully loaded before first navigation; sidebar DOM click to in-page paint marks after two animation frames; desktop 1440x900; network idle before each click; sequential",
+  "samplesPerRoute": 20,
+  "routes": [
+    {
+      "path": "/recebiveis",
+      "start": "/alunos",
+      "ready": "table[aria-label=\"Lista de recebíveis\"][aria-busy=\"false\"]"
+    }
+  ],
+  "summary": [
+    {
+      "route": "/recebiveis",
+      "n": 20,
+      "p50": 457.7,
+      "p95": 480,
+      "max": 487.6
+    }
+  ],
+  "samples": [
+    {
+      "route": "/recebiveis",
+      "durationMs": 480,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.6,
+          "responseStartMs": 147.1,
+          "endMs": 255.9,
+          "durationMs": 253.3,
+          "transferBytes": 4617
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 405.5
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 487.60000014305115,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.1,
+          "responseStartMs": 150.4,
+          "endMs": 254.6,
+          "durationMs": 251.5,
+          "transferBytes": 4618
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 414.5
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 460,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 149.1,
+          "endMs": 243.8,
+          "durationMs": 240.8,
+          "transferBytes": 4620
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 399.5
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 456.89999985694885,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 146.9,
+          "endMs": 236.6,
+          "durationMs": 233.8,
+          "transferBytes": 4617
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 388.2
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 465.60000014305115,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.6,
+          "responseStartMs": 150.7,
+          "endMs": 245.1,
+          "durationMs": 242.5,
+          "transferBytes": 4616
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 398
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 455.30000019073486,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 148.6,
+          "endMs": 238.6,
+          "durationMs": 235.9,
+          "transferBytes": 4618
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 389.6
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 476.89999985694885,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 149.2,
+          "endMs": 245.4,
+          "durationMs": 242.4,
+          "transferBytes": 4619
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 400.6
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 447.2999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.2,
+          "responseStartMs": 145.6,
+          "endMs": 236.9,
+          "durationMs": 234.7,
+          "transferBytes": 4618
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 385.9
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 471,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 149.3,
+          "endMs": 246,
+          "durationMs": 243,
+          "transferBytes": 4618
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 400
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 450.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.9,
+          "responseStartMs": 148.4,
+          "endMs": 235.8,
+          "durationMs": 232.9,
+          "transferBytes": 4617
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 385.6
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 457.7000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.6,
+          "responseStartMs": 146.1,
+          "endMs": 236.1,
+          "durationMs": 233.5,
+          "transferBytes": 4619
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 387.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 453.90000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.5,
+          "responseStartMs": 148.4,
+          "endMs": 239,
+          "durationMs": 235.5,
+          "transferBytes": 4619
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 386.3
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 443.09999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 147.2,
+          "endMs": 236.7,
+          "durationMs": 233.7,
+          "transferBytes": 4613
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 384.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 477.7999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 149.1,
+          "endMs": 252.8,
+          "durationMs": 250,
+          "transferBytes": 4618
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 408.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 460.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 147.9,
+          "endMs": 238.1,
+          "durationMs": 235.4,
+          "transferBytes": 4618
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 388.1
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 448.69999980926514,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 146.3,
+          "endMs": 233.7,
+          "durationMs": 231.2,
+          "transferBytes": 4618
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 382.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 471.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 151.3,
+          "endMs": 247.8,
+          "durationMs": 244.8,
+          "transferBytes": 4614
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 402
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 450.7000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 148.9,
+          "endMs": 239.4,
+          "durationMs": 236.4,
+          "transferBytes": 4619
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 389.6
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 457.39999985694885,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 148.3,
+          "endMs": 237.3,
+          "durationMs": 234.9,
+          "transferBytes": 4619
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 388.8
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/recebiveis",
+      "durationMs": 463.40000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 149.1,
+          "endMs": 238.6,
+          "durationMs": 235.8,
+          "transferBytes": 4617
+        }
+      ],
+      "javascript": {
+        "count": 4,
+        "transferBytes": 53404,
+        "lastResponseMs": 391.3
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    }
+  ]
+}

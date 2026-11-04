@@ -1,0 +1,667 @@
+{
+  "measuredAt": "2026-11-04T22:48:06.202Z",
+  "baseUrl": "https://staging.lazuli.fisklagarto.com.br",
+  "browserVersion": "156.0.8078.80",
+  "benchmarkProtocol": "in-page-paint-marks-v2",
+  "profile": "first",
+  "method": "fresh authenticated context per sample, source fully loaded before first navigation; sidebar DOM click to in-page paint marks after two animation frames; desktop 1440x900; network idle before each click; sequential",
+  "samplesPerRoute": 20,
+  "routes": [
+    {
+      "path": "/alunos",
+      "start": "/turmas",
+      "ready": "table[aria-label=\"Lista de alunos\"][aria-busy=\"false\"]"
+    }
+  ],
+  "summary": [
+    {
+      "route": "/alunos",
+      "n": 20,
+      "p50": 472.5,
+      "p95": 611.2,
+      "max": 627
+    }
+  ],
+  "samples": [
+    {
+      "route": "/alunos",
+      "durationMs": 590,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.4,
+          "responseStartMs": 148,
+          "endMs": 201.1,
+          "durationMs": 197.7,
+          "transferBytes": 5660
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 589.4,
+          "responseStartMs": 803.7,
+          "endMs": 804.1,
+          "durationMs": 214.7,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 492
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 627,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 14.1,
+          "responseStartMs": 166.4,
+          "endMs": 204.4,
+          "durationMs": 190.3,
+          "transferBytes": 5665
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 597.7,
+          "responseStartMs": 796.5,
+          "endMs": 796.9,
+          "durationMs": 199.2,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 495.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 472.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.1,
+          "responseStartMs": 147.5,
+          "endMs": 201.8,
+          "durationMs": 198.7,
+          "transferBytes": 5663
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 435.3,
+          "responseStartMs": 635.3,
+          "endMs": 636,
+          "durationMs": 200.7,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 365.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 461.09999990463257,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.6,
+          "responseStartMs": 148.3,
+          "endMs": 196.1,
+          "durationMs": 193.5,
+          "transferBytes": 5664
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 433.2,
+          "responseStartMs": 625.1,
+          "endMs": 625.4,
+          "durationMs": 192.2,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 361.5
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 488.7000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 148.5,
+          "endMs": 215.6,
+          "durationMs": 213.1,
+          "transferBytes": 5662
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 448.1,
+          "responseStartMs": 653.7,
+          "endMs": 654,
+          "durationMs": 205.9,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 382.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 472,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 147,
+          "endMs": 193.6,
+          "durationMs": 191.1,
+          "transferBytes": 5663
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 435,
+          "responseStartMs": 633,
+          "endMs": 633.3,
+          "durationMs": 198.3,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 366.8
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 584.5999999046326,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3.1,
+          "responseStartMs": 152.7,
+          "endMs": 201.6,
+          "durationMs": 198.5,
+          "transferBytes": 5663
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 563.9,
+          "responseStartMs": 781.9,
+          "endMs": 782.1,
+          "durationMs": 218.2,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 493.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 446.80000019073486,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 148.2,
+          "endMs": 188.6,
+          "durationMs": 185.8,
+          "transferBytes": 5661
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 418.9,
+          "responseStartMs": 611.3,
+          "endMs": 613.5,
+          "durationMs": 194.6,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 355.2
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 532.8000001907349,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.8,
+          "responseStartMs": 146.8,
+          "endMs": 187.2,
+          "durationMs": 184.4,
+          "transferBytes": 5666
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 493,
+          "responseStartMs": 683.8,
+          "endMs": 684,
+          "durationMs": 191,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 432.9
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 438.89999985694885,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 148.6,
+          "endMs": 187.9,
+          "durationMs": 185.5,
+          "transferBytes": 5663
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 409.9,
+          "responseStartMs": 599.9,
+          "endMs": 600.1,
+          "durationMs": 190.2,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 350
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 473.2999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.9,
+          "responseStartMs": 148.8,
+          "endMs": 203.1,
+          "durationMs": 200.2,
+          "transferBytes": 5665
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 436.5,
+          "responseStartMs": 642.7,
+          "endMs": 643,
+          "durationMs": 206.5,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 367.7
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 454.5,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 145.5,
+          "endMs": 194.7,
+          "durationMs": 192.3,
+          "transferBytes": 5663
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 419.7,
+          "responseStartMs": 614,
+          "endMs": 614.3,
+          "durationMs": 194.6,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 359
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 445.40000009536743,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 147.7,
+          "endMs": 185.9,
+          "durationMs": 183.5,
+          "transferBytes": 5662
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 415,
+          "responseStartMs": 603.9,
+          "endMs": 604.2,
+          "durationMs": 189.2,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 350.9
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 450.10000014305115,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 148.7,
+          "endMs": 188.4,
+          "durationMs": 186,
+          "transferBytes": 5663
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 414.2,
+          "responseStartMs": 605.4,
+          "endMs": 605.7,
+          "durationMs": 191.5,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 351.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 533,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.6,
+          "responseStartMs": 155.1,
+          "endMs": 184.8,
+          "durationMs": 182.2,
+          "transferBytes": 5660
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 508.8,
+          "responseStartMs": 697.1,
+          "endMs": 697.5,
+          "durationMs": 188.7,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 444.1
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 457.2000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.4,
+          "responseStartMs": 148.8,
+          "endMs": 189.4,
+          "durationMs": 187,
+          "transferBytes": 5663
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 415.2,
+          "responseStartMs": 609.8,
+          "endMs": 610.1,
+          "durationMs": 194.9,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 353.4
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 462.19999980926514,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 146.1,
+          "endMs": 191,
+          "durationMs": 188.3,
+          "transferBytes": 5666
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 425.1,
+          "responseStartMs": 617.8,
+          "endMs": 618.1,
+          "durationMs": 193,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 358.9
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 582.2999999523163,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 3,
+          "responseStartMs": 151.6,
+          "endMs": 200.8,
+          "durationMs": 197.8,
+          "transferBytes": 5664
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 553.3,
+          "responseStartMs": 737.1,
+          "endMs": 737.5,
+          "durationMs": 184.2,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 486.5
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 611.2000000476837,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.5,
+          "responseStartMs": 157,
+          "endMs": 302.5,
+          "durationMs": 300,
+          "transferBytes": 5664
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 583.1,
+          "responseStartMs": 792.1,
+          "endMs": 792.4,
+          "durationMs": 209.3,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 512
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "route": "/alunos",
+      "durationMs": 546.5999999046326,
+      "network": [
+        {
+          "kind": "rsc",
+          "startMs": 2.7,
+          "responseStartMs": 149,
+          "endMs": 189.1,
+          "durationMs": 186.4,
+          "transferBytes": 5665
+        },
+        {
+          "kind": "/api/trpc/students.healthBatch",
+          "startMs": 514.5,
+          "responseStartMs": 717.3,
+          "endMs": 717.6,
+          "durationMs": 203.1,
+          "transferBytes": 11914
+        }
+      ],
+      "javascript": {
+        "count": 7,
+        "transferBytes": 195516,
+        "lastResponseMs": 441
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    }
+  ]
+}

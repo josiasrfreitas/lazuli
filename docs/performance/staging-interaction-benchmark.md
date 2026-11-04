@@ -10,6 +10,12 @@ As amostras são sequenciais em um único Chrome, sem teste de carga. O JSON gua
 viewport, perfil, rota, seletor de prontidão, tempos de rede e long tasks. Não contém dados de
 alunos ou respostas da API.
 
+Em `/alunos`, o seletor atual espera a tabela **e todos os scores visíveis** deixarem de exibir
+`Carregando score`. A versão anterior parava quando a tabela saía de `aria-busy`, antes da chamada
+`students.healthBatch` terminar. As séries com esses seletores medem marcos diferentes e não devem
+ser comparadas como antes/depois. A [rodada por módulo em staging](staging-module-costs-2026-11-04.md)
+registra a série corrigida e os demais caminhos críticos.
+
 O perfil padrão é **primeira navegação**: cada amostra abre um contexto autenticado novo, espera
 a rota de origem ficar pronta e a rede estabilizar, e mede o primeiro clique para o destino. Isso
 inclui JavaScript e dados ainda não carregados no destino. `--profile repeat` mede o retorno ao
@@ -119,7 +125,8 @@ não uma soma de durações. Houve long tasks em 14 das 20 amostras, sem atribui
 consulta específica. O [JSON bruto sanitizado](staging-panel-first-navigation-baseline-2026-11-04.json)
 preserva as amostras. A medição seguinte usou esse mesmo protocolo, perfil,
 rota, navegador, viewport, conta e estado do Colima; os 829 ms históricos não são comparáveis.
-As outras cinco rotas continuam apenas com smoke de uma amostra, sem p95.
+Naquela etapa, as outras cinco rotas tinham apenas smoke de uma amostra, sem p95. A rodada posterior
+por módulo está no [mapa de custos](staging-module-costs-2026-11-04.md).
 O [comparador](../../scripts/compare-staging-interaction.mjs) recusa arquivos com protocolo,
 perfil, navegador, rota ou quantidade de amostras diferente e compara `fullReadyMs` diretamente:
 
