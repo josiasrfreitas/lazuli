@@ -99,14 +99,15 @@ implantado.
 Após a publicação da imagem `sha256:0d20eedd26791cdf885cfaa87da6a6f75193a7d4a98672c53288df13dd3c6ad7`,
 um novo smoke repetiu as seis rotas com o **mesmo protocolo, perfil e conta** do smoke anterior.
 O Colima default de 2 GiB estava ativo nos dois. O [comparativo por rota](staging-navigation-smoke-comparison-2026-11-04.svg)
-e o [caminho do painel](staging-panel-smoke-waterfall-2026-11-04.svg) mostram os tempos das duas
-amostras; [dados agregados](staging-navigation-smoke-comparison-2026-11-04.json) e
+agora inclui também o smoke da imagem final; o [caminho do painel](staging-panel-smoke-waterfall-2026-11-04.svg)
+mostra apenas as duas primeiras imagens. Os [dados agregados](staging-navigation-smoke-comparison-2026-11-04.json) e
 [gerador](../../scripts/plot-staging-navigation.mjs) permitem refazer os gráficos. O financeiro
 foi de 499 para 383 ms e deixou de fazer a chamada tRPC após o clique; o painel foi de 1.036 para
 1.154 ms, com o lote da API de 460 para 689 ms. Alunos, turmas, recebíveis e aulas ficaram em
 623, 542, 640 e 805 ms na nova amostra. **Cada barra representa uma navegação, não p95 nem
-estimativa causal de ganho.** A próxima série de 20 amostras por rota deve substituir esses
-comparativos de smoke. Os gráficos antigos de p99 da API permanecem um baseline separado, pois
+estimativa causal de ganho.** Na imagem final, as seis rotas ficaram em 895, 599, 424, 480, 382 e
+514 ms, respectivamente, em uma amostra cada. As outras cinco rotas ainda precisam de séries
+de 20 amostras para qualquer comparação de p95. Os gráficos antigos de p99 da API permanecem um baseline separado, pois
 medem chamadas sob carga e não o clique até a tela pronta.
 
 Uma série de **20 primeiras navegações do painel** na imagem
@@ -116,7 +117,7 @@ comparável da **tela inteira**: p50 de 980 ms e p95 de 1.184 ms. O lote tRPC co
 de mediana, terminou em 886 ms e a tela ficou pronta em 980 ms; são medianas independentes,
 não uma soma de durações. Houve long tasks em 14 das 20 amostras, sem atribuição causal a uma
 consulta específica. O [JSON bruto sanitizado](staging-panel-first-navigation-baseline-2026-11-04.json)
-preserva as amostras. A próxima medição do painel precisa usar esse mesmo protocolo, perfil,
+preserva as amostras. A medição seguinte usou esse mesmo protocolo, perfil,
 rota, navegador, viewport, conta e estado do Colima; os 829 ms históricos não são comparáveis.
 As outras cinco rotas continuam apenas com smoke de uma amostra, sem p95.
 O [comparador](../../scripts/compare-staging-interaction.mjs) recusa arquivos com protocolo,
@@ -124,4 +125,23 @@ perfil, navegador, rota ou quantidade de amostras diferente e compara `fullReady
 
 ```sh
 node scripts/compare-staging-interaction.mjs docs/performance/staging-panel-first-navigation-baseline-2026-11-04.json CAMINHO_DO_NOVO_JSON
+```
+
+O deploy ad hoc da revisão `da8b3b11` publicou a imagem
+`sha256:9d7cfadac316b3ac027beb5a8dc36827360b003c1d5078eea775e0b1b33f5883` em staging.
+Um smoke das seis rotas passou. A [série final de 20 primeiras navegações](staging-panel-first-navigation-after-2026-11-04.json)
+usou a mesma conta, Chrome `156.0.8078.80`, viewport, protocolo e Colima default de 2 GiB do
+baseline. O [comparativo da tela inteira](staging-panel-first-navigation-comparison-2026-11-04.svg)
+mostra p50 de **980 → 620 ms** e p95 de **1.184 → 709 ms**: menos 475 ms no p95, ou cerca de
+40%. A meta p95 < 300 ms permanece distante.
+
+Na mediana, o primeiro RSC terminou mais tarde (**172 → 350 ms**), como esperado ao incluir as
+consultas no servidor, mas o lote tRPC do painel deixou de ocorrer após o clique. O último JS
+chegou em **450 → 509 ms**, e a tela ficou pronta em **980 → 620 ms**. Esses marcos são medianas
+independentes; não devem ser somados nem tratados como duração de queries. O primeiro RSC ainda
+terminou em 433 ms no p95 e a tela em 709 ms, então uma nova redução até 300 ms requer investigar
+separadamente a resposta inicial e o trabalho do navegador. O gráfico é reproduzível com:
+
+```sh
+node scripts/plot-staging-panel-comparison.mjs docs/performance/staging-panel-first-navigation-baseline-2026-11-04.json docs/performance/staging-panel-first-navigation-after-2026-11-04.json docs/performance/staging-panel-first-navigation-comparison-2026-11-04.svg
 ```

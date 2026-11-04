@@ -19,7 +19,7 @@
       ]
     },
     {
-      "label": "Nova imagem",
+      "label": "Intermediária",
       "measuredAt": "2026-11-04T21:18:00.960Z",
       "imageDigest": "sha256:0d20eedd26791cdf885cfaa87da6a6f75193a7d4a98672c53288df13dd3c6ad7",
       "routes": [
@@ -29,6 +29,19 @@
         { "path": "/recebiveis", "readyMs": 640, "firstApiStartMs": 342, "lastApiEndMs": 594 },
         { "path": "/financeiro", "readyMs": 383, "firstApiStartMs": null, "lastApiEndMs": null },
         { "path": "/aulas", "readyMs": 805, "firstApiStartMs": 458, "lastApiEndMs": 769 }
+      ]
+    },
+    {
+      "label": "Final",
+      "measuredAt": "2026-11-04T22:27:07.758Z",
+      "imageDigest": "sha256:9d7cfadac316b3ac027beb5a8dc36827360b003c1d5078eea775e0b1b33f5883",
+      "routes": [
+        { "path": "/", "readyMs": 895 },
+        { "path": "/alunos", "readyMs": 599 },
+        { "path": "/turmas", "readyMs": 424 },
+        { "path": "/recebiveis", "readyMs": 480 },
+        { "path": "/financeiro", "readyMs": 382 },
+        { "path": "/aulas", "readyMs": 514 }
       ]
     }
   ]

@@ -16,6 +16,7 @@ const labels = new Map([
 ]);
 const blue = "#285A78";
 const orange = "#C56932";
+const purple = "#6A4C93";
 const grey = "#A9BAC4";
 const ink = "#183040";
 const escape = (value) =>
@@ -33,21 +34,29 @@ function routeComparison() {
   const width = 790;
   const scale = (ms) => (ms / 1300) * width;
   const rows = initial.routes.map((before, index) => {
-    const after = current.routes.find((row) => row.path === before.path);
-    if (!after) throw new Error(`Missing route ${before.path}`);
-    const y = 160 + index * 64;
+    const y = 158 + index * 83;
     return [
-      label(30, y + 18, labels.get(before.path) ?? before.path, 'font-size="17"'),
-      `<rect x="${left}" y="${y}" width="${scale(before.readyMs).toFixed(1)}" height="20" fill="${blue}" rx="3"/>`,
-      `<rect x="${left}" y="${y + 25}" width="${scale(after.readyMs).toFixed(1)}" height="20" fill="${orange}" rx="3"/>`,
-      label(left + scale(before.readyMs) + 8, y + 16, `${before.readyMs} ms`, 'font-size="14"'),
-      label(left + scale(after.readyMs) + 8, y + 41, `${after.readyMs} ms`, 'font-size="14"'),
+      label(30, y + 34, labels.get(before.path) ?? before.path, 'font-size="17"'),
+      ...data.runs.map((run, runIndex) => {
+        const route = run.routes.find((entry) => entry.path === before.path);
+        if (!route) throw new Error(`Missing route ${before.path} in ${run.label}`);
+        const barY = y + runIndex * 22;
+        return [
+          `<rect x="${left}" y="${barY}" width="${scale(route.readyMs).toFixed(1)}" height="18" fill="${[blue, orange, purple][runIndex]}" rx="3"/>`,
+          label(
+            left + scale(route.readyMs) + 8,
+            barY + 14,
+            `${route.readyMs} ms`,
+            'font-size="13"',
+          ),
+        ].join("\n");
+      }),
     ].join("\n");
   });
   const ticks = [0, 300, 400, 600, 900, 1200]
     .map((value) => {
       const x = left + scale(value);
-      return `<line x1="${x}" y1="148" x2="${x}" y2="532" stroke="#E2E8EC"/>\n${label(x, 550, value, 'text-anchor="middle" font-size="13"')}`;
+      return `<line x1="${x}" y1="148" x2="${x}" y2="651" stroke="#E2E8EC"/>\n${label(x, 671, value, 'text-anchor="middle" font-size="13"')}`;
     })
     .join("\n");
   const targetX = left + scale(300);
@@ -62,20 +71,22 @@ function routeComparison() {
     `<rect x="${left}" y="102" width="15" height="15" fill="${blue}"/>`,
     label(left + 23, 115, "Inicial", 'font-size="15"'),
     `<rect x="${left + 110}" y="102" width="15" height="15" fill="${orange}"/>`,
-    label(left + 133, 115, "Nova imagem", 'font-size="15"'),
+    label(left + 133, 115, "Intermediária", 'font-size="15"'),
+    `<rect x="${left + 290}" y="102" width="15" height="15" fill="${purple}"/>`,
+    label(left + 313, 115, "Final", 'font-size="15"'),
     ticks,
-    `<line x1="${targetX}" y1="148" x2="${targetX}" y2="532" stroke="#438C5A" stroke-width="2" stroke-dasharray="5 5"/>`,
+    `<line x1="${targetX}" y1="148" x2="${targetX}" y2="651" stroke="#438C5A" stroke-width="2" stroke-dasharray="5 5"/>`,
     rows.join("\n"),
     label(
       30,
-      580,
-      "Linha verde: meta p95 < 300 ms. Uma amostra por rota; barras não são p95 nem ganho causal.",
+      704,
+      "Linha verde: meta p95 < 300 ms. Uma amostra por rota e imagem; barras não são p95 nem ganho causal.",
       'font-size="14" fill="#536875"',
     ),
   ].join("\n");
   writeFileSync(
     join(output, "staging-navigation-smoke-comparison-2026-11-04.svg"),
-    base(610, body),
+    base(730, body),
   );
 }
 
