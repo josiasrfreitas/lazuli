@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { createContext, useContext, type ReactElement, type ReactNode } from "react";
+import type { RouterOutputs } from "@lazuli/api";
 import { Badge, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 
@@ -11,19 +12,39 @@ const LEVELS = {
   INSUFFICIENT_DATA: { label: "Sem dados suficientes", variant: "neutral" },
 } as const;
 
-/** Shares the profile's query and calculation without delaying the student listing. */
+type Score = RouterOutputs["students"]["healthBatch"][number];
+type ScoresState = { rows: Score[]; pending: boolean };
+const ScoresContext = createContext<ScoresState>({ rows: [], pending: false });
+
+export function StudentScores({
+  ids,
+  children,
+}: {
+  ids: string[];
+  children: ReactNode;
+}): ReactElement {
+  const query = trpc.students.healthBatch.useQuery(
+    { ids: [...new Set(ids)].toSorted() },
+    { enabled: ids.length > 0 },
+  );
+  return (
+    <ScoresContext value={{ rows: query.data ?? [], pending: ids.length > 0 && query.isPending }}>
+      {children}
+    </ScoresContext>
+  );
+}
+
 export function StudentScore({ studentId }: { studentId: string }): ReactElement {
-  const query = trpc.students.health.useQuery({ id: studentId });
-  if (query.isPending) return <InlineSkeleton className="h-4 w-8" aria-label="Carregando score" />;
-  if (query.isError) return <span title="Score indisponível">—</span>;
-  const level = LEVELS[query.data.level];
+  const { rows, pending } = useContext(ScoresContext);
+  if (pending) return <InlineSkeleton className="h-4 w-8" aria-label="Carregando score" />;
+  const score = rows.find((row) => row.studentId === studentId);
+  if (!score) return <span title="Score indisponível">—</span>;
+  const level = LEVELS[score.level];
   return (
     <span title={`${level.label} · Saúde do vínculo`}>
       <Badge variant={level.variant}>
-        <span
-          aria-label={query.data.score === null ? level.label : `Score: ${query.data.score} de 100`}
-        >
-          {query.data.score ?? "—"}
+        <span aria-label={score.score === null ? level.label : `Score: ${score.score} de 100`}>
+          {score.score ?? "—"}
         </span>
       </Badge>
     </span>

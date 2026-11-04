@@ -12,7 +12,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { formatAttendancePercent, toWhatsAppUrl } from "~/lib/format";
 import { gradeLabel } from "~/features/assessments/shared";
 import { rosterStatus, type RosterRow } from "./roster-status";
-import { StudentScore } from "~/features/students/student-score";
+import { StudentScore, StudentScores } from "~/features/students/student-score";
 import { studentAgeLabel } from "./student-age";
 import { formatTrackName } from "./labels";
 import { StudentAssessmentsDialog } from "~/features/students/profile/student-assessments-dialog";
@@ -42,18 +42,20 @@ const TONES = {
 } as const;
 export function RosterList(props: Props): ReactElement {
   return (
-    <DataTable
-      label="Alunos da turma"
-      columns={rosterColumns(props)}
-      state={rosterState(props)}
-      onRetry={props.refetch}
-      errorTitle="Não foi possível carregar os alunos"
-      empty={{
-        title: "Nenhum vínculo encontrado",
-        description: "Matricule um aluno para começar esta turma.",
-      }}
-      pagination={rosterPagination(props)}
-    />
+    <StudentScores ids={props.data?.rows.map((row) => row.studentId) ?? []}>
+      <DataTable
+        label="Alunos da turma"
+        columns={rosterColumns(props)}
+        state={rosterState(props)}
+        onRetry={props.refetch}
+        errorTitle="Não foi possível carregar os alunos"
+        empty={{
+          title: "Nenhum vínculo encontrado",
+          description: "Matricule um aluno para começar esta turma.",
+        }}
+        pagination={rosterPagination(props)}
+      />
+    </StudentScores>
   );
 }
 function rosterState(props: Props): DataTableState<RosterRow> {

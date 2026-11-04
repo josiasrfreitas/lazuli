@@ -21,7 +21,7 @@ import {
   TableSkeleton,
 } from "@lazuli/ui";
 
-import { StudentScore } from "./student-score";
+import { StudentScore, StudentScores } from "./student-score";
 import { EM_DASH, firstTwoNames } from "~/lib/format";
 import type { TablePaginationAdapterProps } from "~/lib/pagination";
 import {
@@ -282,32 +282,39 @@ export function StudentsTable({
   pagination: StudentsTablePagination;
 }): ReactElement {
   return (
-    <TableContainer footer={<StudentsPagination pagination={pagination} />} viewportBound>
-      <Table
-        aria-busy={state.kind === "loading"}
-        aria-label="Lista de alunos"
-        className="min-w-2xl table-fixed"
-      >
-        <TableHeader sticky>
-          <TableRow className="hover:bg-transparent">
-            {COLUMNS.map((column) => (
-              <StudentsTableHead column={column} key={column.label} />
-            ))}
-            <TableHead className="w-16 text-center">
-              <span className="sr-only">Ações</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {state.kind === "data" ? (
-            state.rows.map((row) => (
-              <StudentsTableRow key={row.id} onOpen={onOpenRow} onContinue={onContinue} row={row} />
-            ))
-          ) : (
-            <StatesRow onRetry={onRetry} state={state} />
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <StudentScores ids={state.kind === "data" ? state.rows.map((row) => row.id) : []}>
+      <TableContainer footer={<StudentsPagination pagination={pagination} />} viewportBound>
+        <Table
+          aria-busy={state.kind === "loading"}
+          aria-label="Lista de alunos"
+          className="min-w-2xl table-fixed"
+        >
+          <TableHeader sticky>
+            <TableRow className="hover:bg-transparent">
+              {COLUMNS.map((column) => (
+                <StudentsTableHead column={column} key={column.label} />
+              ))}
+              <TableHead className="w-16 text-center">
+                <span className="sr-only">Ações</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {state.kind === "data" ? (
+              state.rows.map((row) => (
+                <StudentsTableRow
+                  key={row.id}
+                  onOpen={onOpenRow}
+                  onContinue={onContinue}
+                  row={row}
+                />
+              ))
+            ) : (
+              <StatesRow onRetry={onRetry} state={state} />
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </StudentScores>
   );
 }
