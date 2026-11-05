@@ -1,10 +1,29 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import {
+  materialFinalPriceQuote,
+  materialFinalSaleQuote,
   materialPriceQuote,
   materialScholarshipQuote,
   materialInstallmentPlan,
 } from "../src/material-pricing.js";
+
+void it("uses the negotiated cash total and passes the selected card rate to the customer", () => {
+  const cash = materialFinalPriceQuote({ cashCents: 60_000, cardFeePct: 0 });
+  const card = materialFinalPriceQuote({ cashCents: 60_000, cardFeePct: 10 });
+  assert.deepEqual(cash, { cashCents: 60_000, totalCents: 60_000 });
+  assert.deepEqual(card, { cashCents: 60_000, totalCents: 66_667 });
+  assert.deepEqual(
+    materialFinalSaleQuote({
+      quote: card,
+      payment: "INSTALLMENTS",
+      priceOverrideCents: 50_000,
+      scholarshipPct: 0,
+      cardFeePct: 10,
+    }),
+    { chargedCents: 55_556, receivableCents: 50_000, feeCents: 5_556 },
+  );
+});
 
 void it("derives the school cash price from agreed card totals and the global fee", () => {
   assert.deepEqual(

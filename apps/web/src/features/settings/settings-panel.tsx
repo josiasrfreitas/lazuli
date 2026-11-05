@@ -8,225 +8,18 @@ import {
   type ReactElement,
   type RefObject,
 } from "react";
-import { ChevronDown } from "lucide-react";
-
 import type { FinanceSettingsInput } from "@lazuli/validators";
-import { Button, Field, FieldError, FormRow, FormSection, Input, Label } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { formatBRLFromCents } from "~/lib/format";
 
 import {
-  bookQuote,
-  displaySetting,
-  floorLabel,
   loadedFields,
   validateSettings,
   type SettingsErrors,
   type SettingsFields,
   type SettingsRow,
 } from "./settings-model";
-
-type SettingsSectionProps = { fields: SettingsFields } & (
-  | { readOnly: true }
-  | {
-      readOnly?: false;
-      errors: SettingsErrors;
-      disabled: boolean;
-      onChange: (name: keyof SettingsFields, value: string) => void;
-    }
-);
-
-type SettingsFieldProps = SettingsSectionProps & {
-  name: keyof SettingsFields;
-  label: string;
-  unit: string;
-  placeholder: string;
-  autoFocus?: boolean;
-};
-
-function SettingsField(props: SettingsFieldProps): ReactElement {
-  const { name, label, unit, fields } = props;
-  if (props.readOnly) {
-    return (
-      <dl className="grid gap-1.5">
-        <dt className="text-caption text-muted-foreground">{label}</dt>
-        <dd className="font-numeric flex min-h-7 items-center text-base tabular-nums">
-          {displaySetting(name, fields[name])}
-        </dd>
-      </dl>
-    );
-  }
-  return (
-    <Field name={name} disabled={props.disabled}>
-      <Label>
-        {label} <span className="text-muted-foreground">({unit})</span>
-      </Label>
-      <Input
-        aria-required="true"
-        autoComplete="off"
-        autoFocus={props.autoFocus}
-        disabled={props.disabled}
-        inputMode={name.endsWith("Installments") ? "numeric" : "decimal"}
-        invalid={props.errors[name] !== undefined}
-        name={name}
-        placeholder={`Ex.: ${props.placeholder}`}
-        size="xs"
-        type="text"
-        value={fields[name]}
-        onChange={(event) => props.onChange(name, event.target.value)}
-      />
-      {props.errors[name] !== undefined && <FieldError match>{props.errors[name]}</FieldError>}
-    </Field>
-  );
-}
-
-function TuitionSection(props: SettingsSectionProps): ReactElement {
-  return (
-    <FormSection title="Mensalidade" className="gap-2">
-      <FormRow className="grid-cols-2 lg:grid-cols-3">
-        <SettingsField
-          {...props}
-          name="tuitionCeilingCents"
-          label="Valor máximo"
-          unit="R$"
-          placeholder="250,00"
-          autoFocus
-        />
-        <SettingsField
-          {...props}
-          name="maximumDiscountPct"
-          label="Desconto máximo"
-          unit="%"
-          placeholder="20"
-        />
-        <div className="col-span-2 flex items-center justify-between gap-2 lg:col-span-1 lg:grid lg:gap-1.5">
-          <p className="text-caption text-muted-foreground">Mínimo com desconto</p>
-          <output
-            className="font-numeric flex min-h-7 items-center text-base font-semibold tabular-nums"
-            aria-live="polite"
-          >
-            {floorLabel(props.fields)}
-          </output>
-        </div>
-      </FormRow>
-      <SettingsField
-        {...props}
-        name="punctualityDiscountPct"
-        label="Desconto por pontualidade"
-        unit="%"
-        placeholder="0"
-      />
-    </FormSection>
-  );
-}
-
-function ChargesSection(props: SettingsSectionProps): ReactElement {
-  return (
-    <FormSection title="Atrasos e desistência" className="gap-2">
-      <FormRow className="grid-cols-2">
-        <SettingsField
-          {...props}
-          name="interestRatePctMonthly"
-          label="Juros ao mês"
-          unit="%"
-          placeholder="2"
-        />
-        <SettingsField
-          {...props}
-          name="cancellationFeePct"
-          label="Multa de desistência"
-          unit="%"
-          placeholder="10"
-        />
-      </FormRow>
-      <details className="group text-caption text-muted-foreground">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0">
-          <ChevronDown aria-hidden="true" className="size-3 group-open:rotate-180" />
-          Como são calculados
-        </summary>
-        <p className="pt-2">
-          Juros mensais proporcionais aos dias de atraso, com mês de 30 dias e sem juros sobre
-          juros. A multa usa o valor das parcelas a vencer, sem desconto de pontualidade.
-        </p>
-      </details>
-    </FormSection>
-  );
-}
-
-function SettingsSections(props: SettingsSectionProps): ReactElement {
-  return (
-    <div className="grid gap-3 p-4">
-      <TuitionSection {...props} />
-      <div className="border-t border-border pt-3">
-        <ChargesSection {...props} />
-      </div>
-      <div className="border-t border-border pt-3">
-        <BookPricingSection {...props} />
-      </div>
-    </div>
-  );
-}
-
-function BookPricingSection(props: SettingsSectionProps): ReactElement {
-  return (
-    <FormSection title="Livros" className="gap-3">
-      {(["child", "adult"] as const).map((category) => (
-        <BookCategory key={category} category={category} {...props} />
-      ))}
-      <div className="w-56 max-w-full">
-        <SettingsField
-          {...props}
-          name="materialCardFeePct"
-          label="Taxa global do cartão"
-          unit="%"
-          placeholder="10"
-        />
-      </div>
-      <p className="text-caption text-muted-foreground">
-        A taxa está incluída no preço a prazo. O preço à vista e o líquido da escola correspondem ao
-        total menos essa taxa. Alterações valem para novas vendas.
-      </p>
-    </FormSection>
-  );
-}
-
-function BookCategory({
-  category,
-  ...props
-}: SettingsSectionProps & { category: "child" | "adult" }): ReactElement {
-  const quote = bookQuote(props.fields, category);
-  const label = category === "child" ? "Infantil" : "Adulto";
-  return (
-    <div className="grid gap-2">
-      <h3 className="text-sm font-semibold">{label}</h3>
-      <FormRow columns={2}>
-        <SettingsField
-          {...props}
-          name={category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments"}
-          label={`Parcelas no cartão · ${label}`}
-          unit="quantidade"
-          placeholder="6"
-        />
-        <SettingsField
-          {...props}
-          name={
-            category === "child" ? "childMaterialInstallmentCents" : "adultMaterialInstallmentCents"
-          }
-          label={`Valor da parcela · ${label}`}
-          unit="R$"
-          placeholder={category === "child" ? "123,00" : "136,00"}
-        />
-      </FormRow>
-      <p className="text-caption text-muted-foreground" aria-live="polite">
-        Preço no cartão: <output>{quote ? formatBRLFromCents(quote.totalCents) : "—"}</output>
-        {" · À vista: "}
-        <output className="font-semibold text-foreground">
-          {quote ? formatBRLFromCents(quote.cashCents) : "—"}
-        </output>
-      </p>
-    </div>
-  );
-}
+import { SettingsSections } from "./settings-sections";
 
 export type SettingsMutation = {
   isPending: boolean;
@@ -256,8 +49,11 @@ function useSettingsForm({ row, mutation, onSaved }: SettingsFormProps): FormSta
   const [validationAttempt, setValidationAttempt] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (validationAttempt > 0)
+    if (validationAttempt === 0) return;
+    const frame = requestAnimationFrame(() => {
       formRef.current?.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [validationAttempt]);
   const onChange = (name: keyof SettingsFields, value: string): void => {
     setFields((current) => ({ ...current, [name]: value }));
@@ -340,9 +136,7 @@ function UpdateCredit({ row }: { row: SettingsRow | null }): ReactElement {
   }).format(row.updatedAt);
   return (
     <p>
-      Atualizado em {date}
-      <br />
-      por {row.updatedByName ?? "autor desconhecido"}.
+      Atualizado em {date} por {row.updatedByName ?? "autor desconhecido"}.
     </p>
   );
 }
@@ -375,7 +169,7 @@ export function SettingsPanel({ row, mutation }: SettingsPanelProps): ReactEleme
       ) : (
         <>
           <SettingsSections fields={loadedFields(row)} readOnly />
-          <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2 sm:px-4">
             <div className="text-caption text-muted-foreground">
               {saved && <p role="status">Ajustes salvos.</p>}
               <UpdateCredit row={row} />
@@ -413,10 +207,10 @@ export function SettingsPage(): ReactElement {
     },
   });
   return (
-    <div className="mx-auto w-full h-full overflow-y-auto max-w-xl space-y-3 p-4 sm:p-6">
-      <header className="space-y-1">
+    <div className="mx-auto h-full w-full max-w-6xl space-y-2 overflow-y-auto p-3 sm:p-4">
+      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="font-display text-h2 font-semibold">Ajustes financeiros</h1>
-        <p className="text-control text-muted-foreground">
+        <p className="hidden text-caption text-muted-foreground sm:block">
           Condições para novos contratos e preços dos livros por faixa.
         </p>
       </header>

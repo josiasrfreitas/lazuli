@@ -9,7 +9,7 @@ import {
   type SetStateAction,
 } from "react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Field,
   Input,
@@ -288,7 +288,7 @@ export function RegistrationEditor(props: EditorProps): ReactElement {
         errors={errors}
         onChange={change}
       />
-      {failure && <Alert variant="destructive">{failure}</Alert>}
+      {failure && <ToastAlert variant="destructive">{failure}</ToastAlert>}
       <div className={styles.editActions}>
         <Button variant="ghost" type="button" disabled={saving} onClick={onCancel}>
           Cancelar

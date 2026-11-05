@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactElement, type RefObject } from "react";
 import { Check, ChevronRight, Download, Paperclip } from "lucide-react";
-import { Alert, Button, FileUpload, InlineSkeleton, formatFileSize } from "@lazuli/ui";
+import { ToastAlert, Button, FileUpload, InlineSkeleton, formatFileSize } from "@lazuli/ui";
 import { MAX_PAYMENT_PROOF_BYTES, PAYMENT_PROOF_ACCEPT } from "@lazuli/validators";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
@@ -107,12 +107,12 @@ function PaymentListStatus({
     );
   if (error)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível carregar os pagamentos.
         <Button variant="link" size="sm" onClick={onRetry}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   if (empty)
     return (
@@ -353,7 +353,7 @@ function PaymentRowFeedback({
           </Button>
         </div>
       )}
-      {error && <Alert variant="destructive">{error}</Alert>}
+      {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
       {saved && (
         <p role="status" className="flex items-center gap-2 text-caption text-success">
           <Check className="size-4" aria-hidden="true" /> Comprovante anexado.

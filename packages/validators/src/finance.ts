@@ -1,7 +1,11 @@
 import { civilDateSchema } from "./civil-date.js";
 import { z } from "zod";
 
-import { dateOnlyInputSchema } from "./student.js";
+import {
+  dateOnlyInputSchema,
+  documentTypeSchema,
+  DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
+} from "./student.js";
 import {
   financeInstallmentsPaginationPolicy,
   financeOverduePaginationPolicy,
@@ -177,14 +181,29 @@ export const dueDaySchema = z.union([
   z.literal(FINANCE_DUE_DAY_TWENTY_FIFTH),
 ]);
 
+const payerCreateFields = {
+  name: requiredText,
+  documentType: documentTypeSchema.nullish(),
+  documentNumber: z.string().trim().min(1, "Informe o número do documento.").nullish(),
+  phone: optionalText,
+  email: optionalText,
+};
+
 export const payerCreateInputSchema = z
-  .object({
-    name: requiredText,
-    taxId: optionalText,
-    phone: optionalText,
-    email: optionalText,
+  .object(payerCreateFields)
+  .strict()
+  .refine((payer) => Boolean(payer.documentNumber?.trim()), {
+    path: ["documentNumber"],
+    message: "Informe o CPF ou RG do pagador.",
   })
-  .strict();
+  .refine((payer) => Boolean(payer.phone?.trim() || payer.email?.trim()), {
+    path: ["phone"],
+    message: "Informe pelo menos um contato: telefone ou e-mail.",
+  })
+  .refine((payer) => !payer.documentNumber || Boolean(payer.documentType), {
+    path: ["documentType"],
+    message: DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
+  });
 
 const existingPayerInputSchema = z
   .object({
@@ -196,14 +215,18 @@ const existingPayerInputSchema = z
 const createPayerInputSchema = z
   .object({
     mode: z.literal("create"),
-    ...payerCreateInputSchema.shape,
+    ...payerCreateFields,
   })
   .strict();
 
-export const financePayerInputSchema = z.discriminatedUnion("mode", [
-  existingPayerInputSchema,
-  createPayerInputSchema,
-]);
+export const financePayerInputSchema = z
+  .discriminatedUnion("mode", [existingPayerInputSchema, createPayerInputSchema])
+  .superRefine((payer, context) => {
+    if (payer.mode !== "create") return;
+    const { mode: _mode, ...details } = payer;
+    const parsed = payerCreateInputSchema.safeParse(details);
+    if (!parsed.success) for (const issue of parsed.error.issues) context.addIssue(issue);
+  });
 
 const orderCommercialFieldsSchema = z.object({
   kind: orderKindSchema,

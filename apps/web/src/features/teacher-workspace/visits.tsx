@@ -3,7 +3,7 @@ import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { ChevronRight, UserCheck, X } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Badge,
   Button,
   Dialog,
@@ -188,7 +188,7 @@ function VisitOutcomeForm({ visit }: { visit: Visit }): ReactJSX.Element {
       }}
     >
       <OutcomeFields outcome={outcome} onOutcome={setOutcome} notes={notes} onNotes={setNotes} />
-      {save.error && <Alert variant="destructive">{save.error.message}</Alert>}
+      {save.error && <ToastAlert variant="destructive">{save.error.message}</ToastAlert>}
       {save.isSuccess && (
         <p role="status" className="text-sm text-success">
           Comparecimento registrado.

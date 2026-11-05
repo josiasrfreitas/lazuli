@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Check, MapPin, Pencil, UserRound, X } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Badge,
   Button,
   DialogDescription,
@@ -203,9 +203,9 @@ export function ExperimentalBodyContent({
     <>
       <ExperimentalFacts visit={visit} record={record} />
       {record?.needsReschedule && (
-        <Alert variant="warning">
+        <ToastAlert variant="warning">
           O encontro mudou ou está sem professor. Abra o lead para remarcar a experimental.
-        </Alert>
+        </ToastAlert>
       )}
       <div className={styles.body}>
         <ExperimentalLeadDetails

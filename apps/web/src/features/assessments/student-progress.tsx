@@ -2,7 +2,7 @@
 import { ArrowLeft, Pencil, RefreshCw } from "lucide-react";
 import { useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   DialogHeader,
   DialogTitle,
@@ -106,13 +106,13 @@ function StudentAssessmentBody({
   if (pending) return <StudentProgressLoading />;
   if (error)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível carregar as avaliações.
         <Button variant="secondary" onClick={onRetry}>
           <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   if (!active)
     return (

@@ -14,7 +14,7 @@ import {
   Video,
 } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Badge,
   Button,
   Popover,
@@ -149,9 +149,9 @@ function CandidateVisitItem({
     <li className={styles.event} data-inactive={visit.status === "CANCELLED" || undefined}>
       <EventMain visit={visit} candidate={candidate} onAction={onAction} />
       {visit.needsReschedule && (
-        <Alert variant="warning">
+        <ToastAlert variant="warning">
           O encontro mudou ou ficou sem professor. Remarque esta experimental.
-        </Alert>
+        </ToastAlert>
       )}
       {visit.notes && <p className={styles.eventNotes}>{visit.notes}</p>}
       {visit.cancellationReason && <p className={styles.eventNotes}>{visit.cancellationReason}</p>}

@@ -148,6 +148,8 @@ export { normalizeSearch } from "./search.js";
 export * from "./contract-termination.js";
 export {
   INITIAL_MATERIAL_PRICING,
+  materialFinalPriceQuote,
+  materialFinalSaleQuote,
   materialPriceQuote,
   materialScholarshipQuote,
   materialInstallmentPlan,

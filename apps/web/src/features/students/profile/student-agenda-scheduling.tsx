@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarCheck } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { ToastAlert, Button } from "@lazuli/ui";
 import {
   useScheduleModel,
   type ScheduleDialogProps,
@@ -104,7 +104,7 @@ function ScheduleSidebar({
             <ScheduleNatureFields {...model} />
           )}
         </fieldset>
-        {submission.error && <Alert variant="destructive">{submission.error}</Alert>}
+        {submission.error && <ToastAlert variant="destructive">{submission.error}</ToastAlert>}
       </div>
       <ScheduleSidebarFooter model={model} meeting={meeting} />
     </aside>

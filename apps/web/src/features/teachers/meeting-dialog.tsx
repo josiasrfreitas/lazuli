@@ -12,6 +12,7 @@ import {
 } from "react";
 import Link from "next/link";
 import {
+  ToastAlert,
   Alert,
   Button,
   Dialog,
@@ -311,10 +312,10 @@ function MeetingForm(props: MeetingFormProps): ReactElement {
       <MeetingResponsibility meeting={props.meeting} />
       <MeetingGuests meeting={props.meeting} />
       {props.meeting.requiresCoverage && !props.meeting.substituteTeacherId && (
-        <Alert variant="warning">
+        <ToastAlert variant="warning">
           A cobertura anterior foi desfeita por uma saída. Este encontro precisa de uma nova
           atribuição.
-        </Alert>
+        </ToastAlert>
       )}
       {props.canChange ? (
         <MeetingReplacement

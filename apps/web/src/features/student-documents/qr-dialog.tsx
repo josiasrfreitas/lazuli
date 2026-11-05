@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Check, Copy, ExternalLink, QrCode } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogPortal,
@@ -85,12 +85,12 @@ function QrDialogState({
   if (documents.session) return <SessionLink token={documents.session.token} />;
   if (!documents.create.isError) return <p role="status">Preparando QR code…</p>;
   return (
-    <Alert variant="destructive">
+    <ToastAlert variant="destructive">
       Não foi possível gerar o QR code.
       <Button type="button" variant="ghost" onClick={onRetry}>
         Tentar novamente
       </Button>
-    </Alert>
+    </ToastAlert>
   );
 }
 export function SessionLink({ token }: { token: string }): ReactElement {
@@ -131,7 +131,7 @@ export function SessionLink({ token }: { token: string }): ReactElement {
           <ExternalLink aria-hidden="true" />
         </Button>
       </div>
-      {error && <Alert variant="warning">{error}</Alert>}
+      {error && <ToastAlert variant="warning">{error}</ToastAlert>}
     </div>
   );
 }

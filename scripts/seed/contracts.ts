@@ -1,10 +1,6 @@
-import { createHash } from "node:crypto";
 import { finance } from "../../packages/api/src/finance/index.js";
+import { readMaterialPrice } from "../../packages/api/src/finance/internal/settings.js";
 import { priceAfterDiscountCents } from "../../packages/domain/src/monthly-contract.js";
-import {
-  INITIAL_MATERIAL_PRICING,
-  materialPriceQuote,
-} from "../../packages/domain/src/material-pricing.js";
 import type { DatabaseClient, TransactionClient } from "../../packages/db/src/client.js";
 import {
   DEV_ADMIN,
@@ -108,6 +104,8 @@ const MATERIAL_TRACKS = [
 export async function seedContracts(database: DatabaseClient, todayIso: string): Promise<void> {
   const admin = await database.user.findUniqueOrThrow({ where: { email: DEV_ADMIN.email } });
   const settings = await database.financeSettings.findUniqueOrThrow({ where: { id: "singleton" } });
+  const materialPrices = await readMaterialPrice(database);
+  if (!materialPrices) throw new Error("Finance settings missing for seeded contracts.");
   const contractedStudents = DEV_STUDENTS.filter((student) => student.enrollments.length > 0);
   const closingMonths = closingMonthOffsets(contractedStudents);
   for (const [index, student] of contractedStudents.entries()) {
@@ -120,6 +118,7 @@ export async function seedContracts(database: DatabaseClient, todayIso: string):
           todayIso,
           adminId: admin.id,
           discountPct: Number(settings.punctualityDiscountPct),
+          materialPrices,
         });
       },
       { timeout: CONTRACT_TRANSACTION_TIMEOUT_MS },
@@ -137,6 +136,7 @@ type ContractInput = {
   todayIso: string;
   adminId: string;
   discountPct: number;
+  materialPrices: NonNullable<Awaited<ReturnType<typeof readMaterialPrice>>>;
 };
 
 async function seedContract(transaction: TransactionClient, input: ContractInput): Promise<void> {
@@ -154,7 +154,10 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
     },
   });
   const { agreedOn, firstDueDate } = contractDates(input);
-  const material = await seedContractMaterial(transaction, student);
+  const material = await seedContractMaterial(transaction, {
+    student,
+    prices: input.materialPrices,
+  });
   const contract = await finance(transaction, adminId).createMonthlyContract({
     commandId: stableUuid(["dev-contract", student.key]),
     studentId: stableUuid(["student", student.key]),
@@ -171,7 +174,7 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
 
 async function seedContractMaterial(
   database: TransactionClient,
-  student: DevStudentSeed,
+  input: { student: DevStudentSeed; prices: ContractInput["materialPrices"] },
 ): Promise<{
   stageIds: string[];
   category: "CHILD" | "ADULT";
@@ -182,6 +185,7 @@ async function seedContractMaterial(
   scholarshipPct: number;
   scholarshipAgreement: string;
 }> {
+  const { student, prices } = input;
   const code = seededStageCode(student);
   const stage = await database.stage.findFirst({
     where: {
@@ -197,38 +201,18 @@ async function seedContractMaterial(
   });
   if (!stage) throw new Error(`No material stage ${code} for seeded student ${student.key}.`);
   const category = stage.track.ageGroup;
-  const price = seedMaterialPrice(category);
+  const price = category === "CHILD" ? prices.child : prices.adult;
   return {
     stageIds: [stage.id],
     category,
     payment: "CASH",
     installmentCount: 1,
-    quoteVersion: price.quoteVersion,
+    quoteVersion: price.version,
     expectedTotalCents: price.cashCents,
     // Keep the existing tuition/payment scenarios while recording a valid book acquisition.
     scholarshipPct: 100,
     scholarshipAgreement: "Material concedido no cenário financeiro de desenvolvimento",
   };
-}
-
-function seedMaterialPrice(category: "CHILD" | "ADULT"): {
-  quoteVersion: string;
-  cashCents: number;
-} {
-  const installments =
-    category === "CHILD"
-      ? INITIAL_MATERIAL_PRICING.childMaterialInstallments
-      : INITIAL_MATERIAL_PRICING.adultMaterialInstallments;
-  const installmentCents =
-    category === "CHILD"
-      ? INITIAL_MATERIAL_PRICING.childMaterialInstallmentCents
-      : INITIAL_MATERIAL_PRICING.adultMaterialInstallmentCents;
-  const cardFeePct = INITIAL_MATERIAL_PRICING.materialCardFeePct;
-  const quote = materialPriceQuote({ installments, installmentCents, cardFeePct });
-  const quoteVersion = createHash("sha256")
-    .update(JSON.stringify(["single-receipt-v1", installments, installmentCents, cardFeePct]))
-    .digest("hex");
-  return { quoteVersion, cashCents: quote.cashCents };
 }
 
 function seededStageCode(student: DevStudentSeed): string {

@@ -69,10 +69,8 @@ void it("submits a real named form with calendar controls", () => {
       "endsOn",
       "monthlyAmount",
       "enrollmentFee",
-      "scholarshipPct",
       "material-stage-0",
       "materialInstallments",
-      "materialScholarshipPct",
     ],
   );
   for (const tag of inputs) {
@@ -133,7 +131,7 @@ void it("reveals document and contact fields only while creating a payer with th
   assert.match(markup, /aria-label="Copiar responsável para pagador"/u);
 });
 
-void it("disables financial editing while completion is pending and exposes its failure", () => {
+void it("disables financial editing while completion is pending", () => {
   const markup = render({
     pending: true,
     state: {
@@ -146,7 +144,6 @@ void it("disables financial editing while completion is pending and exposes its 
   assert.match(markup, /<fieldset[^>]*disabled/u);
   assert.match(markup, /aria-invalid="true"/u);
   assert.match(markup, /Campo obrigatório\./u);
-  assert.match(markup, /role="alert"[^>]*>Falha na criação\./u);
 });
 
 void it("keeps the advanced quantity named and shows its format hint", () => {

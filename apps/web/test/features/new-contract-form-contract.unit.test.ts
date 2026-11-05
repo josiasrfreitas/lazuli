@@ -58,10 +58,8 @@ void describe("new contract form contract", () => {
         "endsOn",
         "monthlyAmount",
         "enrollmentFee",
-        "scholarshipPct",
         "material-stage-0",
         "materialInstallments",
-        "materialScholarshipPct",
       ],
     );
     for (const tag of inputs) {

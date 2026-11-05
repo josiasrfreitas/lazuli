@@ -15,6 +15,7 @@ type LookupArgs = {
 };
 
 export type AddressLookup = {
+  selected: AddressFields | null;
   query: string;
   options: RouterOutputs["addresses"]["search"];
   searching: boolean;
@@ -31,6 +32,7 @@ export type AddressLookup = {
 type SelectionArgs = LookupArgs & {
   placeId: string;
   resolve: (input: { placeId: string }) => Promise<AddressFields>;
+  setSelected: (value: AddressFields | null) => void;
   setSearching: (value: boolean) => void;
   setMessage: (value: string) => void;
 };
@@ -67,6 +69,7 @@ async function selectAddress(args: SelectionArgs): Promise<void> {
     const result = await args.resolve({ placeId: args.placeId });
     if (request !== args.revision.current) return;
     args.onChange(result);
+    args.setSelected(result);
     args.setSearching(false);
     args.setMessage(
       result.street
@@ -92,6 +95,7 @@ async function selectAddress(args: SelectionArgs): Promise<void> {
 
 export function useAddressLookup(args: LookupArgs): AddressLookup {
   const query = args.address.street;
+  const [selected, setSelected] = useState<AddressFields | null>(null);
   const [searching, setSearching] = useState(false);
   const [debounced, setDebounced] = useState("");
   const [message, setMessage] = useState("");
@@ -120,22 +124,49 @@ export function useAddressLookup(args: LookupArgs): AddressLookup {
     isError: search.isError,
     isPending: resolve.isPending,
   });
+  const actions = addressLookupActions({
+    ...args,
+    resolve: resolve.mutateAsync,
+    setSelected,
+    setSearching,
+    setMessage,
+  });
   return {
+    selected,
     query,
     ...display,
     searching,
     message,
-    select: (placeId) =>
-      selectAddress({ ...args, placeId, resolve: resolve.mutateAsync, setSearching, setMessage }),
+    ...actions,
+  };
+}
+
+function addressLookupActions(
+  args: Omit<SelectionArgs, "placeId">,
+): Pick<AddressLookup, "select" | "changeQuery" | "clearQuery"> {
+  return {
+    select: (placeId) => selectAddress({ ...args, placeId }),
     changeQuery: (text) => {
       args.revision.current += 1;
-      setSearching(true);
-      setMessage("");
+      args.setSelected(null);
+      args.setSearching(true);
+      args.setMessage("");
       args.onChange({ ...args.address, street: text });
     },
     clearQuery: () => {
-      setSearching(false);
-      args.onChange({ ...args.address, street: "" });
+      args.revision.current += 1;
+      args.setSelected(null);
+      args.setSearching(false);
+      args.setMessage("");
+      args.onChange({
+        street: "",
+        number: "",
+        complement: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+        postalCode: "",
+      });
     },
   };
 }

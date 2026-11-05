@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { ToastAlert, Button } from "@lazuli/ui";
 import { parseDateBR } from "~/lib/masks";
 import type { FormProps } from "./contract-form-fields";
 import { contractInputFromFields } from "./contract-form-model";
@@ -435,7 +435,9 @@ function SetupPanel({
           />
         </fieldset>
         {(props.error || props.state.submissionError) && (
-          <Alert variant="destructive">{props.error || props.state.submissionError}</Alert>
+          <ToastAlert variant="destructive">
+            {props.error || props.state.submissionError}
+          </ToastAlert>
         )}
       </div>
     </div>
@@ -596,18 +598,18 @@ function OfferFeedback({ offer }: { offer: ContractOperation["offer"] }): ReactE
     );
   if (offer.isError)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível carregar as condições.{" "}
         <Button type="button" variant="link" onClick={() => void offer.refetch()}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   if (!offer.data)
     return (
-      <Alert variant="warning">
+      <ToastAlert variant="warning" toastTimeout={0}>
         Configure as condições financeiras em Ajustes para criar o contrato.
-      </Alert>
+      </ToastAlert>
     );
   return null;
 }

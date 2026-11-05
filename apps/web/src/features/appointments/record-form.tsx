@@ -3,7 +3,15 @@ import type { Dispatch, JSX as ReactJSX, ReactNode, SetStateAction } from "react
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, MessageSquareText, Pencil, UserCheck, X } from "lucide-react";
-import { Alert, Button, Field, Label, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
+import {
+  ToastAlert,
+  Alert,
+  Button,
+  Field,
+  Label,
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@lazuli/ui";
 import { appointmentRecordSchema, type MakeupCoverageInput } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { AppointmentContentField, AppointmentDurationField } from "./form-fields";
@@ -277,7 +285,7 @@ function RecordFieldset({
         <RecordNarratives model={model} context={context} />
         <RecordCoverage model={model} compact={Boolean(context)} />
         <RecordCorrection model={model} />
-        {save.error && <Alert variant="destructive">{save.error}</Alert>}
+        {save.error && <ToastAlert variant="destructive">{save.error}</ToastAlert>}
       </div>
     </fieldset>
   );

@@ -1,6 +1,6 @@
 import type { JSX as ReactJSX, ReactNode } from "react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -140,12 +140,12 @@ export function IntakeDialogLoading({
           </DialogHeader>
           <div className={styles.centeredState}>
             {error ? (
-              <Alert variant="destructive">
+              <ToastAlert variant="destructive">
                 {error}
                 <Button variant="secondary" onClick={onRetry}>
                   Tentar novamente
                 </Button>
-              </Alert>
+              </ToastAlert>
             ) : (
               <PencilLoader label="Carregando cadastro do aluno" />
             )}

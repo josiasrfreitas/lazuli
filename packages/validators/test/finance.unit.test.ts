@@ -131,7 +131,13 @@ void describe("finance order input", () => {
     });
     const inline = financeCreateOrderInputSchema.parse({
       ...ORDER_FIELDS,
-      payer: { mode: "create", name: " Responsavel " },
+      payer: {
+        mode: "create",
+        name: " Responsavel ",
+        documentType: "RG",
+        documentNumber: "1234567",
+        phone: "82999990000",
+      },
       signedOrderArtifactId: undefined,
     });
 
@@ -173,15 +179,38 @@ void describe("finance payer input", () => {
   void it("validates direct payer creation text fields", () => {
     const parsed = payerCreateProcedureInputSchema.parse({
       name: " Maria Silva ",
-      taxId: null,
+      documentType: "RG",
+      documentNumber: " 1234567 ",
       phone: " 82999990000 ",
       email: undefined,
     });
 
     assert.equal(parsed.name, "Maria Silva");
-    assert.equal(parsed.taxId, null);
+    assert.equal(parsed.documentNumber, "1234567");
     assert.equal(parsed.phone, "82999990000");
     assert.equal(payerCreateProcedureInputSchema.safeParse({ name: "   " }).success, false);
+  });
+
+  void it("requires a typed CPF or RG and at least one contact for every new payer", () => {
+    const valid = { name: "Maria Silva", documentType: "RG", documentNumber: "1234567" };
+    assert.equal(
+      payerCreateProcedureInputSchema.safeParse({ ...valid, email: "maria@example.com" }).success,
+      true,
+    );
+    for (const input of [
+      { name: "Maria Silva", phone: "82999990000" },
+      { name: "Maria Silva", documentNumber: "1234567", phone: "82999990000" },
+      { ...valid },
+    ]) {
+      assert.equal(payerCreateProcedureInputSchema.safeParse(input).success, false);
+      assert.equal(
+        financeCreateOrderInputSchema.safeParse({
+          ...ORDER_FIELDS,
+          payer: { mode: "create", ...input },
+        }).success,
+        false,
+      );
+    }
   });
 
   void it("validates update-order identifiers separately from commercial fields", () => {

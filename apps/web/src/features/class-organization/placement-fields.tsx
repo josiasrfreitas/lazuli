@@ -2,7 +2,7 @@
 
 import type { JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert } from "@lazuli/ui";
+import { ToastAlert, Alert } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
@@ -182,10 +182,10 @@ function PlacementWarnings({
         </p>
       )}
       {data.student.status !== "ACTIVE" && (
-        <Alert variant="warning">
+        <ToastAlert variant="warning">
           O cadastro está suspenso ou inativo. A proposta pode ser organizada, mas a publicação
           exige regularizar o aluno.
-        </Alert>
+        </ToastAlert>
       )}
       {model.stageId === "pending" && model.mode === "ADVANCE" && (
         <Alert>

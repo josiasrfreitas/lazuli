@@ -49,6 +49,7 @@ export type ContractFields = {
   agreedOn: string;
   endsOn: string;
   firstDueDate: string;
+  billingFirstDueDate?: string;
   monthlyAmount: string;
   enrollmentFee: string;
   materialScholarshipMode: string;
@@ -212,7 +213,7 @@ export function contractInputFromFields(
     agreedOn: parseDateBR(fields.agreedOn),
     startsOn: parseDateBR(fields.firstDueDate),
     durationMonths: durationFromDates(fields),
-    firstDueDate: parseDateBR(fields.firstDueDate),
+    firstDueDate: parseDateBR(fields.billingFirstDueDate ?? fields.firstDueDate),
     monthlyAmountCents: Math.round(Number(fields.monthlyAmount.replace(",", ".")) * CENTS_PER_REAL),
     ...(fields.enrollmentFee.trim()
       ? {

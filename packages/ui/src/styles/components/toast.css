@@ -8,6 +8,15 @@
   animation: lz-toast-slide-out 320ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
+.lz-toast [data-slot="alert-action"] {
+  position: static;
+  margin-top: 0.5rem;
+}
+
+.lz-toast [data-slot="alert-icon"] {
+  display: none;
+}
+
 @keyframes lz-toast-slide-in {
   from {
     opacity: 0;

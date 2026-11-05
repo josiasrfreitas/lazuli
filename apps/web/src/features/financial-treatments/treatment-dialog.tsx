@@ -2,7 +2,7 @@
 import { useEffect, useRef, type ReactElement } from "react";
 import { ArrowRight, Check, Handshake } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -69,7 +69,7 @@ export function TreatmentDialog({
             ) : (
               <TreatmentForm state={state} />
             )}
-            {state.error && <Alert variant="destructive">{state.error}</Alert>}
+            {state.error && <ToastAlert variant="destructive">{state.error}</ToastAlert>}
           </DialogBody>
           <TreatmentFooter state={state} onClose={onClose} />
         </DialogContent>

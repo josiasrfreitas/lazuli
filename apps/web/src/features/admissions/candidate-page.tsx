@@ -5,7 +5,7 @@ import { useQueryState } from "nuqs";
 import { PlacementVisitDialog } from "./placement-assessment";
 import { Archive, CalendarPlus, MoreHorizontal, Pencil, RotateCcw } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Badge,
   Button,
   DetailHeader,
@@ -32,12 +32,12 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
   else if (query.data) content = <CandidateWorkspace candidate={query.data} />;
   else
     content = (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         {query.error?.message ?? "Não foi possível abrir o lead."}
         <Button variant="secondary" onClick={() => void query.refetch()}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   return (
     <div data-page-scroll="internal" className={styles.page}>
@@ -76,7 +76,7 @@ function CandidateWorkspace({ candidate }: { candidate: Candidate }): ReactEleme
           status.mutate({ id: candidate.id, status: active ? "ARCHIVED" : "WAITING" })
         }
       />
-      {status.error && <Alert variant="destructive">{status.error.message}</Alert>}
+      {status.error && <ToastAlert variant="destructive">{status.error.message}</ToastAlert>}
       {candidate.status === "ARCHIVED" && (
         <p className={styles.archived}>
           Este lead está arquivado. Reabra pelo menu de ações para retomar os agendamentos e o

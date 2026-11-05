@@ -6,7 +6,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, CalendarDays, Plus } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -342,7 +342,9 @@ function AgendaLanding({
         <DialogTitle>Agenda do aluno</DialogTitle>
         <DialogDescription>{profile.contact.fullName} · Aulas e atendimentos</DialogDescription>
       </DialogHeader>
-      {wrongStudent && <Alert variant="warning">Este atendimento pertence a outro aluno.</Alert>}
+      {wrongStudent && (
+        <ToastAlert variant="warning">Este atendimento pertence a outro aluno.</ToastAlert>
+      )}
       {scheduling ? (
         <StudentAgendaScheduling
           calendar={calendar}

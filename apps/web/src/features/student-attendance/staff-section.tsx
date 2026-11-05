@@ -4,7 +4,7 @@ import Link from "next/link";
 import { QrCode } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogPortal,
@@ -42,7 +42,7 @@ export function StudentAttendanceSection({ sessionId }: { sessionId: string }): 
           <QrCode aria-hidden /> QR e link
         </Button>
       </div>
-      {query.error && <Alert>{query.error.message}</Alert>}
+      {query.error && <ToastAlert variant="destructive">{query.error.message}</ToastAlert>}
       <DeclarationEvidence entries={query.data?.declarations ?? []} />
       {query.data && <AttendanceWindowHistory windows={query.data.windows} />}
       <AttendanceSettingsLink />

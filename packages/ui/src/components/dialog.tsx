@@ -79,7 +79,7 @@ export const DialogBackdrop = forwardRef<HTMLDivElement, DialogBackdropProps>(
 DialogBackdrop.displayName = "DialogBackdrop";
 
 export const dialogContentVariants = cva([
-  "fixed inset-x-4 top-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-auto -translate-y-1/2 flex-col overflow-hidden",
+  "fixed inset-x-4 top-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-auto translate-x-0 -translate-y-1/2 flex-col overflow-hidden",
   "rounded-lg border border-border-strong bg-popover p-6 text-popover-foreground shadow-lg outline-none",
   "lz-dialog-popup focus-visible:shadow-focus",
   "md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2",

@@ -1,5 +1,12 @@
 import type { ReactElement } from "react";
-import { Alert, Button, InlineSkeleton, Tooltip, TooltipContent, TooltipTrigger } from "@lazuli/ui";
+import {
+  ToastAlert,
+  Button,
+  InlineSkeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { hoursLabel } from "./format";
 import { WeekGrid } from "./week-grid";
@@ -24,7 +31,7 @@ export function TeacherWeek({
         studentCount={studentCount}
       />
       {schedule.isError ? (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           <p>Não foi possível carregar a agenda.</p>
           <Button
             size="compact-responsive"
@@ -33,7 +40,7 @@ export function TeacherWeek({
           >
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       ) : (
         <WeekGrid rows={schedule.data?.rows ?? []} back={back} loading={!schedule.data} />
       )}

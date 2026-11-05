@@ -1,6 +1,8 @@
 import { priceAfterDiscountCents } from "./monthly-contract.js";
 
 export const INITIAL_MATERIAL_PRICING = {
+  childMaterialCashPriceCents: 66_420,
+  adultMaterialCashPriceCents: 73_440,
   childMaterialInstallments: 6,
   childMaterialInstallmentCents: 12_300,
   adultMaterialInstallments: 6,
@@ -11,6 +13,7 @@ export const INITIAL_MATERIAL_PRICING = {
 const PERCENT_PRECISION = 10_000;
 const PERCENT_BASE = 100;
 const FULL_PERCENT = PERCENT_BASE * PERCENT_PRECISION;
+const ROUNDING_DIVISOR = 2n;
 const MAX_CENTS = 2_147_483_647;
 type MaterialTerms = { installments: number; installmentCents: number; cardFeePct: number };
 type MaterialQuote = {
@@ -19,6 +22,65 @@ type MaterialQuote = {
   totalCents: number;
   cashCents: number;
 };
+
+export type MaterialFinalPriceQuote = { cashCents: number; totalCents: number };
+
+/** The cash price is final; card fees are added to the customer's card total. */
+export function materialFinalPriceQuote(input: {
+  cashCents: number;
+  cardFeePct: number;
+}): MaterialFinalPriceQuote {
+  const { cashCents, cardFeePct } = input;
+  const feeUnits = Math.round(cardFeePct * PERCENT_PRECISION);
+  if (
+    !Number.isInteger(cashCents) ||
+    cashCents < 0 ||
+    cashCents > MAX_CENTS ||
+    !validFee(cardFeePct, feeUnits) ||
+    cardFeePct >= PERCENT_BASE ||
+    cardReceivableCents(MAX_CENTS, feeUnits) < cashCents
+  )
+    throw new Error("Informe um preço à vista e uma taxa de cartão válidos.");
+  let low = cashCents;
+  let high = MAX_CENTS;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (cardReceivableCents(middle, feeUnits) >= cashCents) high = middle;
+    else low = middle + 1;
+  }
+  return { cashCents, totalCents: low };
+}
+
+function cardReceivableCents(totalCents: number, feeUnits: number): number {
+  const base = BigInt(FULL_PERCENT);
+  const feeCents = (BigInt(totalCents) * BigInt(feeUnits) + base / ROUNDING_DIVISOR) / base;
+  return totalCents - Number(feeCents);
+}
+
+export function materialFinalSaleQuote(input: {
+  quote: MaterialFinalPriceQuote;
+  payment: "CASH" | "INSTALLMENTS";
+  scholarshipPct: number;
+  cardFeePct: number;
+  priceOverrideCents?: number | undefined;
+}): { chargedCents: number; receivableCents: number; feeCents: number } {
+  const { quote, payment, scholarshipPct, cardFeePct, priceOverrideCents } = input;
+  if (priceOverrideCents !== undefined && !validPriceOverride(priceOverrideCents))
+    throw new Error("Informe um valor de material maior que zero.");
+  if (!Number.isFinite(scholarshipPct) || scholarshipPct < 0 || scholarshipPct > PERCENT_BASE)
+    throw new Error("Informe um percentual de bolsa entre 0 e 100.");
+  const receivableCents = priceAfterDiscountCents(
+    priceOverrideCents ?? quote.cashCents,
+    scholarshipPct,
+  );
+  if (scholarshipPct < PERCENT_BASE && receivableCents < 1)
+    throw new Error("A bolsa parcial deve manter um valor de pelo menos um centavo.");
+  const chargedCents =
+    payment === "CASH"
+      ? receivableCents
+      : materialFinalPriceQuote({ cashCents: receivableCents, cardFeePct }).totalCents;
+  return { chargedCents, receivableCents, feeCents: chargedCents - receivableCents };
+}
 
 /** The buyer's installments divide the acquisition total, independently of the book price. */
 export function materialInstallmentPlan(

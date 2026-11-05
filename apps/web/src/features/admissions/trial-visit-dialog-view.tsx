@@ -3,7 +3,7 @@
 import type { JSX } from "react";
 import { CalendarPlus, X } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -89,7 +89,7 @@ function VisitForm(props: VisitViewProps): JSX.Element {
           {validation.selectionError || errors.fields.schedule}
         </p>
       )}
-      {save.error && <Alert variant="destructive">{save.error.message}</Alert>}
+      {save.error && <ToastAlert variant="destructive">{save.error.message}</ToastAlert>}
     </form>
   );
 }

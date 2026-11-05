@@ -229,6 +229,7 @@ export type {
 } from "./components/segmented-control";
 export { FormRow, FormSection } from "./components/form-layout";
 export type { FormRowColumns, FormRowProps, FormSectionProps } from "./components/form-layout";
+export { SelectionValue } from "./components/search-select-value";
 export { SearchSelect } from "./components/search-select";
 export type { SearchSelectOption, SearchSelectProps } from "./components/search-select";
 
@@ -270,3 +271,4 @@ export type {
 } from "./components/timeline";
 
 export { ToastProvider, toastManager } from "./components/toast";
+export { ToastAlert, type ToastAlertProps } from "./components/toast-alert";

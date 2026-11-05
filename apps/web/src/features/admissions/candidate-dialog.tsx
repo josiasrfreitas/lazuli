@@ -1,6 +1,6 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { Alert } from "@lazuli/ui";
+import { ToastAlert } from "@lazuli/ui";
 import { AdmissionDialog } from "./admission-dialog";
 import { CandidateContactFields, CandidateCourseFields } from "./candidate-fields";
 import { candidateSubmitLabel } from "./candidate-model";
@@ -50,7 +50,7 @@ export function CandidateDialog({
       ) : (
         <CandidateCourseFields draft={form.draft} errors={form.errors} change={change} />
       )}
-      {save.isError && <Alert variant="destructive">{save.error.message}</Alert>}
+      {save.isError && <ToastAlert variant="destructive">{save.error.message}</ToastAlert>}
     </AdmissionDialog>
   );
 }

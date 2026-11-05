@@ -1,6 +1,45 @@
 import type { ReactElement } from "react";
 import { X } from "lucide-react";
+import { Badge } from "./badge";
 import type { SearchSelectOption } from "./search-select";
+
+/** Input-sized selected value; clearing stays available to keyboard and touch users. */
+export function SelectionValue({
+  value,
+  onClear,
+  disabled,
+  clearLabel = "Limpar seleção e campos preenchidos",
+  touchSized = false,
+}: {
+  value: string;
+  onClear?: (() => void) | undefined;
+  disabled?: boolean | undefined;
+  clearLabel?: string;
+  touchSized?: boolean;
+}): ReactElement {
+  return (
+    <Badge
+      size="field"
+      className={touchSized ? "group/selection gap-2 max-sm:h-11" : "group/selection gap-2"}
+    >
+      <span className="min-w-0 flex-1 truncate" title={value || "Não informado"}>
+        {value || "Não informado"}
+      </span>
+      {onClear && (
+        <button
+          type="button"
+          aria-label={clearLabel}
+          disabled={disabled}
+          onClick={onClear}
+          className="flex size-6 shrink-0 items-center justify-center rounded-sm transition-opacity hover:bg-background/60 focus-visible:outline-none focus-visible:shadow-focus [@media(hover:hover)]:opacity-0 group-hover/selection:opacity-100 group-focus-within/selection:opacity-100 disabled:pointer-events-none disabled:opacity-disabled"
+        >
+          <X aria-hidden="true" className="size-3.5" />
+        </button>
+      )}
+    </Badge>
+  );
+}
+
 export function SelectedTags({
   value,
   onClear,
@@ -13,28 +52,15 @@ export function SelectedTags({
   touchSized?: boolean;
 }): ReactElement {
   return (
-    <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-2">
-      <span className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-sm bg-accent px-2 py-1 text-control text-accent-foreground">
-        <span className="truncate">{value.label}</span>
-        <button
-          type="button"
-          aria-label={`Remover ${value.label}`}
-          disabled={disabled}
-          onClick={onClear}
-          className={
-            touchSized
-              ? "flex size-11 shrink-0 items-center justify-center rounded-sm hover:bg-background/60 focus-visible:outline-none focus-visible:shadow-focus sm:size-auto sm:p-0.5"
-              : "shrink-0 rounded-sm p-0.5 hover:bg-background/60 focus-visible:outline-none focus-visible:shadow-focus"
-          }
-        >
-          <X aria-hidden="true" className="size-3.5" />
-        </button>
-      </span>
-      {value.document && (
-        <span className="max-w-full truncate rounded-sm bg-accent px-2 py-1 text-control text-accent-foreground">
-          {value.document}
-        </span>
-      )}
+    <div className="grid min-w-0 gap-2">
+      <SelectionValue
+        value={value.label}
+        onClear={onClear}
+        clearLabel={`Remover ${value.label}`}
+        disabled={disabled}
+        touchSized={touchSized}
+      />
+      {value.document && <SelectionValue value={value.document} />}
     </div>
   );
 }

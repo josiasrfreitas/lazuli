@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Badge,
   Button,
   Dialog,
@@ -301,7 +301,7 @@ function PlacementProof({ visit, model }: VisitViewProps): ReactJSX.Element {
           )}
         </div>
       )}
-      {download.error && <Alert variant="destructive">{download.error.message}</Alert>}
+      {download.error && <ToastAlert variant="destructive">{download.error.message}</ToastAlert>}
     </section>
   );
 }
@@ -331,7 +331,7 @@ function PlacementResult({ visit, model }: VisitViewProps): ReactJSX.Element | n
       ) : (
         <PlacementResultSummary assessment={visit.assessment} />
       )}
-      {result.error && <Alert variant="destructive">{result.error.message}</Alert>}
+      {result.error && <ToastAlert variant="destructive">{result.error.message}</ToastAlert>}
       <PlacementCorrectedProof visit={visit} model={model} />
     </section>
   );
@@ -398,9 +398,9 @@ function PlacementTeacher({ visit, model }: VisitViewProps): ReactJSX.Element | 
           })),
         ]}
       />
-      {assign.error && <Alert variant="destructive">{assign.error.message}</Alert>}
+      {assign.error && <ToastAlert variant="destructive">{assign.error.message}</ToastAlert>}
       <PlacementCancellation visit={visit} model={model} />
-      {cancel.error && <Alert variant="destructive">{cancel.error.message}</Alert>}
+      {cancel.error && <ToastAlert variant="destructive">{cancel.error.message}</ToastAlert>}
     </section>
   );
 }

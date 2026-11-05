@@ -7,12 +7,13 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/utils";
 
 export const badgeVariants = cva(
-  [
-    "inline-flex h-[1.3125rem] w-fit shrink-0 items-center justify-center rounded-sm border px-2",
-    "text-micro font-semibold leading-none",
-  ],
+  ["inline-flex shrink-0 items-center rounded-sm border leading-none"],
   {
     variants: {
+      size: {
+        sm: "h-[1.3125rem] w-fit justify-center px-2 text-micro font-semibold",
+        field: "h-control-sm w-full min-w-0 justify-start px-2.5 text-control font-normal",
+      },
       variant: {
         neutral: "border-border bg-muted text-muted-foreground",
         success: "border-success/20 bg-success-muted text-success",
@@ -23,6 +24,7 @@ export const badgeVariants = cva(
       },
     },
     defaultVariants: {
+      size: "sm",
       variant: "neutral",
     },
   },
@@ -32,16 +34,16 @@ export type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["varia
 
 export type BadgeProps = useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>;
 
-export function Badge({ className, render, variant, ...props }: BadgeProps): ReactElement {
+export function Badge({ className, render, variant, size, ...props }: BadgeProps): ReactElement {
   return useRender({
     defaultTagName: "span",
     props: mergeProps<"span">(
       {
-        className: cn(badgeVariants({ variant }), className),
+        className: cn(badgeVariants({ variant, size }), className),
       },
       props,
     ),
     render,
-    state: { slot: "badge", variant },
+    state: { slot: "badge", variant, size },
   });
 }

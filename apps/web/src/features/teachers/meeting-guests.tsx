@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import Link from "next/link";
-import { Alert, Badge, InlineSkeleton } from "@lazuli/ui";
+import { ToastAlert, Badge, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { visitLabels } from "~/features/admissions/labels";
 import type { Meeting } from "./meeting-dialog";
@@ -17,7 +17,9 @@ export function MeetingGuests({ meeting }: { meeting: Meeting }): ReactElement |
   if (query.isPending) return <InlineSkeleton className="h-6 w-full" />;
   if (query.isError)
     return (
-      <Alert variant="warning">Não foi possível consultar os convidados deste encontro.</Alert>
+      <ToastAlert variant="warning">
+        Não foi possível consultar os convidados deste encontro.
+      </ToastAlert>
     );
   if (query.data.length === 0) return null;
   return (

@@ -1,13 +1,24 @@
-import type { JSX as ReactJSX } from "react";
+import { createContext, useContext, type JSX as ReactJSX } from "react";
 import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
 
-import { Badge, Field, FieldError, FormRow, FormSection, Input, Label } from "@lazuli/ui";
+import {
+  SelectionValue,
+  Badge,
+  Field,
+  FieldError,
+  FormRow,
+  FormSection,
+  Input,
+  Label,
+} from "@lazuli/ui";
 import { PersonDocumentField } from "~/components/person-document-field";
 import { parseDateBR } from "~/lib/masks";
 import type { EnrollmentDocuments } from "~/features/student-documents/use-enrollment-documents";
 import styles from "./enrollment-documents.module.css";
 
 import type { NewStudentErrors, NewStudentFieldName, NewStudentFields } from "./reducer";
+
+const SelectedFieldsContext = createContext<Partial<NewStudentFields>>({});
 
 export const DADOS_FORM_ID = "new-student-dados";
 
@@ -39,26 +50,39 @@ function TextField({
   error: string | undefined;
   onChange: FieldChangeHandler;
 }): ReactElement {
+  const selected = useContext(SelectedFieldsContext);
   return (
     <Field>
       <Label>{label}</Label>
-      <Input
-        {...input}
-        aria-required={required || undefined}
-        autoComplete="off"
-        invalid={error !== undefined}
-        name={name}
-        onChange={(event) => onChange(name, event.target.value)}
-        placeholder={placeholder}
-        size="sm"
-        value={value}
-      />
+      {selected[name] && value ? (
+        <SelectionValue value={value} />
+      ) : (
+        <Input
+          {...input}
+          aria-required={required || undefined}
+          autoComplete="off"
+          invalid={error !== undefined}
+          name={name}
+          onChange={(event) => onChange(name, event.target.value)}
+          placeholder={placeholder}
+          size="sm"
+          value={value}
+        />
+      )}
       {error === undefined ? null : <FieldError match>{error}</FieldError>}
     </Field>
   );
 }
 
 function DocumentFields({ errors, fields, onFieldChange }: FieldsProps): ReactElement {
+  const selected = useContext(SelectedFieldsContext);
+  if (selected.documentNumber && fields.documentNumber)
+    return (
+      <Field>
+        <Label>CPF ou RG</Label>
+        <SelectionValue value={fields.documentNumber} />
+      </Field>
+    );
   return (
     <PersonDocumentField
       error={errors.documentNumber ?? errors.documentType}
@@ -74,6 +98,14 @@ function DocumentFields({ errors, fields, onFieldChange }: FieldsProps): ReactEl
 }
 
 function BirthDateField({ errors, fields, onFieldChange }: FieldsProps): ReactElement {
+  const selected = useContext(SelectedFieldsContext);
+  if (selected.birthDate && fields.birthDate)
+    return (
+      <Field>
+        <Label>Nascimento</Label>
+        <SelectionValue value={fields.birthDate} />
+      </Field>
+    );
   return (
     <Field>
       <Label>Nascimento</Label>
@@ -162,6 +194,14 @@ function GuardianDocumentField({
   onFieldChange,
   minor,
 }: FieldsProps & { minor: boolean }): ReactElement {
+  const selected = useContext(SelectedFieldsContext);
+  if (selected.guardianDocumentNumber && fields.guardianDocumentNumber)
+    return (
+      <Field>
+        <Label>CPF ou RG</Label>
+        <SelectionValue value={fields.guardianDocumentNumber} />
+      </Field>
+    );
   return (
     <PersonDocumentField
       required={minor || Boolean(fields.guardianName.trim())}
@@ -286,15 +326,18 @@ export function DadosStep(props: DadosStepProps): ReactElement {
 export function IntakeStudentFields(
   props: Omit<DadosStepProps, "onSubmit"> & {
     nameField: ReactNode;
+    selectedFields?: Partial<NewStudentFields>;
     documents: EnrollmentDocuments;
     studentId?: string | undefined;
   },
 ): ReactJSX.Element {
   return (
-    <div className="grid gap-5">
-      <IdentitySection {...props} />
-      <ContactSection {...props} />
-      <GuardianSection {...props} />
-    </div>
+    <SelectedFieldsContext.Provider value={props.selectedFields ?? {}}>
+      <div className="grid gap-5">
+        <IdentitySection {...props} />
+        <ContactSection {...props} />
+        <GuardianSection {...props} />
+      </div>
+    </SelectedFieldsContext.Provider>
   );
 }

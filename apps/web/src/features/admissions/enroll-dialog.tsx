@@ -1,6 +1,6 @@
 "use client";
 import { useState, type FormEvent, type ReactElement, type RefObject } from "react";
-import { Alert } from "@lazuli/ui";
+import { ToastAlert, Alert } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { useScrollToError } from "~/lib/scroll-to-error";
 import { AdmissionDialog } from "./admission-dialog";
@@ -116,7 +116,9 @@ export function EnrollDialog(input: EnrollmentInput): ReactElement {
         A matrícula inicia o vínculo com a turma e o estágio. Contrato e cobranças são tratados
         separadamente.
       </Alert>
-      {form.mutation.isError && <Alert variant="destructive">{form.mutation.error.message}</Alert>}
+      {form.mutation.isError && (
+        <ToastAlert variant="destructive">{form.mutation.error.message}</ToastAlert>
+      )}
     </AdmissionDialog>
   );
 }

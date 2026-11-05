@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from "react";
-import { Alert, Button, FileUpload } from "@lazuli/ui";
+import { ToastAlert, Button, FileUpload } from "@lazuli/ui";
 import { ArrowLeft, FileCheck2, Paperclip, LoaderCircle, QrCode, X } from "lucide-react";
 import { ENROLLMENT_DOCUMENTS, statusLabel, type DocumentDefinition } from "./model";
 import { SessionLink } from "./qr-dialog";
@@ -84,12 +84,12 @@ export function StudentDocumentPanel({
     >
       <PanelHeading {...props} />
       {documents.create.isError && !documents.session && (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           Não foi possível preparar o envio.
           <Button type="button" variant="ghost" onClick={prepare}>
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       )}
       <div className={styles.panelView} key={panelViewKey(qr, selection)}>
         <PanelContent {...props} selectedFile={selectedFile} />

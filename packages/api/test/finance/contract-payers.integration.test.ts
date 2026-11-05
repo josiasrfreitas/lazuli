@@ -175,9 +175,8 @@ void it("creates a new student and guardian atomically with the payer and contra
 
 void it("preserves untyped taxId when reused and enforces typed new document numbers", async () => {
   const values = await contractPayerFixture(`${PREFIX}legacy `);
-  const legacy = await finance(db, ADMIN.id).createPayer({
-    name: `${PREFIX}legacy payer`,
-    taxId: "unknown-123",
+  const legacy = await db.payer.create({
+    data: { name: `${PREFIX}legacy payer`, taxId: "unknown-123" },
   });
   const { newPayer: _newPayer, ...existing } = values;
   const created = await db.$transaction((tx) =>

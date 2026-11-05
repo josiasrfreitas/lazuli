@@ -3,7 +3,7 @@ import Link from "next/link";
 import { studentFollowUpHref } from "./student-navigation";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button, EmptyState } from "@lazuli/ui";
+import { ToastAlert, Button, EmptyState } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";
 import { ArrowLeft, ArrowUpRight, MessagesSquare, RefreshCw } from "lucide-react";
 export type Occurrence = RouterOutputs["occurrences"]["byId"];
@@ -52,13 +52,13 @@ export function QueryState({
   if (pending) return <QueryLoading label="Carregando acompanhamento" />;
   if (error)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         {error.message}
         <Button variant="secondary" onClick={retry}>
           <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   return null;
 }

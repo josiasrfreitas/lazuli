@@ -13,3 +13,18 @@ export function materialPriceVersion(
     .update(JSON.stringify(["single-receipt-v1", installments, installmentCents, cardFeePct]))
     .digest("hex");
 }
+
+export function materialFinalPriceVersion(
+  cashCents: number,
+  cardFeeRates: Record<string, number>,
+): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify([
+        "cash-reference-v2",
+        cashCents,
+        Object.entries(cardFeeRates).toSorted(([left], [right]) => Number(left) - Number(right)),
+      ]),
+    )
+    .digest("hex");
+}

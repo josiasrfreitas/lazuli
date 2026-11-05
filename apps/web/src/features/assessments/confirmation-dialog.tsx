@@ -2,7 +2,7 @@
 import { Check, X } from "lucide-react";
 import { useState, type FormEvent, type ReactElement } from "react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -144,7 +144,7 @@ function ConfirmationFields({
         <p className="text-caption text-muted-foreground">
           A matrícula e o estágio atual continuam até a movimentação ser realizada.
         </p>
-        {mutationError && <Alert variant="destructive">{mutationError}</Alert>}
+        {mutationError && <ToastAlert variant="destructive">{mutationError}</ToastAlert>}
       </form>
     </DialogBody>
   );

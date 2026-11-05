@@ -83,35 +83,69 @@ function assignPayerIssue(errors: Errors, issue: ContractIssue): void {
 }
 
 function assignIssue(errors: Errors, issue: ContractIssue): void {
+  if (assignPersonOrMaterialIssue(errors, issue)) return;
   const section = issue.path[0];
-  const property = String(issue.path[1]);
-  if (section === "material") {
-    assignMaterialIssue(errors, property, issue.message);
-    return;
+  switch (section) {
+    case "durationMonths": {
+      errors.endsOn = "Informe uma data final entre 1 e 120 meses completos após o início.";
+      return;
+    }
+    case "firstDueDate": {
+      errors.billingFirstDueDate = issue.message;
+      return;
+    }
+    case "startsOn": {
+      errors.firstDueDate = issue.message;
+      return;
+    }
+    case "installmentCount": {
+      errors.installmentCount =
+        "Informe uma quantidade inteira entre 1 e a duração do contrato em meses.";
+      return;
+    }
+    default: {
+      assignStandardIssue(errors, issue);
+    }
   }
-  if (section === "newStudent") {
-    assignStudentIssue(errors, issue);
-    return;
+}
+
+function assignStandardIssue(errors: Errors, issue: ContractIssue): void {
+  const name = issue.path[0] as keyof ContractFields | "monthlyAmountCents" | "enrollmentFeeCents";
+  switch (name) {
+    case "monthlyAmountCents": {
+      errors.monthlyAmount =
+        issue.code === "custom" ? issue.message : "Informe uma mensalidade válida.";
+      break;
+    }
+    case "enrollmentFeeCents": {
+      errors.enrollmentFee = issue.message;
+      break;
+    }
+    default: {
+      if (FORM_KEYS.has(name)) errors[name] = issue.message;
+    }
   }
-  if (section === "newPayer") {
-    assignPayerIssue(errors, issue);
-    return;
+}
+
+function assignPersonOrMaterialIssue(errors: Errors, issue: ContractIssue): boolean {
+  const section = issue.path[0];
+  switch (section) {
+    case "material": {
+      assignMaterialIssue(errors, String(issue.path[1]), issue.message);
+      return true;
+    }
+    case "newStudent": {
+      assignStudentIssue(errors, issue);
+      return true;
+    }
+    case "newPayer": {
+      assignPayerIssue(errors, issue);
+      return true;
+    }
+    default: {
+      return false;
+    }
   }
-  if (section === "durationMonths") {
-    errors.endsOn = "Informe uma data final entre 1 e 120 meses completos após o início.";
-    return;
-  }
-  if (section === "installmentCount") {
-    errors.installmentCount =
-      "Informe uma quantidade inteira entre 1 e a duração do contrato em meses.";
-    return;
-  }
-  const name = section as keyof ContractFields | "monthlyAmountCents" | "enrollmentFeeCents";
-  if (name === "monthlyAmountCents")
-    errors.monthlyAmount =
-      issue.code === "custom" ? issue.message : "Informe uma mensalidade válida.";
-  else if (name === "enrollmentFeeCents") errors.enrollmentFee = issue.message;
-  else if (FORM_KEYS.has(name)) errors[name] = issue.message;
 }
 
 function assignStudentIssue(errors: Errors, issue: ContractIssue): void {
@@ -153,14 +187,23 @@ export type ContractFormState = {
   setSubmissionError: (message: string) => void;
 };
 
-function useAgreementDate(
+function useInitialContractDates(
   open: boolean,
   setFields: Dispatch<SetStateAction<ContractFields>>,
 ): void {
   useEffect(() => {
     if (!open) return;
     const today = formatDateOnlyBR(toDateOnlySaoPaulo(new Date()));
-    setFields((current) => (current.agreedOn ? current : { ...current, agreedOn: today }));
+    setFields((current) => {
+      if (current.agreedOn && current.firstDueDate && current.endsOn) return current;
+      const firstDueDate = current.firstDueDate || today;
+      return {
+        ...current,
+        agreedOn: current.agreedOn || today,
+        firstDueDate,
+        endsOn: current.endsOn || suggestedContractEnd(firstDueDate),
+      };
+    });
   }, [open, setFields]);
 }
 
@@ -193,7 +236,7 @@ export function useContractFormState(
   ...[initialFields = emptyContractFields, suggestAgreementDate = true]: [ContractFields?, boolean?]
 ): ContractFormState {
   const [fields, setFields] = useState<ContractFields>(initialFields);
-  useAgreementDate(open && suggestAgreementDate, setFields);
+  useInitialContractDates(open && suggestAgreementDate, setFields);
   const [errors, setErrors] = useState<Errors>({});
   const [submissionError, setSubmissionError] = useState("");
   const commandId = useRef(crypto.randomUUID());
@@ -265,9 +308,6 @@ export function monthlyAmountError(text: string, offer: FormProps["offer"]): str
     return "Informe uma mensalidade válida.";
   }
   if (!offer) return undefined;
-  if (amount > offer.tuitionCeilingCents) {
-    return `A mensalidade deve ser de no máximo ${formatBRLFromCents(offer.tuitionCeilingCents)}.`;
-  }
   const floor = tuitionFloorCents(offer.tuitionCeilingCents, offer.maximumDiscountPct);
   if (amount < floor) {
     return `A mensalidade acordada deve ser de pelo menos ${formatBRLFromCents(floor)}.`;

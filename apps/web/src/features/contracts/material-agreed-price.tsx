@@ -35,8 +35,8 @@ export function MaterialAgreedPrice({
       <div className="flex items-center justify-between gap-3">
         <Label>
           {fields.materialScholarshipMode === "NONE"
-            ? "Total desta aquisição"
-            : "Valor antes da bolsa"}
+            ? "Preço à vista acordado"
+            : "Preço à vista antes da bolsa"}
         </Label>
         {custom ? (
           <CustomPriceInput {...{ input, cents, error, change }} />

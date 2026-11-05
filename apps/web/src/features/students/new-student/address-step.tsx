@@ -1,5 +1,14 @@
 import { useEffect, useRef, type ReactElement } from "react";
-import { Alert, Field, FormRow, FormSection, Input, Label, SearchSelect } from "@lazuli/ui";
+import {
+  ToastAlert,
+  Field,
+  FormRow,
+  FormSection,
+  Input,
+  Label,
+  SearchSelect,
+  SelectionValue,
+} from "@lazuli/ui";
 import { useAddressLookup, type AddressLookup } from "./address-lookup";
 import type { AddressFields } from "./reducer";
 
@@ -46,7 +55,9 @@ function AddressField({
   name,
   address,
   onChange,
+  selected = false,
 }: {
+  selected?: boolean;
   name: keyof AddressFields;
   address: AddressFields;
   onChange: (value: AddressFields) => void;
@@ -54,18 +65,22 @@ function AddressField({
   return (
     <Field name={`address.${name}`}>
       <Label>{FIELDS[name][0]}</Label>
-      <Input
-        size="sm"
-        name={`address.${name}`}
-        autoComplete="off"
-        placeholder={FIELDS[name][1]}
-        value={address[name]}
-        maxLength={fieldLimit(name)}
-        inputMode={name === "postalCode" ? "numeric" : "text"}
-        onChange={(event) =>
-          onChange({ ...address, [name]: normalizeAddressField(name, event.target.value) })
-        }
-      />
+      {selected && address[name] ? (
+        <SelectionValue value={address[name]} />
+      ) : (
+        <Input
+          size="sm"
+          name={`address.${name}`}
+          autoComplete="off"
+          placeholder={FIELDS[name][1]}
+          value={address[name]}
+          maxLength={fieldLimit(name)}
+          inputMode={name === "postalCode" ? "numeric" : "text"}
+          onChange={(event) =>
+            onChange({ ...address, [name]: normalizeAddressField(name, event.target.value) })
+          }
+        />
+      )}
     </Field>
   );
 }
@@ -101,7 +116,7 @@ export function AddressStep({
       >
         <AddressSearchRow address={address} lookup={lookup} onChange={changeField} />
         <AddressStatus lookup={lookup} />
-        <AddressManualFields address={address} onChange={changeField} />
+        <AddressManualFields address={address} onChange={changeField} selected={lookup.selected} />
       </FormSection>
     </div>
   );
@@ -123,7 +138,12 @@ function AddressSearchRow({
         <SearchSelect
           name="address.street"
           placeholder="Digite a rua, CEP ou parte do endereço"
-          value={null}
+          value={
+            lookup.selected
+              ? { id: "selected-address", label: address.street || address.city }
+              : null
+          }
+          resultsOnly
           query={lookup.query}
           options={lookup.options}
           minQueryLength={MIN_ADDRESS_QUERY_LENGTH}
@@ -152,9 +172,9 @@ function AddressStatus({ lookup }: { lookup: AddressLookup }): ReactElement {
         </p>
       )}
       {lookup.searchFailed && (
-        <Alert variant="warning">
+        <ToastAlert variant="warning">
           A busca está indisponível. Você pode preencher o endereço manualmente.
-        </Alert>
+        </ToastAlert>
       )}
       {lookup.message && (
         <p role="status" className="text-caption">
@@ -168,20 +188,47 @@ function AddressStatus({ lookup }: { lookup: AddressLookup }): ReactElement {
 function AddressManualFields({
   address,
   onChange,
+  selected,
 }: {
+  selected: AddressFields | null;
   address: AddressFields;
   onChange: (value: AddressFields) => void;
 }): ReactElement {
   return (
     <>
       <FormRow columns={2}>
-        <AddressField name="complement" address={address} onChange={onChange} />
-        <AddressField name="neighborhood" address={address} onChange={onChange} />
+        <AddressField
+          name="complement"
+          address={address}
+          onChange={onChange}
+          selected={Boolean(selected?.complement)}
+        />
+        <AddressField
+          name="neighborhood"
+          address={address}
+          onChange={onChange}
+          selected={Boolean(selected?.neighborhood)}
+        />
       </FormRow>
       <FormRow className="sm:grid-cols-[minmax(0,1fr)_5rem_9rem]">
-        <AddressField name="city" address={address} onChange={onChange} />
-        <AddressField name="state" address={address} onChange={onChange} />
-        <AddressField name="postalCode" address={address} onChange={onChange} />
+        <AddressField
+          name="city"
+          address={address}
+          onChange={onChange}
+          selected={Boolean(selected?.city)}
+        />
+        <AddressField
+          name="state"
+          address={address}
+          onChange={onChange}
+          selected={Boolean(selected?.state)}
+        />
+        <AddressField
+          name="postalCode"
+          address={address}
+          onChange={onChange}
+          selected={Boolean(selected?.postalCode)}
+        />
       </FormRow>
     </>
   );

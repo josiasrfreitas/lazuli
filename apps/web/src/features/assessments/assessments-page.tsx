@@ -2,7 +2,7 @@
 import { RefreshCw } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
+import { ToastAlert, Button, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { SelectControl } from "~/features/classes/form-controls";
 import { ClassPerformance } from "./class-performance";
@@ -22,13 +22,13 @@ export function AssessmentsPage(): ReactElement {
       />
       {query.isPending && <ClassPerformanceLoading />}
       {query.error && (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           Não foi possível carregar as turmas.
           <Button variant="secondary" onClick={() => void query.refetch()}>
             <RefreshCw aria-hidden="true" />
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       )}
       {current && <ClassPerformance classId={current.id} />}
       {query.data?.length === 0 && (

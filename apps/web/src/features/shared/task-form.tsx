@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { ArrowLeft, Check, X } from "lucide-react";
 import type { z } from "@lazuli/validators";
 import {
-  Alert,
+  ToastAlert,
   Button,
   type ButtonVariant,
   Dialog,
@@ -232,7 +232,7 @@ function TaskBody({
         className="data-[body-layout=calendar]:flex data-[body-layout=calendar]:min-h-0 data-[body-layout=calendar]:flex-col data-[body-layout=calendar]:overflow-hidden data-[body-layout=termination]:pt-3 data-[body-layout=placement]:min-h-80"
       >
         {typeof props.children === "function" ? props.children(actions) : props.children}
-        {props.error && <Alert variant="destructive">{props.error}</Alert>}
+        {props.error && <ToastAlert variant="destructive">{props.error}</ToastAlert>}
       </DialogBody>
       {typeof props.children !== "function" && <DialogFooter>{actions}</DialogFooter>}
     </>

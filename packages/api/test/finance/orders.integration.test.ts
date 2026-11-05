@@ -127,12 +127,21 @@ function registerCreateOrderInlinePayer(): void {
 
     const result = await caller().finance.createOrder({
       ...DEFAULT_ORDER_INPUT,
-      payer: { mode: "create", name: "GRE-43 Created With Order" },
+      payer: {
+        mode: "create",
+        name: "GRE-43 Created With Order",
+        documentType: "RG",
+        documentNumber: "1234567",
+        phone: "82999990000",
+      },
       beneficiaryStudentIds: [student.id],
     });
 
     const payer = await db.payer.findUniqueOrThrow({ where: { id: result.order.payerId } });
     assert.equal(payer.name, "GRE-43 Created With Order");
+    assert.equal(payer.documentType, "RG");
+    assert.equal(payer.documentNumber, "1234567");
+    assert.equal(payer.phone, "82999990000");
   });
 }
 

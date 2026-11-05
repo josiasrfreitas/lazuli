@@ -3,7 +3,7 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { ArrowRight, Check, RefreshCw } from "lucide-react";
-import { Alert, Button, Checkbox } from "@lazuli/ui";
+import { ToastAlert, Alert, Button, Checkbox } from "@lazuli/ui";
 import {
   contractRenegotiationConfirmSchema,
   contractRenegotiationPreviewSchema,
@@ -270,7 +270,7 @@ function ReductionFormBody(props: ReductionFormViewProps): ReactElement {
         </p>
       </Alert>
       <ReductionFormFields {...props} />
-      {(error ?? saveError) && <Alert variant="destructive">{error ?? saveError}</Alert>}
+      {(error ?? saveError) && <ToastAlert variant="destructive">{error ?? saveError}</ToastAlert>}
       {saveFailed && (
         <Button size="sm" type="button" variant="secondary" onClick={back}>
           <RefreshCw aria-hidden /> Atualizar prévia

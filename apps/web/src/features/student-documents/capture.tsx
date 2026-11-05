@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, type ReactElement } from "react";
-import { Button, FileUpload, Alert } from "@lazuli/ui";
+import { Button, FileUpload, ToastAlert } from "@lazuli/ui";
 import { ArrowLeft } from "lucide-react";
 import type { CapturedDocument, DocumentDefinition } from "./model";
 import { useCapture, type CaptureOptions, type CaptureState } from "./use-capture";
@@ -36,7 +36,7 @@ export function DocumentCapture(
   return (
     <section className={styles.capture}>
       <CaptureHeading props={props} busy={state.busy} />
-      {state.error && <Alert variant="destructive">{state.error}</Alert>}
+      {state.error && <ToastAlert variant="destructive">{state.error}</ToastAlert>}
       <CaptureStateView props={props} state={state} tracking={tracking} previews={previews} />
     </section>
   );

@@ -1,7 +1,7 @@
 import type { FormEvent, JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { normalizeSearch } from "@lazuli/domain";
-import { Alert } from "@lazuli/ui";
+import { ToastAlert } from "@lazuli/ui";
 import type { QueryResult } from "~/lib/trpc";
 import { NarrativeField } from "~/features/shared/task-form";
 import type { PedagogyDraft } from "./pedagogy-step";
@@ -44,9 +44,9 @@ export function PedagogyStepForm(props: FormProps): ReactJSX.Element {
   return (
     <form id="new-student-pedagogico" noValidate className="grid gap-4" onSubmit={handleSubmit}>
       {(error || semester.periods.error || options.error) && (
-        <Alert variant="warning">
+        <ToastAlert variant="warning">
           {error || semester.periods.error?.message || options.error?.message}
-        </Alert>
+        </ToastAlert>
       )}
       <PedagogyStepEntry {...props} />
       <NarrativeField

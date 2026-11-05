@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  Alert,
+  ToastAlert,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { DocumentCapture } from "./capture";
@@ -257,10 +257,10 @@ function PhotoUploadBody({
 }: Omit<Parameters<typeof PhotoUpload>[0], "name">): ReactElement {
   if (createError && !session)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível iniciar o envio.
         <Button onClick={() => void onRetry()}>Tentar novamente</Button>
-      </Alert>
+      </ToastAlert>
     );
   if (!session) return <p role="status">Preparando envio…</p>;
   return (

@@ -13,6 +13,9 @@ const percentage = z
   .refine((value) => Number(value.toFixed(PERCENT_DECIMAL_PLACES)) === value, {
     message: "Use no máximo quatro casas decimais.",
   });
+const cardFeeRate = percentage.refine((value) => value < PERCENT_SCALE, {
+  message: "A taxa do cartão deve ser menor que 100%.",
+});
 
 export const financeSettingsInputSchema = z
   .object({
@@ -23,6 +26,22 @@ export const financeSettingsInputSchema = z
     cancellationFeePct: percentage,
     // Legacy clients may still submit the previous single-price field.
     materialPriceCents: z.number().int().nonnegative().optional(),
+    childMaterialCashPriceCents: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(MAX_DATABASE_INTEGER)
+      .optional(),
+    adultMaterialCashPriceCents: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(MAX_DATABASE_INTEGER)
+      .optional(),
+    materialCardFeeRates: z
+      .record(z.string().regex(/^[1-9]\d*$/u), cardFeeRate)
+      .refine((rates) => Object.keys(rates).length > 0, "Configure pelo menos uma taxa do cartão.")
+      .optional(),
     childMaterialInstallments: z.number().int().positive().max(MAX_DATABASE_INTEGER).optional(),
     childMaterialInstallmentCents: z
       .number()

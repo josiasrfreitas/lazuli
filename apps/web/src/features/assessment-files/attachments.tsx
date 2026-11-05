@@ -3,7 +3,7 @@ import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Check, FileText, Trash2 } from "lucide-react";
-import { Alert, Badge, Button, Input, PencilLoader } from "@lazuli/ui";
+import { ToastAlert, Badge, Button, Input, PencilLoader } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { PHASE_LABELS } from "~/features/assessments/shared";
 import type { RouterOutputs } from "@lazuli/api";
@@ -57,7 +57,7 @@ export function AppointmentAssessmentFiles({
       {query.data && query.data.length > 0 && (
         <FileList rows={query.data} refresh={() => void query.refetch()} />
       )}
-      {query.error && <Alert variant="destructive">{query.error.message}</Alert>}
+      {query.error && <ToastAlert variant="destructive">{query.error.message}</ToastAlert>}
     </section>
   );
 }
@@ -140,14 +140,49 @@ export function FileList({
     identifyFile: (id, competence) => identifyFile.mutate({ id, competence }),
   };
   return (
+    <FileListBody
+      rows={rows}
+      controller={controller}
+      identifyError={identifyFile.error?.message}
+      removeError={remove.error?.message}
+    />
+  );
+}
+
+function FileListBody({
+  rows,
+  controller,
+  identifyError,
+  removeError,
+}: {
+  rows: FileRow[];
+  controller: FileRowsController;
+  identifyError?: string | undefined;
+  removeError?: string | undefined;
+}): ReactJSX.Element {
+  return (
     <div className={styles.list}>
       {rows.length === 0 && (
         <p className="text-caption text-muted-foreground">Nenhuma prova anexada.</p>
       )}
       <FileRows rows={rows} controller={controller} />
-      {identifyFile.error && <Alert variant="destructive">{identifyFile.error.message}</Alert>}
-      {remove.error && <Alert variant="destructive">{remove.error.message}</Alert>}
+      <FileListErrors identifyError={identifyError} removeError={removeError} />
     </div>
+  );
+}
+
+function FileListErrors({
+  identifyError,
+  removeError,
+}: {
+  identifyError?: string | undefined;
+  removeError?: string | undefined;
+}): ReactJSX.Element {
+  return (
+    <>
+      {identifyError && <ToastAlert variant="destructive">{identifyError}</ToastAlert>}
+      {removeError && <ToastAlert variant="destructive">{removeError}</ToastAlert>}
+    </>
   );
 }
 

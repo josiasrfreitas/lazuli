@@ -1,9 +1,10 @@
-import { materialPriceVersion } from "./material-price-version.js";
+import { materialFinalPriceVersion, materialPriceVersion } from "./material-price-version.js";
 import { createHash } from "node:crypto";
 import {
   addCalendarMonths,
+  materialFinalPriceQuote,
+  materialFinalSaleQuote,
   materialPriceQuote,
-  materialScholarshipQuote,
   materialInstallmentPlan,
 } from "@lazuli/domain";
 import type { FinanceSettings, Prisma } from "@lazuli/db";
@@ -11,6 +12,7 @@ import type { AddContractMaterialInput, ContractMaterialInput } from "@lazuli/va
 import { TRPCError } from "@trpc/server";
 import { lockCreationCommand } from "../../creation-command.js";
 import { toDateOnly, toDateOnlyString, type FinanceDatabase } from "./shared.js";
+import { readMaterialCardFeeRates } from "./settings.js";
 
 const ISO_DAY_START_INDEX = 8;
 const ISO_DATE_LENGTH = 10;
@@ -31,7 +33,7 @@ const ENGLISH_TRACKS = [
 ];
 type MaterialStage = { id: string; name: string; internalCode: string };
 type MaterialPrice = {
-  quote: ReturnType<typeof materialPriceQuote>;
+  quote: ReturnType<typeof materialFinalPriceQuote>;
   cash: boolean;
   cardFeePct: number;
 };
@@ -81,11 +83,11 @@ export async function materialOrderData(input: {
 }
 
 function scholarshipQuote(
-  quote: ReturnType<typeof materialPriceQuote>,
+  quote: ReturnType<typeof materialFinalPriceQuote>,
   { material, cardFeePct }: { material: ContractMaterialInput; cardFeePct: number },
-): ReturnType<typeof materialScholarshipQuote> {
+): ReturnType<typeof materialFinalSaleQuote> {
   try {
-    return materialScholarshipQuote({
+    return materialFinalSaleQuote({
       quote,
       payment: material.payment,
       scholarshipPct: material.scholarshipPct ?? 0,
@@ -128,28 +130,22 @@ async function materialStages(
 }
 
 function quotedMaterial(material: ContractMaterialInput, settings: FinanceSettings): MaterialPrice {
-  const stageIds = material.stageIds;
   const child = material.category === "CHILD";
-  const cardFeePct = Number(settings.materialCardFeePct);
-  const perBookInstallments = child
-    ? settings.childMaterialInstallments
-    : settings.adultMaterialInstallments;
-  const quote = materialPriceQuote({
-    installments: perBookInstallments * stageIds.length,
-    installmentCents: child
-      ? settings.childMaterialInstallmentCents
-      : settings.adultMaterialInstallmentCents,
+  const rates = readMaterialCardFeeRates(
+    settings.materialCardFeeRates,
+    Number(settings.materialCardFeePct),
+  );
+  const cardFeePct = materialCardFeeRate(material, rates);
+  const terms = materialPricingTerms(settings, child);
+  const quote = materialFinalPriceQuote({
+    cashCents: terms.cashCents * material.stageIds.length,
     cardFeePct,
   });
   const cash = material.payment === "CASH";
   const total = cash ? quote.cashCents : quote.totalCents;
   if (
     total !== material.expectedTotalCents ||
-    material.quoteVersion !==
-      materialPriceVersion(perBookInstallments, {
-        installmentCents: quote.installmentCents,
-        cardFeePct,
-      })
+    material.quoteVersion !== materialQuoteVersion({ terms, settings, rates })
   )
     throw new TRPCError({
       code: "CONFLICT",
@@ -163,10 +159,75 @@ function quotedMaterial(material: ContractMaterialInput, settings: FinanceSettin
   return { quote, cash, cardFeePct };
 }
 
+function materialCardFeeRate(
+  material: ContractMaterialInput,
+  rates: Record<string, number>,
+): number {
+  const rate =
+    material.payment === "CASH" || material.scholarshipPct === FULL_SCHOLARSHIP_PCT
+      ? 0
+      : rates[String(material.installmentCount)];
+  if (rate === undefined)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Configure a taxa para esta quantidade de parcelas em Ajustes.",
+    });
+  return rate;
+}
+
+function materialPricingTerms(
+  settings: FinanceSettings,
+  child: boolean,
+): {
+  cashCents: number;
+  legacyInstallments: number;
+  legacyInstallmentCents: number;
+  hasCashPrice: boolean;
+} {
+  const storedCashCents = child
+    ? settings.childMaterialCashPriceCents
+    : settings.adultMaterialCashPriceCents;
+  const legacyInstallments = child
+    ? settings.childMaterialInstallments
+    : settings.adultMaterialInstallments;
+  const legacyInstallmentCents = child
+    ? settings.childMaterialInstallmentCents
+    : settings.adultMaterialInstallmentCents;
+  return {
+    cashCents:
+      storedCashCents ??
+      materialPriceQuote({
+        installments: legacyInstallments,
+        installmentCents: legacyInstallmentCents,
+        cardFeePct: Number(settings.materialCardFeePct),
+      }).cashCents,
+    legacyInstallments,
+    legacyInstallmentCents,
+    hasCashPrice: storedCashCents !== null,
+  };
+}
+
+function materialQuoteVersion({
+  terms,
+  settings,
+  rates,
+}: {
+  terms: ReturnType<typeof materialPricingTerms>;
+  settings: FinanceSettings;
+  rates: Record<string, number>;
+}): string {
+  return !terms.hasCashPrice && settings.materialCardFeeRates === null
+    ? materialPriceVersion(terms.legacyInstallments, {
+        installmentCents: terms.legacyInstallmentCents,
+        cardFeePct: Number(settings.materialCardFeePct),
+      })
+    : materialFinalPriceVersion(terms.cashCents, rates);
+}
+
 function materialCreateData(input: {
   orderedStages: MaterialStage[];
   material: ContractMaterialInput;
-  quote: ReturnType<typeof materialPriceQuote>;
+  quote: ReturnType<typeof materialFinalPriceQuote>;
   cash: boolean;
   cardFeePct: number;
 }): Prisma.MaterialOrderCreateWithoutOrderInput {
@@ -197,7 +258,7 @@ function materialCreateData(input: {
     stageCode: stage.internalCode,
     category: material.category,
     payment: material.payment,
-    listPriceCents: quote.totalCents,
+    listPriceCents: quote.cashCents,
     priceOverrideCents: material.priceOverrideCents ?? null,
     cashDiscountPct: 0,
     chargedAmountCents: scholarship.chargedCents,

@@ -11,7 +11,7 @@ import {
   type FormEvent,
 } from "react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -184,7 +184,7 @@ function DeparturePreviewForm(props: DeparturePreviewFormProps): ReactElement {
         </p>
       )}
       {props.previewDate && props.previewIsError && (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           <p>{props.previewError?.message}</p>
           <Button
             type="button"
@@ -194,7 +194,7 @@ function DeparturePreviewForm(props: DeparturePreviewFormProps): ReactElement {
           >
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       )}
       {props.previewDate && props.previewData && !props.previewIsFetching && (
         <DepartureImpact impact={props.previewData} date={props.previewDate} />
