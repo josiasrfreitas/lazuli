@@ -208,8 +208,11 @@ function useStudentFilterFields(
 ): TableFilterField[] {
   const [classSearch, setClassSearch] = useState("");
   const [teacherSearch, setTeacherSearch] = useState("");
-  const classes = useStudentFilterOptions("class", classSearch, initialClassOptions);
-  const teachers = useStudentFilterOptions("teacher", teacherSearch);
+  const classes = useStudentFilterOptions("class", {
+    search: classSearch,
+    initial: initialClassOptions,
+  });
+  const teachers = useStudentFilterOptions("teacher", { search: teacherSearch });
   const selectedClasses = useSelectedStudentFilterOptions("class", filters.classIds);
   const selectedTeachers = useSelectedStudentFilterOptions("teacher", filters.teacherIds);
   return studentFilterFields({

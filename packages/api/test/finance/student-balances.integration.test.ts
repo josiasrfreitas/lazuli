@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
 import { db } from "@lazuli/db";
 import { deriveInstallmentLedgers } from "@lazuli/domain";
-import { studentOverdueTotals } from "../../src/finance/internal/student-balances.js";
+import { finance, type StudentOverdueTotal } from "../../src/finance/index.js";
 import {
   createFinancialRulesFixture,
   createInstallmentOrder,
@@ -39,7 +39,7 @@ void it("aggregates adjusted orders in parity with the pure ledger while keeping
     ],
     now,
   };
-  const today = await studentOverdueTotals({ database: db, values });
+  const today = await finance(db, "balances-test-admin").studentOverdueTotals(values);
   assert.deepEqual(
     today.map((row) => row.overdueCents),
     [0, 0, 0, 0, 0, 0],
@@ -72,7 +72,7 @@ void it("aggregates adjusted orders in parity with the pure ledger while keeping
   );
   assert.equal(expected, 6000);
   const result = await db.$transaction((transaction) =>
-    studentOverdueTotals({ database: transaction, values: { ...values, now: tomorrow } }),
+    finance(transaction, "balances-test-admin").studentOverdueTotals({ ...values, now: tomorrow }),
   );
   assert.deepEqual(
     result.map((row) => row.overdueCents),
@@ -84,13 +84,24 @@ void it("excludes deleted monetary facts and visibility scopes without multiplyi
   const fixture = await createFinancialRulesFixture();
   const studentId = fixture.studentIds[0]!;
   const values = { studentIds: [studentId], now: new Date("2026-03-02T15:00:00Z") };
-  const read = async () => (await studentOverdueTotals({ database: db, values }))[0]!;
-  assert.equal((await read()).overdueCents, 6000);
+  const read = async (): Promise<StudentOverdueTotal> => {
+    const rows = await finance(db, "balances-test-admin").studentOverdueTotals(values);
+    return rows[0]!;
+  };
+  const overdueCents = async (): Promise<number> => {
+    const balance = await read();
+    return balance.overdueCents;
+  };
+  const hasActiveOrder = async (): Promise<boolean> => {
+    const balance = await read();
+    return balance.hasActiveOrder;
+  };
+  assert.equal(await overdueCents(), 6000);
   await db.installmentAdjustment.updateMany({
     where: { installmentId: fixture.partialId, amountCents: -400 },
     data: { deletedAt: now },
   });
-  assert.equal((await read()).overdueCents, 6400);
+  assert.equal(await overdueCents(), 6400);
   const allocation = await db.paymentAllocation.findFirstOrThrow({
     where: { installmentId: fixture.partialId },
     orderBy: { amountCents: "asc" },
@@ -99,13 +110,13 @@ void it("excludes deleted monetary facts and visibility scopes without multiplyi
     where: { id: allocation.paymentEntryId },
     data: { deletedAt: now },
   });
-  assert.equal((await read()).overdueCents, 6400 + allocation.amountCents);
+  assert.equal(await overdueCents(), 6400 + allocation.amountCents);
   await db.paymentEntry.update({
     where: { id: allocation.paymentEntryId },
     data: { deletedAt: null },
   });
   await db.paymentAllocation.update({ where: { id: allocation.id }, data: { deletedAt: now } });
-  assert.equal((await read()).overdueCents, 6400 + allocation.amountCents);
+  assert.equal(await overdueCents(), 6400 + allocation.amountCents);
   await db.installment.update({ where: { id: fixture.partialId }, data: { deletedAt: now } });
   assert.deepEqual(await read(), { studentId, hasActiveOrder: true, overdueCents: 0 });
   await db.order.update({
@@ -117,17 +128,17 @@ void it("excludes deleted monetary facts and visibility scopes without multiplyi
     where: { id: fixture.orderId },
     data: { cancelledAt: null, cancelledReason: null, deletedAt: now },
   });
-  assert.equal((await read()).hasActiveOrder, false);
+  assert.equal(await hasActiveOrder(), false);
   await db.order.update({ where: { id: fixture.orderId }, data: { deletedAt: null } });
   await db.orderBeneficiary.updateMany({
     where: { orderId: fixture.orderId },
     data: { deletedAt: now },
   });
-  assert.equal((await read()).hasActiveOrder, false);
+  assert.equal(await hasActiveOrder(), false);
   await db.orderBeneficiary.updateMany({
     where: { orderId: fixture.orderId },
     data: { deletedAt: null },
   });
   await db.student.update({ where: { id: studentId }, data: { deletedAt: now } });
-  assert.equal((await read()).hasActiveOrder, false);
+  assert.equal(await hasActiveOrder(), false);
 });

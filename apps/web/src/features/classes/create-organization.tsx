@@ -15,6 +15,8 @@ import type { ClassFieldsProps } from "./create-fields";
 import { SelectControl } from "./form-controls";
 import { maskDateBR } from "~/lib/masks";
 
+const REGULAR_COLUMNS = 3;
+
 function TeacherAndFormat(props: ClassFieldsProps): ReactElement {
   const { draft, change } = props;
   return (
@@ -92,7 +94,7 @@ function SemesterAndStage(props: ClassFieldsProps): ReactElement {
   const { draft, change, options, errors } = props;
   const selectedPeriod = options.semesters.find((period) => period.id === draft.semesterId);
   return (
-    <FormRow columns={draft.scheduleType === "REGULAR" ? 3 : 2}>
+    <FormRow columns={draft.scheduleType === "REGULAR" ? REGULAR_COLUMNS : 2}>
       <SelectControl
         name="semesterId"
         label="Período"

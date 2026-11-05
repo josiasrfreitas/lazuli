@@ -59,13 +59,7 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
     searchWhere,
     now: input.values.now,
   });
-  const hasExtraFilters = Boolean(
-    input.values.situations?.length ||
-    input.values.classIds?.length ||
-    input.values.teacherIds?.length ||
-    input.values.registeredFrom ||
-    input.values.registeredTo,
-  );
+  const hasExtraFilters = hasAdditionalStudentFilters(input.values);
   const [students, counts, header, total] = await Promise.all([
     findStudentPage({
       database: input.database,
@@ -75,9 +69,7 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
     countHeaderFacts({
       database: input.database,
       semesterId: semester?.id ?? null,
-      ...(!input.values.search
-        ? { totalStudents: countsPromise.then((counts) => counts.all) }
-        : {}),
+      ...(input.values.search ? {} : { totalStudents: countsPromise.then((counts) => counts.all) }),
     }),
     hasExtraFilters
       ? input.database.student.count({ where })
@@ -93,6 +85,16 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
     counts,
     ...header,
   };
+}
+
+function hasAdditionalStudentFilters(values: StudentListInput): boolean {
+  return Boolean(
+    values.situations?.length ||
+    values.classIds?.length ||
+    values.teacherIds?.length ||
+    values.registeredFrom ||
+    values.registeredTo,
+  );
 }
 
 type PreviewStudentInput = {

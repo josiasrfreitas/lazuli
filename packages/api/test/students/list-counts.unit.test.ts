@@ -7,7 +7,10 @@ import { countStudentsByTab } from "../../src/students/list-query.js";
 type Database = Parameters<typeof listStudents>[0]["database"];
 const now = new Date("2026-11-03T15:00:00Z");
 
-function fixture() {
+function fixture(): {
+  database: Database;
+  counts: () => { countQueries: number; groupedQueries: number };
+} {
   let countQueries = 0;
   let groupedQueries = 0;
   const database = {

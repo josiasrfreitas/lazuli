@@ -164,9 +164,12 @@ type StudentsListQueryInput = Pick<
 
 export function useStudentFilterOptions(
   kind: "class" | "teacher",
-  search: string,
-  initial?: { data: Array<{ id: string; label: string }>; updatedAt: number },
+  options: {
+    search: string;
+    initial?: { data: Array<{ id: string; label: string }>; updatedAt: number } | undefined;
+  },
 ): QueryResult<Array<{ id: string; label: string }>> {
+  const { search, initial } = options;
   return trpc.students.listFilterOptions.useQuery(
     { kind, search },
     {

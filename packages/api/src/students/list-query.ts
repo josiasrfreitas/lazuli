@@ -110,7 +110,7 @@ function currentEnrollmentFilter(now: Date): Prisma.EnrollmentWhereInput {
     },
   };
 }
-function pageSelect(now: Date) {
+function pageSelect(now: Date): typeof studentPageSelect {
   return {
     ...studentPageSelect,
     contracts: { ...studentPageSelect.contracts, where: currentScholarshipContractWhere(now) },
@@ -134,7 +134,7 @@ function pageSelect(now: Date) {
         },
       },
     },
-  };
+  } as typeof studentPageSelect;
 }
 function enrollmentFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
   if (!input.classIds?.length && !input.teacherIds?.length) return {};
@@ -193,7 +193,8 @@ export async function findStudentRow(input: {
     select: pageSelect(now),
   });
   if (row === null) return null;
-  return (await withCurrentTeachers(input.database, [row], now))[0]!;
+  const students = await withCurrentTeachers({ database: input.database, rows: [row], now });
+  return students[0]!;
 }
 
 export async function findStudentPage(input: {
@@ -213,20 +214,20 @@ export async function findStudentPage(input: {
     take: input.values.pageSize,
     select: pageSelect(now),
   });
-  return withCurrentTeachers(input.database, rows, now);
+  return withCurrentTeachers({ database: input.database, rows, now });
 }
 
 /** Load only the effective teachers, once for the whole page (also used by preview). */
-async function withCurrentTeachers(
-  database: StudentListDatabase,
-  rows: SelectedStudentPageRow[],
-  now: Date,
-): Promise<StudentPageRow[]> {
-  const today = saoPauloDateOnly(now);
+async function withCurrentTeachers(input: {
+  database: StudentListDatabase;
+  rows: SelectedStudentPageRow[];
+  now: Date;
+}): Promise<StudentPageRow[]> {
+  const today = saoPauloDateOnly(input.now);
   const teacherIdFor = (
     row: SelectedEnrollment["class"],
     departureDates: Map<string, string | null>,
-  ) =>
+  ): string | null =>
     effectiveTeacherId({
       initialTeacherId: row.teacherId,
       assignments: row.teacherAssignments.map((assignment) => ({
@@ -238,7 +239,7 @@ async function withCurrentTeachers(
     });
   const ids = [
     ...new Set(
-      rows.flatMap((row) =>
+      input.rows.flatMap((row) =>
         row.enrollments.map((enrollment) => teacherIdFor(enrollment.class, new Map())),
       ),
     ),
@@ -246,7 +247,7 @@ async function withCurrentTeachers(
   const teachers =
     ids.length === 0
       ? []
-      : await database.user.findMany({
+      : await input.database.user.findMany({
           where: { id: { in: ids }, deletedAt: null },
           select: { id: true, name: true, teacherProfile: { select: { departureDate: true } } },
         });
@@ -257,7 +258,7 @@ async function withCurrentTeachers(
       teacher.teacherProfile?.departureDate?.toISOString().slice(0, DATE_ONLY_LENGTH) ?? null,
     ]),
   );
-  return rows.map((row) => ({
+  return input.rows.map((row) => ({
     ...row,
     enrollments: row.enrollments.map((enrollment) => {
       const id = teacherIdFor(enrollment.class, departures);

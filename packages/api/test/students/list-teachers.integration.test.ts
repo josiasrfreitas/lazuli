@@ -13,7 +13,7 @@ import {
   fullNameOf,
 } from "../support/students-list-test-support.js";
 
-async function clean() {
+async function clean(): Promise<void> {
   await db.classTeacherAssignment.deleteMany({
     where: { class: { internalCode: { startsWith: PREFIX } } },
   });
@@ -35,13 +35,16 @@ after(async () => {
   await db.$disconnect();
 });
 
-async function teachers() {
+async function teachers(): Promise<{
+  group: Awaited<ReturnType<typeof db.class.findFirstOrThrow>>;
+  replacement: Awaited<ReturnType<typeof db.user.findFirstOrThrow>>;
+}> {
   const group = await db.class.findFirstOrThrow({ where: { internalCode: CLASS_A_CODE } });
   const replacement = await db.user.findFirstOrThrow({ where: { name: TEACHER_B_NAME } });
   return { group, replacement };
 }
 
-async function assertTeacher(date: Date, expected: string) {
+async function assertTeacher(date: Date, expected: string): Promise<void> {
   const result = await caller(date).students.list({ search: fullNameOf("Ana Attend") });
   assert.equal(result.rows.length, 1);
   assert.equal(result.rows[0]!.enrollment?.teacherName, expected);
@@ -124,8 +127,10 @@ void it("exposes current membership to the header without needing the pedagogy r
   const davi = await db.student.findFirstOrThrow({
     where: { fullName: fullNameOf("Davi NoClass") },
   });
-  assert.equal((await caller().students.byId({ id: ana.id })).hasCurrentEnrollment, true);
-  assert.equal((await caller().students.byId({ id: davi.id })).hasCurrentEnrollment, false);
+  const anaProfile = await caller().students.byId({ id: ana.id });
+  const daviProfile = await caller().students.byId({ id: davi.id });
+  assert.equal(anaProfile.hasCurrentEnrollment, true);
+  assert.equal(daviProfile.hasCurrentEnrollment, false);
   const enrollment = await db.enrollment.findFirstOrThrow({ where: { studentId: ana.id } });
   await db.$transaction(async (database) => {
     await database.pedagogicalProgress.updateMany({
@@ -137,14 +142,10 @@ void it("exposes current membership to the header without needing the pedagogy r
       data: { exitDate: new Date("2044-04-15"), exitReason: "DROPPED" },
     });
   });
-  assert.equal(
-    (await caller(new Date("2044-04-15T02:59:59.999Z")).students.byId({ id: ana.id }))
-      .hasCurrentEnrollment,
-    true,
-  );
-  assert.equal(
-    (await caller(new Date("2044-04-15T03:00:00Z")).students.byId({ id: ana.id }))
-      .hasCurrentEnrollment,
-    false,
-  );
+  const beforeExit = await caller(new Date("2044-04-15T02:59:59.999Z")).students.byId({
+    id: ana.id,
+  });
+  const afterExit = await caller(new Date("2044-04-15T03:00:00Z")).students.byId({ id: ana.id });
+  assert.equal(beforeExit.hasCurrentEnrollment, true);
+  assert.equal(afterExit.hasCurrentEnrollment, false);
 });

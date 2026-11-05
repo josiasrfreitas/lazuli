@@ -116,7 +116,8 @@ export async function readPendingLessonSummaries(
   database: Database,
   now: Date,
 ): Promise<TeacherLessonSummary[]> {
-  return (await readPendingLessons(database, now)).map(({ lessons, ...teacher }) => ({
+  const teachers = await readPendingLessons(database, now);
+  return teachers.map(({ lessons, ...teacher }) => ({
     ...teacher,
     total: lessons.length,
   }));
@@ -124,12 +125,10 @@ export async function readPendingLessonSummaries(
 
 export async function readPendingLessonPage(
   database: Database,
-  now: Date,
-  input: { teacherId: string | null; page: number; pageSize: number },
+  input: { now: Date; teacherId: string | null; page: number; pageSize: number },
 ): Promise<{ total: number; lessons: PendingLesson[] }> {
-  const teacher = (await readPendingLessons(database, now)).find(
-    (group) => group.teacherId === input.teacherId,
-  );
+  const teachers = await readPendingLessons(database, input.now);
+  const teacher = teachers.find((group) => group.teacherId === input.teacherId);
   const lessons = teacher?.lessons ?? [];
   const start = (input.page - 1) * input.pageSize;
   return { total: lessons.length, lessons: lessons.slice(start, start + input.pageSize) };

@@ -5,7 +5,23 @@ import { finance } from "../../src/finance/index.js";
 
 const NOW = new Date("2026-11-15T15:00:00Z");
 
-function installment(id: string, dueDate: string, waivedAt: Date | null = null) {
+type InstallmentFixture = {
+  id: string;
+  orderId: string;
+  amountCents: number;
+  dueDate: Date;
+  waivedAt: Date | null;
+  order: {
+    kind: string;
+    cancelledAt: null;
+    payer: { id: string; name: string };
+    contract: null;
+    beneficiaries: never[];
+  };
+};
+
+function installment(input: { id: string; dueDate: string; waivedAt?: Date }): InstallmentFixture {
+  const { id, dueDate, waivedAt = null } = input;
   return {
     id,
     orderId: `order-${id}`,
@@ -22,14 +38,14 @@ function installment(id: string, dueDate: string, waivedAt: Date | null = null) 
   };
 }
 
-function mockReceivables(context: TestContext) {
+function mockReceivables(context: TestContext): ReturnType<typeof finance> {
   context.mock.timers.enable({ apis: ["Date"], now: NOW });
   const installments = [
-    installment("partial", "2026-11-10"),
-    installment("paid", "2026-11-01"),
-    installment("untouched", "2026-10-01"),
-    installment("waived", "2026-11-01", NOW),
-    installment("future", "2026-12-01"),
+    installment({ id: "partial", dueDate: "2026-11-10" }),
+    installment({ id: "paid", dueDate: "2026-11-01" }),
+    installment({ id: "untouched", dueDate: "2026-10-01" }),
+    installment({ id: "waived", dueDate: "2026-11-01", waivedAt: NOW }),
+    installment({ id: "future", dueDate: "2026-12-01" }),
   ];
   const adjustments = [
     { installmentId: "partial", amountCents: -2000 },
@@ -51,7 +67,7 @@ function mockReceivables(context: TestContext) {
       ),
   };
   return finance(
-    stubDatabase(installments, adjustments, paymentAllocation),
+    stubDatabase({ installments, adjustments, paymentAllocation }),
     "receivables-test-admin",
   );
 }
@@ -104,7 +120,11 @@ void it("preserves per-installment balances, overdue status and exclusions for t
 
 void it("returns zero balances when there are no installments or financial entries", async (context) => {
   context.mock.timers.enable({ apis: ["Date"], now: NOW });
-  const database = stubDatabase([], [], { findMany: () => Promise.resolve([]) });
+  const database = stubDatabase({
+    installments: [],
+    adjustments: [],
+    paymentAllocation: { findMany: () => Promise.resolve([]) },
+  });
   const module = finance(database, "receivables-test-admin");
 
   assert.deepEqual(await module.receivablesSnapshot(), {
@@ -116,31 +136,35 @@ void it("returns zero balances when there are no installments or financial entri
   assert.deepEqual(await module.overdueList(), { rows: [] });
 });
 
-function stubDatabase(
-  installments: ReturnType<typeof installment>[],
-  adjustments: Array<{ installmentId: string; amountCents: number }>,
+function stubDatabase(input: {
+  installments: InstallmentFixture[];
+  adjustments: Array<{ installmentId: string; amountCents: number }>;
   paymentAllocation: {
     findMany: (query: { where: object }) => Promise<Array<{ amountCents: number }>>;
-  },
-): Parameters<typeof finance>[0] {
+  };
+}): Parameters<typeof finance>[0] {
   // Only persistence is stubbed; the public finance module composes and derives the real ledger.
   return {
-    installment: { findMany: () => Promise.resolve(installments) },
-    installmentAdjustment: { findMany: () => Promise.resolve(adjustments) },
-    paymentAllocation,
+    installment: { findMany: () => Promise.resolve(input.installments) },
+    installmentAdjustment: { findMany: () => Promise.resolve(input.adjustments) },
+    paymentAllocation: input.paymentAllocation,
   } as object as Parameters<typeof finance>[0];
 }
 
 void it("builds snapshot totals using only installment and entry facts, without payer/student relations", async (context) => {
   context.mock.timers.enable({ apis: ["Date"], now: NOW });
-  const row = installment("minimal", "2026-11-10");
+  const row = installment({ id: "minimal", dueDate: "2026-11-10" });
   Object.defineProperty(row, "order", {
     enumerable: false,
     get() {
       throw new Error("Snapshot must not materialize order parties");
     },
   });
-  const database = stubDatabase([row], [], { findMany: () => Promise.resolve([]) });
+  const database = stubDatabase({
+    installments: [row],
+    adjustments: [],
+    paymentAllocation: { findMany: () => Promise.resolve([]) },
+  });
 
   assert.deepEqual(await finance(database, "receivables-test-admin").receivablesSnapshot(), {
     expectedThisMonthCents: 10_000,
@@ -154,8 +178,8 @@ void it("associates financial entries with linear work as the installment list g
   context.mock.timers.enable({ apis: ["Date"], now: NOW });
   const count = 100;
   let associationReads = 0;
-  const installments = Array.from({ length: count }, (_, index) =>
-    installment(`scale-${index}`, "2026-11-10"),
+  const installments = Array.from({ length: count }, (_unused, index) =>
+    installment({ id: `scale-${index}`, dueDate: "2026-11-10" }),
   );
   const entries = installments.map(({ id }) => ({
     get installmentId() {
@@ -164,8 +188,12 @@ void it("associates financial entries with linear work as the installment list g
     },
     amountCents: 100,
   }));
-  const database = stubDatabase(installments, entries, {
-    findMany: (query) => Promise.resolve("installmentId" in query.where ? entries : []),
+  const database = stubDatabase({
+    installments,
+    adjustments: entries,
+    paymentAllocation: {
+      findMany: (query) => Promise.resolve("installmentId" in query.where ? entries : []),
+    },
   });
 
   const snapshot = await finance(database, "receivables-test-admin").receivablesSnapshot();

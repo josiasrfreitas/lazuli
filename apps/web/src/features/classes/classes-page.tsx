@@ -83,16 +83,18 @@ function ClassListing({ initial }: { initial?: InitialClassesData | undefined })
       params.semestre,
       params.estado,
     ].every((value) => value === null);
-  const query = trpc.classes.list.useQuery(classListQueryInput(params), {
-    ...(defaultList && initial?.list
+  const query = trpc.classes.list.useQuery(
+    classListQueryInput(params),
+    defaultList && initial?.list
       ? { initialData: initial.list.data, initialDataUpdatedAt: initial.list.updatedAt }
-      : {}),
-  });
-  const options = trpc.classes.formOptions.useQuery(undefined, {
-    ...(initial?.options
+      : {},
+  );
+  const options = trpc.classes.formOptions.useQuery(
+    undefined,
+    initial?.options
       ? { initialData: initial.options.data, initialDataUpdatedAt: initial.options.updatedAt }
-      : {}),
-  });
+      : {},
+  );
   const fields = classFilterFields({
     params,
     options: options.data,

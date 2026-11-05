@@ -48,6 +48,33 @@ type AgendaDataProps = {
   initial?: InitialAgendaData | undefined;
 };
 
+function agendaQueryInputs(props: AgendaDataProps): {
+  range: { from: string; to: string; classId?: string };
+  lessons?: InitialAgendaData["lessons"];
+  appointments?: InitialAgendaData["appointments"];
+  experiments?: InitialAgendaData["experiments"];
+} {
+  const selectedWeek = monday(props.date);
+  const sameWeek = isInitialAgendaWeek(props.initial, selectedWeek);
+  return {
+    range: {
+      from: selectedWeek,
+      to: shiftDate(selectedWeek, LAST_WEEKDAY),
+      ...(props.classId ? { classId: props.classId } : {}),
+    },
+    lessons: sameWeek && !props.classId ? props.initial?.lessons : undefined,
+    appointments: sameWeek && !props.studentId ? props.initial?.appointments : undefined,
+    experiments: sameWeek ? props.initial?.experiments : undefined,
+  };
+}
+
+function isInitialAgendaWeek(
+  initial: InitialAgendaData | undefined,
+  selectedWeek: string,
+): boolean {
+  return initial !== undefined && selectedWeek === monday(initial.today);
+}
+
 export function ClassAgenda({
   teacherView = false,
   admin = false,
@@ -97,28 +124,20 @@ export function ClassAgenda({
 }
 
 function AgendaData(props: AgendaDataProps): ReactElement {
-  const selectedWeek = monday(props.date);
-  const range = {
-    from: selectedWeek,
-    to: shiftDate(selectedWeek, LAST_WEEKDAY),
-    ...(props.classId ? { classId: props.classId } : {}),
-  };
-  const sameWeek = props.initial !== undefined && selectedWeek === monday(props.initial.today);
-  const query = trpc.classRecords.list.useQuery(
-    range,
-    initialQueryOptions(sameWeek && !props.classId ? props.initial?.lessons : undefined),
-  );
+  const initial = agendaQueryInputs(props);
+  const { range } = initial;
+  const query = trpc.classRecords.list.useQuery(range, initialQueryOptions(initial.lessons));
   const appointments = trpc.appointments.list.useQuery(
     {
       from: range.from,
       through: range.to,
       ...(props.studentId ? { studentId: props.studentId } : {}),
     },
-    initialQueryOptions(sameWeek && !props.studentId ? props.initial?.appointments : undefined),
+    initialQueryOptions(initial.appointments),
   );
   const experiments = trpc.classRecords.experimentalSessions.useQuery(
     { from: range.from, to: range.to },
-    initialQueryOptions(sameWeek ? props.initial?.experiments : undefined),
+    initialQueryOptions(initial.experiments),
   );
   const generation = useSessionGeneration(range);
   const pending = [query.isPending, appointments.isPending, experiments.isPending].some(Boolean);

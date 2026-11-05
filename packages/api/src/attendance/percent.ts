@@ -8,18 +8,21 @@ import { assertResourceScope } from "../trpc/rbac.js";
 import type { AttendanceDatabase } from "./data.js";
 import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE } from "./errors.js";
 
+const DB_MODULE = "@lazuli/db";
+type DbModule = typeof import("@lazuli/db");
+
 export async function computeEnrollmentPercentInWindow(
-  input: Parameters<(typeof import("@lazuli/db"))["computeEnrollmentPercentInWindow"]>[0],
-): Promise<Awaited<ReturnType<(typeof import("@lazuli/db"))["computeEnrollmentPercentInWindow"]>>> {
-  const { computeEnrollmentPercentInWindow: compute } = await import("@lazuli/db");
-  return compute(input);
+  input: Parameters<DbModule["computeEnrollmentPercentInWindow"]>[0],
+): Promise<Awaited<ReturnType<DbModule["computeEnrollmentPercentInWindow"]>>> {
+  const databaseModule = (await import(DB_MODULE)) as DbModule;
+  return databaseModule.computeEnrollmentPercentInWindow(input);
 }
 
 export async function computeEnrollmentsPercentInWindow(
-  input: Parameters<(typeof import("@lazuli/db"))["computeEnrollmentsPercentInWindow"]>[0],
+  input: Parameters<DbModule["computeEnrollmentsPercentInWindow"]>[0],
 ): Promise<Map<string, AttendanceProgress>> {
-  const { computeEnrollmentsPercentInWindow: compute } = await import("@lazuli/db");
-  return compute(input);
+  const databaseModule = (await import(DB_MODULE)) as DbModule;
+  return databaseModule.computeEnrollmentsPercentInWindow(input);
 }
 
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;

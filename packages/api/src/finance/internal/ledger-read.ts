@@ -31,6 +31,13 @@ type LoadedReceivablesInstallment = {
   allocations: Array<{ amountCents: number }>;
 };
 
+type SnapshotInstallment = Pick<
+  LoadedReceivablesInstallment,
+  "id" | "amountCents" | "dueDate" | "waivedAt" | "adjustments" | "allocations"
+>;
+
+type MonetaryEntry = { installmentId: string; amountCents: number };
+
 export type DerivedReceivablesInstallment = {
   id: string;
   orderId: string;
@@ -190,7 +197,7 @@ async function loadActiveOrderInstallments(
 }
 
 /** The snapshot does not need parties, contacts or the overdue list's presentation fields. */
-async function loadSnapshotInstallments(database: FinanceDatabase) {
+async function loadSnapshotInstallments(database: FinanceDatabase): Promise<SnapshotInstallment[]> {
   const installments = await database.installment.findMany({
     // Only active orders enter this read, so their ledger cancellation fact is null.
     where: { order: { cancelledAt: null } },
@@ -202,7 +209,7 @@ async function loadSnapshotInstallments(database: FinanceDatabase) {
 async function loadInstallmentEntries<Row extends { id: string }>(
   database: FinanceDatabase,
   installments: Row[],
-) {
+): Promise<Array<Row & { adjustments: MonetaryEntry[]; allocations: MonetaryEntry[] }>> {
   const installmentIds = installments.map((installment) => installment.id);
   const adjustments = await database.installmentAdjustment.findMany({
     where: { installmentId: { in: installmentIds } },

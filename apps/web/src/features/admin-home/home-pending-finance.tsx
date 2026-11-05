@@ -10,12 +10,30 @@ import { PendingDisclosure } from "./home-pending-disclosure";
 import styles from "./home-pending.module.css";
 
 const CENTS_PER_REAL = 100;
+const REFRESH_INTERVAL_MS = 60_000;
 const money = (cents: number): string =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     cents / CENTS_PER_REAL,
   );
 
 type OverdueContracts = RouterOutputs["dashboard"]["overdueContracts"];
+
+function financeSummaryDescription(input: {
+  contracts: OverdueContracts;
+  loaded: boolean;
+  error: boolean;
+  open: boolean;
+}): string {
+  if (input.loaded) {
+    const installmentCount = input.contracts.reduce(
+      (sum, contract) => sum + contract.installmentCount,
+      0,
+    );
+    return `${input.contracts.length} ${input.contracts.length === 1 ? "contrato" : "contratos"} · ${installmentCount} ${installmentCount === 1 ? "parcela" : "parcelas"}`;
+  }
+  if (input.error) return "Não foi possível carregar contratos";
+  return input.open ? "Carregando contratos…" : "Abrir para ver contratos";
+}
 
 function ReceivablesLink(): ReactElement {
   return (
@@ -45,7 +63,6 @@ function FinanceSummary({
   error: boolean;
   total: number;
 }): ReactElement {
-  const installmentCount = contracts.reduce((sum, contract) => sum + contract.installmentCount, 0);
   return (
     <>
       <span className={`${styles.icon} ${styles.financeIcon}`}>
@@ -53,15 +70,7 @@ function FinanceSummary({
       </span>
       <span className={styles.identity}>
         <strong>Parcelas em atraso</strong>
-        <span>
-          {loaded
-            ? `${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"} · ${installmentCount} ${installmentCount === 1 ? "parcela" : "parcelas"}`
-            : error
-              ? "Não foi possível carregar contratos"
-              : open
-                ? "Carregando contratos…"
-                : "Abrir para ver contratos"}
-        </span>
+        <span>{financeSummaryDescription({ contracts, loaded, error, open })}</span>
       </span>
       <strong className={styles.amount}>{money(total)}</strong>
       <span className={styles.action}>
@@ -123,7 +132,7 @@ export function PendingFinance({ business }: { business: BusinessData }): ReactE
   const query = trpc.dashboard.overdueContracts.useQuery(undefined, {
     enabled: open,
     staleTime: 0,
-    refetchInterval: open ? 60_000 : false,
+    refetchInterval: open ? REFRESH_INTERVAL_MS : false,
   });
   const contracts = query.data ?? [];
   const total = query.data

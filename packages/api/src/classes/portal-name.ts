@@ -39,7 +39,7 @@ async function resolveGeneratedPortalClassName(
   database: PortalNameDatabase,
   generate: (sequence: number) => string,
 ): Promise<string> {
-  const candidates = Array.from({ length: MAX_PORTAL_NAME_ATTEMPTS }, (_, index) =>
+  const candidates = Array.from({ length: MAX_PORTAL_NAME_ATTEMPTS }, (_unused, index) =>
     generate(index + 1),
   );
   const existing = await database.class.findMany({

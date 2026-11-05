@@ -29,7 +29,7 @@ jobs:
         run: pnpm exec turbo run lint lint:root --continue=dependencies-successful
       - name: Verificar tipos
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm exec turbo run typecheck --continue=dependencies-successful
+        run: pnpm exec turbo run typecheck --concurrency=1 --continue=dependencies-successful
       - name: Verificar duplicação de código
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm exec turbo run duplication:check --continue=dependencies-successful

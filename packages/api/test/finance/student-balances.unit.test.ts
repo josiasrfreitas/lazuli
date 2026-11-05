@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
-import { studentOverdueTotals } from "../../src/finance/internal/student-balances.js";
+import { finance } from "../../src/finance/index.js";
 
-type Database = Parameters<typeof studentOverdueTotals>[0]["database"];
+type Database = Parameters<typeof finance>[0];
 const now = new Date("2026-11-01T00:30:00Z"); // Still October 31 in São Paulo.
 void it("does not load financial facts for an empty student page", async () => {
   const database = {
@@ -12,5 +12,8 @@ void it("does not load financial facts for an empty student page", async () => {
       },
     },
   } as object as Database;
-  assert.deepEqual(await studentOverdueTotals({ database, values: { now, studentIds: [] } }), []);
+  assert.deepEqual(
+    await finance(database, "balances-test-admin").studentOverdueTotals({ now, studentIds: [] }),
+    [],
+  );
 });

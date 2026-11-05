@@ -45,8 +45,12 @@ export function AdminHome({
       : {}),
   });
   const previewReady = useAnimationPreviewDelay(PREVIEW_DELAY_MS);
-  const entranceReady =
-    previewReady && !query.isPending && (!query.data?.canViewFinance || !business.isPending);
+  const entranceReady = homeEntranceReady({
+    previewReady,
+    homePending: query.isPending,
+    canViewFinance: Boolean(query.data?.canViewFinance),
+    businessPending: business.isPending,
+  });
 
   return (
     <>
@@ -63,5 +67,16 @@ export function AdminHome({
         retry={() => void query.refetch()}
       />
     </>
+  );
+}
+
+function homeEntranceReady(input: {
+  previewReady: boolean;
+  homePending: boolean;
+  canViewFinance: boolean;
+  businessPending: boolean;
+}): boolean {
+  return (
+    input.previewReady && !input.homePending && (!input.canViewFinance || !input.businessPending)
   );
 }

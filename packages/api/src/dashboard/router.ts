@@ -66,7 +66,9 @@ export const dashboardRouter = router({
         pageSize: z.number().int().min(1).max(MAX_HOME_PAGE_SIZE),
       }),
     )
-    .query(({ ctx, input }) => readPendingLessonPage(ctx.db, ctx.now ?? new Date(), input)),
+    .query(({ ctx, input }) =>
+      readPendingLessonPage(ctx.db, { ...input, now: ctx.now ?? new Date() }),
+    ),
   overdueContracts: adminProcedure.query(({ ctx }) => {
     if (!canAccess(ctx.staffUser.role, "finance")) throw new TRPCError({ code: "FORBIDDEN" });
     return readOverdueContracts(ctx.db, ctx.now ?? new Date());
