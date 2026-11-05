@@ -43,7 +43,13 @@ function classOptionLabel(choice: ClassChoice, slot: Slot | undefined): string {
   return `${title}, ${choice.teacherName}, ${format}, ${schedule}, ${classCount(choice)}`;
 }
 
-function ClassSchedule({ choice, slot }: { choice: ClassChoice; slot?: Slot }): ReactJSX.Element {
+function ClassSchedule({
+  choice,
+  slot,
+}: {
+  choice: ClassChoice;
+  slot?: Slot | undefined;
+}): ReactJSX.Element {
   if (slot)
     return (
       <span className={styles.classTime}>

@@ -23,7 +23,7 @@ export function intakeStepCompletion(input: CompletionInput): {
   student: boolean;
   address: boolean;
 } {
-  const { documents, fields, today } = input;
+  const { fields, today } = input;
   const missing = missingIntakeDocuments(input);
   const address = fields.address;
   return {
