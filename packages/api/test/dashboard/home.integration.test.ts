@@ -193,7 +193,7 @@ void it("keeps future and historical enrollments out of first-allocation work ac
   );
   await cleanHomeEnrollments();
 });
-void it("excludes a proposed destination and restores the queue when the proposal is removed", async () => {
+void it("keeps future entry off the home queue until its intention is removed", async () => {
   const catalog = await seedDashboardCatalog();
   const stage = await db.stage.findUniqueOrThrow({ where: { id: catalog.stageId } });
   const studentId = await seedStudent({ suffix: "Home proposed destination", createdAt: NOW });
@@ -234,6 +234,13 @@ void it("excludes a proposed destination and restores the queue when the proposa
       false,
     );
     await db.semesterPlacement.update({ where: { id: placement.id }, data: { planId: null } });
+    const withoutClass = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
+    assert.equal(withoutClass.total, before.total - 1);
+    assert.equal(
+      withoutClass.items.some((item) => item.id === studentId),
+      false,
+    );
+    await db.semesterPlacement.delete({ where: { id: placement.id } });
     const restored = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
     assert.equal(restored.total, before.total);
     assert.equal(
@@ -241,7 +248,7 @@ void it("excludes a proposed destination and restores the queue when the proposa
       true,
     );
   } finally {
-    await db.semesterPlacement.delete({ where: { id: placement.id } });
+    await db.semesterPlacement.deleteMany({ where: { id: placement.id } });
     await db.semesterClassPlan.delete({ where: { id: plan.id } });
   }
 });
