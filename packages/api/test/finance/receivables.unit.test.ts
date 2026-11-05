@@ -148,8 +148,10 @@ function stubDatabase(input: {
     installment: { findMany: () => Promise.resolve(input.installments) },
     installmentAdjustment: { findMany: () => Promise.resolve(input.adjustments) },
     paymentAllocation: {
-      findMany: async (query: { where: object }) =>
-        (await input.paymentAllocation.findMany(query)).map((row) => ({ ...row, reversals: [] })),
+      findMany: async (query: { where: object }) => {
+        const rows = await input.paymentAllocation.findMany(query);
+        return rows.map((row) => ({ ...row, reversals: [] }));
+      },
     },
     paymentReversalAllocation: { findMany: () => Promise.resolve([]) },
   } as object as Parameters<typeof finance>[0];

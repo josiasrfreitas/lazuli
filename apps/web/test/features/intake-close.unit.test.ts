@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { createRequestSave } from "../../src/features/students/new-student/new-student-request-save.js";
+import type { IntakePendingItem } from "../../src/features/students/new-student/new-student-save.js";
 import { initialNewStudentState } from "../../src/features/students/new-student/reducer.js";
 
 type Context = Parameters<typeof createRequestSave>[0];
@@ -9,7 +10,7 @@ type SavedInput = Parameters<Context["persistence"]["persist"]>[0];
 type Scenario = {
   request: ReturnType<typeof createRequestSave>;
   confirmations: {
-    items: string[];
+    items: IntakePendingItem[];
     blocking: { label: string; step: string; field?: string }[];
     input?: { allowPending: boolean };
   }[];
@@ -75,7 +76,7 @@ function scenario(step: "student" | "pedagogy" | "contract", complete = false): 
     },
     today: "2026-10-29",
     existingStudentId: complete ? "09444c84-c30d-4c2f-9827-29428c489e81" : undefined,
-  } as unknown as Context;
+  } as object as Context;
   return { request: createRequestSave(context), confirmations, persisted, errors, context };
 }
 
@@ -84,8 +85,11 @@ for (const step of ["student", "pedagogy", "contract"] as const) {
     const state = scenario(step);
     assert.equal(state.request(false, true), true);
     assert.deepEqual(state.confirmations[0]?.items, [
-      "Definir a turma na etapa pedagógica.",
-      "Concluir o contrato. Os dados do contrato em rascunho não serão salvos.",
+      { kind: "class", label: "Definir a turma na página do aluno." },
+      {
+        kind: "contract",
+        label: "Concluir o contrato. Os dados do contrato em rascunho não serão salvos.",
+      },
     ]);
     assert.equal(state.confirmations[0]?.input?.allowPending, true);
     assert.deepEqual(state.persisted, []);

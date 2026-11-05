@@ -95,6 +95,6 @@ void it("reopens installment balance with partial cancellation and refund while 
       refundMethod: "PIX",
       allocations: [{ paymentAllocationId: allocation.id, amountCents: allocation.amountCents }],
     }),
-    /valor disponível/u,
+    /saldo disponível/u,
   );
 });

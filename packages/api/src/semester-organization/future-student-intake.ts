@@ -38,8 +38,7 @@ export async function recordFutureStudentIntake(
 ): Promise<void> {
   const stage = await selectedStage(database, input.stageId);
   const plan = await selectedPlan(database, input);
-  if (plan?.scheduleType === "REGULAR" && stage && plan.sharedStageId !== stage.id)
-    throw badRequest("O estágio deve corresponder à turma regular escolhida.");
+  assertStageMatchesPlan(stage, plan);
   await upsertFuturePlacement(database, {
     ...input,
     data: {
@@ -49,6 +48,11 @@ export async function recordFutureStudentIntake(
       effectiveDate: input.semester.startDate,
     },
   });
+}
+
+function assertStageMatchesPlan(stage: Stage | null, plan: FuturePlan | null): void {
+  if (plan?.scheduleType === "REGULAR" && stage && plan.sharedStageId !== stage.id)
+    throw badRequest("O estágio deve corresponder à turma regular escolhida.");
 }
 
 async function selectedStage(

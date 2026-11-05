@@ -35,7 +35,7 @@ function scenario(): Scenario {
     },
   };
   const context: Context = {
-    documents: documents as unknown as Context["documents"],
+    documents: documents as object as Context["documents"],
     flow: flow as Context["flow"],
     identity: {
       addressPending: false,

@@ -198,9 +198,16 @@ void it("excludes a proposed destination and restores the queue when the proposa
   const stage = await db.stage.findUniqueOrThrow({ where: { id: catalog.stageId } });
   const studentId = await seedStudent({ suffix: "Home proposed destination", createdAt: NOW });
   const before = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
+  const futurePeriod = await db.period.create({
+    data: {
+      name: `${TEST_PREFIX}2084.2`,
+      startDate: new Date("2084-07-01T00:00:00.000Z"),
+      endDate: new Date("2084-12-31T00:00:00.000Z"),
+    },
+  });
   const plan = await db.semesterClassPlan.create({
     data: {
-      semesterId: catalog.semesterId,
+      semesterId: futurePeriod.id,
       name: `${TEST_PREFIX}First class`,
       scheduleType: "REGULAR",
       format: "IN_PERSON",
@@ -211,7 +218,7 @@ void it("excludes a proposed destination and restores the queue when the proposa
   });
   const placement = await db.semesterPlacement.create({
     data: {
-      semesterId: catalog.semesterId,
+      semesterId: futurePeriod.id,
       studentId,
       trackId: stage.trackId,
       mode: "ENTRY",
