@@ -1,9 +1,10 @@
 # Performance: issue #227
 
 A meta é **p95 < 300 ms** do clique na navegação interna até a tela funcionalmente pronta. A
-aplicação medida em staging é a revisão `da8b3b11`; não houve novo deploy na rodada de diagnóstico.
-Os [logs de diagnóstico do servidor](server-logging.md) descrevem os checkpoints e como consultá-los
-quando esta mudança for publicada; eles ainda não aparecem nas medições desta página.
+[decomposição mais recente do painel](staging-panel-cost-breakdown-2026-11-04.md) cruza 20
+navegações em staging com os [logs de diagnóstico do servidor](server-logging.md) pelo request ID.
+A rodada por módulo resumida abaixo mediu a revisão `da8b3b11`, antes da publicação desses logs;
+não houve novo deploy naquela rodada.
 O [mapa empírico por módulo](staging-module-costs-2026-11-04.md) reúne os marcos de RSC, JS,
 chamadas de API e pintura, com amostras brutas sanitizadas. A [decomposição com traces de
 Chrome](staging-causal-costs-2026-11-04.md) identifica o trabalho após a rede e os limites da

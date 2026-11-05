@@ -122,6 +122,20 @@ async function navigate(page, route) {
 }
 
 async function measure(page, route) {
+  const requestIds = [];
+  const pendingHeaders = [];
+  const captureRequestId = (response) => {
+    const url = new URL(response.url());
+    const trpc = url.pathname.startsWith("/api/trpc/");
+    if (!trpc && (url.pathname !== route.path || !url.searchParams.has("_rsc"))) return;
+    const kind = trpc ? url.pathname : "rsc";
+    pendingHeaders.push(
+      response.headerValue("x-request-id").then((requestId) => {
+        if (requestId) requestIds.push({ kind, requestId });
+      }),
+    );
+  };
+  page.on("response", captureRequestId);
   try {
     await page.evaluate(
       (target) => {
@@ -255,6 +269,7 @@ async function measure(page, route) {
         },
       };
     });
+    await Promise.allSettled(pendingHeaders);
     return {
       durationMs,
       ...(chartMountedMs === undefined ? {} : { chartMountedMs }),
@@ -263,8 +278,10 @@ async function measure(page, route) {
         ? {}
         : { fullReadyMs: Math.max(durationMs, chartMountedMs ?? 0, pendingReadyMs) }),
       ...diagnostics,
+      requestIds,
     };
   } finally {
+    page.off("response", captureRequestId);
     await page.evaluate(() => {
       window.__lazuliLongTaskObserver?.disconnect();
       window.__lazuliReadyObserver?.disconnect();
