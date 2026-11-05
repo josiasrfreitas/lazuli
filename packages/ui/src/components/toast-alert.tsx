@@ -1,6 +1,13 @@
 "use client";
 
-import { isValidElement, useEffect, useEffectEvent, useRef, type ReactNode } from "react";
+import {
+  isValidElement,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
 import { toastManager } from "./toast";
 
@@ -20,9 +27,34 @@ function contentText(children: ReactNode): string {
   if (typeof children === "string" || typeof children === "number") return String(children);
   if (Array.isArray(children))
     return (children as readonly ReactNode[]).map((child) => contentText(child)).join(" ");
+  if (isAction(children)) return "";
   if (isValidElement<{ children?: ReactNode }>(children))
     return contentText(children.props.children);
   return "";
+}
+
+function isAction(children: ReactNode): children is ReactElement<{
+  onClick?: (...args: never[]) => void;
+  href?: string;
+  children?: ReactNode;
+}> {
+  return (
+    isValidElement<{
+      onClick?: (...args: never[]) => void;
+      href?: string;
+      children?: ReactNode;
+    }>(children) &&
+    (typeof children.props.onClick === "function" || typeof children.props.href === "string")
+  );
+}
+
+function persistentActions(children: ReactNode): ReactElement[] {
+  if (Array.isArray(children))
+    return (children as readonly ReactNode[]).flatMap((child) => persistentActions(child));
+  if (isAction(children)) return [children];
+  if (isValidElement<{ children?: ReactNode }>(children))
+    return persistentActions(children.props.children);
+  return [];
 }
 
 function showNotice(input: {
@@ -79,14 +111,15 @@ export function ToastAlert({
   children,
   variant,
   toastTimeout = MAX_TOAST_TIMEOUT_MS,
-}: ToastAlertProps): null {
+}: ToastAlertProps): ReactElement | null {
   const message = contentText(children).replaceAll(/\s+/gu, " ").trim();
+  const actions = persistentActions(children);
   const key = message;
   const lease = useRef<NoticeLease | null>(null);
   const show = useEffectEvent(() =>
     showNotice({
       key,
-      children,
+      children: message,
       variant,
       timeout:
         toastTimeout === 0
@@ -105,8 +138,16 @@ export function ToastAlert({
   }, [key, message, toastTimeout]);
 
   useEffect(() => {
-    lease.current?.update(children);
-  }, [children]);
+    lease.current?.update(message);
+  }, [message]);
 
-  return null;
+  if (actions.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      <span>{message}</span>
+      {actions.map((action, index) => (
+        <span key={index}>{action}</span>
+      ))}
+    </div>
+  );
 }

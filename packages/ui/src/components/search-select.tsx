@@ -32,7 +32,7 @@ export type SearchSelectProps = {
   openOnFocus?: boolean;
   /** Keep suggestions hidden until the query has this many non-whitespace characters. */
   minQueryLength?: number;
-  /** Only open suggestions after a successful search has returned matching records. */
+  /** Only open suggestions after a successful search has returned a choice. */
   resultsOnly?: boolean;
   loading?: boolean;
   failed?: boolean;
@@ -204,11 +204,18 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
   );
 }
 
-function searchIsOpen(open: boolean, props: SearchSelectProps): boolean {
+export function searchIsOpen(
+  open: boolean,
+  props: Pick<
+    SearchSelectProps,
+    "query" | "minQueryLength" | "resultsOnly" | "loading" | "failed" | "options" | "onCreate"
+  >,
+): boolean {
   return (
     open &&
     props.query.trim().length >= (props.minQueryLength ?? 0) &&
-    (!props.resultsOnly || (!props.loading && !props.failed && props.options.length > 0))
+    (!props.resultsOnly ||
+      (!props.loading && !props.failed && (props.options.length > 0 || Boolean(props.onCreate))))
   );
 }
 
