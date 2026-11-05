@@ -350,6 +350,57 @@ void it("publishes only selected eligible students, preserving the current PPT a
   );
 });
 
+void it("extends the class boundary and requests generation when a later batch enters earlier", async () => {
+  const scope = await fixture();
+  const late = await scope.student("Late batch");
+  const early = await scope.student("Early batch");
+  await db.semesterPlacement.update({
+    where: { id: late.proposal.id },
+    data: { effectiveDate: new Date("2085-10-15") },
+  });
+  await db.semesterPlacement.update({
+    where: { id: early.proposal.id },
+    data: { effectiveDate: new Date("2085-10-01") },
+  });
+
+  const first = await caller().semesterOrganization.publish({
+    planId: scope.plan.id,
+    version: 1,
+    placements: [{ id: late.proposal.id, version: 1 }],
+  });
+  assert.ok(first.generation);
+  const earlierBatch = {
+    planId: scope.plan.id,
+    version: 2,
+    placements: [{ id: early.proposal.id, version: 1 }],
+  };
+  await assert.rejects(
+    caller().semesterOrganization.publish(earlierBatch),
+    /As aulas já estão sendo preparadas/u,
+  );
+  const unchanged = await db.class.findUniqueOrThrow({ where: { id: first.classId } });
+  assert.equal(unchanged.startDate?.toISOString().slice(0, 10), "2085-10-15");
+  assert.equal(
+    await db.enrollment.count({ where: { studentId: early.id, classId: first.classId } }),
+    0,
+  );
+  await db.sessionGenerationRequest.update({
+    where: { id: first.generation.id },
+    data: { status: "SUCCEEDED", completedAt: new Date("2085-05-15T15:01:00Z") },
+  });
+
+  const second = await caller().semesterOrganization.publish(earlierBatch);
+  const classRow = await db.class.findUniqueOrThrow({ where: { id: first.classId } });
+  const enrollment = await db.enrollment.findFirstOrThrow({
+    where: { studentId: early.id, classId: first.classId },
+  });
+  assert.equal(second.classId, first.classId);
+  assert.equal(classRow.startDate?.toISOString().slice(0, 10), "2085-10-01");
+  assert.equal(enrollment.entryDate.toISOString().slice(0, 10), "2085-10-01");
+  assert.ok(second.generation);
+  assert.notEqual(second.generation.id, first.generation.id);
+});
+
 void it("rejects an inactive student atomically", async () => {
   const scope = await fixture();
   const first = await scope.student("Cris");

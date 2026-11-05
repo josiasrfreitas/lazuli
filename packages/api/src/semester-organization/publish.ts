@@ -215,29 +215,46 @@ async function publicationClass(
   }: { current: CurrentPlan; plan: Plan; semester: Period; selected: BoardPlacement[] },
 ): Promise<{ classId: string; generationRequestId: string | null }> {
   if (!current.teacherId) throw badRequest(TEACHER_REQUIRED);
-  const classRow = current.classId
-    ? { id: current.classId }
-    : await createClass({
-        database: context.database,
-        recordedById: context.staffUser.id,
-        values: {
-          teacherId: current.teacherId,
-          scheduleType: current.scheduleType,
-          format: current.format,
-          sharedStageId: current.sharedStageId,
-          semesterId: semester.id,
-          startDate: selected
-            .map((row) => dateOnly(row.effectiveDate ?? semester.startDate))
-            .toSorted()[0]!,
-          slots: current.slots,
-        },
-      });
+  const firstEntryDate = selected
+    .map((row) => dateOnly(row.effectiveDate ?? semester.startDate))
+    .toSorted()[0]!;
+  const existingClass = current.classId
+    ? await context.database.class.findUniqueOrThrow({
+        where: { id: current.classId },
+        select: { id: true, startDate: true },
+      })
+    : null;
+  const classRow =
+    existingClass ??
+    (await createClass({
+      database: context.database,
+      recordedById: context.staffUser.id,
+      values: {
+        teacherId: current.teacherId,
+        scheduleType: current.scheduleType,
+        format: current.format,
+        sharedStageId: current.sharedStageId,
+        semesterId: semester.id,
+        startDate: firstEntryDate,
+        slots: current.slots,
+      },
+    }));
+  const earlierEntry =
+    existingClass !== null &&
+    firstEntryDate < dateOnly(existingClass.startDate ?? semester.startDate);
+  if (earlierEntry)
+    await context.database.class.update({
+      where: { id: classRow.id },
+      data: { startDate: new Date(firstEntryDate) },
+    });
   let generationRequestId: string | null = null;
   if (!current.classId) {
     await context.database.semesterClassPlan.update({
       where: { id: plan.id },
       data: { classId: classRow.id, version: { increment: 1 } },
     });
+  }
+  if (!current.classId || earlierEntry) {
     const generation = await requestSessionGeneration(context.database, {
       scope: { classId: classRow.id },
       requestedById: context.staffUser.id,
