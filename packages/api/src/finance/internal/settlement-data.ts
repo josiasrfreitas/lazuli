@@ -58,6 +58,7 @@ export function settlementLine(input: {
     nominalCents: item.amountCents,
     terms: settlementTerms(item),
     payments: item.allocations.map((row) => ({
+      sourceId: row.id,
       date: toDateOnlyString(row.paymentEntry.date),
       amountCents:
         row.amountCents -
@@ -70,6 +71,7 @@ export function settlementLine(input: {
       row.reversals
         .filter((line) => line.reversal.kind === "REFUND")
         .map((line) => ({
+          sourceId: row.id,
           date: toDateOnlyString(line.reversal.occurredOn),
           amountCents: line.amountCents,
           recordedAt: line.reversal.createdAt.toISOString(),

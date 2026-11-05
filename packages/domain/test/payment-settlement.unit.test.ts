@@ -53,6 +53,24 @@ void describe("payment settlement", () => {
     assert.equal(result.newInterestCents, 0);
     assert.equal(quoteSettlement({ ...input, effectiveDate: "2026-01-31" }).newInterestCents, 4);
   });
+  void it("does not reopen charges paid by another receipt", () => {
+    const input: SettlementInput = {
+      nominalCents: 10_000,
+      terms: { dueDate: "2026-01-01", monthlyPct: 3, discountPct: 0 },
+      payments: [
+        { sourceId: "first", date: "2026-01-01", amountCents: 5_000 },
+        { sourceId: "second", date: "2026-01-11", amountCents: 5_050 },
+      ],
+      refunds: [{ sourceId: "first", date: "2026-01-21", amountCents: 5_000 }],
+      principalAdjustments: [],
+      postedInterestCents: 50,
+      effectiveDate: "2026-02-20",
+    };
+    const result = quoteSettlement(input);
+    assert.equal(result.balanceCents, 5_000);
+    assert.equal(result.newInterestCents, 150);
+    assert.equal(result.outstandingChargesCents, 150);
+  });
   void it("allocates partial receipts to interest first and charges only incremental simple interest", () => {
     assert.deepEqual(quoteSettlement({ ...overdue, receivedCents: 20_667 }), {
       outstandingChargesCents: 667,

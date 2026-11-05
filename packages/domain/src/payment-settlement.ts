@@ -28,7 +28,12 @@ function accrueInterest(input: {
   return BigInt(principalCents) * BigInt(Math.round(terms.monthlyPct * RATE_SCALE)) * BigInt(days);
 }
 
-export type SettlementPayment = { date: string; amountCents: number; recordedAt?: string };
+export type SettlementPayment = {
+  date: string;
+  amountCents: number;
+  recordedAt?: string;
+  sourceId?: string;
+};
 export type SettlementInput = {
   nominalCents: number;
   terms: InterestTerms & { discountPct: number };
@@ -54,6 +59,7 @@ type AccrualState = {
   principal: number;
   interest: bigint;
   paidInterest: number;
+  paidInterestBySource: Record<string, number>;
   date: string;
   charges: number;
   dueDate: string;
@@ -160,6 +166,7 @@ function interestThroughDate(
     principal: input.nominalCents,
     interest: 0n,
     paidInterest: 0,
+    paidInterestBySource: {},
     date: input.terms.dueDate,
     dueDate: input.terms.dueDate,
     charges: 0,
@@ -208,12 +215,21 @@ function applyHistoricalFact(input: {
     };
   }
   if (fact.kind === "refund") {
-    const reopenedCharges = Math.min(fact.amountCents, state.paidInterest);
+    const sourcePaidInterest = fact.sourceId
+      ? (state.paidInterestBySource[fact.sourceId] ?? 0)
+      : state.paidInterest;
+    const reopenedCharges = Math.min(fact.amountCents, sourcePaidInterest);
     return {
       ...state,
       principal: state.principal + fact.amountCents - reopenedCharges,
       interest,
       paidInterest: state.paidInterest - reopenedCharges,
+      paidInterestBySource: fact.sourceId
+        ? {
+            ...state.paidInterestBySource,
+            [fact.sourceId]: sourcePaidInterest - reopenedCharges,
+          }
+        : state.paidInterestBySource,
       date: fact.date,
     };
   }
@@ -227,6 +243,12 @@ function applyHistoricalFact(input: {
     principal: Math.max(0, state.principal - (fact.amountCents - interestPaid)),
     interest,
     paidInterest: state.paidInterest + interestPaid,
+    paidInterestBySource: fact.sourceId
+      ? {
+          ...state.paidInterestBySource,
+          [fact.sourceId]: (state.paidInterestBySource[fact.sourceId] ?? 0) + interestPaid,
+        }
+      : state.paidInterestBySource,
     date: fact.date,
   };
 }
