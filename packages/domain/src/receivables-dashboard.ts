@@ -38,6 +38,7 @@ export function buildReceivablesSnapshot(input: {
   receivedThisMonthCents: number;
   now: Date;
 }): ReceivablesSnapshot {
+  const currentMonth = saoPauloDateOnly(input.now).slice(YEAR_START_INDEX, MONTH_END_INDEX);
   let expectedThisMonthCents = 0;
   let overdueCents = 0;
   const ageBuckets: ReceivablesAgeBuckets = {
@@ -53,7 +54,7 @@ export function buildReceivablesSnapshot(input: {
 
     const { ledger } = installment;
 
-    if (isDueInSaoPauloMonth({ dueDate: installment.dueDate, now: input.now })) {
+    if (toDateOnly(installment.dueDate).slice(YEAR_START_INDEX, MONTH_END_INDEX) === currentMonth) {
       expectedThisMonthCents += ledger.currentExpectedCents;
     }
 

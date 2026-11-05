@@ -39,22 +39,20 @@ async function resolveGeneratedPortalClassName(
   database: PortalNameDatabase,
   generate: (sequence: number) => string,
 ): Promise<string> {
-  for (let sequence = 1; sequence <= MAX_PORTAL_NAME_ATTEMPTS; sequence += 1) {
-    const candidate = generate(sequence);
-
-    const existing = await database.class.findFirst({
-      where: {
-        portalClassName: candidate,
-        status: "ACTIVE",
-        deletedAt: null,
-      },
-      select: { id: true },
-    });
-
-    if (existing === null) {
-      return candidate;
-    }
-  }
+  const candidates = Array.from({ length: MAX_PORTAL_NAME_ATTEMPTS }, (_unused, index) =>
+    generate(index + 1),
+  );
+  const existing = await database.class.findMany({
+    where: {
+      portalClassName: { in: candidates },
+      status: "ACTIVE",
+      deletedAt: null,
+    },
+    select: { portalClassName: true },
+  });
+  const occupied = new Set(existing.map((row) => row.portalClassName));
+  const available = candidates.find((candidate) => !occupied.has(candidate));
+  if (available !== undefined) return available;
 
   throw badRequest(PORTAL_NAME_COLLISION_MESSAGE);
 }

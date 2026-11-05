@@ -35,6 +35,7 @@ void it("creates a regular class with generated portal name", async () => {
     format: "IN_PERSON",
     sharedStageId: fixtures.stageId,
     semesterId: fixtures.semesterId,
+    startDate: "2026-03-01",
 
     slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
   });
@@ -44,8 +45,27 @@ void it("creates a regular class with generated portal name", async () => {
   assert.equal(stored.internalCode, created.internalCode);
   assert.equal(stored.capacity, 25);
   assert.equal(stored.year, 2026);
+  assert.equal(stored.startDate?.toISOString().slice(0, 10), "2026-03-01");
   assert.equal(created.portalClassName, "REG 14:00");
   assert.equal(created.status, "ACTIVE");
+});
+
+void it("rejects a class start date outside its period", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  await assert.rejects(
+    caller().classes.create({
+      teacherId: TEACHER_USER_ID,
+      scheduleType: "REGULAR",
+      format: "IN_PERSON",
+      sharedStageId: fixtures.stageId,
+      semesterId: fixtures.semesterId,
+      startDate: "2026-07-01",
+      slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
+    }),
+    /data de início da turma deve estar dentro do período/u,
+  );
 });
 
 void it("generates personalized names and disambiguates identical schedules", async () => {
@@ -58,6 +78,7 @@ void it("generates personalized names and disambiguates identical schedules", as
     scheduleType: "PERSONALIZED",
     format: "ONLINE",
     semesterId: fixtures.semesterId,
+    startDate: "2026-03-01",
 
     slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" }],
   } as const;
@@ -67,9 +88,15 @@ void it("generates personalized names and disambiguates identical schedules", as
     teacherId: SECOND_TEACHER_USER_ID,
     slots: [...values.slots],
   });
+  const third = await caller().classes.create({
+    ...values,
+    teacherId: SECOND_TEACHER_USER_ID,
+    slots: [{ weekday: "THURSDAY", startTime: "10:00", endTime: "11:00" }],
+  });
 
   assert.equal(created.portalClassName, "PPT 10:00");
   assert.equal(second.portalClassName, "PPT 10:00 · 2");
+  assert.equal(third.portalClassName, "PPT 10:00 · 3");
   assert.equal(created.sharedStageId, null);
   const stored = await db.class.findUniqueOrThrow({ where: { id: created.id } });
   assert.equal(stored.originalPortalClassName, "PPT 10:00");
@@ -108,6 +135,7 @@ void it("unions selected class filters and intersects different filter fields", 
     scheduleType: "PERSONALIZED",
     format: "ONLINE",
     semesterId: fixtures.semesterId,
+    startDate: "2026-03-01",
 
     slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" }],
   });
@@ -246,6 +274,7 @@ async function createRegularFixture(
     format: "IN_PERSON",
     sharedStageId: fixtures.stageId,
     semesterId: fixtures.semesterId,
+    startDate: "2026-03-01",
 
     slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
   });

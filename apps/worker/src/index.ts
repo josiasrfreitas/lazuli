@@ -16,13 +16,33 @@ import {
 import { getHatchetClient } from "@lazuli/integrations/hatchet";
 import { db } from "@lazuli/db";
 import { runWithReadiness } from "./readiness.js";
+import { randomUUID } from "node:crypto";
+import { safeError } from "@lazuli/logging";
+import { logger } from "./logger.js";
 
 type GenerationResult = Awaited<ReturnType<typeof processSessionGeneration>>;
 const ENROLLMENT_POLL_MS = 60_000;
 const TRANSACTION_TIMEOUT_MS = 30_000;
 let applyingEnrollmentActions = false;
-function log(message: string): void {
-  process.stdout.write(`[worker] ${message}\n`);
+
+async function runJob<Result>(jobName: string, action: () => Promise<Result>): Promise<Result> {
+  const jobLogger = logger.child({ job_id: randomUUID(), job_name: jobName });
+  const started = performance.now();
+  jobLogger.info("Worker job started");
+  try {
+    const result = await action();
+    jobLogger.info(
+      { duration_ms: Math.round(performance.now() - started) },
+      "Worker job completed",
+    );
+    return result;
+  } catch (error) {
+    jobLogger.error(
+      { duration_ms: Math.round(performance.now() - started), ...safeError(error) },
+      "Worker job failed",
+    );
+    throw error;
+  }
 }
 async function processEnrollmentActions(): Promise<void> {
   if (applyingEnrollmentActions) return;
@@ -32,9 +52,10 @@ async function processEnrollmentActions(): Promise<void> {
       (database) => processDueEnrollmentActions({ database, now: new Date() }),
       { timeout: TRANSACTION_TIMEOUT_MS },
     );
-    if (applied > 0) log(`applied ${applied} scheduled enrollment actions`);
-  } catch {
-    log("scheduled enrollment processing failed");
+    if (applied > 0)
+      logger.info({ applied_count: applied }, "Scheduled enrollment actions applied");
+  } catch (error) {
+    logger.error(safeError(error), "Scheduled enrollment processing failed");
   } finally {
     applyingEnrollmentActions = false;
   }
@@ -56,7 +77,7 @@ async function start(): Promise<void> {
   };
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, shutdown);
   void processEnrollmentActions();
-  log("starting sessions-generate worker (1 slot)");
+  logger.info({ slots: 1 }, "Worker starting");
   try {
     await runWithReadiness(worker);
   } finally {
@@ -74,21 +95,24 @@ async function createWorker(
     retries: 0,
     executionTimeout: "2m",
     scheduleTimeout: "5m",
-    fn: (payload) => processSessionGeneration({ database: db, payload }),
+    fn: (payload) =>
+      runJob(SESSIONS_GENERATE_WORKFLOW, () => processSessionGeneration({ database: db, payload })),
   });
   const files = hatchet.task<AssessmentFilePayload, { status: string }>({
     name: ASSESSMENT_FILE_WORKFLOW,
     retries: 0,
     executionTimeout: "2m",
     scheduleTimeout: "5m",
-    fn: (payload) => processAssessmentFile({ database: db, payload }),
+    fn: (payload) =>
+      runJob(ASSESSMENT_FILE_WORKFLOW, () => processAssessmentFile({ database: db, payload })),
   });
   const documents = hatchet.task<StudentDocumentPayload, { status: string }>({
     name: STUDENT_DOCUMENT_WORKFLOW,
     retries: 0,
     executionTimeout: "2m",
     scheduleTimeout: "5m",
-    fn: processStudentDocumentPayload,
+    fn: (payload) =>
+      runJob(STUDENT_DOCUMENT_WORKFLOW, () => processStudentDocumentPayload(payload)),
   });
   const worker = await hatchet.worker("school", {
     slots: 1,
@@ -112,7 +136,7 @@ async function processStudentDocumentPayload(
 }
 try {
   await start();
-} catch {
-  log("startup failed; check Hatchet connection and credentials");
+} catch (error) {
+  logger.fatal(safeError(error), "Worker startup failed");
   process.exitCode = 1;
 }

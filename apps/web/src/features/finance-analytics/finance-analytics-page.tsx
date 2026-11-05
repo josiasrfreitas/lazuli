@@ -13,6 +13,7 @@ import {
 } from "~/lib/format";
 import { RevenueChart } from "./revenue-chart";
 import { ContractClosings } from "./contract-closings";
+import type { Closings } from "./contract-closings-model";
 import { AnalyticsDetails } from "./analytics-details";
 import { type Analytics, monthLabel } from "./chart-shared";
 import { AnalyticsLoading } from "./finance-analytics-loading";
@@ -21,8 +22,10 @@ const MIN_YEAR = 2000;
 const MAX_YEAR = 2100;
 export function FinanceAnalyticsPage({
   initial,
+  initialClosings,
 }: {
   initial?: { data: Analytics; updatedAt: number } | undefined;
+  initialClosings?: { data: Closings; updatedAt: number } | undefined;
 }): ReactElement {
   const [year, setYear] = useState(
     () => initial?.data.year ?? Number(toDateOnlySaoPaulo(new Date()).split("-")[0]),
@@ -60,7 +63,7 @@ export function FinanceAnalyticsPage({
       )}
       {query.data && (
         <div aria-busy={query.isFetching} className="space-y-5">
-          <AnalyticsContent data={query.data} />
+          <AnalyticsContent data={query.data} initialClosings={initialClosings} />
         </div>
       )}
     </div>
@@ -133,10 +136,16 @@ function YearSelector({
     </div>
   );
 }
-function AnalyticsContent({ data }: { data: Analytics }): ReactElement {
+function AnalyticsContent({
+  data,
+  initialClosings,
+}: {
+  data: Analytics;
+  initialClosings: { data: Closings; updatedAt: number } | undefined;
+}): ReactElement {
   return (
     <>
-      <ContractClosings data={data} />
+      <ContractClosings data={data} initial={initialClosings} />
       <AnalyticsMetrics data={data} />
       <RevenueChart data={data} />
       <MonthlyTable data={data} />

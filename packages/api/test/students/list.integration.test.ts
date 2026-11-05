@@ -55,6 +55,7 @@ void describe("students.list", { concurrency: 1 }, () => {
   });
 
   registerCountsAndPaginationTest();
+  registerCountScopesTest();
   registerStatusFilterTest();
   registerSearchTest();
   registerAttendanceTest();
@@ -113,6 +114,57 @@ function registerCombinedFiltersTest(): void {
 
     assert.ok(result.rows.some((row) => row.fullName === fullNameOf(BRUNO)));
     assert.ok(result.rows.every((row) => row.fullName !== fullNameOf(ANA)));
+  });
+}
+
+function registerCountScopesTest(): void {
+  void it("keeps global headers, searched tabs and fully filtered pagination in their own scopes", async () => {
+    const outside = await db.student.create({
+      data: { fullName: "Outside list count search", status: "ACTIVE" },
+    });
+    const deleted = await db.student.create({
+      data: {
+        fullName: `${PREFIX}Deleted from counters`,
+        status: "ACTIVE",
+        deletedAt: new Date(),
+      },
+    });
+    try {
+      const unfiltered = await caller().students.list({ pageSize: 50 });
+      assert.equal(unfiltered.totalStudents, 14);
+      assert.equal(unfiltered.total, 14);
+      assert.deepEqual(unfiltered.counts, { all: 14, active: 11, inactive: 3 });
+      const searched = await caller().students.list({ search: PREFIX });
+      assert.equal(searched.totalStudents, 14);
+      assert.equal(searched.total, 13);
+      assert.deepEqual(searched.counts, { all: 13, active: 10, inactive: 3 });
+      const overridden = await caller().students.list({
+        search: PREFIX,
+        status: "active",
+        situations: ["inactive"],
+      });
+      assert.equal(overridden.totalStudents, 14);
+      assert.equal(overridden.total, 3);
+      assert.deepEqual(overridden.counts, searched.counts);
+      assert.deepEqual(
+        overridden.rows.map((row) => row.status),
+        ["SUSPENDED", "DROPPED", "INACTIVE"],
+      );
+      const empty = await caller().students.list({ search: PREFIX, registeredFrom: "2060-01-01" });
+      assert.equal(empty.total, 0);
+      assert.equal(empty.pageCount, 1);
+      assert.deepEqual(empty.rows, []);
+      assert.equal(empty.totalStudents, 14);
+      assert.deepEqual(empty.counts, searched.counts);
+      const noSearchMatches = await caller().students.list({
+        search: "nothing-in-the-fixture-matches-this",
+      });
+      assert.equal(noSearchMatches.total, 0);
+      assert.equal(noSearchMatches.totalStudents, 14);
+      assert.deepEqual(noSearchMatches.counts, { all: 0, active: 0, inactive: 0 });
+    } finally {
+      await db.student.deleteMany({ where: { id: { in: [outside.id, deleted.id] } } });
+    }
   });
 }
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
 import { db, Prisma } from "@lazuli/db";
+import { meetingsBetween } from "../../src/teachers/schedule.js";
 import { HOME_GROUPS, HOME_PREVIEW_SIZE } from "../../src/dashboard/home-model.js";
 import {
   caller,
@@ -527,4 +528,156 @@ void it("dates correction and allocation waits from received work rather than th
     await db.entryVisit.deleteMany({ where: { id: { in: visits } } });
     await db.admissionCandidate.deleteMany({ where: { id: { in: candidateIds } } });
   }
+});
+
+void it("preserves dated, frozen and substitute teachers in the minimal pending lesson read", async () => {
+  const catalog = await seedDashboardCatalog();
+  const classId = await seedClass({
+    code: "Minimal responsibility",
+    teacherId: TEACHER.id,
+    ...catalog,
+  });
+  await db.user.update({ where: { id: TEACHER.id }, data: { name: "Original docente" } });
+  await db.user.update({ where: { id: OTHER_TEACHER.id }, data: { name: "Sucessora docente" } });
+  await db.classTeacherAssignment.create({
+    data: { classId, teacherId: OTHER_TEACHER.id, effectiveDate: new Date("2084-03-05") },
+  });
+  const original = await seedSession({ classId, date: "2084-03-02" });
+  const dated = await seedSession({ classId, date: "2084-03-06" });
+  const frozen = await seedSession({ classId, date: "2084-03-07" });
+  const substituted = await seedSession({ classId, date: "2084-03-08" });
+  await db.classSession.update({
+    where: { id: frozen },
+    data: { usualTeacherId: TEACHER.id, responsibilityFrozenAt: NOW },
+  });
+  await db.classSubstitution.create({
+    data: {
+      classId,
+      classSessionId: substituted,
+      date: new Date("2084-03-08"),
+      teacherId: TEACHER.id,
+      recordedById: ADMIN.id,
+    },
+  });
+  await db.teacherProfile.create({
+    data: { userId: TEACHER.id, departureDate: new Date("2084-03-05") },
+  });
+  // Historical relation identities must remain readable after soft deletion.
+  await db.user.update({ where: { id: TEACHER.id }, data: { deletedAt: NOW } });
+  try {
+    const pending = await caller(ADMIN, NOW).dashboard.pending({ kind: "lessons", page: 1 });
+    const byId = new Map(pending.items.map((row) => [row.id, row.detail]));
+    assert.equal(byId.get(original), "14:00 · Original docente");
+    assert.equal(byId.get(dated), "14:00 · Sucessora docente");
+    assert.equal(byId.get(frozen), "14:00 · Original docente");
+    assert.equal(byId.get(substituted), "14:00 · Original docente");
+    const meetings = await meetingsBetween({
+      database: db,
+      from: "2084-03-02",
+      through: "2084-03-09",
+      now: NOW,
+    });
+    const bySession = new Map(meetings.map((row) => [row.sessionId, row]));
+    assert.equal(bySession.get(original)?.usualTeacherName, "Original docente");
+    assert.equal(bySession.get(dated)?.usualTeacherName, "Sucessora docente");
+    assert.equal(bySession.get(frozen)?.usualTeacherName, "Original docente");
+    // Agenda suppresses substitutes after departure unless responsibility was frozen.
+    assert.equal(bySession.get(substituted)?.substituteTeacherId, null);
+    assert.equal(bySession.get(substituted)?.usualTeacherName, "Sucessora docente");
+    const lessonCaller = caller(ADMIN, new Date("2084-03-12T20:00:00Z"));
+    const grouped = await lessonCaller.dashboard.pendingLessons();
+    const responsibleByLesson = new Map(
+      grouped.flatMap((group) => group.lessons.map((lesson) => [lesson.id, group.teacherName])),
+    );
+    assert.deepEqual(
+      [original, dated, frozen, substituted].map((id) => responsibleByLesson.get(id)),
+      ["Original docente", "Sucessora docente", "Original docente", "Original docente"],
+    );
+  } finally {
+    await db.classSubstitution.deleteMany({ where: { classId } });
+    await db.user.update({
+      where: { id: TEACHER.id },
+      data: { deletedAt: null, name: `${TEST_PREFIX}TEACHER` },
+    });
+    await db.user.update({
+      where: { id: OTHER_TEACHER.id },
+      data: { name: `${TEST_PREFIX}TEACHER` },
+    });
+  }
+});
+
+void it("serves pending lesson summaries and pages without sending every detail initially", async () => {
+  const catalog = await seedDashboardCatalog();
+  const classId = await seedClass({ code: "Paged lessons", teacherId: TEACHER.id, ...catalog });
+  const ids: string[] = [];
+  for (let day = 1; day <= 5; day += 1) {
+    ids.push(await seedSession({ classId, date: `2084-03-0${day}` }));
+  }
+  const lessonCaller = caller(ADMIN, new Date("2084-03-12T20:00:00Z"));
+  const full = await lessonCaller.dashboard.pendingLessons();
+  const group = full.find((item) => item.lessons.some((lesson) => ids.includes(lesson.id)));
+  assert.ok(group);
+  const summaries = await lessonCaller.dashboard.pendingLessonSummaries();
+  assert.deepEqual(
+    summaries.map(({ teacherId, high, low, total }) => ({ teacherId, high, low, total })),
+    full.map(({ teacherId, high, low, lessons }) => ({
+      teacherId,
+      high,
+      low,
+      total: lessons.length,
+    })),
+  );
+  const first = await lessonCaller.dashboard.pendingLessonPage({
+    teacherId: group.teacherId,
+    page: 1,
+    pageSize: 2,
+  });
+  const second = await lessonCaller.dashboard.pendingLessonPage({
+    teacherId: group.teacherId,
+    page: 2,
+    pageSize: 2,
+  });
+  assert.equal(first.total, group.lessons.length);
+  assert.deepEqual(first.lessons, group.lessons.slice(0, 2));
+  assert.deepEqual(second.lessons, group.lessons.slice(2, 4));
+});
+
+void it("day agenda keeps projected slots and materialized exceptions while excluding other weekdays", async () => {
+  const catalog = await seedDashboardCatalog();
+  const projected = await seedClass({
+    code: "Projected Wednesday",
+    teacherId: TEACHER.id,
+    ...catalog,
+  });
+  const otherDay = await seedClass({ code: "Only Monday", teacherId: TEACHER.id, ...catalog });
+  const exception = await seedClass({
+    code: "Stored exception",
+    teacherId: TEACHER.id,
+    ...catalog,
+  });
+  for (const [classId, weekday] of [
+    [projected, "WEDNESDAY"],
+    [otherDay, "MONDAY"],
+    [exception, "MONDAY"],
+  ] as const) {
+    await db.classScheduleSlot.create({
+      data: {
+        classId,
+        weekday,
+        startTime: new Date("1970-01-01T14:00:00Z"),
+        endTime: new Date("1970-01-01T16:00:00Z"),
+      },
+    });
+  }
+  const stored = await seedSession({ classId: exception, date: "2084-03-08" });
+  const rows = await meetingsBetween({
+    database: db,
+    from: "2084-03-08",
+    through: "2084-03-08",
+    now: NOW,
+  });
+  const own = rows.filter((row) => [projected, otherDay, exception].includes(row.classId));
+  assert.deepEqual(own.map((row) => row.classId).toSorted(), [projected, exception].toSorted());
+  assert.equal(own.find((row) => row.classId === projected)?.sessionId, null);
+  assert.equal(own.find((row) => row.classId === exception)?.sessionId, stored);
 });

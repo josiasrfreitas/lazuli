@@ -36,11 +36,12 @@ const WEEKDAYS = Object.keys(DAYS);
 export function StudentOverview({
   profile,
   navigate,
+  pedagogy,
 }: {
   profile: StudentProfile;
   navigate: Navigate;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
 }): ReactElement {
-  const pedagogy = useStudentPedagogy(profile.id);
   return (
     <div className={styles.overview}>
       <div className={styles.summaryGrid}>

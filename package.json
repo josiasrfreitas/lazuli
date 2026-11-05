@@ -19,7 +19,7 @@
     "runtime:check:remote": "node scripts/runtime-check.mjs --remote && node scripts/turbo-env-check.mjs",
     "start:remote": "pnpm runtime:check:remote && pnpm -F @lazuli/web start",
     "start:worker:remote": "pnpm runtime:check:remote && pnpm -F @lazuli/worker start",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "turbo run typecheck --concurrency=1",
     "test": "turbo run test:scripts test:component-lines test:styles && turbo run test",
     "test:scripts": "node --test \"scripts/test/**/*.unit.test.mjs\"",
     "test:component-lines": "node scripts/test-component-lines.mjs",

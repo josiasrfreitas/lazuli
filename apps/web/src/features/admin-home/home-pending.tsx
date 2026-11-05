@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { Inbox } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import type { BusinessData } from "./home-metrics";
+import type { InitialDashboardData } from "./home";
 import type { HomeData, HomeGroup } from "./home-parts";
 import { PendingRenewals } from "./home-pending-renewals";
 import { PendingFinance } from "./home-pending-finance";
@@ -19,14 +20,21 @@ export function HomePending({
   business,
   loading,
   businessError,
+  initialLessons,
 }: {
   data: HomeData | undefined;
   business: BusinessData | undefined;
   loading: boolean;
   businessLoading: boolean;
   businessError: boolean;
+  initialLessons?: InitialDashboardData["pendingLessons"];
 }): ReactElement {
-  const lessons = trpc.dashboard.pendingLessons.useQuery(undefined, { refetchInterval: 60_000 });
+  const lessons = trpc.dashboard.pendingLessonSummaries.useQuery(undefined, {
+    refetchInterval: 60_000,
+    ...(initialLessons
+      ? { initialData: initialLessons.data, initialDataUpdatedAt: initialLessons.updatedAt }
+      : {}),
+  });
   const lessonState: PendingLessonState = {
     teachers: lessons.data ?? [],
     pending: lessons.isPending,
@@ -57,7 +65,7 @@ export function HomePending({
 }
 
 type PendingLessonState = {
-  teachers: RouterOutputs["dashboard"]["pendingLessons"];
+  teachers: RouterOutputs["dashboard"]["pendingLessonSummaries"];
   pending: boolean;
   error: boolean;
   success: boolean;

@@ -4,7 +4,7 @@ import kyselyExtension from "prisma-extension-kysely";
 
 import { Prisma, PrismaClient } from "./generated/prisma/client.js";
 import type { DB } from "./generated/kysely/types.js";
-import { getDatabaseUrl } from "./config.js";
+import { getDatabasePoolMax, getDatabaseUrl } from "./config.js";
 import { softDeleteExtension } from "./soft-delete.js";
 
 /** Creates a PostgreSQL-backed Prisma client. Prefer the exported singleton. */
@@ -25,7 +25,7 @@ export type DatabaseClient = Omit<PrismaClient, "$transaction"> &
   } & Pick<PrismaClient, "$transaction">;
 
 export function createDbClient(databaseUrl = getDatabaseUrl()): DatabaseClient {
-  const adapter = new PrismaPg({ connectionString: databaseUrl });
+  const adapter = new PrismaPg({ connectionString: databaseUrl, max: getDatabasePoolMax() });
   const client = new PrismaClient({ adapter });
 
   const extendedClient = client.$extends(softDeleteExtension as never).$extends(

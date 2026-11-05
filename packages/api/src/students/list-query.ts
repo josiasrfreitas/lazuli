@@ -2,10 +2,9 @@ import { currentScholarshipContractWhere } from "./scholarship.js";
 import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import type { Weekday } from "@lazuli/domain";
-import { saoPauloDateOnly, saoPauloMidnightToInstant } from "@lazuli/domain";
+import { effectiveTeacherId, saoPauloDateOnly, saoPauloMidnightToInstant } from "@lazuli/domain";
 import type { StudentListInput, StudentListStatusFilter } from "@lazuli/validators";
 
-import { responsibilitySelect } from "../teachers/responsibility.js";
 import type { Context } from "../trpc/context.js";
 
 /**
@@ -20,7 +19,6 @@ export type ScheduleSlot = { weekday: Weekday; startTime: Date };
 
 const ACTIVE_STATUSES = ["ACTIVE"] as const;
 const INACTIVE_STATUSES = ["INACTIVE", "SUSPENDED", "DROPPED"] as const;
-const TAB_FILTERS = ["all", "active", "inactive"] as const;
 
 /** Weekday order + pt-BR abbreviations for the schedule label. */
 const WEEKDAYS: readonly (readonly [Weekday, string])[] = [
@@ -45,9 +43,14 @@ const openEnrollmentSelect = {
   exitDate: true,
   class: {
     select: {
-      internalCode: true,
       portalClassName: true,
-      ...responsibilitySelect,
+      teacherId: true,
+      teacherAssignments: {
+        where: { deletedAt: null, supersededAt: null },
+        orderBy: { effectiveDate: "desc" },
+        take: 1,
+        select: { teacherId: true, effectiveDate: true },
+      },
       scheduleSlots: {
         where: { deletedAt: null },
         orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
@@ -72,7 +75,17 @@ const studentPageSelect = {
   },
 } satisfies Prisma.StudentSelect;
 
-export type StudentPageRow = Prisma.StudentGetPayload<{ select: typeof studentPageSelect }>;
+type SelectedStudentPageRow = Prisma.StudentGetPayload<{ select: typeof studentPageSelect }>;
+type SelectedEnrollment = SelectedStudentPageRow["enrollments"][number];
+export type StudentPageRow = Omit<SelectedStudentPageRow, "enrollments"> & {
+  enrollments: Array<
+    Omit<SelectedEnrollment, "class"> & {
+      class: Pick<SelectedEnrollment["class"], "portalClassName" | "scheduleSlots"> & {
+        teacherName: string;
+      };
+    }
+  >;
+};
 export type OpenEnrollmentRow = StudentPageRow["enrollments"][number];
 
 type StudentListWhereInput = {
@@ -101,8 +114,27 @@ function pageSelect(now: Date): typeof studentPageSelect {
   return {
     ...studentPageSelect,
     contracts: { ...studentPageSelect.contracts, where: currentScholarshipContractWhere(now) },
-    enrollments: { ...studentPageSelect.enrollments, where: currentEnrollmentFilter(now) },
-  };
+    enrollments: {
+      ...studentPageSelect.enrollments,
+      where: currentEnrollmentFilter(now),
+      select: {
+        ...openEnrollmentSelect,
+        class: {
+          select: {
+            ...openEnrollmentSelect.class.select,
+            teacherAssignments: {
+              ...openEnrollmentSelect.class.select.teacherAssignments,
+              where: {
+                deletedAt: null,
+                supersededAt: null,
+                effectiveDate: { lte: new Date(saoPauloDateOnly(now)) },
+              },
+            },
+          },
+        },
+      },
+    },
+  } as typeof studentPageSelect;
 }
 function enrollmentFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
   if (!input.classIds?.length && !input.teacherIds?.length) return {};
@@ -150,18 +182,22 @@ function nextDay(day: string): string {
 }
 
 /** The `students.preview` read: one student in the same shape as a page row. */
-export function findStudentRow(input: {
+export async function findStudentRow(input: {
   database: StudentListDatabase;
   id: string;
   now?: Date;
 }): Promise<StudentPageRow | null> {
-  return input.database.student.findFirst({
+  const now = input.now ?? new Date();
+  const row = await input.database.student.findFirst({
     where: { id: input.id, deletedAt: null },
-    select: pageSelect(input.now ?? new Date()),
+    select: pageSelect(now),
   });
+  if (row === null) return null;
+  const students = await withCurrentTeachers({ database: input.database, rows: [row], now });
+  return students[0]!;
 }
 
-export function findStudentPage(input: {
+export async function findStudentPage(input: {
   database: StudentListDatabase;
   values: {
     where: Prisma.StudentWhereInput;
@@ -170,13 +206,72 @@ export function findStudentPage(input: {
     now?: Date;
   };
 }): Promise<StudentPageRow[]> {
-  return input.database.student.findMany({
+  const now = input.values.now ?? new Date();
+  const rows = await input.database.student.findMany({
     where: input.values.where,
     orderBy: [{ fullName: "asc" }, { id: "asc" }],
     skip: (input.values.page - 1) * input.values.pageSize,
     take: input.values.pageSize,
-    select: pageSelect(input.values.now ?? new Date()),
+    select: pageSelect(now),
   });
+  return withCurrentTeachers({ database: input.database, rows, now });
+}
+
+/** Load only the effective teachers, once for the whole page (also used by preview). */
+async function withCurrentTeachers(input: {
+  database: StudentListDatabase;
+  rows: SelectedStudentPageRow[];
+  now: Date;
+}): Promise<StudentPageRow[]> {
+  const today = saoPauloDateOnly(input.now);
+  const teacherIdFor = (
+    row: SelectedEnrollment["class"],
+    departureDates: Map<string, string | null>,
+  ): string | null =>
+    effectiveTeacherId({
+      initialTeacherId: row.teacherId,
+      assignments: row.teacherAssignments.map((assignment) => ({
+        teacherId: assignment.teacherId,
+        effectiveDate: assignment.effectiveDate.toISOString().slice(0, DATE_ONLY_LENGTH),
+      })),
+      departureDates,
+      date: today,
+    });
+  const ids = [
+    ...new Set(
+      input.rows.flatMap((row) =>
+        row.enrollments.map((enrollment) => teacherIdFor(enrollment.class, new Map())),
+      ),
+    ),
+  ].filter((id): id is string => id !== null);
+  const teachers =
+    ids.length === 0
+      ? []
+      : await input.database.user.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          select: { id: true, name: true, teacherProfile: { select: { departureDate: true } } },
+        });
+  const byId = new Map(teachers.map((teacher) => [teacher.id, teacher]));
+  const departures = new Map(
+    teachers.map((teacher) => [
+      teacher.id,
+      teacher.teacherProfile?.departureDate?.toISOString().slice(0, DATE_ONLY_LENGTH) ?? null,
+    ]),
+  );
+  return input.rows.map((row) => ({
+    ...row,
+    enrollments: row.enrollments.map((enrollment) => {
+      const id = teacherIdFor(enrollment.class, departures);
+      return {
+        ...enrollment,
+        class: {
+          portalClassName: enrollment.class.portalClassName,
+          scheduleSlots: enrollment.class.scheduleSlots,
+          teacherName: id === null ? "Sem professor" : (byId.get(id)?.name ?? "Sem professor"),
+        },
+      };
+    }),
+  }));
 }
 
 export async function normalizedStudentSearch(
@@ -223,24 +318,30 @@ export async function countStudentsByTab(input: {
       search: input.search,
       now: input.now ?? new Date(),
     }));
-  const [all, active, inactive] = await Promise.all(
-    TAB_FILTERS.map((status) =>
-      input.database.student.count({
-        where: buildStudentListWhere({ status, search: input.search, now: input.now }, searchWhere),
-      }),
-    ),
-  );
-
-  return { all: all ?? 0, active: active ?? 0, inactive: inactive ?? 0 };
+  const groups = await input.database.student.groupBy({
+    by: ["status"],
+    where: buildStudentListWhere({ status: "all" }, searchWhere),
+    _count: { _all: true },
+  });
+  const counts = { all: 0, active: 0, inactive: 0 };
+  for (const group of groups) {
+    counts.all += group._count._all;
+    if (group.status === "ACTIVE") counts.active += group._count._all;
+    else if (INACTIVE_STATUSES.some((status) => status === group.status))
+      counts.inactive += group._count._all;
+  }
+  return counts;
 }
 
 /** Header facts ("X alunos · Y turmas ativas"), independent of the current filters. */
 export async function countHeaderFacts(input: {
   database: StudentListDatabase;
   semesterId: string | null;
+  /** Reuse only an unfiltered student count from this same read. */
+  totalStudents?: Promise<number>;
 }): Promise<{ totalStudents: number; activeClasses: number }> {
   const [totalStudents, activeClasses] = await Promise.all([
-    input.database.student.count({ where: { deletedAt: null } }),
+    input.totalStudents ?? input.database.student.count({ where: { deletedAt: null } }),
     countActiveClasses(input.database, input.semesterId),
   ]);
 

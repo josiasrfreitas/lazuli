@@ -188,32 +188,42 @@ async function findTeacherClassesWithNextSession(
     orderBy: { internalCode: "asc" },
     select: { id: true, internalCode: true, portalClassName: true, ...responsibilitySelect },
   });
-  const results = await Promise.all(
-    rows.map(async (row) => {
-      const periods = teacherResponsibilityPeriods(row, input.teacherId).filter(
-        (period) => !period.end || period.end > input.todayDate,
-      );
-      const session = await input.database.classSession.findFirst({
-        where: {
-          classId: row.id,
-          status: "SCHEDULED",
-          deletedAt: null,
-          date: { gte: input.todayDate },
-          OR: nextSessionResponsibility({ teacherId: input.teacherId, periods }),
-        },
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        select: sessionSummarySelect(),
-      });
-      if (periods.length === 0 && !session) return null;
-      return {
+  if (rows.length === 0) return [];
+  const withPeriods = rows.map((row) => ({
+    row,
+    periods: teacherResponsibilityPeriods(row, input.teacherId).filter(
+      (period) => !period.end || period.end > input.todayDate,
+    ),
+  }));
+  const sessions = await input.database.classSession.findMany({
+    where: {
+      status: "SCHEDULED",
+      deletedAt: null,
+      date: { gte: input.todayDate },
+      OR: withPeriods.map(({ row, periods }) => ({
+        classId: row.id,
+        OR: nextSessionResponsibility({ teacherId: input.teacherId, periods }),
+      })),
+    },
+    orderBy: [{ date: "asc" }, { startTime: "asc" }],
+    select: sessionSummarySelect(),
+  });
+  const firstByClass = new Map<string, ClassSessionRow>();
+  for (const session of sessions) {
+    if (!firstByClass.has(session.class.id)) firstByClass.set(session.class.id, session);
+  }
+  return withPeriods.flatMap(({ row, periods }) => {
+    const session = firstByClass.get(row.id);
+    if (periods.length === 0 && !session) return [];
+    return [
+      {
         id: row.id,
         internalCode: row.internalCode,
         portalClassName: row.portalClassName,
         sessions: session ? [session] : [],
-      };
-    }),
-  );
-  return results.filter((row) => row !== null);
+      },
+    ];
+  });
 }
 
 function sessionSummarySelect(): {

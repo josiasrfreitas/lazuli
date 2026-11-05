@@ -74,12 +74,14 @@ export function StudentAgendaDialog({
   profile,
   canSchedule,
   secondary = false,
+  initialOpen = false,
 }: {
   profile: StudentProfile;
   canSchedule: boolean;
   secondary?: boolean;
+  initialOpen?: boolean;
 }): ReactElement {
-  const controller = useAgendaController(profile);
+  const controller = useAgendaController(profile, initialOpen);
   return (
     <AgendaDialogView
       profile={profile}
@@ -90,9 +92,9 @@ export function StudentAgendaDialog({
   );
 }
 
-function useAgendaController(profile: StudentProfile): AgendaController {
+function useAgendaController(profile: StudentProfile, initialOpen: boolean): AgendaController {
   const [appointmentId, setAppointmentId] = useQueryState("atendimento", parseAsString);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const [pending, setPending] = useState(false);
   const [date, setDate] = useState(schoolToday);
   const [view, setView] = useState<CalendarView>("week");

@@ -271,6 +271,7 @@ void it("blocks a later class from occupying an independent appointment and free
   const values = {
     teacherId: harness.ns.otherTeacher.id,
     semesterId: fixtureData.semesterId,
+    startDate: date,
     scheduleType: "REGULAR" as const,
     format: "ONLINE" as const,
     sharedStageId: fixtureData.stageId,
@@ -299,6 +300,37 @@ void it("blocks a later class from occupying an independent appointment and free
   });
   assert.equal(stored.teacherId, harness.ns.otherTeacher.id);
   assert.equal(stored.scheduleSlots[0]?.startTime.toISOString().slice(11, 16), "10:30");
+});
+
+void it("rejects an independent appointment during the teacher's class and accepts the adjacent hour", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  const date = fixtureData.before.toISOString().slice(0, 10);
+  const before = new Date(`${date}T13:00:00Z`);
+  const input = {
+    ...fixtureData.input,
+    purpose: "REINFORCEMENT" as const,
+    coverages: [],
+    meeting: {
+      kind: "INDEPENDENT" as const,
+      teacherId: harness.ns.otherTeacher.id,
+      date,
+      startTime: "14:30",
+      endTime: "15:30",
+      format: "ONLINE" as const,
+    },
+  };
+
+  await assert.rejects(harness.caller(undefined, before).appointments.schedule(input), {
+    code: "BAD_REQUEST",
+    message: /Conflito com/,
+  });
+  assert.equal(await db.pedagogicalAppointment.count({ where: { id: input.id } }), 0);
+
+  const adjacent = await harness.caller(undefined, before).appointments.schedule({
+    ...input,
+    meeting: { ...input.meeting, startTime: "16:00", endTime: "17:00" },
+  });
+  assert.equal(adjacent.id, input.id);
 });
 
 void it("requires a dated PPT enrollment and keeps an assessment appointment independent from grades and frequency", async () => {

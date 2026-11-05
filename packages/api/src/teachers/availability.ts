@@ -24,7 +24,9 @@ export async function lockTeacher(
   await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"lazuli:teaching-schedule"}, 158))`;
 }
 
-export async function assertTeacherEligible(input: AssertTeacherEligibleInput): Promise<void> {
+export async function assertTeacherEligible(
+  input: AssertTeacherEligibleInput,
+): Promise<Date | null> {
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
     select: {
@@ -42,6 +44,7 @@ export async function assertTeacherEligible(input: AssertTeacherEligibleInput): 
   ) {
     throw badRequest("Professor não está em atuação na data escolhida.");
   }
+  return teacher.teacherProfile?.departureDate ?? null;
 }
 
 export async function assertNoTeacherConflict(input: AssertNoTeacherConflictInput): Promise<void> {
@@ -80,14 +83,21 @@ export function databaseSlotToCandidate(slot: DatabaseSlotToCandidateInput): Can
 
 export async function assertClassTeacherAvailable(
   input: AssertClassTeacherAvailableInput,
-): Promise<void> {
+): Promise<{ id: string; name: string; startDate: Date; endDate: Date }> {
   await lockTeacher(input.database, input.teacherId);
-  const semester = await input.database.period.findUnique({ where: { id: input.semesterId } });
+  const semester = await input.database.period.findUnique({
+    where: { id: input.semesterId },
+    select: { id: true, name: true, startDate: true, endDate: true },
+  });
   if (!semester) throw badRequest("Semestre não encontrado.");
-  await assertTeacherEligible({
+  const startDate = input.startDate ?? dateOnly(semester.startDate);
+  if (startDate < dateOnly(semester.startDate) || startDate > dateOnly(semester.endDate)) {
+    throw badRequest("A data de início da turma deve estar dentro do período.");
+  }
+  const departureDate = await assertTeacherEligible({
     database: input.database,
     teacherId: input.teacherId,
-    date: [dateOnly(semester.startDate), saoPauloDateOnly(new Date())].toSorted().at(-1)!,
+    date: [startDate, saoPauloDateOnly(new Date())].toSorted().at(-1)!,
   });
   for (const [index, slot] of input.slots.entries()) {
     if (
@@ -99,20 +109,15 @@ export async function assertClassTeacherAvailable(
         `A própria turma tem horários sobrepostos: ${slot.startTime}–${slot.endTime}.`,
       );
   }
-  const profile = await input.database.teacherProfile.findUnique({
-    where: { userId: input.teacherId },
-    select: { departureDate: true },
-  });
-  const end = profile?.departureDate
-    ? new Date(
-        Math.min(semester.endDate.getTime(), profile.departureDate.getTime() - DAY_MILLISECONDS),
-      )
+  const end = departureDate
+    ? new Date(Math.min(semester.endDate.getTime(), departureDate.getTime() - DAY_MILLISECONDS))
     : semester.endDate;
   await assertNoTeacherConflict({
     ...input,
-    from: dateOnly(semester.startDate),
+    from: startDate,
     through: dateOnly(end),
   });
+  return semester;
 }
 
 type AssertTeacherEligibleInput = {
@@ -145,5 +150,6 @@ type AssertClassTeacherAvailableInput = {
   database: Prisma.TransactionClient;
   teacherId: string;
   semesterId: string;
+  startDate?: string;
   slots: readonly CandidateSlot[];
 };

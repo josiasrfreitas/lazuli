@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 
-import { db } from "@lazuli/db";
+import { db, computeEnrollmentsPercentInWindow } from "@lazuli/db";
 
 import { percentHarness as harness } from "../support/attendance-namespaces.js";
 import { insertMakeup } from "../support/makeup-test-support.js";
@@ -32,7 +32,119 @@ void describe("attendance.enrollmentSemesterPercent", () => {
   registerFormulaTest();
   registerEmptyDenominatorTest();
   registerScopeTest();
+  registerBatchPercentTest();
 });
+
+function registerBatchPercentTest(): void {
+  void it("batches classmates without sharing enrollment windows or treating missing rows as present", async () => {
+    const scenario = await harness.seedBaseScenario();
+    const ana = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
+    const bruno = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Bruno",
+    });
+    await seedPercentFacts({
+      classId: scenario.classId,
+      homeSessionId: scenario.sessionId,
+      enrollmentId: ana.enrollmentId,
+    });
+    // This enrollment has no recorded rows in the already confirmed sessions.
+    const carla = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Carla",
+    });
+    await db.$transaction(async (database) => {
+      await database.pedagogicalProgress.updateMany({
+        where: { enrollmentId: bruno.enrollmentId, endDate: null },
+        data: { endDate: INCLUDED_ABSENT_DATE, endReason: "DROPPED" },
+      });
+      await database.enrollment.update({
+        where: { id: bruno.enrollmentId },
+        data: {
+          entryDate: INCLUDED_PRESENT_DATE,
+          exitDate: INCLUDED_ABSENT_DATE,
+          exitReason: "DROPPED",
+        },
+      });
+    });
+    const enrollments = await db.enrollment.findMany({
+      where: { id: { in: [ana.enrollmentId, bruno.enrollmentId, carla.enrollmentId] } },
+      select: { id: true, classId: true, entryDate: true, exitDate: true },
+    });
+    const semester = await db.period.findUniqueOrThrow({ where: { id: scenario.semesterId } });
+
+    const result = await computeEnrollmentsPercentInWindow({
+      database: db,
+      values: { enrollments, semester },
+    });
+
+    assert.deepEqual(result.get(ana.enrollmentId), {
+      heldSessions: 3,
+      presentCount: 2,
+      heldMinutes: 360,
+      presentMinutes: 240,
+      compensatedMinutes: 0,
+      missingMinutes: 120,
+      percent: 2 / 3,
+      flagged: true,
+    });
+    assert.deepEqual(result.get(bruno.enrollmentId), {
+      heldSessions: 1,
+      presentCount: 1,
+      heldMinutes: 120,
+      presentMinutes: 120,
+      compensatedMinutes: 0,
+      missingMinutes: 0,
+      percent: 1,
+      flagged: false,
+    });
+    assert.deepEqual(result.get(carla.enrollmentId), {
+      heldSessions: 3,
+      presentCount: 0,
+      heldMinutes: 360,
+      presentMinutes: 0,
+      compensatedMinutes: 0,
+      missingMinutes: 360,
+      percent: 0,
+      flagged: true,
+    });
+    // Deleted attendance is missing attendance, not a removed lesson.
+    await db.attendance.updateMany({
+      where: { enrollmentId: ana.enrollmentId, status: "PRESENT" },
+      data: { deletedAt: CONFIRM_NOW },
+    });
+    const withoutPresentRows = await computeEnrollmentsPercentInWindow({
+      database: db,
+      values: { enrollments, semester },
+    });
+    assert.deepEqual(withoutPresentRows.get(ana.enrollmentId), {
+      heldSessions: 3,
+      presentCount: 0,
+      heldMinutes: 360,
+      presentMinutes: 0,
+      compensatedMinutes: 0,
+      missingMinutes: 360,
+      percent: 0,
+      flagged: true,
+    });
+    await db.classSession.update({
+      where: { id: scenario.sessionId },
+      data: { deletedAt: CONFIRM_NOW },
+    });
+    const withoutDeletedSession = await computeEnrollmentsPercentInWindow({
+      database: db,
+      values: { enrollments, semester },
+    });
+    assert.equal(withoutDeletedSession.get(ana.enrollmentId)?.heldSessions, 2);
+    assert.equal(withoutDeletedSession.get(carla.enrollmentId)?.heldMinutes, 240);
+  });
+}
 
 function registerFormulaTest(): void {
   void it("computes from confirmed held sessions and excludes unconfirmed, cancelled, out-of-window, and makeup facts", async () => {

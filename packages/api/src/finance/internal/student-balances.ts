@@ -1,111 +1,122 @@
-import { deriveInstallmentLedger } from "@lazuli/domain";
-
+import { saoPauloDateOnly } from "@lazuli/domain";
+import { sql, type QueryCreator, type SelectQueryBuilder } from "kysely";
+import type { KyselyDatabase } from "@lazuli/db";
 import type { FinanceDatabase } from "./shared.js";
 
-/**
- * Per-student roll-up of the derived ledger, for listings that show one finance
- * fact per student (§4.7). `hasActiveOrder` separates "no order at all" ("—")
- * from "order settled" ("Em dia"); `overdueCents` sums the collectible remainder
- * of every installment the ledger reports as OVERDUE.
- */
-
+/** No active order differs from an active order whose collectible debt is zero. */
 export type StudentOverdueTotal = {
   studentId: string;
   hasActiveOrder: boolean;
   overdueCents: number;
 };
 
-type LoadedBeneficiary = {
-  studentId: string;
-  order: {
-    kind: string;
-    cancelledAt: Date | null;
-    installments: Array<{
-      amountCents: number;
-      dueDate: Date;
-      waivedAt: Date | null;
-      adjustments: Array<{ amountCents: number }>;
-      allocations: Array<{ amountCents: number }>;
-    }>;
-  };
-};
-
 export async function studentOverdueTotals(input: {
   database: FinanceDatabase;
   values: { studentIds: readonly string[]; now: Date };
 }): Promise<StudentOverdueTotal[]> {
-  if (input.values.studentIds.length === 0) {
-    return [];
-  }
-
-  const beneficiaries = await loadBeneficiaries(input.database, input.values.studentIds);
-
-  return input.values.studentIds.map((studentId) => {
-    const links = beneficiaries.filter((beneficiary) => beneficiary.studentId === studentId);
-    let overdueCents = 0;
-
-    for (const link of links) {
-      overdueCents += sumOverdueCents({ link, now: input.values.now });
-    }
-
-    return { studentId, hasActiveOrder: links.length > 0, overdueCents };
-  });
+  const ids = [...input.values.studentIds];
+  if (ids.length === 0) return [];
+  const businessDate = saoPauloDateOnly(input.values.now);
+  const rows = await input.database.$kysely
+    .with("student_orders", () => studentOrders(input.database, ids))
+    .with("order_ids", (db) => db.selectFrom("student_orders").select("orderId").distinct())
+    .with("installment_balances", (db) => installmentBalances(db, new Date(businessDate)))
+    .with("order_balances", (db) =>
+      db
+        .selectFrom("installment_balances")
+        .select("orderId")
+        .select(
+          sql<number>`sum(greatest("amountCents" + adjustments - paid, 0))::double precision`.as(
+            "overdueCents",
+          ),
+        )
+        .groupBy("orderId"),
+    )
+    .selectFrom("student_orders as s")
+    .leftJoin("order_balances as b", "b.orderId", "s.orderId")
+    .select("s.studentId")
+    .select(sql<number>`coalesce(sum(b."overdueCents"), 0)::double precision`.as("overdueCents"))
+    .groupBy("s.studentId")
+    .execute();
+  const totals = new Map(rows.map((row) => [row.studentId, row.overdueCents]));
+  return ids.map((studentId) => ({
+    studentId,
+    hasActiveOrder: totals.has(studentId),
+    overdueCents: totals.get(studentId) ?? 0,
+  }));
 }
 
-function sumOverdueCents(input: { link: LoadedBeneficiary; now: Date }): number {
-  let overdueCents = 0;
-
-  for (const installment of input.link.order.installments) {
-    const ledger = deriveInstallmentLedger({
-      ...installment,
-      orderCancelledAt: input.link.order.cancelledAt,
-      now: input.now,
-    });
-
-    if (ledger.status === "OVERDUE") {
-      overdueCents += ledger.collectibleRemainingCents;
-    }
-  }
-
-  return overdueCents;
-}
-
-async function loadBeneficiaries(
+type PartyScope = KyselyDatabase & {
+  o: KyselyDatabase["Order"];
+  c: KyselyDatabase["Contract"];
+  s: KyselyDatabase["Student"];
+};
+function studentOrders(
   database: FinanceDatabase,
-  studentIds: readonly string[],
-): Promise<LoadedBeneficiary[]> {
-  const orders = await database.order.findMany({
-    where: {
-      OR: [
-        { beneficiaries: { some: { studentId: { in: [...studentIds] }, deletedAt: null } } },
-        { contract: { studentId: { in: [...studentIds] } } },
-      ],
-      cancelledAt: null,
-      deletedAt: null,
-    },
-    select: {
-      kind: true,
-      cancelledAt: true,
-      contract: { select: { studentId: true } },
-      beneficiaries: {
-        where: { studentId: { in: [...studentIds] }, deletedAt: null },
-        select: { studentId: true },
-      },
-      installments: {
-        where: { deletedAt: null },
-        select: {
-          amountCents: true,
-          dueDate: true,
-          waivedAt: true,
-          adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
-          allocations: { where: { deletedAt: null }, select: { amountCents: true } },
-        },
-      },
-    },
-  });
-  return orders.flatMap((order) =>
-    order.contract === null
-      ? order.beneficiaries.map(({ studentId }) => ({ studentId, order }))
-      : [{ studentId: order.contract.studentId, order }],
-  );
+  ids: string[],
+): SelectQueryBuilder<PartyScope, "o" | "c" | "s", { studentId: string; orderId: string }> {
+  const activeOrders = database.$kysely
+    .selectFrom("Order as o")
+    .where("o.deleted_at", "is", null)
+    .where("o.cancelled_at", "is", null);
+  return activeOrders
+    .innerJoin("Contract as c", "c.id", "o.contract_id")
+    .innerJoin("Student as s", "s.id", "c.student_id")
+    .where("c.deleted_at", "is", null)
+    .where("s.deleted_at", "is", null)
+    .where("s.id", "in", ids)
+    .select(["s.id as studentId", "o.id as orderId"])
+    .unionAll(
+      activeOrders
+        .innerJoin("OrderBeneficiary as b", "b.order_id", "o.id")
+        .innerJoin("Student as s", "s.id", "b.student_id")
+        .where("o.contract_id", "is", null)
+        .where("b.deleted_at", "is", null)
+        .where("s.deleted_at", "is", null)
+        .where("s.id", "in", ids)
+        .select(["s.id as studentId", "o.id as orderId"]),
+    );
+}
+
+type OrderScope = KyselyDatabase & {
+  student_orders: { studentId: string; orderId: string };
+  order_ids: { orderId: string };
+};
+
+function installmentBalances(
+  db: QueryCreator<OrderScope>,
+  businessDate: Date,
+): SelectQueryBuilder<
+  OrderScope & { i: KyselyDatabase["Installment"] },
+  "i" | "order_ids",
+  { orderId: string; amountCents: number; adjustments: number | null; paid: number | null }
+> {
+  return db
+    .selectFrom("Installment as i")
+    .innerJoin("order_ids", "order_ids.orderId", "i.order_id")
+    .where("i.deleted_at", "is", null)
+    .where("i.waived_at", "is", null)
+    .where("i.due_date", "<", businessDate)
+    .select((eb) => [
+      "i.order_id as orderId",
+      "i.amount_cents as amountCents",
+      eb
+        .selectFrom("InstallmentAdjustment as a")
+        .whereRef("a.installment_id", "=", "i.id")
+        .where("a.deleted_at", "is", null)
+        .select((amount) =>
+          amount.fn.coalesce(amount.fn.sum<number>("a.amount_cents"), amount.val(0)).as("amount"),
+        )
+        .as("adjustments"),
+      eb
+        .selectFrom("PaymentAllocation as a")
+        .innerJoin("PaymentEntry as p", "p.id", "a.payment_entry_id")
+        .whereRef("a.installment_id", "=", "i.id")
+        .where("a.deleted_at", "is", null)
+        .where("p.deleted_at", "is", null)
+        .select((amount) =>
+          amount.fn.coalesce(amount.fn.sum<number>("a.amount_cents"), amount.val(0)).as("amount"),
+        )
+        .as("paid"),
+    ]);
 }

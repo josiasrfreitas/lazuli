@@ -86,6 +86,7 @@ export async function cloneClassForNextPeriod(
       source,
       successorStageId,
       semesterId: semester.id,
+      startDate: semester.startDate,
       portalClassName,
     }),
     select: classSummarySelect,
@@ -192,6 +193,7 @@ function buildSuccessorCreateData(
     format: input.source.format,
     sharedStageId: input.successorStageId,
     semesterId: input.semesterId,
+    startDate: input.startDate,
     year: input.year,
     capacity: CLASS_REFERENCE_CAPACITY,
     previousClassId: input.source.id,
@@ -249,6 +251,7 @@ type BuildSuccessorCreateDataInput = {
   source: SourceClass;
   successorStageId: string | null;
   semesterId: string;
+  startDate: Date;
   portalClassName: string;
 };
 

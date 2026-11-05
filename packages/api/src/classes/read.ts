@@ -1,5 +1,5 @@
 import { searchIds } from "../search.js";
-import type { Prisma } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
 import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
 import {
@@ -13,8 +13,9 @@ import { notFound } from "../trpc/errors.js";
 import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
 
 type Database = Pick<
-  Prisma.TransactionClient,
+  TransactionClient,
   | "$queryRaw"
+  | "$kysely"
   | "class"
   | "user"
   | "period"
@@ -328,7 +329,7 @@ export async function listClassActions(
 export async function classFormOptions(database: Database): Promise<{
   teachers: Array<{ id: string; name: string }>;
   filterTeachers: Array<{ id: string; name: string }>;
-  semesters: Array<{ id: string; name: string }>;
+  semesters: Array<{ id: string; name: string; startDate: Date; endDate: Date }>;
   stages: Array<{ id: string; name: string; internalCode: string }>;
 }> {
   const [teachers, filterTeachers, semesters, stages] = await Promise.all([
@@ -352,7 +353,7 @@ export async function classFormOptions(database: Database): Promise<{
     }),
     database.period.findMany({
       where: { deletedAt: null },
-      select: { id: true, name: true },
+      select: { id: true, name: true, startDate: true, endDate: true },
       orderBy: { startDate: "desc" },
       take: 20,
     }),

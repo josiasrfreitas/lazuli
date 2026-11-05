@@ -8,7 +8,15 @@ import {
 } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { pageWithinRange, useUrlPagination } from "~/lib/pagination";
-import { normalizeFilters, queryInput, searchPatch, type InstallmentFilterPatch } from "./filters";
+import {
+  hasInstallmentFilters,
+  normalizeFilters,
+  queryInput,
+  searchPatch,
+  type InstallmentFilterPatch,
+} from "./filters";
+
+export type InitialInstallmentsData = { data: FinanceInstallmentsOutput; updatedAt: number };
 
 const parsers = {
   aluno: parseAsString,
@@ -130,12 +138,16 @@ export function effectivePageCorrection({
   return corrected === page ? null : corrected;
 }
 
-export function useInstallments(): InstallmentsState {
+export function useInstallments(initial?: InitialInstallmentsData): InstallmentsState {
   const [params, setParams] = useQueryStates(parsers);
   const pagination = useUrlPagination(financeInstallmentsPaginationPolicy);
   const filters = filtersFromUrl(params, pagination);
   const input = queryInput(filters);
-  const query = useList(input);
+  const defaultList =
+    filters.page === 1 &&
+    filters.pageSize === financeInstallmentsPaginationPolicy.defaultPageSize &&
+    !hasInstallmentFilters(filters);
+  const query = useList(input, defaultList ? initial : undefined);
   const data = query.data?.view === input.view ? query.data : undefined;
   const setPage = pagination.setPage;
   useEffect(() => {
@@ -173,8 +185,12 @@ export function useInstallments(): InstallmentsState {
   };
 }
 
-function useList(input: ReturnType<typeof queryInput>): QueryResult<FinanceInstallmentsOutput> {
+function useList(
+  input: ReturnType<typeof queryInput>,
+  initial?: InitialInstallmentsData,
+): QueryResult<FinanceInstallmentsOutput> {
   return trpc.finance.installments.useQuery(input, {
+    ...(initial ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt } : {}),
     placeholderData: (previous, previousQuery) => {
       const key = (
         previousQuery?.queryKey as

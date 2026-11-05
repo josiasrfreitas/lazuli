@@ -1,3 +1,16 @@
+const DEFAULT_POOL_MAX = 4;
+const MAX_POOL_SIZE = 10;
+
+export function getDatabasePoolMax(): number {
+  const configured = process.env.LAZULI_DB_POOL_MAX;
+  if (configured === undefined) return DEFAULT_POOL_MAX;
+  const max = Number(configured);
+  if (!Number.isInteger(max) || max < 1 || max > MAX_POOL_SIZE) {
+    throw new Error("LAZULI_DB_POOL_MAX must be an integer between 1 and 10");
+  }
+  return max;
+}
+
 /** Returns the validated database connection string for server-side DB access. */
 export function getDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL;

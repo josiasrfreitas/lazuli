@@ -47,7 +47,10 @@ function classCandidates(
   input: ClassCandidatesContext,
 ): MeetingCandidate[] {
   const result: MeetingCandidate[] = [];
-  const start = Math.max(input.range.gte.getTime(), classRow.semester.startDate.getTime());
+  const start = Math.max(
+    input.range.gte.getTime(),
+    (classRow.startDate ?? classRow.semester.startDate).getTime(),
+  );
   const end = Math.min(input.range.lte.getTime(), classRow.semester.endDate.getTime());
   for (let day = start; day <= end; day += DAY_MILLISECONDS) {
     const date = dateOnly(new Date(day));
@@ -84,7 +87,18 @@ export async function meetingsBetween(input: MeetingsBetweenInput): Promise<Teac
   const context = projectionContext(data, now);
   const result = new Map<string, TeacherMeeting>();
   for (const classRow of data.classes) {
-    for (const candidate of classCandidates(classRow, { range, sessions: data.sessions, now })) {
+    const candidates = new Map(
+      classCandidates(classRow, { range, sessions: data.sessions, now }).map((candidate) => [
+        meetingKey({
+          classId: classRow.id,
+          slotId: candidate.slotId,
+          sessionId: candidate.sessionId,
+          date: candidate.date,
+        }),
+        candidate,
+      ]),
+    );
+    for (const candidate of candidates.values()) {
       const meeting = projectMeeting(candidate, context);
       if (meeting) result.set(meetingKey(meeting), meeting);
     }

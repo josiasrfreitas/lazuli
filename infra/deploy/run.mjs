@@ -138,6 +138,20 @@ async function migrate(instanceId) {
     assert.ok(response.ok, "RDS CA download failed");
     writeFileSync(join(directory, "rds-ca.pem"), await response.text(), { mode: 0o644 });
     database.port = "15432";
+    if (process.platform === "darwin") {
+      // Colima cannot reach the host's loopback tunnel through Docker host networking.
+      // SSM fixes the remote RDS destination; the local client verifies its CA.
+      database.hostname = "127.0.0.1";
+      database.searchParams.set("sslmode", "verify-ca");
+      database.searchParams.set("sslrootcert", join(directory, "rds-ca.pem"));
+      database.searchParams.set("uselibpqcompat", "true");
+      execFileSync("node", ["infra/deploy/migrate.mjs"], {
+        env: { ...process.env, DATABASE_URL: database.href, LAZULI_ENV: environment },
+        stdio: "inherit",
+        timeout: 660000,
+      });
+      return;
+    }
     database.searchParams.set("sslmode", "verify-full");
     database.searchParams.set("sslrootcert", "/opt/lazuli/rds-ca.pem");
     writeFileSync(

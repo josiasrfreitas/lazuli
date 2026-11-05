@@ -23,7 +23,7 @@ void it("uses a three-day cutoff and groups exact seven-day priority by teacher 
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
-    classId: "class",
+    classId: teacherId === "teacher-b" ? "other-class" : "class",
     scheduleSlotId: null,
     status: "SCHEDULED",
     cancelReason: null,
@@ -40,7 +40,7 @@ void it("uses a three-day cutoff and groups exact seven-day priority by teacher 
     responsibilityFrozenAt: now,
     usualTeacherId: teacherId,
     class: {
-      id: "class",
+      id: teacherId === "teacher-b" ? "other-class" : "class",
       format: "IN_PERSON",
       scheduleType: teacherId === "teacher-b" ? "PERSONALIZED" : "REGULAR",
       sharedStage: { id: "stage", name: "Teenstation" },
@@ -53,6 +53,13 @@ void it("uses a three-day cutoff and groups exact seven-day priority by teacher 
   });
   let where: Prisma.ClassSessionWhereInput | undefined;
   const database = {
+    user: {
+      findMany: () =>
+        Promise.resolve([
+          { id: "teacher-a", name: "Ana", teacherProfile: null },
+          { id: "teacher-b", name: "Ana", teacherProfile: null },
+        ]),
+    },
     classSession: {
       findMany: (args: Prisma.ClassSessionFindManyArgs) => {
         where = args.where;

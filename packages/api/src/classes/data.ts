@@ -5,7 +5,7 @@ import type { classCreateInputSchema, z } from "@lazuli/validators";
 import { assertClassTeacherAvailable } from "../teachers/availability.js";
 import { notFound } from "../trpc/errors.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
-import { assertTeacherIsActive, loadActiveStage, loadSemester } from "./guards.js";
+import { loadActiveStage } from "./guards.js";
 import {
   resolvePersonalizedPortalClassName,
   resolveRegularPortalClassName,
@@ -40,20 +40,29 @@ type SlotRow = {
 };
 
 export async function createClass(input: CreateClassInput): Promise<ClassSummary> {
-  await assertTeacherIsActive({ database: input.database, teacherId: input.values.teacherId });
-
-  await assertClassTeacherAvailable({
+  const semester = await assertClassTeacherAvailable({
     database: input.database,
     teacherId: input.values.teacherId,
     semesterId: input.values.semesterId ?? "",
+    startDate: input.values.startDate,
     slots: input.values.slots,
   });
   const slotRows = input.values.slots.map((slot) => toSlotRow(slot));
 
   const created =
     input.values.scheduleType === "REGULAR"
-      ? await createRegularClass({ database: input.database, values: input.values, slotRows })
-      : await createPersonalizedClass({ database: input.database, values: input.values, slotRows });
+      ? await createRegularClass({
+          database: input.database,
+          values: input.values,
+          slotRows,
+          semester,
+        })
+      : await createPersonalizedClass({
+          database: input.database,
+          values: input.values,
+          slotRows,
+          semester,
+        });
   await recordInitialTeacher({
     database: input.database,
     classId: created.id,
@@ -67,17 +76,12 @@ async function createRegularClass(input: CreateRegularClassInput): Promise<Class
     database: input.database,
     stageId: input.values.sharedStageId ?? "",
   });
-  const semester = await loadSemester({
-    database: input.database,
-    semesterId: input.values.semesterId ?? "",
-  });
-
   const portalClassName = await resolveRegularPortalClassName({
     database: input.database,
     stageInternalCode: stage.internalCode,
     slots: input.values.slots,
-    semesterName: semester.name,
-    year: semester.startDate.getUTCFullYear(),
+    semesterName: input.semester.name,
+    year: input.semester.startDate.getUTCFullYear(),
   });
 
   return input.database.class.create({
@@ -85,8 +89,8 @@ async function createRegularClass(input: CreateRegularClassInput): Promise<Class
       values: input.values,
       portalClassName,
       sharedStageId: stage.id,
-      semesterId: semester.id,
-      year: semester.startDate.getUTCFullYear(),
+      semesterId: input.semester.id,
+      year: input.semester.startDate.getUTCFullYear(),
       slotRows: input.slotRows,
     }),
     select: classSummarySelect,
@@ -94,16 +98,11 @@ async function createRegularClass(input: CreateRegularClassInput): Promise<Class
 }
 
 async function createPersonalizedClass(input: CreatePersonalizedClassInput): Promise<ClassSummary> {
-  const semester = await loadSemester({
-    database: input.database,
-    semesterId: input.values.semesterId ?? "",
-  });
-
   const portalClassName = await resolvePersonalizedPortalClassName({
     database: input.database,
     slots: input.values.slots,
-    semesterName: semester.name,
-    year: semester.startDate.getUTCFullYear(),
+    semesterName: input.semester.name,
+    year: input.semester.startDate.getUTCFullYear(),
   });
 
   return input.database.class.create({
@@ -111,8 +110,8 @@ async function createPersonalizedClass(input: CreatePersonalizedClassInput): Pro
       values: input.values,
       portalClassName,
       sharedStageId: null,
-      semesterId: semester.id,
-      year: semester.startDate.getUTCFullYear(),
+      semesterId: input.semester.id,
+      year: input.semester.startDate.getUTCFullYear(),
       slotRows: input.slotRows,
     }),
     select: classSummarySelect,
@@ -127,6 +126,7 @@ function buildClassCreateData(input: BuildClassCreateDataInput): Prisma.ClassUnc
     format: input.values.format,
     sharedStageId: input.sharedStageId,
     semesterId: input.semesterId,
+    startDate: new Date(`${input.values.startDate}T00:00:00.000Z`),
     year: input.year,
     capacity: CLASS_REFERENCE_CAPACITY,
     portalClassName: input.portalClassName,
@@ -232,11 +232,13 @@ type CreateRegularClassInput = {
   database: ClassDatabase;
   values: ClassCreateInput;
   slotRows: SlotRow[];
+  semester: Awaited<ReturnType<typeof assertClassTeacherAvailable>>;
 };
 type CreatePersonalizedClassInput = {
   database: ClassDatabase;
   values: ClassCreateInput;
   slotRows: SlotRow[];
+  semester: Awaited<ReturnType<typeof assertClassTeacherAvailable>>;
 };
 type BuildClassCreateDataInput = {
   year: number;

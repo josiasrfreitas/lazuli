@@ -15,6 +15,7 @@ void it("plans full-semester rows per matching weekday and skips closed days", (
     classes: [
       {
         id: CLASS_ID,
+        startDate: null,
         semester: semesterWindow(),
         scheduleSlots: [
           {
@@ -33,6 +34,32 @@ void it("plans full-semester rows per matching weekday and skips closed days", (
   assert.deepEqual(
     rows.map((row) => row.date.toISOString().slice(0, DATE_ONLY_LENGTH)),
     ["2026-03-03", "2026-03-17"],
+  );
+});
+
+void it("starts planning on the class start date, including that day", () => {
+  const rows = planClassSessionRows({
+    classes: [
+      {
+        id: CLASS_ID,
+        startDate: new Date("2026-03-10T00:00:00.000Z"),
+        semester: semesterWindow(),
+        scheduleSlots: [
+          {
+            id: SLOT_ID,
+            weekday: "TUESDAY",
+            startTime: new Date("1970-01-01T14:00:00.000Z"),
+            endTime: new Date("1970-01-01T16:00:00.000Z"),
+          },
+        ],
+      },
+    ],
+    closedDates: new Set(),
+    semesters: [semesterWindow()],
+  });
+  assert.deepEqual(
+    rows.map((row) => row.date.toISOString().slice(0, 10)),
+    ["2026-03-10", "2026-03-17"],
   );
 });
 
@@ -73,7 +100,8 @@ void it("returns zero counts when matching classes have no session rows", async 
   const semester = semesterWindow();
   const database = {
     class: {
-      findMany: () => Promise.resolve([{ id: CLASS_ID, semester, scheduleSlots: [] }]),
+      findMany: () =>
+        Promise.resolve([{ id: CLASS_ID, startDate: null, semester, scheduleSlots: [] }]),
     },
     period: { findMany: () => Promise.resolve([semester]) },
     schoolClosedDay: { findMany: () => Promise.resolve([]) },
@@ -100,11 +128,13 @@ void it("returns zero counts when matching classes have no session rows", async 
 
 function classWithNoSlots(): {
   id: string;
+  startDate: Date | null;
   semester: ReturnType<typeof semesterWindow>;
   scheduleSlots: [];
 } {
   return {
     id: CLASS_ID,
+    startDate: null,
     semester: semesterWindow(),
     scheduleSlots: [],
   };

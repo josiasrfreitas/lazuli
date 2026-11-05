@@ -78,6 +78,25 @@ const ONE_WEEK_DAYS = 7;
 const THIRTY_DAY_BUCKET_START = 30;
 
 export function deriveInstallmentLedger(input: DeriveInstallmentLedgerInput): InstallmentLedger {
+  return deriveInstallmentLedgerOnDate(input, saoPauloDateOnly(input.now));
+}
+
+/** One business date for all installments; callers keep supplying the authoritative instant. */
+export function deriveInstallmentLedgers(input: {
+  installments: Array<Omit<DeriveInstallmentLedgerInput, "now">>;
+  now: Date;
+}): InstallmentLedger[] {
+  if (input.installments.length === 0) return [];
+  const currentSaoPauloDate = saoPauloDateOnly(input.now);
+  return input.installments.map((installment) =>
+    deriveInstallmentLedgerOnDate(installment, currentSaoPauloDate),
+  );
+}
+
+function deriveInstallmentLedgerOnDate(
+  input: Omit<DeriveInstallmentLedgerInput, "now">,
+  currentSaoPauloDate: string,
+): InstallmentLedger {
   const paidAmountCents = sumAmounts(input.allocations);
   const currentExpectedCents = input.amountCents + sumAmounts(input.adjustments);
   const rawRemainingCents = currentExpectedCents - paidAmountCents;
@@ -85,7 +104,6 @@ export function deriveInstallmentLedger(input: DeriveInstallmentLedgerInput): In
   const orderIsCancelled = input.orderCancelledAt !== null;
   const collectibleRemainingCents =
     isWaived || orderIsCancelled ? 0 : Math.max(rawRemainingCents, 0);
-  const currentSaoPauloDate = saoPauloDateOnly(input.now);
   const dueDate = toDateOnly(input.dueDate);
   const overdueDays = Math.max(calendarDayDifference(currentSaoPauloDate, dueDate), 0);
 

@@ -1,6 +1,8 @@
 "use client";
 import { useState, type ReactElement } from "react";
 import { parseAsInteger, parseAsString, useQueryStates, useQueryState } from "nuqs";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@lazuli/api";
 import { Button, DataTablePage } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { classListQueryInput } from "./class-list-model";
@@ -11,10 +13,18 @@ import { ClassCreateDialog } from "./create-dialog";
 import { ClassOrganizationPage } from "~/features/class-organization/page";
 import styles from "~/features/class-organization/organization.module.css";
 
+type ClassQueries = inferRouterOutputs<AppRouter>["classes"];
+export type InitialClassesData = {
+  list?: { data: ClassQueries["list"]; updatedAt: number };
+  options?: { data: ClassQueries["formOptions"]; updatedAt: number };
+};
+
 export function ClassesPage({
   organizationEnabled = false,
+  initial,
 }: {
   organizationEnabled?: boolean;
+  initial?: InitialClassesData | undefined;
 }): ReactElement {
   const [section, setSection] = useQueryState("secao", parseAsString.withDefault("lista"));
   return (
@@ -43,14 +53,14 @@ export function ClassesPage({
         {organizationEnabled && section === "organizacao" ? (
           <ClassOrganizationPage />
         ) : (
-          <ClassListing />
+          <ClassListing initial={initial} />
         )}
       </div>
     </div>
   );
 }
 
-function ClassListing(): ReactElement {
+function ClassListing({ initial }: { initial?: InitialClassesData | undefined }): ReactElement {
   const [params, setParams] = useQueryStates({
     busca: parseAsString.withDefault(""),
     tipo: parseAsString,
@@ -62,8 +72,29 @@ function ClassListing(): ReactElement {
     pagina: parseAsInteger.withDefault(1),
   });
   const [creating, setCreating] = useState(false);
-  const query = trpc.classes.list.useQuery(classListQueryInput(params));
-  const options = trpc.classes.formOptions.useQuery();
+  const defaultList =
+    params.busca === "" &&
+    params.pagina === 1 &&
+    [
+      params.tipo,
+      params.formato,
+      params.professor,
+      params.estagio,
+      params.semestre,
+      params.estado,
+    ].every((value) => value === null);
+  const query = trpc.classes.list.useQuery(
+    classListQueryInput(params),
+    defaultList && initial?.list
+      ? { initialData: initial.list.data, initialDataUpdatedAt: initial.list.updatedAt }
+      : {},
+  );
+  const options = trpc.classes.formOptions.useQuery(
+    undefined,
+    initial?.options
+      ? { initialData: initial.options.data, initialDataUpdatedAt: initial.options.updatedAt }
+      : {},
+  );
   const fields = classFilterFields({
     params,
     options: options.data,

@@ -30,7 +30,7 @@ import {
 } from "./filters";
 import { InstallmentActionsContext } from "./installment-actions";
 import { InstallmentsTable } from "./installments-table";
-import { useInstallments } from "./logic";
+import { useInstallments, type InitialInstallmentsData } from "./logic";
 import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import { PaymentDialog } from "./payment/payment-dialog";
 import {
@@ -437,8 +437,12 @@ function PaymentEntryDialog({ entry }: { entry: EntrySession }): ReactElement | 
   );
 }
 
-export function InstallmentsPage(): ReactElement {
-  const state = useInstallments();
+export function InstallmentsPage({
+  initial,
+}: {
+  initial?: InitialInstallmentsData | undefined;
+}): ReactElement {
+  const state = useInstallments(initial);
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
   const [paymentRow, setPaymentRow] = useState<FinanceInstallmentRow | null>(null);
   const [rowPaymentRegistered, setRowPaymentRegistered] = useState(false);

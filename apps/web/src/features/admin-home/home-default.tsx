@@ -3,6 +3,7 @@ import { HomeError, type HomeAction, type HomeData } from "./home-parts";
 import { HomePending } from "./home-pending";
 import { HomeAudience, HomeSummary, HomeSummaryLoading } from "./home-summary";
 import type { BusinessData } from "./home-metrics";
+import type { InitialDashboardData } from "./home";
 import styles from "./home-default.module.css";
 
 type HomeDefaultProps = {
@@ -11,6 +12,7 @@ type HomeDefaultProps = {
   business: BusinessData | undefined;
   businessLoading: boolean;
   businessError: boolean;
+  initialLessons?: InitialDashboardData["pendingLessons"];
   loading: boolean;
   error: boolean;
   retry: () => void;
@@ -31,6 +33,7 @@ export function HomeDefault({
   business,
   businessLoading,
   businessError,
+  initialLessons,
   loading,
   error,
   retry,
@@ -63,6 +66,7 @@ export function HomeDefault({
             loading={loading}
             businessLoading={businessLoading}
             businessError={businessError}
+            initialLessons={initialLessons}
           />
         )}
         <HomeAudiencePanel data={data} loading={summaryLoading} />

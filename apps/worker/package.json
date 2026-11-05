@@ -16,6 +16,7 @@
     "@lazuli/domain": "workspace:*",
     "@lazuli/integrations": "workspace:*",
     "@lazuli/job-contracts": "workspace:*",
+    "@lazuli/logging": "workspace:*",
     "@lazuli/worker-handlers": "workspace:*"
   },
   "devDependencies": {

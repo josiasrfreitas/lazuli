@@ -30,11 +30,13 @@ import styles from "./finance-overview.module.css";
 export function StudentFinanceSection({
   id,
   profile,
+  summary,
 }: {
   id: string;
   profile?: StudentProfile | undefined;
+  summary?: StudentFinanceState["summary"] | undefined;
 }): ReactElement {
-  const state = useStudentFinance(id);
+  const state = useStudentFinance(id, summary);
   const [contractId, setContractId] = useState<string | null>(null);
   const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
   return (

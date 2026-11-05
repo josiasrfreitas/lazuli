@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { civilDateSchema } from "./civil-date.js";
 
 const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_TIME_MESSAGE = "Horario invalido.";
@@ -71,6 +72,7 @@ export const classCreateInputSchema = z
     format: classFormatSchema,
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE).nullish(),
+    startDate: civilDateSchema,
     portalClassName: requiredText.optional(),
     slots: classScheduleSlotsInputSchema,
   })
