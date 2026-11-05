@@ -147,12 +147,13 @@ function validateInstallmentCount(
 
 function validateMaterialFields(fields: ContractFields, errors: SetupErrors): void {
   if (fields.materialPayment !== "NONE") {
+    if (errors.materialCardFeePct) delete errors.materialTotal;
     if (fields.materialStageIds.split(",").some((id) => !id)) {
       errors.materialStageIds = "Selecione o livro ou remova a linha vazia.";
     }
-    if (!fields.materialCategory) errors.materialCategory = "Escolha a faixa de preço.";
-    if (!fields.materialQuoteVersion || !fields.materialTotal) {
-      errors.materialTotal = "Aguarde a cotação do material antes de continuar.";
+    if (!fields.materialCategory) errors.materialCategory = "Escolha a tabela de preços.";
+    if ((!fields.materialQuoteVersion || !fields.materialTotal) && !errors.materialCardFeePct) {
+      errors.materialTotal = "Confira os livros e os valores do material antes de continuar.";
     }
     if (fields.materialScholarshipMode !== "NONE" && !fields.materialScholarshipAgreement.trim()) {
       errors.materialScholarshipAgreement = "Descreva o acordo da bolsa de material.";

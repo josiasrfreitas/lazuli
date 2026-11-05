@@ -117,6 +117,11 @@ enum InstallmentAdjustmentType {
   CORRECTION
 }
 
+enum PaymentReversalKind {
+  CANCELLATION
+  REFUND
+}
+
 
 
 enum ArtifactKind {
@@ -176,6 +181,8 @@ model User {
   uploadedPaymentProofs          PaymentProof[]
   createdPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationCreator")
   updatedPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationUpdater")
+  createdPaymentReversals       PaymentReversal[]
+  uploadedPaymentReversalProofs PaymentReversalProof[]
   updatedFinanceSettings        FinanceSettings[]       @relation("FinanceSettingsUpdater")
   requestedArtifacts            GeneratedArtifact[]     @relation("ArtifactRequester")
   financialTreatments           InstallmentAgreement[]
@@ -972,6 +979,7 @@ model PaymentMethod {
   sortOrder Int       @default(0) @map("sort_order")
   allowsExternalInstallments Boolean @default(false) @map("allows_external_installments")
   payments  PaymentEntry[]
+  refunds   PaymentReversal[]
 
   @@map("payment_methods")
 }
@@ -1002,6 +1010,7 @@ model PaymentEntry {
   updatedBy   User?               @relation("PaymentEntryUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
   allocations PaymentAllocation[]
   proofs      PaymentProof[]
+  reversals   PaymentReversal[]
 
   @@index([operationId])
   @@index([payerId])
@@ -1047,11 +1056,78 @@ model PaymentAllocation {
   installment  Installment  @relation(fields: [installmentId], references: [id], onDelete: Restrict)
   createdBy    User?        @relation("PaymentAllocationCreator", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy    User?        @relation("PaymentAllocationUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+  reversals    PaymentReversalAllocation[]
 
   @@unique([paymentEntryId, installmentId])
   @@index([installmentId])
   @@index([createdById])
   @@index([updatedById])
+}
+
+model PaymentReversal {
+  id                 String              @id @default(uuid()) @db.Uuid
+  commandId          String              @unique @map("command_id") @db.Uuid
+  commandFingerprint String              @map("command_fingerprint")
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?           @map("deleted_at") @db.Timestamptz
+  paymentEntryId     String              @map("payment_entry_id") @db.Uuid
+  kind               PaymentReversalKind
+  occurredOn         DateTime            @map("occurred_on") @db.Date
+  amountCents        Int                 @map("amount_cents")
+  reason             String?
+  refundMethod       String?             @map("refund_method")
+  refundReference    String?             @map("refund_reference")
+  createdById        String              @map("created_by_id") @db.Uuid
+
+  paymentEntry PaymentEntry               @relation(fields: [paymentEntryId], references: [id], onDelete: Restrict)
+  createdBy    User                       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  method       PaymentMethod?             @relation(fields: [refundMethod], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  allocations  PaymentReversalAllocation[]
+  proofs       PaymentReversalProof[]
+
+  @@index([paymentEntryId])
+  @@index([createdById])
+  @@map("payment_reversals")
+}
+
+model PaymentReversalAllocation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz
+  paymentReversalId   String    @map("payment_reversal_id") @db.Uuid
+  paymentAllocationId String    @map("payment_allocation_id") @db.Uuid
+  amountCents         Int       @map("amount_cents")
+
+  reversal   PaymentReversal  @relation(fields: [paymentReversalId], references: [id], onDelete: Restrict)
+  allocation PaymentAllocation @relation(fields: [paymentAllocationId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentReversalId, paymentAllocationId])
+  @@index([paymentAllocationId])
+  @@map("payment_reversal_allocations")
+}
+
+model PaymentReversalProof {
+  id                String   @id @default(uuid()) @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
+  paymentReversalId String   @map("payment_reversal_id") @db.Uuid
+  uploadedById      String   @map("uploaded_by_id") @db.Uuid
+  fileName          String   @map("file_name")
+  contentType       String   @map("content_type")
+  byteLength        Int      @map("byte_length")
+  sha256            String
+  bucket            String
+  key               String
+
+  reversal   PaymentReversal @relation(fields: [paymentReversalId], references: [id], onDelete: Restrict)
+  uploadedBy User            @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@unique([bucket, key])
+  @@index([paymentReversalId])
+  @@map("payment_reversal_proofs")
 }
 
 model GeneratedArtifact {
@@ -1813,7 +1889,7 @@ model SemesterPlacement {
   semesterId String @map("semester_id") @db.Uuid
   planId String? @map("plan_id") @db.Uuid
   studentId String @map("student_id") @db.Uuid
-  trackId String @map("track_id") @db.Uuid
+  trackId String? @map("track_id") @db.Uuid
   stageId String? @map("stage_id") @db.Uuid
   sourceEnrollmentId String? @map("source_enrollment_id") @db.Uuid
   sourceProgressId String? @map("source_progress_id") @db.Uuid
@@ -1831,7 +1907,7 @@ model SemesterPlacement {
   semester Period @relation(fields: [semesterId], references: [id], onDelete: Restrict)
   plan SemesterClassPlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  track Track @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  track Track? @relation(fields: [trackId], references: [id], onDelete: Restrict)
   stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
   sourceEnrollment Enrollment? @relation("SemesterPlacementSource", fields: [sourceEnrollmentId], references: [id], onDelete: Restrict)
   sourceProgress PedagogicalProgress? @relation(fields: [sourceProgressId], references: [id], onDelete: Restrict)

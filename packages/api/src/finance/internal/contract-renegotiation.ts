@@ -133,7 +133,13 @@ function reductionLine(
     openPrincipalCents,
     balanceCents,
     minimumCents: Math.max(0, principalCents - openPrincipalCents),
-    paidCents: item.allocations.reduce((sum, row) => sum + row.amountCents, 0),
+    paidCents: item.allocations.reduce(
+      (sum, row) =>
+        sum +
+        row.amountCents -
+        row.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+      0,
+    ),
     chargesCents: quote.outstandingChargesCents,
     newInterestCents: quote.newInterestCents,
     version,

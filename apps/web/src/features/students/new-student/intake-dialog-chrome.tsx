@@ -18,12 +18,13 @@ export const studentDialogClassName = `w-[calc(100%-2rem)] md:w-[calc(100%-2rem)
 type IntakeHeadingProps = {
   continuing: boolean;
   step: "student" | "address" | "pedagogy" | "contract";
-  name: string;
-  hasEnrollment: boolean;
   hasClass: boolean;
+  hasStudent: boolean;
+  hasAddress: boolean;
   hasContract?: boolean;
   compact?: boolean;
   avatar?: ReactNode;
+  pedagogyControls?: ReactNode;
   onStepChange: (step: "student" | "address" | "pedagogy" | "contract") => void;
 };
 
@@ -38,38 +39,45 @@ function stepIndex(step: "student" | "address" | "pedagogy" | "contract"): numbe
 export function IntakeDialogHeading({
   continuing,
   step,
-  name,
-  hasEnrollment,
   hasClass,
+  hasStudent,
+  hasAddress,
   hasContract = false,
   compact = false,
   avatar,
+  pedagogyControls,
   onStepChange,
 }: IntakeHeadingProps): ReactJSX.Element {
-  const description = intakeDialogDescription({
-    continuing,
-    step,
-    name,
-    hasEnrollment,
-    hasContract,
-  });
+  const description = intakeDialogDescription({ continuing, step });
   return (
     <div
       className={styles.dialogHeading}
       data-wide={step !== "student" && step !== "address"}
       data-compact={compact}
+      data-pedagogy={step === "pedagogy"}
     >
-      <div className="flex min-w-0 items-center gap-3">
-        {avatar && <div className="shrink-0">{avatar}</div>}
-        <DialogHeader className="min-w-0 flex-1 shrink">
-          <DialogTitle>{continuing ? "Continuar cadastro" : "Novo aluno"}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+      {step !== "pedagogy" && (
+        <div className="flex min-w-0 items-center gap-3">
+          {avatar && <div className="shrink-0">{avatar}</div>}
+          <DialogHeader className="min-w-0 flex-1 shrink">
+            <DialogTitle>{continuing ? "Continuar cadastro" : "Novo aluno"}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+        </div>
+      )}
+      {step === "pedagogy" && (
+        <DialogHeader className={`${styles.pedagogyTitle} pr-0`}>
+          <DialogTitle>Turma de entrada</DialogTitle>
+          <DialogDescription className="sr-only">
+            Escolha o período de entrada e, se possível, a turma do aluno.
+          </DialogDescription>
         </DialogHeader>
-      </div>
+      )}
+      {step === "pedagogy" && pedagogyControls}
       <Stepper
         steps={[
-          { label: "Aluno", completed: false },
-          { label: "Endereço", completed: false },
+          { label: "Aluno", completed: hasStudent },
+          { label: "Endereço", completed: hasAddress },
           { label: "Pedagógico", completed: hasClass },
           { label: "Contrato", completed: hasContract, disabled: hasContract },
         ]}
@@ -88,15 +96,9 @@ export function IntakeDialogHeading({
 function intakeDialogDescription({
   continuing,
   step,
-  name,
-  hasEnrollment,
-  hasContract,
 }: {
   continuing: boolean;
   step: "student" | "address" | "pedagogy" | "contract";
-  name: string;
-  hasEnrollment: boolean;
-  hasContract: boolean;
 }): string {
   if (step === "student")
     return continuing
@@ -104,12 +106,7 @@ function intakeDialogDescription({
       : "Busque um lead ou preencha os dados do aluno.";
   if (step === "address")
     return "Busque o endereço do aluno e confira os dados. Você também pode preencher manualmente.";
-  if (step === "pedagogy" && hasContract)
-    return "Confira a turma e conclua o cadastro. O contrato já está cadastrado.";
-  if (step === "pedagogy")
-    return hasEnrollment
-      ? "Confira a turma definida para este aluno e continue para o contrato."
-      : `Escolha a turma para ${name} ou deixe essa definição pendente.`;
+  if (step === "pedagogy") return "";
   return "Defina o contrato e confirme o cadastro. As alterações serão salvas ao confirmar.";
 }
 

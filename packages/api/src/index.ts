@@ -13,6 +13,10 @@ import type { AppRouter } from "./root.js";
 export const API_PACKAGE = "@lazuli/api" as const;
 export { receiveAssessmentFile, downloadAssessmentFile } from "./assessment-files/transport.js";
 export { receivePaymentProof, downloadPaymentProof } from "./finance/payment-proof-transport.js";
+export {
+  receivePaymentReversalProof,
+  downloadPaymentReversalProof,
+} from "./finance/payment-reversal-proof-transport.js";
 
 export { appRouter, createCaller } from "./root.js";
 export type { AppRouter } from "./root.js";

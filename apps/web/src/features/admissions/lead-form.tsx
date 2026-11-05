@@ -52,6 +52,7 @@ type LeadFormDialogProps = {
   cancelLabel?: string;
   cancelIcon?: ReactNode;
   submitIcon?: ReactNode;
+  backAtTop?: boolean;
 };
 
 export function LeadFormDialog({
@@ -71,6 +72,7 @@ export function LeadFormDialog({
   cancelLabel = "Cancelar",
   cancelIcon = <X aria-hidden="true" />,
   submitIcon = <Check aria-hidden="true" />,
+  backAtTop = false,
 }: LeadFormDialogProps): ReactElement {
   return (
     <Dialog
@@ -84,11 +86,20 @@ export function LeadFormDialog({
         <DialogContent
           className={wide ? "md:max-w-3xl" : undefined}
           initialFocus={() => document.querySelector<HTMLElement>(`#${CSS.escape(firstField)}`)}
+          showCloseButton={!backAtTop}
         >
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </DialogHeader>
+          <div className="flex items-start justify-between gap-3">
+            <DialogHeader className={backAtTop ? "pr-0" : undefined}>
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{description}</DialogDescription>
+            </DialogHeader>
+            {backAtTop && (
+              <Button variant="ghost" size="sm" disabled={pending} onClick={onClose}>
+                {cancelIcon}
+                {cancelLabel}
+              </Button>
+            )}
+          </div>
           {steps}
           <DialogBody ref={body}>
             <form id={id} onSubmit={onSubmit} noValidate className="grid gap-4 pt-4">
@@ -97,7 +108,16 @@ export function LeadFormDialog({
             </form>
           </DialogBody>
           <LeadFormFooter
-            {...{ id, pending, onClose, cancelIcon, cancelLabel, submitIcon, submitLabel }}
+            {...{
+              id,
+              pending,
+              onClose,
+              cancelIcon,
+              cancelLabel,
+              submitIcon,
+              submitLabel,
+              backAtTop,
+            }}
           />
         </DialogContent>
       </DialogPortal>
@@ -113,18 +133,28 @@ function LeadFormFooter({
   cancelLabel,
   submitIcon,
   submitLabel,
+  backAtTop,
 }: Required<
   Pick<
     LeadFormDialogProps,
-    "id" | "pending" | "onClose" | "cancelIcon" | "cancelLabel" | "submitIcon" | "submitLabel"
+    | "id"
+    | "pending"
+    | "onClose"
+    | "cancelIcon"
+    | "cancelLabel"
+    | "submitIcon"
+    | "submitLabel"
+    | "backAtTop"
   >
 >): ReactElement {
   return (
     <DialogFooter>
-      <Button variant="secondary" disabled={pending} onClick={onClose}>
-        {cancelIcon}
-        {cancelLabel}
-      </Button>
+      {!backAtTop && (
+        <Button variant="secondary" disabled={pending} onClick={onClose}>
+          {cancelIcon}
+          {cancelLabel}
+        </Button>
+      )}
       <Button type="submit" form={id} loading={pending}>
         {submitIcon}
         {submitLabel}

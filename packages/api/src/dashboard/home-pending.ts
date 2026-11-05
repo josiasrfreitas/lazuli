@@ -1,11 +1,16 @@
 import { readHealthPending } from "./home-health.js";
 import { readOccurrencePending } from "./home-occurrences.js";
-import { studentsAwaitingPlacement } from "../students/pending-actions.js";
 import { adultCutoffDateOnly } from "../students/date-rules.js";
 import { pendingRenewalWhere } from "../finance/internal/renewal-pending.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
 import { pendingClassRecordCutoff as pendingRecordCutoff } from "../class-records/pending-policy.js";
-import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
+import {
+  missingRegistrationDocuments,
+  requiredRegistrationDocuments,
+  saoPauloDateOnly,
+  sessionEndInstant,
+  type RegistrationDocumentKind,
+} from "@lazuli/domain";
 import { readCoverage } from "./home-schedule.js";
 import { loadPendingLessonSessions } from "./home-lesson-data.js";
 import { readSemesterPending } from "./home-semester.js";
@@ -103,14 +108,12 @@ function readOtherGroup(database: Database, input: Scope & { pagination: Page })
     }
   }
 }
-const REGISTRATION_KINDS = ["student", "residence", "photo"] as const;
-const DOCUMENT_LABELS: Record<(typeof REGISTRATION_KINDS)[number] | "guardian", string> = {
+const DOCUMENT_LABELS: Record<RegistrationDocumentKind, string> = {
   student: "identidade do aluno",
   guardian: "identidade do responsável",
   residence: "comprovante de residência",
   photo: "foto do aluno",
 };
-type RegistrationKind = keyof typeof DOCUMENT_LABELS;
 async function documentsPage(
   database: Database,
   { now, page }: { now: Date; page: Page },
@@ -139,9 +142,10 @@ async function documentsPage(
       const present = new Set(
         row.documentSessions.flatMap((session) => session.files.map((file) => file.kind)),
       );
-      const required: RegistrationKind[] = [...REGISTRATION_KINDS];
-      if (row.birthDate && row.birthDate > adultCutoff) required.splice(1, 0, "guardian");
-      const absent = required.filter((kind) => !present.has(kind));
+      const absent = missingRegistrationDocuments(
+        Boolean(row.birthDate && row.birthDate > adultCutoff),
+        present,
+      );
       return {
         ...linkItem({
           id: row.id,
@@ -161,12 +165,16 @@ function missingDocumentsWhere(adultCutoff: Date): Prisma.StudentWhereInput {
       none: { files: { some: { kind, deletedAt: null } } },
     },
   });
+  const adultKinds = requiredRegistrationDocuments(false);
+  const minorOnlyKinds = requiredRegistrationDocuments(true).filter(
+    (kind) => !adultKinds.includes(kind),
+  );
   return {
     deletedAt: null,
     status: "ACTIVE",
     OR: [
-      ...REGISTRATION_KINDS.map((kind) => missing(kind)),
-      { birthDate: { gt: adultCutoff }, ...missing("guardian") },
+      ...adultKinds.map((kind) => missing(kind)),
+      ...minorOnlyKinds.map((kind) => ({ birthDate: { gt: adultCutoff }, ...missing(kind) })),
     ],
   };
 }
@@ -187,12 +195,18 @@ async function studentPage(
     status: "ACTIVE",
     ...(input.kind === "students"
       ? {
-          id: { notIn: await studentsAwaitingPlacement(database) },
-          // First allocation is independent of semester dates: past and future
-          // enrollments both prove that a destination has already been defined.
+          // A future entry is handled on the student's page until that period begins.
           enrollments: { none: { deletedAt: null } },
           semesterPlacements: {
-            none: { deletedAt: null, declinedAt: null, plan: { deletedAt: null } },
+            none: {
+              deletedAt: null,
+              declinedAt: null,
+              mode: "ENTRY",
+              semester: {
+                deletedAt: null,
+                startDate: { gt: new Date(saoPauloDateOnly(input.now)) },
+              },
+            },
           },
         }
       : { contracts: { none: { deletedAt: null } } }),

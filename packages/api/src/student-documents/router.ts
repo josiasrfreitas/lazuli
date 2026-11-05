@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "@lazuli/validators";
+import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import type { TransactionClient } from "@lazuli/db";
 import { adminProcedure, router } from "../trpc/init.js";
 import { badRequest } from "../trpc/errors.js";
@@ -7,6 +8,7 @@ import { documentFormat } from "./upload.js";
 import { deleteStudentDocument } from "./delete.js";
 
 const TOKEN_BYTES = 32;
+const processLogger = createServiceLogger("web");
 
 export function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -79,6 +81,14 @@ export const studentDocumentsRouter = router({
         },
         select: { id: true },
       });
+      logDevelopmentProcess(processLogger, {
+        requestId: ctx.requestId,
+        userId: ctx.staffUser.id,
+        resource: "studentDocuments.create",
+        operation: "DB",
+        step: "Private document upload session created",
+        facts: { student_linked: Boolean(input.studentId) },
+      });
       return { id: session.id, token };
     }),
   status: adminProcedure
@@ -104,6 +114,14 @@ export const studentDocumentsRouter = router({
         },
         orderBy: { updatedAt: "asc" },
       });
+      logDevelopmentProcess(processLogger, {
+        requestId: ctx.requestId,
+        userId: ctx.staffUser.id,
+        resource: "studentDocuments.status",
+        operation: "DB",
+        step: "Document upload session checked",
+        facts: { documents: files.length, session_closed: Boolean(session.closedAt) },
+      });
       return {
         closed: Boolean(session.closedAt),
         files: files.map(({ key, ...file }) => ({ ...file, format: documentFormat(key) })),
@@ -112,9 +130,17 @@ export const studentDocumentsRouter = router({
   close: adminProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.studentDocumentSession.updateMany({
+      const result = await ctx.db.studentDocumentSession.updateMany({
         where: { id: input.id, createdById: ctx.staffUser.id },
         data: { closedAt: new Date() },
+      });
+      logDevelopmentProcess(processLogger, {
+        requestId: ctx.requestId,
+        userId: ctx.staffUser.id,
+        resource: "studentDocuments.close",
+        operation: "DB",
+        step: "Private document upload session closure processed",
+        facts: { sessions_updated: result.count },
       });
       return { closed: true };
     }),

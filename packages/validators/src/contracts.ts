@@ -53,6 +53,15 @@ export const contractMaterialInputSchema = z
       .min(1, "Informe um valor maior que zero.")
       .max(MAX_PERSISTED_AMOUNT_CENTS)
       .optional(),
+    cardFeeOverridePct: z
+      .number({ invalid_type_error: "Informe uma taxa válida para o cartão." })
+      .finite()
+      .min(0, "A taxa não pode ser negativa.")
+      .lt(MAX_PERCENT, "A taxa deve ser menor que 100%.")
+      .refine((value) => Number(value.toFixed(PERCENT_DECIMAL_PLACES)) === value, {
+        message: "Use até quatro casas decimais na taxa.",
+      })
+      .optional(),
   })
   .strict()
   .refine((value) => new Set(value.stageIds).size === value.stageIds.length, {
@@ -67,6 +76,15 @@ export const contractMaterialInputSchema = z
     {
       path: ["installmentCount"],
       message: "O pagamento à vista ou sem cobrança deve ser registrado em uma vez.",
+    },
+  )
+  .refine(
+    (input) =>
+      input.cardFeeOverridePct === undefined ||
+      (input.payment === "INSTALLMENTS" && input.scholarshipPct !== MAX_PERCENT),
+    {
+      path: ["cardFeeOverridePct"],
+      message: "A taxa personalizada só se aplica a compras no cartão sem bolsa integral.",
     },
   )
   .superRefine((input, context) => {

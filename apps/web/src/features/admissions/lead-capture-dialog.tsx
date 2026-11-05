@@ -2,7 +2,7 @@
 import type { JSX as ReactJSX } from "react";
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Save, UserRoundPlus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, UserRoundPlus } from "lucide-react";
 import { FormSection, Stepper } from "@lazuli/ui";
 import {
   leadCaptureSchema,
@@ -411,6 +411,9 @@ function CaptureDetailsStep({ props, state, actions }: CaptureViewProps): ReactJ
         submitLabel={submitLabel(props, state.draft)}
         onSubmit={actions.submit}
         onClose={actions.requestClose}
+        cancelLabel={props.destination ? "Voltar ao cadastro" : "Cancelar"}
+        cancelIcon={props.destination ? <ArrowLeft aria-hidden="true" /> : undefined}
+        backAtTop={Boolean(props.destination)}
       >
         <CaptureFields props={props} state={state} actions={actions} />
       </LeadFormDialog>

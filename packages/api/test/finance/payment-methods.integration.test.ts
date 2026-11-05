@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, it } from "node:test";
+import { after, before, it } from "node:test";
 import { db } from "@lazuli/db";
+import { caller, ensureAdminUser } from "../support/finance-test-support.js";
 import {
   paymentFixture,
   paymentCommand,
@@ -11,8 +12,18 @@ import {
 
 const PREFIX = "Payment method catalog integration ";
 const createdCodes: string[] = [];
+const createdNames: string[] = [];
+void before(ensureAdminUser);
 void after(async () => {
   await cleanPaymentOperations(PREFIX);
+  await db.activityEvent.deleteMany({
+    where: {
+      action: "finance.createPaymentMethod",
+      description: {
+        in: createdNames.flatMap((name) => [`${name} cadastrada.`, `${name} reativada.`]),
+      },
+    },
+  });
   await db.paymentMethod.deleteMany({ where: { code: { in: createdCodes } } });
 });
 
@@ -65,4 +76,31 @@ void it("rejects unknown, inactive and soft-deleted methods without financial wr
     await db.installmentAdjustment.count({ where: { installmentId: item.installmentId } }),
     0,
   );
+});
+
+void it("adds a named method and reuses the catalog entry", async () => {
+  const suffix = randomUUID().slice(0, 8);
+  const name = `Transferência especial ${suffix}`;
+  const created = await caller().finance.createPaymentMethod({
+    name: `transferência especial ${suffix}`,
+  });
+  createdCodes.push(created.code);
+  createdNames.push(name);
+  assert.equal(created.name, name);
+  assert.match(created.code, /^CUSTOM_[A-Z0-9_]+$/u);
+  assert.equal(created.allowsExternalInstallments, false);
+  const available = await caller().finance.paymentMethods();
+  assert.ok(available.some((item) => item.code === created.code));
+
+  const reused = await caller().finance.createPaymentMethod({
+    name: name.toLocaleUpperCase("pt-BR"),
+  });
+  assert.equal(reused.code, created.code);
+  assert.equal(await db.paymentMethod.count({ where: { code: created.code } }), 1);
+
+  await db.paymentMethod.update({ where: { code: created.code }, data: { active: false } });
+  const restored = await caller().finance.createPaymentMethod({ name });
+  assert.equal(restored.code, created.code);
+  const restoredCatalog = await caller().finance.paymentMethods();
+  assert.ok(restoredCatalog.some((method) => method.code === created.code));
 });

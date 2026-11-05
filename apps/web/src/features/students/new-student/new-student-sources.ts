@@ -69,6 +69,8 @@ function prefillExistingStudent({
   identity.setStageId(selection.stageId);
   identity.setFormat(selection.format);
   identity.setScheduleType(selection.scheduleType);
+  identity.setEntryPeriod(selection.entryPeriod);
+  identity.setSelectedId(selection.selectedId);
 }
 
 export function useExistingSources({
@@ -128,6 +130,7 @@ export function useLeadSources({
     setStageId,
     setFormat,
     setScheduleType,
+    setEntryPeriod,
     setSelectedId,
   } = identity;
   const candidate = trpc.admissions.byId.useQuery(
@@ -154,6 +157,7 @@ export function useLeadSources({
     setStageId(selection.stageId);
     setFormat(selection.format);
     setScheduleType(selection.scheduleType);
+    setEntryPeriod(selection.entryPeriod);
     setSelectedId(selection.selectedId);
   }, [lead, existingStudentId]);
   return { candidate, lead, leads };
@@ -207,10 +211,10 @@ export function useClassSources({
   lead: Lead | undefined;
   today: string;
 }): ClassSources {
-  const { stageId, format, scheduleType, selectedId, candidateId } = identity;
+  const { stageId, format, scheduleType, entryPeriod, selectedId, candidateId } = identity;
   const range = getScheduleCalendarRange({ date: today, view: "week" });
   const options = trpc.students.intakeOptions.useQuery(
-    { stageId, format, scheduleType, from: range.from, through: range.through },
+    { stageId, format, scheduleType, entryPeriod, from: range.from, through: range.through },
     { enabled: flow.step !== "student", retry: false },
   );
   const selected = options.data?.classes.find((row) => row.id === selectedId);

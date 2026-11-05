@@ -1,5 +1,5 @@
 import type { RouterOutputs } from "@lazuli/api";
-import { formatDateOnlyBR } from "~/lib/format";
+import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { dateLabel } from "~/features/admissions/labels";
 import { initialNewStudentState, type NewStudentFields } from "./reducer";
 
@@ -52,13 +52,20 @@ export function existingStudentSelections(pending: PendingActions): {
   stageId: string | null;
   format: "IN_PERSON" | "ONLINE";
   scheduleType: "REGULAR" | "PERSONALIZED";
+  entryPeriod: "CURRENT" | "NEXT";
+  selectedId: string;
 } {
   const linked = pending.lead;
   const enrollmentClass = pending.enrollment?.class;
+  const future = pending.enrollment ? null : pending.futurePlacement;
+  const classFormat = existingClassFormat(pending);
   return {
     candidateId: linked?.id ?? null,
-    stageId: linked?.stageId ?? enrollmentClass?.sharedStage?.id ?? null,
-    ...existingClassFormat(pending),
+    stageId: future?.stageId ?? linked?.stageId ?? enrollmentClass?.sharedStage?.id ?? null,
+    format: future?.plan?.format ?? classFormat.format,
+    scheduleType: future?.plan?.scheduleType ?? classFormat.scheduleType,
+    entryPeriod: future ? "NEXT" : "CURRENT",
+    selectedId: future?.planId ?? "",
   };
 }
 
@@ -109,12 +116,18 @@ export function leadStudentSelections(lead: Lead): {
   stageId: string | null;
   format: "IN_PERSON" | "ONLINE";
   scheduleType: "REGULAR" | "PERSONALIZED";
+  entryPeriod: "CURRENT" | "NEXT";
   selectedId: string;
 } {
+  const futurePlan = Boolean(
+    lead.allocationPlan &&
+    lead.allocationPlan.semester.startDate > new Date(toDateOnlySaoPaulo(new Date())),
+  );
   return {
     stageId: lead.stageId,
     format: lead.format ?? "IN_PERSON",
     scheduleType: lead.scheduleType ?? "REGULAR",
-    selectedId: lead.allocationPlan?.classId ?? "",
+    entryPeriod: futurePlan ? "NEXT" : "CURRENT",
+    selectedId: futurePlan ? (lead.allocationPlan?.id ?? "") : (lead.allocationPlan?.classId ?? ""),
   };
 }

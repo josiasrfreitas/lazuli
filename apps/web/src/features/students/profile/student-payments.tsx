@@ -149,6 +149,17 @@ function PaymentRow({
             </p>
           )}
         </div>
+        {payment.reversals.length > 0 && (
+          <div className="grid gap-1 border-t border-border pt-2 text-caption">
+            <p className="font-medium">Valor original: {formatBRLFromCents(payment.amountCents)}</p>
+            {payment.reversals.map((reversal) => (
+              <p key={reversal.id} className="text-muted-foreground">
+                {reversal.kind === "CANCELLATION" ? "Cancelado" : "Estornado"} em{" "}
+                {formatDateOnlyBR(reversal.occurredOn)} · {formatBRLFromCents(reversal.amountCents)}
+              </p>
+            ))}
+          </div>
+        )}
         <PaymentProofLinks proofs={payment.proofs} />
         <PaymentProofPicker
           file={upload.file}
@@ -182,11 +193,12 @@ function PaymentRowSummary({ payment }: { payment: Payment }): ReactElement {
         <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-caption font-semibold">
           <span>{formatDateOnlyBR(payment.date)}</span>
           <span className="font-numeric tabular-nums">
-            {formatBRLFromCents(payment.amountCents)}
+            {formatBRLFromCents(payment.availableAmountCents)}
           </span>
         </div>
         <span className="text-caption text-muted-foreground">
           {payment.paymentMethod.name} ·{" "}
+          {payment.reversals.length > 0 ? "valor após reversões · " : ""}
           {payment.proofs.length === 0
             ? "Sem comprovante"
             : `${payment.proofs.length} ${payment.proofs.length === 1 ? "comprovante" : "comprovantes"}`}

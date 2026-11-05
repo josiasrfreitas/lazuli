@@ -1,331 +1,202 @@
 "use client";
-import { useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
-import { Camera, LoaderCircle, Plus, UserRound } from "lucide-react";
+
+import { useEffect, useRef, useState, type ReactElement } from "react";
+import { Plus, Upload, UserRound } from "lucide-react";
 import {
   Button,
   Dialog,
-  DialogPortal,
   DialogBackdrop,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
-  ToastAlert,
+  DialogPortal,
+  DialogTitle,
+  FileUpload,
+  toastManager,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import dynamic from "next/dynamic";
-
-import { DOCUMENTS } from "./model";
+import { RegistrationDocumentLoading } from "~/features/students/profile/registration-document-preview";
+import { combinePages, loadImage } from "./images";
+import { captureRequest } from "./model";
 import styles from "./documents.module.css";
 
-const DocumentCapture = dynamic(() => import("./capture").then((module) => module.DocumentCapture));
-
+const MAX_PHOTO_BYTES = 26_214_400;
+const PHOTO_REFRESH_MS = 3000;
 type PhotoSession = { id: string; token: string };
 type StudentPhotoProps = { studentId: string; name: string };
-type PhotoActionsArgs = {
-  studentId: string;
-  session: PhotoSession | null;
-  busy: boolean;
-  createSession: (input: { studentId: string }) => Promise<PhotoSession>;
-  closeSession: (input: { id: string }) => void;
-  refetchPhoto: () => Promise<void>;
-  setSession: Dispatch<SetStateAction<PhotoSession | null>>;
-  setEditing: Dispatch<SetStateAction<boolean>>;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  setViewerLoaded: Dispatch<SetStateAction<boolean>>;
-};
-
-function createPhotoActions(args: PhotoActionsArgs): {
-  startUpload: () => Promise<void>;
-  returnToPhoto: () => Promise<void>;
-  finish: () => void;
-} {
-  async function startUpload(): Promise<void> {
-    args.setEditing(true);
-    try {
-      args.setSession(await args.createSession({ studentId: args.studentId }));
-    } catch {
-      /* The upload view offers a retry. */
-    }
-  }
-  async function returnToPhoto(): Promise<void> {
-    if (args.session) args.closeSession({ id: args.session.id });
-    args.setSession(null);
-    await args.refetchPhoto();
-    args.setViewerLoaded(false);
-    args.setEditing(false);
-  }
-  function finish(): void {
-    if (args.busy) return;
-    if (args.session) args.closeSession({ id: args.session.id });
-    args.setSession(null);
-    args.setEditing(false);
-    args.setOpen(false);
-    void args.refetchPhoto();
-  }
-  return { startUpload, returnToPhoto, finish };
-}
 
 export function StudentPhoto({ studentId, name }: StudentPhotoProps): ReactElement {
-  const photo = trpc.studentDocuments.photo.useQuery({ studentId });
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [waitingForPhoto, setWaitingForPhoto] = useState(false);
+  const beforeUploadId = useRef<string | undefined>(undefined);
+  const photo = trpc.studentDocuments.photo.useQuery(
+    { studentId },
+    { refetchInterval: waitingForPhoto ? PHOTO_REFRESH_MS : false },
+  );
   const create = trpc.studentDocuments.create.useMutation();
   const close = trpc.studentDocuments.close.useMutation();
-  const [session, setSession] = useState<PhotoSession | null>(null);
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [viewerLoaded, setViewerLoaded] = useState(false);
+  const utils = trpc.useUtils();
+  const photoId = photo.data?.id;
   const photoUrl = photo.data
     ? `/api/student-document-files/${photo.data.id}?v=${photo.data.updatedAt.getTime()}`
     : undefined;
 
-  const { startUpload, returnToPhoto, finish } = createPhotoActions({
-    studentId,
-    session,
-    busy,
-    createSession: create.mutateAsync,
-    closeSession: close.mutate,
-    refetchPhoto: async () => {
-      await photo.refetch();
-    },
-    setSession,
-    setEditing,
-    setOpen,
-    setViewerLoaded,
-  });
+  useEffect(() => {
+    if (!waitingForPhoto) return;
+    if (photoId && photoId !== beforeUploadId.current) {
+      setWaitingForPhoto(false);
+      setLoaded(false);
+      return;
+    }
+    const timer = globalThis.setTimeout(() => setWaitingForPhoto(false), 45_000);
+    return () => globalThis.clearTimeout(timer);
+  }, [photoId, waitingForPhoto]);
 
-  return (
-    <PhotoDialog
-      name={name}
-      open={open}
-      editing={editing}
-      session={session}
-      createError={create.isError}
-      photoUrl={photoUrl}
-      viewerLoaded={viewerLoaded}
-      onFinish={finish}
-      onRetry={startUpload}
-      onBack={returnToPhoto}
-      onBusyChange={setBusy}
-      onSent={() => void photo.refetch()}
-      onLoad={() => setViewerLoaded(true)}
-      onOpen={() => {
-        setViewerLoaded(false);
-        setOpen(true);
-      }}
-    />
-  );
-}
+  async function upload(file: File): Promise<void> {
+    if (!["image/jpeg", "image/png"].includes(file.type) || file.size > MAX_PHOTO_BYTES) {
+      toastManager.add({
+        title: "Escolha uma foto JPG ou PNG de até 25 MB.",
+        type: "error",
+      });
+      return;
+    }
+    setBusy(true);
+    let session: PhotoSession | undefined;
+    try {
+      const image = await loadImage(file);
+      const body = await combinePages([image]);
+      session = await create.mutateAsync({ studentId });
+      await captureRequest(session.token, {
+        path: "/photo",
+        options: { method: "POST", headers: { "Content-Type": "image/jpeg" }, body },
+      });
+      beforeUploadId.current = photoId;
+      setWaitingForPhoto(true);
+      void Promise.allSettled([
+        photo.refetch(),
+        utils.studentDocuments.list.invalidate({ studentId }),
+        utils.students.pendingActions.invalidate({ id: studentId }),
+        utils.dashboard.invalidate(),
+      ]);
+      toastManager.add({
+        title: "Foto enviada",
+        description: "O processamento foi iniciado.",
+        type: "success",
+      });
+    } catch {
+      toastManager.add({
+        title: "Não foi possível enviar a foto.",
+        description: "Escolha o arquivo novamente.",
+        type: "error",
+      });
+    } finally {
+      if (session) close.mutate({ id: session.id });
+      setBusy(false);
+    }
+  }
 
-type PhotoDialogProps = {
-  name: string;
-  open: boolean;
-  editing: boolean;
-  session: PhotoSession | null;
-  createError: boolean;
-  photoUrl: string | undefined;
-  viewerLoaded: boolean;
-  onFinish: () => void;
-  onRetry: () => Promise<void>;
-  onBack: () => Promise<void>;
-  onBusyChange: (busy: boolean) => void;
-  onSent: () => void;
-  onLoad: () => void;
-  onOpen: () => void;
-};
-
-function PhotoDialog(props: PhotoDialogProps): ReactElement {
+  const loading = busy || waitingForPhoto || Boolean(photoUrl && !loaded);
   return (
     <>
-      <PhotoTrigger
-        name={props.name}
-        photoUrl={props.photoUrl}
-        onOpen={props.onOpen}
-        onUpload={props.onRetry}
-      />
+      <button
+        type="button"
+        className={styles.profilePhotoTrigger}
+        data-has-photo={Boolean(photoUrl)}
+        aria-label={photoUrl ? `Ver foto de ${name}` : `Adicionar foto de ${name}`}
+        title={photoUrl ? "Ver foto do aluno" : "Adicionar foto do aluno"}
+        onClick={() => {
+          setLoaded(false);
+          setOpen(true);
+        }}
+      >
+        <span className={styles.profilePhotoThumb}>
+          {photoUrl ? (
+            <img src={photoUrl} alt="" />
+          ) : (
+            <>
+              <UserRound aria-hidden="true" />
+              <span className={styles.profilePhotoAdd}>
+                <Plus aria-hidden="true" />
+              </span>
+            </>
+          )}
+        </span>
+      </button>
       <Dialog
-        open={props.open}
+        open={open}
         onOpenChange={(value) => {
-          if (!value) props.onFinish();
+          if (!value && !busy) setOpen(false);
         }}
       >
         <DialogPortal>
           <DialogBackdrop />
-          {props.editing ? (
-            <PhotoUpload
-              name={props.name}
-              session={props.session}
-              createError={props.createError}
-              onRetry={props.onRetry}
-              onBack={props.onBack}
-              onBusyChange={props.onBusyChange}
-              onSent={props.onSent}
+          <DialogContent
+            showCloseButton={false}
+            className="student-photo-viewer"
+            data-empty={!photoUrl}
+          >
+            <DialogTitle className="sr-only">Foto do aluno</DialogTitle>
+            <DialogDescription className="sr-only">{name}</DialogDescription>
+            {photoUrl ? (
+              <img
+                className={styles.profilePhotoLarge}
+                data-loaded={loaded && !busy && !waitingForPhoto}
+                src={photoUrl}
+                alt={`Foto de ${name}`}
+                onLoad={() => setLoaded(true)}
+              />
+            ) : (
+              <span className={styles.profilePhotoEmpty}>
+                <UserRound aria-hidden="true" />
+              </span>
+            )}
+            {loading && (
+              <div className={styles.profilePhotoUploadLoading}>
+                <RegistrationDocumentLoading
+                  label={
+                    busy
+                      ? "Enviando foto…"
+                      : waitingForPhoto
+                        ? "Processando foto…"
+                        : "Carregando foto…"
+                  }
+                />
+              </div>
+            )}
+            <FileUpload
+              compact
+              className="student-photo-file-upload"
+              value={[]}
+              accept="image/jpeg,image/png"
+              acceptLabel="JPG ou PNG"
+              maxSize={MAX_PHOTO_BYTES}
+              disabled={busy || waitingForPhoto}
+              onValidationError={(message) => toastManager.add({ title: message, type: "error" })}
+              onValueChange={(files) => {
+                const file = files[0];
+                if (file) void upload(file);
+              }}
+              renderTrigger={(picker) =>
+                !busy && !waitingForPhoto ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon-sm"
+                    className="student-photo-upload-button"
+                    disabled={picker.disabled}
+                    aria-label={photoUrl ? "Atualizar foto" : "Enviar foto"}
+                    title={photoUrl ? "Atualizar foto" : "Enviar foto"}
+                    onClick={picker.open}
+                  >
+                    <Upload aria-hidden="true" />
+                  </Button>
+                ) : null
+              }
             />
-          ) : (
-            <PhotoViewer
-              name={props.name}
-              photoUrl={props.photoUrl}
-              loaded={props.viewerLoaded}
-              onLoad={props.onLoad}
-              onUpload={props.onRetry}
-            />
-          )}
+          </DialogContent>
         </DialogPortal>
       </Dialog>
     </>
-  );
-}
-
-function PhotoTrigger({
-  name,
-  photoUrl,
-  onOpen,
-  onUpload,
-}: {
-  name: string;
-  photoUrl: string | undefined;
-  onOpen: () => void;
-  onUpload: () => Promise<void>;
-}): ReactElement {
-  return (
-    <button
-      type="button"
-      className={styles.profilePhotoTrigger}
-      data-has-photo={Boolean(photoUrl)}
-      aria-label={photoUrl ? `Ver foto de ${name}` : `Adicionar foto de ${name}`}
-      title={photoUrl ? "Ver foto do aluno" : "Adicionar foto do aluno"}
-      onClick={() => {
-        onOpen();
-        if (!photoUrl) void onUpload();
-      }}
-    >
-      <span className={styles.profilePhotoThumb}>
-        {photoUrl ? (
-          <img src={photoUrl} alt="" />
-        ) : (
-          <>
-            <UserRound aria-hidden="true" />
-            <span className={styles.profilePhotoAdd}>
-              <Plus aria-hidden="true" />
-            </span>
-          </>
-        )}
-      </span>
-    </button>
-  );
-}
-
-function PhotoUpload({
-  name,
-  session,
-  createError,
-  onRetry,
-  onBack,
-  onBusyChange,
-  onSent,
-}: {
-  name: string;
-  session: { id: string; token: string } | null;
-  createError: boolean;
-  onRetry: () => Promise<void>;
-  onBack: () => Promise<void>;
-  onBusyChange: (busy: boolean) => void;
-  onSent: () => void;
-}): ReactElement {
-  return (
-    <DialogContent className="student-photo-upload-dialog">
-      <DialogHeader>
-        <DialogTitle>Foto do aluno</DialogTitle>
-        <DialogDescription>{name}</DialogDescription>
-      </DialogHeader>
-      <PhotoUploadBody
-        createError={createError}
-        session={session}
-        onRetry={onRetry}
-        onBack={onBack}
-        onBusyChange={onBusyChange}
-        onSent={onSent}
-      />
-    </DialogContent>
-  );
-}
-
-function PhotoUploadBody({
-  createError,
-  session,
-  onRetry,
-  onBack,
-  onBusyChange,
-  onSent,
-}: Omit<Parameters<typeof PhotoUpload>[0], "name">): ReactElement {
-  if (createError && !session)
-    return (
-      <ToastAlert variant="destructive">
-        Não foi possível iniciar o envio.
-        <Button onClick={() => void onRetry()}>Tentar novamente</Button>
-      </ToastAlert>
-    );
-  if (!session) return <p role="status">Preparando envio…</p>;
-  return (
-    <DocumentCapture
-      key={session.id}
-      embedded
-      document={DOCUMENTS.find((document) => document.id === "photo")!}
-      token={session.token}
-      onBack={() => {
-        void onBack();
-      }}
-      doneLabel="Ver foto"
-      onBusyChange={onBusyChange}
-      onSent={onSent}
-    />
-  );
-}
-
-function PhotoViewer({
-  name,
-  photoUrl,
-  loaded,
-  onLoad,
-  onUpload,
-}: {
-  name: string;
-  photoUrl: string | undefined;
-  loaded: boolean;
-  onLoad: () => void;
-  onUpload: () => Promise<void>;
-}): ReactElement {
-  return (
-    <DialogContent showCloseButton={false} className="student-photo-viewer">
-      <DialogTitle className="sr-only">Foto do aluno</DialogTitle>
-      <DialogDescription className="sr-only">{name}</DialogDescription>
-      {photoUrl && (
-        <>
-          {!loaded && (
-            <span className={styles.profilePhotoLoading} role="status" aria-label="Carregando foto">
-              <LoaderCircle aria-hidden="true" />
-            </span>
-          )}
-          <img
-            className={styles.profilePhotoLarge}
-            data-loaded={loaded}
-            src={photoUrl}
-            alt={`Foto de ${name}`}
-            onLoad={onLoad}
-          />
-        </>
-      )}
-      <Button
-        type="button"
-        variant="secondary"
-        size="icon-sm"
-        className="student-photo-upload-button"
-        aria-label="Atualizar foto"
-        title="Atualizar foto"
-        onClick={() => void onUpload()}
-      >
-        <Camera aria-hidden="true" />
-      </Button>
-    </DialogContent>
   );
 }

@@ -74,15 +74,6 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
       staffUser,
       requestId,
     };
-    logger.info(
-      {
-        request_id: requestId,
-        checkpoint: "trpc_context",
-        duration_ms: Math.round(performance.now() - started),
-        staff_user_id: staffUser?.id,
-      },
-      "tRPC context ready",
-    );
     return context;
   } catch (error) {
     logger.error(
@@ -92,7 +83,7 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
         duration_ms: Math.round(performance.now() - started),
         ...safeError(error),
       },
-      "tRPC context failed",
+      "Failed to prepare database and staff identity for request",
     );
     throw error;
   }

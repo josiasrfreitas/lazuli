@@ -3,7 +3,14 @@
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { useQueryState } from "nuqs";
-import { ArrowRight, CircleCheck, FilePenLine, FileText, UsersRound } from "lucide-react";
+import {
+  ArrowRight,
+  CircleCheck,
+  FilePenLine,
+  FileText,
+  FolderOpen,
+  UsersRound,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
@@ -16,9 +23,10 @@ type Intent = RouterOutputs["semesterOrganization"]["studentIntent"];
 type Props = {
   studentId: string;
   pedagogy: ReturnType<typeof useStudentPedagogy>;
+  onNavigate: (section: "cadastro") => void;
 };
 
-export function StudentPendingActions({ studentId, pedagogy }: Props): ReactElement {
+export function StudentPendingActions({ studentId, pedagogy, onNavigate }: Props): ReactElement {
   const query = trpc.students.pendingActions.useQuery({ id: studentId });
   const intentions = trpc.semesterOrganization.studentIntent.useQuery({ studentId });
   const [step, setStep] = useState<IntakeStep | null>(null);
@@ -26,10 +34,11 @@ export function StudentPendingActions({ studentId, pedagogy }: Props): ReactElem
   const utils = trpc.useUtils();
   const ready = [query.data, intentions.data, pedagogy.data].every(Boolean);
   const failed = [query.isError, intentions.isError, pedagogy.isError].some(Boolean);
-  const { items, proposals, count, requestedContract } = pendingContent({
+  const { items, destinations, count, requestedContract } = pendingContent({
     items: query.data?.items,
     enrollments: pedagogy.data?.enrollments.length,
     intentions: intentions.data,
+    today: pedagogy.data?.today,
     ready,
     createContract,
   });
@@ -55,7 +64,13 @@ export function StudentPendingActions({ studentId, pedagogy }: Props): ReactElem
         empty={count === 0}
         retry={() => void Promise.all([query.refetch(), intentions.refetch(), pedagogy.refetch()])}
       />
-      <PendingActionList items={items} proposals={proposals} onContinue={setStep} />
+      <PendingActionList
+        items={items}
+        destinations={destinations}
+        nextPeriod={Boolean(query.data?.futurePlacement)}
+        onContinue={setStep}
+        onNavigate={onNavigate}
+      />
       <NewStudentDialog
         open={step !== null || requestedContract}
         initialStep={step ?? (requestedContract ? "contract" : "student")}
@@ -82,28 +97,33 @@ function pendingContent({
   items,
   enrollments,
   intentions,
+  today,
   ready,
   createContract,
 }: {
   items: PendingAction[] | undefined;
   enrollments: number | undefined;
   intentions: Intent | undefined;
+  today: string | undefined;
   ready: boolean;
   createContract: string | null;
 }): {
   items: PendingAction[];
-  proposals: Intent;
+  destinations: Intent;
   count: number;
   requestedContract: boolean;
 } {
   const visible = visibleActions(items ?? [], enrollments ?? 0, intentions ?? []);
-  const proposals = (intentions ?? []).filter(
-    ({ placement }) => !placement.publishedAt && !placement.declinedAt && placement.plan,
+  const destinations = (intentions ?? []).filter(
+    ({ semester, placement }) =>
+      !placement.declinedAt &&
+      placement.plan &&
+      (!placement.publishedAt || (today && semester.startDate.toISOString().slice(0, 10) > today)),
   );
   return {
     items: visible,
-    proposals,
-    count: visible.length + proposals.length,
+    destinations,
+    count: visible.length + destinations.length,
     requestedContract:
       ready && createContract === "1" && visible.some((item) => item.type === "CONTRACT"),
   };
@@ -118,34 +138,43 @@ export function visibleActions(
   const hasPlacement = items.some((item) => item.type === "PLACEMENT");
   return items.filter(
     (item) =>
-      (item.type === "CONTRACT" || !hasDestination) &&
+      (item.type === "CONTRACT" || item.type === "DOCUMENTS" || !hasDestination) &&
       !(item.type === "CLASS_ALLOCATION" && (hasPlacement || item.blockedBy.length > 0)),
   );
 }
 
 function PendingActionList({
   items,
-  proposals,
+  destinations,
+  nextPeriod,
   onContinue,
+  onNavigate,
 }: {
   items: PendingAction[];
-  proposals: Intent;
+  destinations: Intent;
+  nextPeriod: boolean;
   onContinue: (step: IntakeStep) => void;
+  onNavigate: (section: "cadastro") => void;
 }): ReactElement {
   return (
     <ul className={styles.list}>
       {items.map((item) => (
         <li key={item.id}>
-          <RegistrationWork item={item} onContinue={onContinue} />
+          <RegistrationWork
+            item={item}
+            nextPeriod={nextPeriod}
+            onContinue={onContinue}
+            onNavigate={onNavigate}
+          />
         </li>
       ))}
-      {proposals.map(({ semester, placement }) => (
+      {destinations.map(({ semester, placement }) => (
         <li key={placement.id}>
           <WorkRow
             icon={UsersRound}
-            title="Confirmar turma proposta"
+            title={placement.publishedAt ? "Nova turma confirmada" : "Confirmar turma proposta"}
             detail={`${placement.plan?.name} · ${semester.name}`}
-            action="Ver proposta"
+            action={placement.publishedAt ? "Ver turma" : "Ver proposta"}
             href={`/organizacao?semestre=${semester.id}`}
           />
         </li>
@@ -156,11 +185,25 @@ function PendingActionList({
 
 function RegistrationWork({
   item,
+  nextPeriod,
   onContinue,
+  onNavigate,
 }: {
   item: PendingAction;
+  nextPeriod: boolean;
   onContinue: (step: IntakeStep) => void;
+  onNavigate: (section: "cadastro") => void;
 }): ReactElement {
+  if (item.type === "DOCUMENTS")
+    return (
+      <WorkRow
+        icon={FolderOpen}
+        title={item.title}
+        detail={item.description}
+        action={item.action.label}
+        onClick={() => onNavigate("cadastro")}
+      />
+    );
   if (item.action.type === "OPEN_LEAD")
     return (
       <WorkRow
@@ -175,8 +218,14 @@ function RegistrationWork({
   return (
     <WorkRow
       icon={allocation ? UsersRound : FileText}
-      title={allocation ? "Definir primeira turma" : "Criar primeiro contrato"}
-      detail={registrationDetail(allocation, item.blockedBy.length > 0)}
+      title={
+        allocation
+          ? nextPeriod
+            ? "Definir turma do próximo período"
+            : "Definir primeira turma"
+          : "Criar primeiro contrato"
+      }
+      detail={registrationDetail(allocation, item.blockedBy.length > 0, nextPeriod)}
       action={allocation ? "Definir turma" : "Criar contrato"}
       disabled={item.blockedBy.length > 0}
       onClick={() => onContinue(allocation ? "pedagogy" : "contract")}
@@ -184,9 +233,10 @@ function RegistrationWork({
   );
 }
 
-function registrationDetail(allocation: boolean, blocked: boolean): string {
+function registrationDetail(allocation: boolean, blocked: boolean, nextPeriod: boolean): string {
   if (!allocation) return "Condições comerciais não registradas";
-  return blocked ? "Aguardando o resultado do nivelamento" : "Entrada do aluno ainda sem destino";
+  if (blocked) return "Aguardando o resultado do nivelamento";
+  return nextPeriod ? "Entrada prevista sem turma definida" : "Entrada do aluno ainda sem destino";
 }
 
 type WorkRowProps = {

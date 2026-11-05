@@ -149,17 +149,43 @@ async function loadReceivedThisMonthCents(database: FinanceDatabase, now: Date):
   const { startDateOnlyUtc, endExclusiveDateOnlyUtc } = saoPauloMonthDateOnlyUtcBounds(now);
   const allocations = await database.paymentAllocation.findMany({
     where: {
+      deletedAt: null,
       paymentEntry: {
+        deletedAt: null,
         date: {
           gte: startDateOnlyUtc,
           lt: endExclusiveDateOnlyUtc,
         },
       },
     },
+    select: {
+      amountCents: true,
+      reversals: {
+        where: { deletedAt: null, reversal: { deletedAt: null, kind: "CANCELLATION" } },
+        select: { amountCents: true },
+      },
+    },
+  });
+  const refunds = await database.paymentReversalAllocation.findMany({
+    where: {
+      deletedAt: null,
+      reversal: {
+        deletedAt: null,
+        kind: "REFUND",
+        occurredOn: { gte: startDateOnlyUtc, lt: endExclusiveDateOnlyUtc },
+      },
+    },
     select: { amountCents: true },
   });
-
-  return allocations.reduce((total, allocation) => total + allocation.amountCents, 0);
+  return (
+    allocations.reduce(
+      (total, allocation) =>
+        total +
+        allocation.amountCents -
+        allocation.reversals.reduce((sum, reversal) => sum + reversal.amountCents, 0),
+      0,
+    ) - refunds.reduce((total, refund) => total + refund.amountCents, 0)
+  );
 }
 
 async function loadActiveOrderInstallments(
@@ -212,15 +238,33 @@ async function loadInstallmentEntries<Row extends { id: string }>(
 ): Promise<Array<Row & { adjustments: MonetaryEntry[]; allocations: MonetaryEntry[] }>> {
   const installmentIds = installments.map((installment) => installment.id);
   const adjustments = await database.installmentAdjustment.findMany({
-    where: { installmentId: { in: installmentIds } },
+    where: { installmentId: { in: installmentIds }, deletedAt: null },
     select: { installmentId: true, amountCents: true },
   });
   const allocations = await database.paymentAllocation.findMany({
-    where: { installmentId: { in: installmentIds } },
-    select: { installmentId: true, amountCents: true },
+    where: {
+      installmentId: { in: installmentIds },
+      deletedAt: null,
+      paymentEntry: { deletedAt: null },
+    },
+    select: {
+      installmentId: true,
+      amountCents: true,
+      reversals: {
+        where: { deletedAt: null, reversal: { deletedAt: null } },
+        select: { amountCents: true },
+      },
+    },
   });
   const adjustmentsByInstallment = groupByInstallment(adjustments);
-  const allocationsByInstallment = groupByInstallment(allocations);
+  const allocationsByInstallment = groupByInstallment(
+    allocations.map((allocation) => ({
+      installmentId: allocation.installmentId,
+      amountCents:
+        allocation.amountCents -
+        allocation.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+    })),
+  );
 
   return installments.map((installment) => ({
     ...installment,

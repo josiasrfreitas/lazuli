@@ -172,7 +172,13 @@ function terminationLines(
         principalCents,
         chargesCents,
         version,
-        paidCents: item.allocations.reduce((sum, allocation) => sum + allocation.amountCents, 0),
+        paidCents: item.allocations.reduce(
+          (sum, allocation) =>
+            sum +
+            allocation.amountCents -
+            allocation.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+          0,
+        ),
       };
     })
     .filter((line) => line.principalCents > 0 || line.chargesCents > 0);

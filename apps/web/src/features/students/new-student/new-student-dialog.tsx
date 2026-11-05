@@ -24,6 +24,7 @@ import {
 import { createEnrollmentNavigation, type EnrollmentNavigation } from "./new-student-navigation";
 import { useEnrollmentPersistence, type EnrollmentPersistence } from "./new-student-persistence";
 import { createRequestSave } from "./new-student-request-save";
+import { intakeStepCompletion } from "./new-student-completion";
 
 export type IntakeStep = "student" | "address" | "pedagogy" | "contract";
 const MOBILE_HINT_DELAY_MS = 2500;
@@ -43,6 +44,7 @@ export type EnrollmentModel = {
   onOpenChange: (open: boolean) => void;
   today: string;
   requestSave: (withContract: boolean) => void;
+  stepCompletion: { student: boolean; address: boolean };
 } & EnrollmentIdentity &
   EnrollmentFlow &
   EnrollmentContract &
@@ -96,6 +98,7 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
     documents,
     classes: classSources,
     today,
+    existingStudentId: props.existingStudentId,
     saveBeforeClose: () => requestSave(false, true),
     onOpenChange: props.onOpenChange,
   });
@@ -109,8 +112,15 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
     existingSources,
     navigation,
   });
+  const stepCompletion = intakeStepCompletion(
+    documents,
+    identity.state.fields,
+    today,
+    props.existingStudentId,
+  );
   return {
     documents,
+    stepCompletion,
     existingStudentId: props.existingStudentId,
     onOpenChange: props.onOpenChange,
     today,
@@ -155,6 +165,7 @@ function useEnrollmentSave({
   const requestSave = createRequestSave({
     identity,
     flow,
+    documents,
     contractData,
     classes: classSources,
     existing: existingSources,

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import pino, { type DestinationStream, type Logger } from "pino";
 import { configuredLogLevel, type LogLevel } from "./config.js";
+import { formatDevelopmentLine } from "./development-format.js";
 
 type ServiceName = "web" | "worker";
 
@@ -24,7 +25,14 @@ export function createServiceLogger(
     level,
     messageKey: "message",
     timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
-    formatters: { level: (label: string) => ({ level: label.toUpperCase() }) },
+    formatters: {
+      level: (label: string) => ({ level: label.toUpperCase() }),
+      log: (value: Record<string, unknown>) => {
+        if (typeof value.error_stack !== "string") return value;
+        const { error_stack, ...fields } = value;
+        return { ...fields, exception: error_stack };
+      },
+    },
     // Callers pass only allowlisted fields. Redaction is a second line of defense.
     redact: {
       paths: [
@@ -41,9 +49,54 @@ export function createServiceLogger(
       censor: "[REDACTED]",
     },
   };
-  return options.destination === undefined
-    ? pino(configuration)
-    : pino(configuration, options.destination);
+  if (options.destination !== undefined) return pino(configuration, options.destination);
+  if (process.env.NODE_ENV === "development" && process.env.LOG_FORMAT !== "json")
+    return pino(configuration, developmentDestination);
+  return pino(configuration);
+}
+
+const developmentDestination: DestinationStream = {
+  write(line: string): void {
+    try {
+      process.stdout.write(
+        formatDevelopmentLine(
+          line,
+          !process.env.NO_COLOR &&
+            (Boolean(process.stdout.isTTY) || process.env.FORCE_COLOR === "1"),
+        ),
+      );
+    } catch {
+      process.stdout.write("[logging] Failed to format a log line.\n");
+    }
+  },
+};
+
+/** Log only reviewed, non-identifying facts from real process steps in local development. */
+export function logDevelopmentProcess(
+  logger: Logger,
+  event: {
+    requestId?: string | undefined;
+    userId?: string | undefined;
+    resource: string;
+    operation: "GET" | "POST" | "DELETE" | "DB" | "API";
+    step: string;
+    durationMs?: number | undefined;
+    facts?: Record<string, number | boolean> | undefined;
+  },
+): void {
+  if (process.env.NODE_ENV !== "development") return;
+  logger.info(
+    {
+      request_id: event.requestId,
+      user_id: event.userId,
+      resource: event.resource,
+      operation: event.operation,
+      process_step: event.step,
+      duration_ms: event.durationMs,
+      facts: event.facts,
+    },
+    event.step,
+  );
 }
 
 /** Keep call frames for server diagnosis without recording error messages or query values. */
@@ -73,12 +126,7 @@ export async function withCheckpoint<Result>(
   const { checkpoint, action } = options;
   const start = performance.now();
   try {
-    const result = await action();
-    logger.info(
-      { checkpoint, duration_ms: Math.round(performance.now() - start), status: "ok" },
-      `${checkpoint} completed`,
-    );
-    return result;
+    return await action();
   } catch (error) {
     logger.error(
       {
@@ -87,7 +135,7 @@ export async function withCheckpoint<Result>(
         status: "error",
         ...safeError(error),
       },
-      `${checkpoint} failed`,
+      "Failed to load data for operation",
     );
     throw error;
   }

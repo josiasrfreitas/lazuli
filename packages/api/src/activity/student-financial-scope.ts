@@ -23,7 +23,11 @@ export async function studentFinancialActivityScope(
       select: { commandId: true },
     }),
   ]);
-  const keys = financialKeys(payments, agreements);
+  const reversals = await database.paymentReversal.findMany({
+    where: { paymentEntryId: { in: payments.map((row) => row.id) } },
+    select: { id: true },
+  });
+  const keys = financialKeys(payments, agreements, reversals);
   return {
     area: "FINANCIAL",
     OR: [
@@ -53,6 +57,7 @@ export async function studentFinancialActivityScope(
 function financialKeys(
   payments: { id: string; operationId: string | null }[],
   agreements: { commandId: string }[],
+  reversals: { id: string }[],
 ): string[] {
   return [
     ...payments.map((row) => `finance.registerPayment:${row.id}`),
@@ -60,5 +65,6 @@ function financialKeys(
       row.operationId ? [`finance.confirmPayments:${row.operationId}`] : [],
     ),
     ...agreements.map((row) => `finance.treatment:${row.commandId}`),
+    ...reversals.map((row) => `finance.reversePayment:${row.id}`),
   ];
 }

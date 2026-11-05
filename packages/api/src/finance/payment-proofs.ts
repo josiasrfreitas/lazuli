@@ -110,6 +110,13 @@ export async function studentPayments(
     id: string;
     date: string;
     amountCents: number;
+    availableAmountCents: number;
+    reversals: Array<{
+      id: string;
+      kind: "CANCELLATION" | "REFUND";
+      amountCents: number;
+      occurredOn: string;
+    }>;
     externalInstallments: number;
     payer: { name: string };
     paymentMethod: { name: string };
@@ -128,6 +135,10 @@ export async function studentPayments(
       id: true,
       date: true,
       amountCents: true,
+      reversals: {
+        where: { deletedAt: null },
+        select: { id: true, kind: true, amountCents: true, occurredOn: true },
+      },
       externalInstallments: true,
       payer: { select: { name: true } },
       paymentMethod: { select: { name: true } },
@@ -145,7 +156,70 @@ export async function studentPayments(
   const more = rows.length > PAYMENT_PAGE_SIZE;
   if (more) rows.pop();
   return {
-    rows: rows.map((row) => ({ ...row, date: toDateOnlyString(row.date) })),
+    rows: rows.map((row) => ({
+      ...row,
+      date: toDateOnlyString(row.date),
+      availableAmountCents:
+        row.amountCents -
+        row.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+      reversals: row.reversals.map((reversal) => ({
+        ...reversal,
+        occurredOn: toDateOnlyString(reversal.occurredOn),
+      })),
+    })),
     nextCursor: more ? rows.at(-1)?.id : undefined,
+  };
+}
+
+export async function installmentPayments(
+  ctx: Context,
+  installmentId: string,
+): Promise<{
+  rows: Array<{
+    id: string;
+    date: string;
+    amountCents: number;
+    originalAmountCents: number;
+    proofs: Array<{ id: string; fileName: string; byteLength: number }>;
+  }>;
+}> {
+  paymentProofStaff(ctx);
+  const allocations = await ctx.db.paymentAllocation.findMany({
+    where: {
+      installmentId,
+      deletedAt: null,
+      paymentEntry: { deletedAt: null },
+    },
+    select: {
+      amountCents: true,
+      reversals: {
+        where: { deletedAt: null, reversal: { deletedAt: null } },
+        select: { amountCents: true },
+      },
+      paymentEntry: {
+        select: {
+          id: true,
+          date: true,
+          proofs: {
+            where: { deletedAt: null },
+            select: { id: true, fileName: true, byteLength: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      },
+    },
+  });
+  return {
+    rows: allocations
+      .map((allocation) => ({
+        id: allocation.paymentEntry.id,
+        date: toDateOnlyString(allocation.paymentEntry.date),
+        amountCents:
+          allocation.amountCents -
+          allocation.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+        originalAmountCents: allocation.amountCents,
+        proofs: allocation.paymentEntry.proofs,
+      }))
+      .toSorted((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)),
   };
 }

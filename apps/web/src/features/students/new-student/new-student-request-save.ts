@@ -1,5 +1,7 @@
 import { previewContractInput } from "~/features/contracts/contract-form-model";
 import { fieldErrors } from "~/features/contracts/new-contract-state";
+import type { EnrollmentDocuments } from "~/features/student-documents/use-enrollment-documents";
+import { missingIntakeDocuments } from "./new-student-completion";
 import type { EnrollmentNavigation } from "./new-student-navigation";
 import type { EnrollmentPersistence } from "./new-student-persistence";
 import type { ClassSources, ExistingSources } from "./new-student-sources";
@@ -11,10 +13,12 @@ import {
   intakePendingItems,
   intakeSaveIssue,
   parseIntakeCommand,
+  type IntakePendingItem,
 } from "./new-student-save";
 
 type SaveContext = {
   identity: EnrollmentIdentity;
+  documents: EnrollmentDocuments;
   flow: EnrollmentFlow;
   contractData: EnrollmentContract;
   classes: ClassSources;
@@ -48,17 +52,11 @@ function prepareIntakeSave(
     parsedContract: ParsedContract;
   },
 ): {
-  items: string[];
+  items: IntakePendingItem[];
   parsed: ReturnType<typeof parseIntakeCommand>;
 } {
   const { identity, flow, classes, existing, existingStudentId } = context;
-  const items = intakePendingItems({
-    selected: Boolean(classes.selected),
-    existingEnrollment: Boolean(existing.existingEnrollment),
-    waitingPlacement: classes.waitingPlacement,
-    withContract,
-    existingContract: Boolean(existing.existingContract),
-  });
+  const items = pendingItemsFor(context, withContract);
   const parsed = parseIntakeCommand({
     existingStudentId,
     fields: identity.state.fields,
@@ -67,8 +65,10 @@ function prepareIntakeSave(
     candidateId: identity.candidateId,
     draftLead: identity.draftLead,
     shared: {
+      entryPeriod: identity.entryPeriod,
       stageId: identity.stageId,
-      classId: classes.selected?.id ?? null,
+      classId: identity.entryPeriod === "CURRENT" ? (classes.selected?.id ?? null) : null,
+      planId: identity.entryPeriod === "NEXT" ? (classes.selected?.id ?? null) : null,
       contract: parsedContract?.success ? parsedContract.data : null,
       allowPending: items.length > 0,
     },
@@ -116,7 +116,7 @@ export function createRequestSave(
 function initialSaveState(
   context: SaveContext,
   withContract: boolean,
-): { blocking: BlockingItem[]; items: string[] } {
+): { blocking: BlockingItem[]; items: IntakePendingItem[] } {
   const studentErrors = validateDados(context.identity.state.fields, context.today);
   const blocking: BlockingItem[] = Object.entries(studentErrors).map(([field, label]) => ({
     label,
@@ -125,6 +125,7 @@ function initialSaveState(
   }));
   const issue = intakeSaveIssue({
     blockedLead: context.classes.blockedLead,
+    entryPeriod: context.identity.entryPeriod,
     selectedId: context.identity.selectedId,
     optionsFetching: context.classes.options.isFetching,
     selected: Boolean(context.classes.selected),
@@ -133,12 +134,22 @@ function initialSaveState(
   });
   if (issue)
     blocking.push({ label: issue, step: context.classes.blockedLead ? "student" : "pedagogy" });
-  const items = intakePendingItems({
+  return { blocking, items: pendingItemsFor(context, withContract) };
+}
+
+function pendingItemsFor(context: SaveContext, withContract: boolean): IntakePendingItem[] {
+  return intakePendingItems({
     selected: Boolean(context.classes.selected),
+    entryPeriod: context.identity.entryPeriod,
     existingEnrollment: Boolean(context.existing.existingEnrollment),
     waitingPlacement: context.classes.waitingPlacement,
     withContract,
     existingContract: Boolean(context.existing.existingContract),
+    missingDocuments: missingIntakeDocuments(
+      context.documents,
+      context.identity.state.fields,
+      context.today,
+      context.existingStudentId,
+    ),
   });
-  return { blocking, items };
 }

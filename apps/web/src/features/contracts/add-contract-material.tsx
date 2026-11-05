@@ -6,6 +6,7 @@ import { addContractMaterialInputSchema } from "@lazuli/validators";
 import { Button, DialogBody, DialogFooter, Field, Input, Label } from "@lazuli/ui";
 import { ArrowLeft } from "lucide-react";
 import { trpc } from "~/lib/trpc";
+import { materialCardFeeInput } from "./material-card-fee";
 import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { ContractMaterialSection } from "./contract-material-section";
 import {
@@ -152,6 +153,7 @@ function parseMaterialSubmission({
     material: {
       ...scholarshipInput(fields, true),
       ...materialPriceInput(fields),
+      ...materialCardFeeInput(fields),
       stageIds: fields.materialStageIds.split(","),
       quoteVersion: fields.materialQuoteVersion,
       category: fields.materialCategory,

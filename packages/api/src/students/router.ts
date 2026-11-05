@@ -99,7 +99,15 @@ export const studentsRouter = router({
               deduplicationKey: `finance.contract:${result.contractId}`,
             },
           });
-        return { subject };
+        return {
+          subject,
+          description:
+            input.entryPeriod === "NEXT"
+              ? input.planId
+                ? "Entrada no próximo período com turma planejada."
+                : "Entrada no próximo período sem turma definida."
+              : "Entrada neste período registrada no cadastro.",
+        };
       },
     }),
   ),
@@ -124,9 +132,14 @@ export const studentsRouter = router({
       }),
     }),
   ),
-  intakeOptions: adminProcedure
-    .input(studentIntakeOptionsSchema)
-    .query(({ ctx, input }) => studentIntakeOptions(ctx.db, { input, now: ctx.now ?? new Date() })),
+  intakeOptions: adminProcedure.input(studentIntakeOptionsSchema).query(({ ctx, input }) =>
+    studentIntakeOptions(ctx.db, {
+      input,
+      now: ctx.now ?? new Date(),
+      requestId: ctx.requestId,
+      userId: ctx.staffUser.id,
+    }),
+  ),
   enrollNew: adminProcedure.input(studentIntakeEnrollSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.enrollNew",
@@ -155,7 +168,18 @@ export const studentsRouter = router({
               deduplicationKey: `finance.contract:${result.contractId}`,
             },
           });
-        return { subject, deduplicationKey: `students.enrollNew:${result.studentId}` };
+        return {
+          subject,
+          description:
+            input.entryPeriod === "NEXT"
+              ? input.planId
+                ? "Entrada no próximo período com turma planejada."
+                : "Entrada no próximo período sem turma definida."
+              : input.classId
+                ? "Entrada neste período com turma definida."
+                : "Entrada neste período sem turma definida.",
+          deduplicationKey: `students.enrollNew:${result.studentId}`,
+        };
       },
     }),
   ),

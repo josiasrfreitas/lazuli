@@ -88,8 +88,8 @@ const STUDENT_SUMMARIES = {
   },
   students: {
     Icon: UserRoundPlus,
-    title: "Novos alunos aguardando turma",
-    detail: "primeira turma a definir",
+    title: "Alunos sem turma",
+    detail: "entrada neste período",
   },
 } as const;
 
@@ -110,7 +110,7 @@ function StudentsCases({
             href={
               contracts
                 ? `/alunos/${item.id}?criarContrato=1&voltar=%2F`
-                : `/alunos/${item.id}?secao=pedagogico&definirTurma=1&voltar=%2F`
+                : `/alunos/${item.id}?voltar=%2F`
             }
             className={styles.appointmentCase}
             aria-label={`${contracts ? "Criar primeiro contrato de" : "Definir turma de"} ${item.title}`}

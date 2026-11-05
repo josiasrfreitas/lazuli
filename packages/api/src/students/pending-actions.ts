@@ -1,11 +1,20 @@
 import type { Prisma } from "@lazuli/db";
-import { saoPauloDateOnly, studentPendingActions } from "@lazuli/domain";
+import {
+  missingRegistrationDocuments,
+  saoPauloDateOnly,
+  studentPendingActions,
+} from "@lazuli/domain";
+import { isMinorInSaoPaulo } from "./date-rules.js";
 import { notFound } from "../trpc/errors.js";
 
 const pendingStudentSelect = {
   id: true,
   fullName: true,
+  birthDate: true,
   status: true,
+  documentSessions: {
+    select: { files: { where: { deletedAt: null }, select: { kind: true } } },
+  },
   enrollments: {
     orderBy: { entryDate: "desc" },
     take: 1,
@@ -23,6 +32,15 @@ const pendingStudentSelect = {
     },
   },
   contracts: { where: { deletedAt: null }, select: { id: true }, take: 1 },
+  semesterPlacements: {
+    take: 1,
+    orderBy: { semester: { startDate: "asc" } },
+    select: {
+      stageId: true,
+      planId: true,
+      plan: { select: { format: true, scheduleType: true } },
+    },
+  },
   admissionCandidates: {
     where: { deletedAt: null, status: { not: "ARCHIVED" } },
     orderBy: { createdAt: "desc" },
@@ -51,6 +69,7 @@ type PendingResult = {
   items: ReturnType<typeof studentPendingActions>;
   enrollment: PendingStudent["enrollments"][number] | null;
   contract: PendingStudent["contracts"][number] | null;
+  futurePlacement: PendingStudent["semesterPlacements"][number] | null;
   lead: PendingLead | null;
 };
 
@@ -76,6 +95,7 @@ export async function studentsWithPendingRegistration(
 ): Promise<Set<string>> {
   const { ids, now } = options;
   if (ids.length === 0) return new Set();
+  const today = new Date(saoPauloDateOnly(now));
 
   const rows = await database.student.findMany({
     where: {
@@ -83,7 +103,17 @@ export async function studentsWithPendingRegistration(
       deletedAt: null,
       status: "ACTIVE",
       OR: [
-        { enrollments: { none: intakeEnrollmentWhere(now) } },
+        {
+          enrollments: { none: intakeEnrollmentWhere(now) },
+          semesterPlacements: {
+            none: {
+              deletedAt: null,
+              declinedAt: null,
+              mode: "ENTRY",
+              semester: { deletedAt: null, startDate: { gt: today } },
+            },
+          },
+        },
         { contracts: { none: { deletedAt: null } } },
       ],
     },
@@ -110,6 +140,10 @@ export async function readStudentPendingActions(
     hasEnrollment: student.enrollments.length > 0,
     hasContract: student.contracts.length > 0,
     placement: pendingPlacement(lead),
+    missingDocuments: missingRegistrationDocuments(
+      isMinorInSaoPaulo({ birthDate: student.birthDate, now }),
+      student.documentSessions.flatMap((session) => session.files.map((file) => file.kind)),
+    ),
   });
   const placementItem = items.find((item) => item.type === "PLACEMENT");
   if (placementItem) updatePlacementAction(placementItem, lead);
@@ -117,6 +151,7 @@ export async function readStudentPendingActions(
     items,
     enrollment: student.enrollments[0] ?? null,
     contract: student.contracts[0] ?? null,
+    futurePlacement: student.semesterPlacements[0] ?? null,
     lead: lead
       ? {
           id: lead.id,
@@ -166,31 +201,17 @@ async function loadPendingStudent(
     select: {
       ...pendingStudentSelect,
       enrollments: { ...pendingStudentSelect.enrollments, where: intakeEnrollmentWhere(now) },
+      semesterPlacements: {
+        ...pendingStudentSelect.semesterPlacements,
+        where: {
+          deletedAt: null,
+          declinedAt: null,
+          mode: "ENTRY",
+          semester: { deletedAt: null, startDate: { gt: new Date(saoPauloDateOnly(now)) } },
+        },
+      },
     },
   });
   if (!student) throw notFound("Aluno não encontrado.");
   return student;
-}
-
-/** Reuse the intake rule so an unresolved placement never becomes a class-choice task. */
-export async function studentsAwaitingPlacement(
-  database: Prisma.TransactionClient,
-): Promise<string[]> {
-  const students = await database.student.findMany({
-    where: {
-      deletedAt: null,
-      status: "ACTIVE",
-      enrollments: { none: { deletedAt: null } },
-      admissionCandidates: {
-        some: { deletedAt: null, status: { not: "ARCHIVED" }, englishExperience: "SOME" },
-      },
-    },
-    select: { id: true, admissionCandidates: pendingStudentSelect.admissionCandidates },
-  });
-  return students
-    .filter((student) => {
-      const placement = pendingPlacement(student.admissionCandidates[0] ?? null);
-      return placement && !placement.completed;
-    })
-    .map((student) => student.id);
 }

@@ -7,10 +7,12 @@ import { leadRegistrationSchema } from "./leads.js";
 
 const MILLISECONDS_PER_DAY = 86_400_000;
 const MAX_CALENDAR_DAYS = 7;
+const entryPeriodSchema = z.enum(["CURRENT", "NEXT"]);
 
 export const studentIntakeOptionsSchema = z
   .object({
     stageId: z.string().uuid().nullable(),
+    entryPeriod: entryPeriodSchema.default("CURRENT"),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     from: civilDateSchema,
@@ -34,7 +36,9 @@ export const studentIntakeEnrollSchema = z
     leadRegistration: leadRegistrationSchema.nullable().default(null),
     student: studentCreateInputSchema,
     classId: z.string().uuid().nullable(),
+    planId: z.string().uuid().nullable().default(null),
     stageId: z.string().uuid().nullable(),
+    entryPeriod: entryPeriodSchema.default("CURRENT"),
     contract: createMonthlyContractInputSchema.nullable().default(null),
     allowPending: z.boolean().default(false),
   })
@@ -46,7 +50,19 @@ export const studentIntakeEnrollSchema = z
         path: ["leadRegistration"],
         message: "Escolha um lead existente ou um novo rascunho.",
       });
-    if ((!value.classId || !value.contract) && !value.allowPending)
+    if (value.entryPeriod === "NEXT" && value.classId)
+      context.addIssue({
+        code: "custom",
+        path: ["classId"],
+        message: "A turma de entrada pertence ao período atual.",
+      });
+    if (value.entryPeriod === "CURRENT" && value.planId)
+      context.addIssue({
+        code: "custom",
+        path: ["planId"],
+        message: "A turma planejada pertence ao próximo período.",
+      });
+    if (!value.contract && !value.allowPending)
       context.addIssue({
         code: "custom",
         path: ["allowPending"],
@@ -74,7 +90,9 @@ export const studentIntakeResumeSchema = z
     studentId: z.string().uuid(),
     contact: studentUpdateContactInputSchema,
     classId: z.string().uuid().nullable(),
+    planId: z.string().uuid().nullable().default(null),
     stageId: z.string().uuid().nullable(),
+    entryPeriod: entryPeriodSchema.default("CURRENT"),
     contract: createMonthlyContractInputSchema.nullable(),
     allowPending: z.boolean(),
   })

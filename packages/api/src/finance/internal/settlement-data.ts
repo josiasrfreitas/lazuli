@@ -9,6 +9,7 @@ import {
 } from "@lazuli/domain";
 import { badRequest } from "../../trpc/errors.js";
 import { type FinanceDatabase, toDateOnlyString } from "./shared.js";
+import { remainingAllocationCents } from "./payment-net.js";
 
 const settlementInclude = {
   agreements: { orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }, { id: "asc" }] },
@@ -16,7 +17,10 @@ const settlementInclude = {
   adjustments: { where: { deletedAt: null }, orderBy: { id: "asc" } },
   allocations: {
     where: { deletedAt: null, paymentEntry: { deletedAt: null } },
-    include: { paymentEntry: true },
+    include: {
+      paymentEntry: true,
+      reversals: { where: { deletedAt: null, reversal: { deletedAt: null } } },
+    },
     orderBy: { id: "asc" },
   },
 } satisfies Prisma.InstallmentInclude;
@@ -53,7 +57,7 @@ export function settlementLine(input: {
     terms: settlementTerms(item),
     payments: item.allocations.map((row) => ({
       date: toDateOnlyString(row.paymentEntry.date),
-      amountCents: row.amountCents,
+      amountCents: remainingAllocationCents(row),
       recordedAt: row.paymentEntry.createdAt.toISOString(),
     })),
     ...settlementFacts(item),

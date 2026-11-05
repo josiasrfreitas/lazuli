@@ -59,7 +59,7 @@ export const WORK_COPY: Record<
   students: {
     action: "Definir turmas",
     outcome: "Confira o estágio e a turma para cada aluno seguir os estudos.",
-    scope: "Alunos novos sem primeira turma definida",
+    scope: "Alunos sem turma neste período",
   },
   allocation: {
     action: "Encontrar uma turma",

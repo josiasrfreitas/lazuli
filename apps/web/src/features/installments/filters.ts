@@ -15,6 +15,13 @@ export const INSTALLMENT_STATUSES = [
   "WAIVED",
 ] as const;
 type InstallmentStatus = (typeof INSTALLMENT_STATUSES)[number];
+export const INSTALLMENT_STATUS_LABELS: Record<InstallmentStatus, string> = {
+  OVERDUE: "Vencida",
+  DUE_THIS_MONTH: "Vence este mês",
+  UPCOMING: "A vencer",
+  PAID: "Paga",
+  WAIVED: "Dispensada",
+};
 type InstallmentOrigin = (typeof orderKindSchema.options)[number];
 
 export type InstallmentParams = {
@@ -196,11 +203,12 @@ function amountRangeInput(
 }
 
 export function queryInput(filters: InstallmentFilters): FinanceInstallmentsInput {
+  const grouped = filters.status === "vencidas" || filters.situations.length > 0;
   return {
     ...(filters.studentId ? { studentId: filters.studentId } : {}),
-    view: filters.status === "vencidas" ? "overdue" : "all",
+    view: filters.status === "vencidas" ? "overdue" : grouped ? "grouped" : "all",
     page: filters.page,
-    pageSize: filters.status === "vencidas" ? FINANCE_OVERDUE_PAYERS_PAGE_SIZE : filters.pageSize,
+    pageSize: grouped ? FINANCE_OVERDUE_PAYERS_PAGE_SIZE : filters.pageSize,
     search: filters.search.trim(),
     ...(filters.situations.length > 0 ? { statuses: filters.situations } : {}),
     ...(filters.origins.length > 0 ? { origins: filters.origins } : {}),

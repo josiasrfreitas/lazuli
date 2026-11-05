@@ -95,6 +95,7 @@ async function configureEnvironment(workspace) {
   const environment = patchEnvironment(source, {
     APP_URL: workspace.urls.web,
     BETTER_AUTH_URL: workspace.urls.web,
+    AWS_PROFILE: environmentValue(source, "AWS_PROFILE") || "lazuli",
     DATABASE_URL: databaseUrlForWorkspace(
       environmentValue(source, "DATABASE_URL"),
       workspace.resources.database,

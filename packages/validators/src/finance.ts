@@ -23,6 +23,7 @@ const FINANCE_DUE_DAY_FIFTEENTH = 15;
 const FINANCE_DUE_DAY_TWENTIETH = 20;
 const FINANCE_DUE_DAY_TWENTY_FIFTH = 25;
 const MAX_PAYMENT_METHOD_CODE_LENGTH = 64;
+export const MAX_PAYMENT_METHOD_NAME_LENGTH = 60;
 
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 const optionalText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE).nullish();
@@ -35,7 +36,23 @@ export const paymentMethodSchema = z
   .max(MAX_PAYMENT_METHOD_CODE_LENGTH)
   .regex(/^[A-Z][A-Z0-9_]*$/u);
 
-export const financeInstallmentViewSchema = z.enum(["all", "paid", "overdue"]);
+export function capitalizePaymentMethodName(value: string): string {
+  return value.replace(/\p{L}/u, (letter) => letter.toLocaleUpperCase("pt-BR"));
+}
+
+export const financeCreatePaymentMethodInputSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, "Informe o nome da forma de pagamento.")
+      .max(MAX_PAYMENT_METHOD_NAME_LENGTH, "Use até 60 caracteres.")
+      .regex(/\p{L}/u, "Informe um nome com letras.")
+      .transform((value) => capitalizePaymentMethodName(value.replaceAll(/\s+/gu, " "))),
+  })
+  .strict();
+
+export const financeInstallmentViewSchema = z.enum(["all", "paid", "overdue", "grouped"]);
 export const financeInstallmentStatusSchema = z.enum([
   "WAIVED",
   "PAID",
@@ -113,6 +130,8 @@ export const financeInstallmentRowSchema = z
       z.object({ studentId: z.string().uuid(), fullName: z.string() }).strict(),
     ),
     dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    paidOn: civilDateSchema.nullable().optional(),
+    paymentMethodNames: z.array(z.string()).optional(),
     originalAmountCents: z.number().int(),
     expectedAmountCents: z.number().int(),
     paidAmountCents: z.number().int(),
@@ -150,6 +169,19 @@ export const financeOverduePayerGroupSchema = z
   .strict();
 export type FinanceOverduePayerGroup = z.infer<typeof financeOverduePayerGroupSchema>;
 
+export const financePayerGroupSchema = z
+  .object({
+    payer: financeInstallmentRowSchema.shape.payer,
+    installmentCount: z.number().int().positive(),
+    collectibleBalanceCents: z.number().int().nonnegative(),
+    paidAmountCents: z.number().int().nonnegative(),
+    maxOverdueDays: z.number().int().nonnegative(),
+    beneficiaries: financeInstallmentRowSchema.shape.beneficiaries,
+    rows: z.array(financeInstallmentRowSchema).min(1),
+  })
+  .strict();
+export type FinancePayerGroup = z.infer<typeof financePayerGroupSchema>;
+
 const financeInstallmentsOutputFields = {
   ...paginationResultFields(financeInstallmentsPaginationPolicy),
   counts: financeInstallmentCountsSchema,
@@ -176,6 +208,14 @@ export const financeInstallmentsOutputSchema = z.discriminatedUnion("view", [
       ...financeInstallmentsOutputFields,
       view: z.literal("overdue"),
       groups: z.array(financeOverduePayerGroupSchema),
+      pageSize: z.literal(FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
+    })
+    .strict(),
+  z
+    .object({
+      ...financeInstallmentsOutputFields,
+      view: z.literal("grouped"),
+      groups: z.array(financePayerGroupSchema),
       pageSize: z.literal(FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
     })
     .strict(),
@@ -305,6 +345,52 @@ export const financeRegisterPaymentInputSchema = z
       .min(1, "Informe ao menos uma alocacao."),
   })
   .strict();
+
+export const financePaymentReversalKindSchema = z.enum(["CANCELLATION", "REFUND"]);
+
+export const financeReversePaymentInputSchema = z
+  .object({
+    commandId: z.string().uuid(),
+    paymentEntryId: z.string().uuid(),
+    kind: financePaymentReversalKindSchema,
+    occurredOn: dateOnlyInputSchema.optional(),
+    reason: z.string().trim().max(500).nullish(),
+    refundMethod: paymentMethodSchema.nullish(),
+    refundReference: z.string().trim().max(120).nullish(),
+    allocations: z.array(
+      z
+        .object({
+          paymentAllocationId: z.string().uuid(),
+          amountCents: z.number().int().positive(),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const amount = value.allocations.reduce((total, row) => total + row.amountCents, 0);
+    if (amount <= 0)
+      context.addIssue({
+        code: "custom",
+        path: ["allocations"],
+        message: "Informe um valor para cancelar ou estornar.",
+      });
+    if (
+      new Set(value.allocations.map((row) => row.paymentAllocationId)).size !==
+      value.allocations.length
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["allocations"],
+        message: "Parcela repetida na operação.",
+      });
+    if (value.kind === "REFUND" && !value.refundMethod)
+      context.addIssue({
+        code: "custom",
+        path: ["refundMethod"],
+        message: "Informe a forma da devolução.",
+      });
+  });
 
 export const financeBatchReconcileInputSchema = z
   .object({

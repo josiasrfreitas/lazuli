@@ -164,13 +164,37 @@ export async function readBusinessComparison(
   database: Context["db"],
   { period, contractPeriod = period }: { period: HomePeriod; contractPeriod?: HomePeriod },
 ): Promise<BusinessComparison> {
-  const [payments, contracts] = await Promise.all([
+  const [payments, reversals, contracts] = await Promise.all([
     database.paymentEntry.findMany({
       where: {
         deletedAt: null,
         date: { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) },
       },
       select: { date: true, amountCents: true },
+    }),
+    database.paymentReversal.findMany({
+      where: {
+        deletedAt: null,
+        paymentEntry: { deletedAt: null },
+        OR: [
+          {
+            kind: "CANCELLATION",
+            paymentEntry: {
+              date: { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) },
+            },
+          },
+          {
+            kind: "REFUND",
+            occurredOn: { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) },
+          },
+        ],
+      },
+      select: {
+        kind: true,
+        occurredOn: true,
+        amountCents: true,
+        paymentEntry: { select: { date: true } },
+      },
     }),
     database.contract.findMany({
       where: {
@@ -194,6 +218,17 @@ export async function readBusinessComparison(
     if (row) row.value += payment.amountCents;
     if (date.slice(0, YEAR_MONTH_LENGTH) === period.previousMonth && date <= period.previousThrough)
       previousReceivedCents += payment.amountCents;
+  }
+  for (const reversal of reversals) {
+    const date = (
+      reversal.kind === "CANCELLATION" ? reversal.paymentEntry.date : reversal.occurredOn
+    )
+      .toISOString()
+      .slice(0, DATE_ONLY_LENGTH);
+    const row = received.find((item) => item.month === date.slice(0, YEAR_MONTH_LENGTH));
+    if (row) row.value -= reversal.amountCents;
+    if (date.slice(0, YEAR_MONTH_LENGTH) === period.previousMonth && date <= period.previousThrough)
+      previousReceivedCents -= reversal.amountCents;
   }
   return {
     received,

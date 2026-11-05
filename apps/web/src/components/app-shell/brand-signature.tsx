@@ -33,6 +33,7 @@ function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }
         height={100}
         width={100}
         src={`/brand/lazuli-${kind}-light.svg`}
+        loading="eager"
       />
       <Image
         alt=""
@@ -40,6 +41,7 @@ function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }
         height={100}
         width={100}
         src={`/brand/lazuli-${kind}-dark.svg`}
+        loading="eager"
       />
     </>
   );

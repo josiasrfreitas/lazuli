@@ -95,8 +95,8 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: false,
   },
   students: {
-    title: "Novos alunos aguardando turma",
-    description: "Alunos novos sem primeira turma definida.",
+    title: "Alunos sem turma",
+    description: "Alunos que entram neste período e ainda aguardam turma.",
     area: "school",
     attention: false,
   },

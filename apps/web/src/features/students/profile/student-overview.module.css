@@ -452,6 +452,14 @@
   border-left: 1px solid var(--border);
   padding-left: 1.5rem;
 }
+.registration[data-loading="true"] .registrationFacts {
+  max-height: calc(100dvh - 13rem);
+  overflow: hidden;
+}
+.registration[data-loading="true"] .registrationFacts > section {
+  padding-block: 0.75rem;
+  gap: 0.5rem;
+}
 .editorBody {
   padding-top: 1rem;
 }

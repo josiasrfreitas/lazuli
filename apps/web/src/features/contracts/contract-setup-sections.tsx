@@ -1,7 +1,18 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { Button, Field, FieldError, FormSection, Input, Label } from "@lazuli/ui";
+import {
+  Button,
+  Field,
+  FieldError,
+  FormSection,
+  Input,
+  Label,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@lazuli/ui";
+import { Info } from "lucide-react";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import {
   ContractStudentField,
@@ -169,19 +180,28 @@ function TuitionPreview({ preview, fields }: Pick<FormProps, "preview" | "fields
 function SchoolConditions({ offer, fields }: FormProps): ReactElement | null {
   if (!offer) return null;
   return (
-    <details className={styles.disclosure}>
+    <details className={`${styles.disclosure} ${styles.schoolConditions}`}>
       <summary>Condições da escola</summary>
-      <dl className={styles.reviewList}>
+      <dl className={`${styles.reviewList} ${styles.schoolConditionsList}`}>
         <div>
-          <dt>Mensalidade de referência</dt>
+          <ConditionLabel
+            label="Mensalidade de referência"
+            help="Valor definido em Ajustes para orientar a negociação. O valor acordado pode ser maior ou menor, respeitando o piso calculado pelo desconto máximo."
+          />
           <dd>{money(offer.tuitionCeilingCents)}</dd>
         </div>
         <div>
-          <dt>Desconto máximo</dt>
+          <ConditionLabel
+            label="Desconto máximo"
+            help="Define o piso da mensalidade acordada em relação ao valor de referência. Não há limite máximo para o valor negociado."
+          />
           <dd>{offer.maximumDiscountPct.toLocaleString("pt-BR")}%</dd>
         </div>
         <div>
-          <dt>Pontualidade</dt>
+          <ConditionLabel
+            label="Pontualidade"
+            help="Desconto para pagamento até o vencimento. Quando há bolsa de mensalidade, este desconto fica em zero."
+          />
           <dd>
             {(fields.scholarshipMode === "NONE" ? offer.punctualityDiscountPct : 0).toLocaleString(
               "pt-BR",
@@ -190,18 +210,50 @@ function SchoolConditions({ offer, fields }: FormProps): ReactElement | null {
           </dd>
         </div>
         <div>
-          <dt>Juros</dt>
+          <ConditionLabel
+            label="Juros"
+            help="Taxa mensal cobrada por atraso, proporcional aos dias vencidos e calculada com mês de 30 dias."
+          />
           <dd>
             {offer.interestRatePctMonthly.toLocaleString("pt-BR")}% ao mês · proporcional aos dias
             (base de 30 dias)
           </dd>
         </div>
         <div>
-          <dt>Multa rescisória</dt>
+          <ConditionLabel
+            label="Multa rescisória"
+            help="Percentual registrado no contrato para uma eventual rescisão."
+          />
           <dd>{offer.cancellationFeePct.toLocaleString("pt-BR")}%</dd>
         </div>
       </dl>
     </details>
+  );
+}
+
+function ConditionLabel({ label, help }: { label: string; help: string }): ReactElement {
+  return (
+    <dt className={styles.conditionLabel}>
+      <span>{label}</span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-6"
+              aria-label={`Sobre ${label}`}
+            />
+          }
+        >
+          <Info aria-hidden="true" />
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start">
+          {help}
+        </TooltipContent>
+      </Tooltip>
+    </dt>
   );
 }
 
@@ -218,7 +270,12 @@ export function SetupReview({
 }): ReactElement {
   return (
     <div className={styles.fields}>
-      <ReviewParties fields={fields} onEdit={onEdit} />
+      <ReviewParties
+        fields={fields}
+        preview={preview}
+        billingFirstDueDate={billingFirstDueDate}
+        onEdit={onEdit}
+      />
       <ReviewTuition fields={fields} preview={preview} onEdit={onEdit} />
       <ReviewMaterial
         fields={fields}
@@ -235,9 +292,13 @@ export function SetupReview({
 
 function ReviewParties({
   fields,
+  preview,
+  billingFirstDueDate,
   onEdit,
 }: {
   fields: FormProps["fields"];
+  preview: FormProps["preview"];
+  billingFirstDueDate?: string | undefined;
   onEdit: (step: SetupStep) => void;
 }): ReactElement {
   return (
@@ -265,8 +326,12 @@ function ReviewParties({
           </dd>
         </div>
         <div>
-          <dt>Acordo</dt>
-          <dd>{fields.agreedOn}</dd>
+          <dt>Primeiro vencimento</dt>
+          <dd>
+            {preview?.installments[0]
+              ? formatDateOnlyBR(preview.installments[0].dueDate)
+              : (billingFirstDueDate ?? fields.billingFirstDueDate ?? fields.firstDueDate)}
+          </dd>
         </div>
       </dl>
     </FormSection>

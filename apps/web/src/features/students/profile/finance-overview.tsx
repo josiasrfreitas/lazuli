@@ -115,9 +115,8 @@ function FinanceDetails({
   profile: StudentProfile;
 }): ReactElement {
   const [open, setOpen] = useState(false);
-  const [materialPending, setMaterialPending] = useState(false);
   const [proofPending, setProofPending] = useState(false);
-  const pending = materialPending || proofPending;
+  const pending = proofPending;
   const hasProofs = summary.hasPaymentProofs;
   return (
     <Dialog
@@ -145,7 +144,6 @@ function FinanceDetails({
               summary={summary}
               profile={profile}
               hasProofs={hasProofs}
-              onMaterialPending={setMaterialPending}
               onProofPending={setProofPending}
             />
           </DialogContent>
@@ -159,13 +157,11 @@ function FinanceDialogContent({
   summary,
   profile,
   hasProofs,
-  onMaterialPending,
   onProofPending,
 }: {
   summary: NonNullable<StudentFinanceState["summary"]["data"]>;
   profile: StudentProfile;
   hasProofs: boolean;
-  onMaterialPending: (pending: boolean) => void;
   onProofPending: (pending: boolean) => void;
 }): ReactElement {
   return (
@@ -177,11 +173,7 @@ function FinanceDialogContent({
       <DialogBody>
         <div className={styles.detailsLayout} data-with-proofs={hasProofs || undefined}>
           <div className={styles.details}>
-            <FinanceContractTerms
-              studentId={profile.id}
-              summary={summary}
-              onPendingChange={onMaterialPending}
-            />
+            <FinanceContractTerms summary={summary} />
             <details className={styles.paymentHistory}>
               <summary>Histórico de pagamentos</summary>
               <PaymentBehavior

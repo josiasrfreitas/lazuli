@@ -58,6 +58,7 @@ import {
   registerPayment,
   type RegisterPaymentResult,
 } from "./internal/register-payment.js";
+import { paymentReversalOptions, reversePayment } from "./internal/payment-reversals.js";
 import { readSettings, saveSettings, readMaterialPrice } from "./internal/settings.js";
 import type { FinanceDatabase } from "./internal/shared.js";
 import { studentOverdueTotals, type StudentOverdueTotal } from "./internal/student-balances.js";
@@ -68,6 +69,7 @@ import type {
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
   financeRegisterPaymentInputSchema,
+  financeReversePaymentInputSchema,
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
   financeInstallmentsInputSchema,
@@ -123,6 +125,8 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
     createOrder: (values) => createOrder({ database: db, values, staffUserId }),
     updateOrder: (values) => updateOrder({ database: db, values, staffUserId }),
     registerPayment: (values) => registerPayment({ database: db, values, staffUserId }),
+    paymentReversalOptions: (paymentEntryId) => paymentReversalOptions(db, paymentEntryId),
+    reversePayment: (values, now) => reversePayment({ database: db, values, staffUserId, now }),
     findPaymentCommand: (values) => findPaymentCommand(db, values),
     batchReconcile: (values) => batchReconcile({ database: db, values, staffUserId }),
     waiveInstallment: (values) => waiveInstallment({ database: db, values, staffUserId }),
@@ -231,6 +235,11 @@ export type FinanceModule = {
   registerPayment: (
     values: z.infer<typeof financeRegisterPaymentInputSchema>,
   ) => Promise<RegisterPaymentResult>;
+  paymentReversalOptions: (paymentEntryId: string) => ReturnType<typeof paymentReversalOptions>;
+  reversePayment: (
+    values: z.infer<typeof financeReversePaymentInputSchema>,
+    now: Date,
+  ) => ReturnType<typeof reversePayment>;
   findPaymentCommand: (
     values: z.infer<typeof financeRegisterPaymentInputSchema>,
   ) => Promise<RegisterPaymentResult | null>;

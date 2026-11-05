@@ -15,7 +15,6 @@ type LookupArgs = {
 };
 
 export type AddressLookup = {
-  selected: AddressFields | null;
   query: string;
   options: RouterOutputs["addresses"]["search"];
   searching: boolean;
@@ -32,7 +31,6 @@ export type AddressLookup = {
 type SelectionArgs = LookupArgs & {
   placeId: string;
   resolve: (input: { placeId: string }) => Promise<AddressFields>;
-  setSelected: (value: AddressFields | null) => void;
   setSearching: (value: boolean) => void;
   setMessage: (value: string) => void;
 };
@@ -69,7 +67,6 @@ async function selectAddress(args: SelectionArgs): Promise<void> {
     const result = await args.resolve({ placeId: args.placeId });
     if (request !== args.revision.current) return;
     args.onChange(result);
-    args.setSelected(result);
     args.setSearching(false);
     args.setMessage(
       result.street
@@ -95,7 +92,6 @@ async function selectAddress(args: SelectionArgs): Promise<void> {
 
 export function useAddressLookup(args: LookupArgs): AddressLookup {
   const query = args.address.street;
-  const [selected, setSelected] = useState<AddressFields | null>(null);
   const [searching, setSearching] = useState(false);
   const [debounced, setDebounced] = useState("");
   const [message, setMessage] = useState("");
@@ -127,12 +123,10 @@ export function useAddressLookup(args: LookupArgs): AddressLookup {
   const actions = addressLookupActions({
     ...args,
     resolve: resolve.mutateAsync,
-    setSelected,
     setSearching,
     setMessage,
   });
   return {
-    selected,
     query,
     ...display,
     searching,
@@ -148,14 +142,12 @@ function addressLookupActions(
     select: (placeId) => selectAddress({ ...args, placeId }),
     changeQuery: (text) => {
       args.revision.current += 1;
-      args.setSelected(null);
       args.setSearching(true);
       args.setMessage("");
       args.onChange({ ...args.address, street: text });
     },
     clearQuery: () => {
       args.revision.current += 1;
-      args.setSelected(null);
       args.setSearching(false);
       args.setMessage("");
       args.onChange({

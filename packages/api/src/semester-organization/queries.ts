@@ -86,7 +86,7 @@ export type PlacementRow = {
   semesterId: string;
   planId: string | null;
   stageId: string | null;
-  trackId: string;
+  trackId: string | null;
   sourceProgressId: string | null;
   sourceEnrollmentId: string | null;
   mode: PlacementModel["mode"];
@@ -353,15 +353,18 @@ export async function readSemester(
     .select(sql<number>`count(*)::int`.as("count"))
     .where("deleted_at", "is", null)
     .executeTakeFirstOrThrow();
+  const placedStudentIds = new Set(placements.map((item) => item.studentId));
   return {
     semester,
     nextSemester,
-    waitingLeads: waitingLeads,
+    waitingLeads: waitingLeads.filter(
+      (lead) => !lead.studentId || !placedStudentIds.has(lead.studentId),
+    ),
     closedDays,
     plans,
     placements,
     studentsTotal: total.count,
-    studentsProposed: new Set(placements.map((item) => item.studentId)).size,
+    studentsProposed: placedStudentIds.size,
   };
 }
 

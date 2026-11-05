@@ -8,6 +8,7 @@ const config = {
   reactStrictMode: true,
   // Keep the floating development badge from covering mobile account controls.
   devIndicators: false,
+  logging: { incomingRequests: false },
   serverExternalPackages: ["@hatchet-dev/typescript-sdk"],
   allowedDevOrigins: ["*.lazuli.localhost"],
   async headers() {
