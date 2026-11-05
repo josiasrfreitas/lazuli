@@ -42,6 +42,7 @@ function scenario(): Scenario {
     } as Context["identity"],
     classes: { minor: false, blockedLead: false } as Context["classes"],
     today: "2026-10-27",
+    existingStudentId: undefined,
     onOpenChange: (open: boolean) => closed.push(open),
     saveBeforeClose: () => {
       throw new Error("Capture must be settled before save");

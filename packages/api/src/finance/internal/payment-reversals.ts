@@ -175,7 +175,7 @@ export async function reversePayment(input: {
       occurredOn,
       amountCents,
       reason: values.reason?.trim() || null,
-      refundMethod: values.kind === "REFUND" ? values.refundMethod : null,
+      refundMethod: values.kind === "REFUND" ? (values.refundMethod ?? null) : null,
       refundReference: values.kind === "REFUND" ? values.refundReference?.trim() || null : null,
       createdById: input.staffUserId,
       allocations: {
