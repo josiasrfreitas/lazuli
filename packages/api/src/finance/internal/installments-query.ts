@@ -48,6 +48,8 @@ export type GroupedQueryRow = InstallmentQueryRow &
 const BACKSLASH_CODE_POINT = 92;
 const PAYER_ID_FIELD = "payerId";
 const PAYER_NAME_FIELD = "payerName";
+const SELECTED_PAYER_ID = "selected_payers.payerId";
+const SELECTED_PAYER_OVERDUE_DAYS = "selected_payers.maxOverdueDays";
 type LedgerTables =
   | "Installment"
   | "Order"
@@ -368,15 +370,15 @@ export async function loadOverduePage(
         .offset((input.page - 1) * FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
     )
     .selectFrom("selected_payers")
-    .innerJoin("overdue", "overdue.payerId", "selected_payers.payerId")
+    .innerJoin("overdue", "overdue.payerId", SELECTED_PAYER_ID)
     .selectAll("overdue")
     .select([
       "selected_payers.installmentCount",
       "selected_payers.groupBalanceCents",
-      "selected_payers.maxOverdueDays",
+      SELECTED_PAYER_OVERDUE_DAYS,
     ])
-    .orderBy("selected_payers.maxOverdueDays", "desc")
-    .orderBy("selected_payers.payerId", "asc")
+    .orderBy(SELECTED_PAYER_OVERDUE_DAYS, "desc")
+    .orderBy(SELECTED_PAYER_ID, "asc")
     .orderBy("overdue.dueDate", "asc")
     .orderBy("overdue.installmentId", "asc")
     .execute();
@@ -446,17 +448,17 @@ export async function loadGroupedPage(
         .offset((input.page - 1) * FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
     )
     .selectFrom("selected_payers")
-    .innerJoin("grouped", "grouped.payerId", "selected_payers.payerId")
+    .innerJoin("grouped", "grouped.payerId", SELECTED_PAYER_ID)
     .selectAll("grouped")
     .select([
       "selected_payers.installmentCount",
       "selected_payers.groupBalanceCents",
       "selected_payers.groupPaidCents",
-      "selected_payers.maxOverdueDays",
+      SELECTED_PAYER_OVERDUE_DAYS,
     ])
-    .orderBy("selected_payers.maxOverdueDays", "desc")
+    .orderBy(SELECTED_PAYER_OVERDUE_DAYS, "desc")
     .orderBy("selected_payers.payerName", "asc")
-    .orderBy("selected_payers.payerId", "asc")
+    .orderBy(SELECTED_PAYER_ID, "asc")
     .orderBy("grouped.dueDate", "asc")
     .orderBy("grouped.installmentId", "asc")
     .execute();

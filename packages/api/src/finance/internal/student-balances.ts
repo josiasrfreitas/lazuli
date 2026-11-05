@@ -117,13 +117,15 @@ function installmentBalances(
         .select((amount) =>
           amount.fn
             .coalesce(
-              amount.fn.sum<number>(sql<number>`a.amount_cents - coalesce((
-              select sum(reversal_line.amount_cents)
-              from payment_reversal_allocations reversal_line
-              join payment_reversals reversal on reversal.id = reversal_line.payment_reversal_id
-              where reversal_line.payment_allocation_id = a.id
-                and reversal_line.deleted_at is null and reversal.deleted_at is null
-            ), 0)`),
+              amount.fn.sum<number>(sql<number>`
+                a.amount_cents - coalesce((
+                  select sum(reversal_line.amount_cents)
+                  from payment_reversal_allocations reversal_line
+                  join payment_reversals reversal on reversal.id = reversal_line.payment_reversal_id
+                  where reversal_line.payment_allocation_id = a.id
+                    and reversal_line.deleted_at is null and reversal.deleted_at is null
+                ), 0)
+              `),
               amount.val(0),
             )
             .as("amount"),

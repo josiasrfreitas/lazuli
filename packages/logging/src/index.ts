@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import pino, { type DestinationStream, type Logger } from "pino";
+import pino, { type DestinationStream, type Logger, type LoggerOptions } from "pino";
 import {
   configuredLogLevel,
   isDevelopment,
@@ -10,6 +10,7 @@ import {
 import { formatDevelopmentLine } from "./development-format.js";
 
 type ServiceName = "web" | "worker";
+type LogObject = Parameters<NonNullable<NonNullable<LoggerOptions["formatters"]>["log"]>>[0];
 
 const requestIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -33,7 +34,7 @@ export function createServiceLogger(
     timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
     formatters: {
       level: (label: string) => ({ level: label.toUpperCase() }),
-      log: (value: Record<string, string | number | boolean | null | undefined | object>) => {
+      log: (value: LogObject) => {
         if (typeof value.error_stack !== "string") return value;
         const { error_stack, ...fields } = value;
         return { ...fields, exception: error_stack };

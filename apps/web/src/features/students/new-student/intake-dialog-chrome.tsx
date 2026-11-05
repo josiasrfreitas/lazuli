@@ -66,12 +66,14 @@ export function IntakeDialogHeading({
         </div>
       )}
       {step === "pedagogy" && (
-        <DialogHeader className={`${styles.pedagogyTitle} pr-0`}>
-          <DialogTitle>Turma de entrada</DialogTitle>
-          <DialogDescription className="sr-only">
-            Escolha o período de entrada e, se possível, a turma do aluno.
-          </DialogDescription>
-        </DialogHeader>
+        <div className={styles.pedagogyTitle}>
+          <DialogHeader className="pr-0">
+            <DialogTitle>Turma de entrada</DialogTitle>
+            <DialogDescription className="sr-only">
+              Escolha o período de entrada e, se possível, a turma do aluno.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
       )}
       {step === "pedagogy" && pedagogyControls}
       <Stepper

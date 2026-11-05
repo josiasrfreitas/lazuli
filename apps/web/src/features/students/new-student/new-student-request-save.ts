@@ -145,11 +145,11 @@ function pendingItemsFor(context: SaveContext, withContract: boolean): IntakePen
     waitingPlacement: context.classes.waitingPlacement,
     withContract,
     existingContract: Boolean(context.existing.existingContract),
-    missingDocuments: missingIntakeDocuments(
-      context.documents,
-      context.identity.state.fields,
-      context.today,
-      context.existingStudentId,
-    ),
+    missingDocuments: missingIntakeDocuments({
+      documents: context.documents,
+      fields: context.identity.state.fields,
+      today: context.today,
+      existingStudentId: context.existingStudentId,
+    }),
   });
 }

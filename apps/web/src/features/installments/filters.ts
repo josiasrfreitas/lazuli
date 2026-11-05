@@ -206,7 +206,7 @@ export function queryInput(filters: InstallmentFilters): FinanceInstallmentsInpu
   const grouped = filters.status === "vencidas" || filters.situations.length > 0;
   return {
     ...(filters.studentId ? { studentId: filters.studentId } : {}),
-    view: filters.status === "vencidas" ? "overdue" : grouped ? "grouped" : "all",
+    view: installmentView(filters, grouped),
     page: filters.page,
     pageSize: grouped ? FINANCE_OVERDUE_PAYERS_PAGE_SIZE : filters.pageSize,
     search: filters.search.trim(),
@@ -215,4 +215,12 @@ export function queryInput(filters: InstallmentFilters): FinanceInstallmentsInpu
     ...dueRangeInput(filters),
     ...amountRangeInput(filters),
   };
+}
+
+function installmentView(
+  filters: InstallmentFilters,
+  grouped: boolean,
+): FinanceInstallmentsInput["view"] {
+  if (filters.status === "vencidas") return "overdue";
+  return grouped ? "grouped" : "all";
 }

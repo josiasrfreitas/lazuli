@@ -109,23 +109,30 @@ export function IntakePedagogyControls({
       </div>
       <TeacherSearch value={teacherSelection} choices={teacherChoices} onChange={onTeacherChange} />
       <IntakeFilterFields filters={filters} onFiltersChange={onFiltersChange} />
-      {onCaptureLead && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onCaptureLead}
-          aria-label={
-            draftRegistration ? "Revisar lead e nivelamento" : "Cadastrar lead para nivelamento"
-          }
-          title={draftRegistration ? "Revisar nivelamento" : "Cadastrar lead para nivelamento"}
-        >
-          <ClipboardCheck aria-hidden="true" />
-          <span className="hidden min-[75rem]:inline">
-            {draftRegistration ? "Revisar nivelamento" : "Nivelamento"}
-          </span>
-        </Button>
-      )}
+      <LevelingButton draftRegistration={draftRegistration} onCaptureLead={onCaptureLead} />
     </div>
+  );
+}
+
+function LevelingButton({
+  draftRegistration,
+  onCaptureLead,
+}: Pick<ControlsProps, "draftRegistration" | "onCaptureLead">): ReactJSX.Element | null {
+  if (!onCaptureLead) return null;
+  const label = draftRegistration ? "Revisar nivelamento" : "Nivelamento";
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onCaptureLead}
+      aria-label={
+        draftRegistration ? "Revisar lead e nivelamento" : "Cadastrar lead para nivelamento"
+      }
+      title={draftRegistration ? "Revisar nivelamento" : "Cadastrar lead para nivelamento"}
+    >
+      <ClipboardCheck aria-hidden="true" />
+      <span className="hidden min-[75rem]:inline">{label}</span>
+    </Button>
   );
 }
 
@@ -180,7 +187,7 @@ function TeacherSearch({
         .filter((choice) => choice.teacherId)
         .map((choice) => [choice.teacherId!, { id: choice.teacherId!, label: choice.teacherName }]),
     ).values(),
-  ].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  ].toSorted((left, right) => left.label.localeCompare(right.label, "pt-BR"));
   const needle = normalizeSearch(query);
   return (
     <div className="w-48 min-w-0 shrink-0">

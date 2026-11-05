@@ -20,6 +20,7 @@ import styles from "./student-pending.module.css";
 
 type PendingAction = RouterOutputs["students"]["pendingActions"]["items"][number];
 type Intent = RouterOutputs["semesterOrganization"]["studentIntent"];
+const DATE_ONLY_LENGTH = 10;
 type Props = {
   studentId: string;
   pedagogy: ReturnType<typeof useStudentPedagogy>;
@@ -118,7 +119,8 @@ function pendingContent({
     ({ semester, placement }) =>
       !placement.declinedAt &&
       placement.plan &&
-      (!placement.publishedAt || (today && semester.startDate.toISOString().slice(0, 10) > today)),
+      (!placement.publishedAt ||
+        (today && semester.startDate.toISOString().slice(0, DATE_ONLY_LENGTH) > today)),
   );
   return {
     items: visible,
@@ -218,14 +220,8 @@ function RegistrationWork({
   return (
     <WorkRow
       icon={allocation ? UsersRound : FileText}
-      title={
-        allocation
-          ? nextPeriod
-            ? "Definir turma do próximo período"
-            : "Definir primeira turma"
-          : "Criar primeiro contrato"
-      }
-      detail={registrationDetail(allocation, item.blockedBy.length > 0, nextPeriod)}
+      title={registrationTitle({ allocation, nextPeriod })}
+      detail={registrationDetail({ allocation, blocked: item.blockedBy.length > 0, nextPeriod })}
       action={allocation ? "Definir turma" : "Criar contrato"}
       disabled={item.blockedBy.length > 0}
       onClick={() => onContinue(allocation ? "pedagogy" : "contract")}
@@ -233,7 +229,17 @@ function RegistrationWork({
   );
 }
 
-function registrationDetail(allocation: boolean, blocked: boolean, nextPeriod: boolean): string {
+function registrationTitle(input: { allocation: boolean; nextPeriod: boolean }): string {
+  if (!input.allocation) return "Criar primeiro contrato";
+  return input.nextPeriod ? "Definir turma do próximo período" : "Definir primeira turma";
+}
+
+function registrationDetail(input: {
+  allocation: boolean;
+  blocked: boolean;
+  nextPeriod: boolean;
+}): string {
+  const { allocation, blocked, nextPeriod } = input;
   if (!allocation) return "Condições comerciais não registradas";
   if (blocked) return "Aguardando o resultado do nivelamento";
   return nextPeriod ? "Entrada prevista sem turma definida" : "Entrada do aluno ainda sem destino";

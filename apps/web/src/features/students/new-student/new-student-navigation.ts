@@ -96,12 +96,12 @@ export function createEnrollmentNavigation(context: NavigationContext): Enrollme
     if (identity.addressPending) return;
     flow.setError("");
     if (flow.step === "student") {
-      const completion = intakeStepCompletion(
+      const completion = intakeStepCompletion({
         documents,
-        identity.state.fields,
+        fields: identity.state.fields,
         today,
-        context.existingStudentId,
-      );
+        existingStudentId: context.existingStudentId,
+      });
       flow.setStep(context.existingStudentId && completion.address ? "pedagogy" : "address");
     } else if (flow.step === "address") flow.setStep("pedagogy");
     else {

@@ -55,11 +55,16 @@ function classSummary(model: EnrollmentModel): string {
   if (model.selected)
     return `${model.entryPeriod === "NEXT" ? "Fila: " : "Turma: "}${model.selected.scheduleType === "PERSONALIZED" ? "PPT" : model.selected.stageName} · ${model.selected.teacherName}`;
   if (model.existingEnrollment) return `Turma: ${model.existingEnrollment.class.portalClassName}`;
-  return model.step === "student" || model.step === "address"
-    ? ""
-    : model.entryPeriod === "NEXT"
-      ? "Próximo período · turma pendente"
-      : "Neste período · turma pendente";
+  if (model.step === "student" || model.step === "address") return "";
+  return model.entryPeriod === "NEXT"
+    ? "Próximo período · turma pendente"
+    : "Neste período · turma pendente";
+}
+
+function pendingReviewStep(kind: "documents" | "class" | "contract" | undefined): IntakeStep {
+  if (kind === "documents") return "student";
+  if (kind === "class") return "pedagogy";
+  return "contract";
 }
 
 export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): ReactJSX.Element {
@@ -611,7 +616,7 @@ function EnrollmentConfirmation({ model }: { model: EnrollmentModel }): ReactJSX
       })}
       onReviewPending={(index) => {
         const kind = confirmation.items[index]?.kind;
-        const step = kind === "documents" ? "student" : kind === "class" ? "pedagogy" : "contract";
+        const step = pendingReviewStep(kind);
         model.setConfirmation(null);
         model.setError("");
         model.setStep(step);

@@ -91,12 +91,7 @@ export function intakePendingItems({
   if (!selected && !existingEnrollment)
     items.push({
       kind: "class",
-      label:
-        entryPeriod === "NEXT"
-          ? "Definir a turma do próximo período na página do aluno."
-          : waitingPlacement
-            ? "Concluir o nivelamento e escolher a turma."
-            : "Definir a turma na página do aluno.",
+      label: pendingClassLabel(entryPeriod, waitingPlacement),
     });
   if (!withContract && !existingContract)
     items.push({
@@ -111,6 +106,13 @@ export function intakePendingItems({
         : "Conferir os anexos cadastrais.",
     });
   return items;
+}
+
+function pendingClassLabel(entryPeriod: "CURRENT" | "NEXT", waitingPlacement: boolean): string {
+  if (entryPeriod === "NEXT") return "Definir a turma do próximo período na página do aluno.";
+  return waitingPlacement
+    ? "Concluir o nivelamento e escolher a turma."
+    : "Definir a turma na página do aluno.";
 }
 
 type IntakeCommand =

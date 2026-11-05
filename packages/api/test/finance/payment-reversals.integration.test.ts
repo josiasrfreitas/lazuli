@@ -41,6 +41,11 @@ void it("reopens installment balance with partial cancellation and refund while 
   const cancelled = await caller().finance.reversePayment(firstCommand);
   const replay = await caller().finance.reversePayment(firstCommand);
   assert.equal(replay.id, cancelled.id);
+  const [beforeRefund] = await finance(db, ADMIN.id).previewPayments(
+    { date: "2026-02-15", items: [{ installmentId: fixture.installmentId }] },
+    NOW,
+  );
+  assert.ok(beforeRefund?.line);
   const refunded = await caller().finance.reversePayment({
     commandId: randomUUID(),
     paymentEntryId: payment.id,
@@ -54,6 +59,17 @@ void it("reopens installment balance with partial cancellation and refund while 
   assert.equal(options.allocations[0]?.availableAmountCents, allocation.amountCents - 7_000);
   assert.equal(options.reversals.length, 2);
   assert.equal(options.reversals.find((row) => row.id === refunded.id)?.occurredOn, "2026-02-15");
+  const [atRefund] = await finance(db, ADMIN.id).previewPayments(
+    { date: "2026-02-15", items: [{ installmentId: fixture.installmentId }] },
+    NOW,
+  );
+  assert.ok(atRefund?.line);
+  assert.equal(atRefund.line.quote.newInterestCents, beforeRefund.line.quote.newInterestCents);
+  const [beforeRefundDate] = await finance(db, ADMIN.id).previewPayments(
+    { date: "2026-02-14", items: [{ installmentId: fixture.installmentId }] },
+    NOW,
+  );
+  assert.match(beforeRefundDate?.error ?? "", /data anterior a fato/u);
   const storedPayment = await db.paymentEntry.findUniqueOrThrow({ where: { id: payment.id } });
   const storedAllocation = await db.paymentAllocation.findUniqueOrThrow({
     where: { id: allocation.id },

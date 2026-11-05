@@ -56,16 +56,33 @@ export function existingStudentSelections(pending: PendingActions): {
   selectedId: string;
 } {
   const linked = pending.lead;
-  const enrollmentClass = pending.enrollment?.class;
   const future = pending.enrollment ? null : pending.futurePlacement;
-  const classFormat = existingClassFormat(pending);
   return {
     candidateId: linked?.id ?? null,
-    stageId: future?.stageId ?? linked?.stageId ?? enrollmentClass?.sharedStage?.id ?? null,
-    format: future?.plan?.format ?? classFormat.format,
-    scheduleType: future?.plan?.scheduleType ?? classFormat.scheduleType,
+    stageId: selectedStageId(pending, future),
+    ...selectionClassFormat(pending, future),
     entryPeriod: future ? "NEXT" : "CURRENT",
     selectedId: future?.planId ?? "",
+  };
+}
+
+function selectedStageId(
+  pending: PendingActions,
+  future: PendingActions["futurePlacement"] | null,
+): string | null {
+  return (
+    future?.stageId ?? pending.lead?.stageId ?? pending.enrollment?.class?.sharedStage?.id ?? null
+  );
+}
+
+function selectionClassFormat(
+  pending: PendingActions,
+  future: PendingActions["futurePlacement"] | null,
+): Pick<ReturnType<typeof existingStudentSelections>, "format" | "scheduleType"> {
+  const current = existingClassFormat(pending);
+  return {
+    format: future?.plan?.format ?? current.format,
+    scheduleType: future?.plan?.scheduleType ?? current.scheduleType,
   };
 }
 

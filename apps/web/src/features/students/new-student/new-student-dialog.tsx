@@ -112,12 +112,12 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
     existingSources,
     navigation,
   });
-  const stepCompletion = intakeStepCompletion(
+  const stepCompletion = intakeStepCompletion({
     documents,
-    identity.state.fields,
+    fields: identity.state.fields,
     today,
-    props.existingStudentId,
-  );
+    existingStudentId: props.existingStudentId,
+  });
   return {
     documents,
     stepCompletion,

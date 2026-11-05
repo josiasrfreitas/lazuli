@@ -10,6 +10,7 @@ import styles from "./intake-schedule.module.css";
 type Options = RouterOutputs["students"]["intakeOptions"];
 type ClassChoice = Options["classes"][number];
 type Slot = ClassChoice["slots"][number];
+const GROUP_TONE_COUNT = 4;
 
 const WEEKDAYS: Slot["weekday"][] = [
   "MONDAY",
@@ -26,6 +27,42 @@ type SelectionProps = {
   onSelect: (id: string) => void;
 };
 
+function classCount(choice: ClassChoice): string {
+  if (choice.future) return `${choice.enrolled} na fila`;
+  return `${choice.enrolled} ${choice.enrolled === 1 ? "aluno" : "alunos"}`;
+}
+
+function classOptionLabel(choice: ClassChoice, slot: Slot | undefined): string {
+  const schedule = slot
+    ? `${dayLabel(slot.weekday)}, ${slot.startTime}–${slot.endTime}`
+    : choice.slots
+        .map((item) => `${dayLabel(item.weekday)}, ${item.startTime}–${item.endTime}`)
+        .join("; ") || "Sem horário recorrente";
+  const title = choice.scheduleType === "PERSONALIZED" ? "PPT" : choice.stageName;
+  const format = choice.format === "ONLINE" ? "online" : "presencial";
+  return `${title}, ${choice.teacherName}, ${format}, ${schedule}, ${classCount(choice)}`;
+}
+
+function ClassSchedule({ choice, slot }: { choice: ClassChoice; slot?: Slot }): ReactJSX.Element {
+  if (slot)
+    return (
+      <span className={styles.classTime}>
+        {slot.startTime}–{slot.endTime}
+      </span>
+    );
+  return (
+    <span className={styles.classSchedule}>
+      {choice.slots.length > 0
+        ? choice.slots.map((item) => (
+            <span key={`${item.weekday}:${item.startTime}`}>
+              {dayLabel(item.weekday)} · {item.startTime}–{item.endTime}
+            </span>
+          ))
+        : "Sem horário recorrente"}
+    </span>
+  );
+}
+
 function ClassOption({
   choice,
   slot,
@@ -39,18 +76,13 @@ function ClassOption({
 }): ReactJSX.Element {
   const selected = selectedId === choice.id;
   const personalized = choice.scheduleType === "PERSONALIZED";
-  const schedule = slot
-    ? `${dayLabel(slot.weekday)}, ${slot.startTime}–${slot.endTime}`
-    : choice.slots
-        .map((item) => `${dayLabel(item.weekday)}, ${item.startTime}–${item.endTime}`)
-        .join("; ") || "Sem horário recorrente";
   return (
     <button
       type="button"
       className={styles.classOption}
       data-group-tone={tone}
       aria-pressed={selected}
-      aria-label={`${personalized ? "PPT" : choice.stageName}, ${choice.teacherName}, ${choice.format === "ONLINE" ? "online" : "presencial"}, ${schedule}, ${choice.enrolled} ${choice.future ? "na fila" : choice.enrolled === 1 ? "aluno" : "alunos"}`}
+      aria-label={classOptionLabel(choice, slot)}
       onClick={() => onSelect(selected ? "" : choice.id)}
     >
       <span className={styles.classHeading}>
@@ -67,24 +99,8 @@ function ClassOption({
         </span>
       </span>
       {!personalized && <span className={styles.classTeacher}>{choice.teacherName}</span>}
-      {slot ? (
-        <span className={styles.classTime}>
-          {slot.startTime}–{slot.endTime}
-        </span>
-      ) : (
-        <span className={styles.classSchedule}>
-          {choice.slots.length > 0
-            ? choice.slots.map((item) => (
-                <span key={`${item.weekday}:${item.startTime}`}>
-                  {dayLabel(item.weekday)} · {item.startTime}–{item.endTime}
-                </span>
-              ))
-            : "Sem horário recorrente"}
-        </span>
-      )}
-      <span className={styles.classCount}>
-        {choice.enrolled} {choice.future ? "na fila" : choice.enrolled === 1 ? "aluno" : "alunos"}
-      </span>
+      <ClassSchedule choice={choice} slot={slot} />
+      <span className={styles.classCount}>{classCount(choice)}</span>
     </button>
   );
 }
@@ -116,7 +132,7 @@ function RecurringSchedule({
                 <ClassOption
                   key={choice.id}
                   choice={choice}
-                  tone={choices.indexOf(choice) % 4}
+                  tone={choices.indexOf(choice) % GROUP_TONE_COUNT}
                   {...selection}
                 />
               ))}
@@ -129,7 +145,7 @@ function RecurringSchedule({
           <ClassOption
             key={choice.id}
             choice={choice}
-            tone={choices.indexOf(choice) % 4}
+            tone={choices.indexOf(choice) % GROUP_TONE_COUNT}
             {...selection}
           />
         ))}
@@ -215,7 +231,7 @@ function ScheduleDayCell({
               key={choice.id}
               choice={choice}
               slot={slot}
-              tone={choices.indexOf(choice) % 4}
+              tone={choices.indexOf(choice) % GROUP_TONE_COUNT}
               {...selection}
             />
           ))
@@ -313,15 +329,16 @@ function ClassesContent({
   return (
     <div className={styles.centeredState}>
       <CalendarDays className="size-6 text-muted-foreground" aria-hidden="true" />
-      <p>
-        {data?.semester
-          ? entryPeriod === "NEXT"
-            ? "Nenhuma turma planejada nesta combinação. Você pode deixar a turma pendente."
-            : "Nenhuma turma nesta combinação. Você pode deixar a turma pendente."
-          : entryPeriod === "NEXT"
-            ? "Não há próximo período cadastrado."
-            : "Não há período vigente cadastrado."}
-      </p>
+      <p>{emptyClassesMessage(Boolean(data?.semester), entryPeriod)}</p>
     </div>
   );
+}
+
+function emptyClassesMessage(hasSemester: boolean, entryPeriod: "CURRENT" | "NEXT"): string {
+  if (hasSemester && entryPeriod === "NEXT")
+    return "Nenhuma turma planejada nesta combinação. Você pode deixar a turma pendente.";
+  if (hasSemester) return "Nenhuma turma nesta combinação. Você pode deixar a turma pendente.";
+  return entryPeriod === "NEXT"
+    ? "Não há próximo período cadastrado."
+    : "Não há período vigente cadastrado.";
 }

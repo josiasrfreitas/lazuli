@@ -44,6 +44,18 @@ const HEALTH_PAGE_LIMIT = 50;
 const MAX_AGENDA_DAYS = 31;
 const DAY_MS = 86_400_000;
 
+function futureIntakeDescription(hasPlan: boolean): string {
+  return hasPlan
+    ? "Entrada no próximo período com turma planejada."
+    : "Entrada no próximo período sem turma definida.";
+}
+
+function currentIntakeDescription(hasClass: boolean): string {
+  return hasClass
+    ? "Entrada neste período com turma definida."
+    : "Entrada neste período sem turma definida.";
+}
+
 export const studentsRouter = router({
   healthBatch: adminProcedure
     .input(z.object({ ids: z.array(z.string().uuid()).max(HEALTH_PAGE_LIMIT) }).strict())
@@ -103,9 +115,7 @@ export const studentsRouter = router({
           subject,
           description:
             input.entryPeriod === "NEXT"
-              ? input.planId
-                ? "Entrada no próximo período com turma planejada."
-                : "Entrada no próximo período sem turma definida."
+              ? futureIntakeDescription(Boolean(input.planId))
               : "Entrada neste período registrada no cadastro.",
         };
       },
@@ -172,12 +182,8 @@ export const studentsRouter = router({
           subject,
           description:
             input.entryPeriod === "NEXT"
-              ? input.planId
-                ? "Entrada no próximo período com turma planejada."
-                : "Entrada no próximo período sem turma definida."
-              : input.classId
-                ? "Entrada neste período com turma definida."
-                : "Entrada neste período sem turma definida.",
+              ? futureIntakeDescription(Boolean(input.planId))
+              : currentIntakeDescription(Boolean(input.classId)),
           deduplicationKey: `students.enrollNew:${result.studentId}`,
         };
       },

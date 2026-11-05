@@ -2,12 +2,15 @@ import { missingRegistrationDocuments, type RegistrationDocumentKind } from "@la
 import type { EnrollmentDocuments } from "~/features/student-documents/use-enrollment-documents";
 import { isMinorFromFields, validateDados, type NewStudentFields } from "./reducer";
 
-export function missingIntakeDocuments(
-  documents: EnrollmentDocuments,
-  fields: NewStudentFields,
-  today: string,
-  existingStudentId: string | undefined,
-): RegistrationDocumentKind[] | null {
+type CompletionInput = {
+  documents: EnrollmentDocuments;
+  fields: NewStudentFields;
+  today: string;
+  existingStudentId: string | undefined;
+};
+
+export function missingIntakeDocuments(input: CompletionInput): RegistrationDocumentKind[] | null {
+  const { documents, fields, today, existingStudentId } = input;
   const files = documents.query.data?.files;
   if (!files && (existingStudentId || documents.session)) return null;
   return missingRegistrationDocuments(
@@ -16,13 +19,12 @@ export function missingIntakeDocuments(
   );
 }
 
-export function intakeStepCompletion(
-  documents: EnrollmentDocuments,
-  fields: NewStudentFields,
-  today: string,
-  existingStudentId: string | undefined,
-): { student: boolean; address: boolean } {
-  const missing = missingIntakeDocuments(documents, fields, today, existingStudentId);
+export function intakeStepCompletion(input: CompletionInput): {
+  student: boolean;
+  address: boolean;
+} {
+  const { documents, fields, today } = input;
+  const missing = missingIntakeDocuments(input);
   const address = fields.address;
   return {
     student: Object.keys(validateDados(fields, today)).length === 0 && missing?.length === 0,

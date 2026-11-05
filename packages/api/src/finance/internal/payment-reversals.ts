@@ -189,7 +189,7 @@ export async function reversePayment(input: {
   const amountCents = values.allocations.reduce((total, row) => total + row.amountCents, 0);
   assertAvailableAllocations({ values, payment, amountCents });
   await validateRefundMethod(database, values);
-  const occurredOn = reversalDate(values, payment.date, input.now);
+  const occurredOn = reversalDate({ values, paymentDate: payment.date, now: input.now });
   return database.paymentReversal.create({
     data: {
       commandId: values.commandId,
@@ -242,7 +242,12 @@ async function validateRefundMethod(
   if (!method) throw badRequest("Selecione uma forma de devolução disponível.");
 }
 
-function reversalDate(values: ReversePaymentInput, paymentDate: string, now: Date): Date {
+function reversalDate(input: {
+  values: ReversePaymentInput;
+  paymentDate: string;
+  now: Date;
+}): Date {
+  const { values, paymentDate, now } = input;
   const today = saoPauloDateOnly(now);
   const occurredOn =
     values.kind === "CANCELLATION" ? new Date(`${today}T00:00:00.000Z`) : values.occurredOn;
