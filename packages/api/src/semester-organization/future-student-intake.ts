@@ -1,4 +1,4 @@
-import type { Period, TransactionClient } from "@lazuli/db";
+import type { Period, Prisma, Stage, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest } from "../trpc/errors.js";
 
@@ -17,49 +17,95 @@ export async function lockNextIntakeSemester(
   return semester;
 }
 
+type FutureIntakeInput = {
+  semester: Period;
+  studentId: string;
+  stageId: string | null;
+  planId: string | null;
+  recordedById: string;
+};
+type FuturePlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
+type PlacementData = {
+  trackId: string | null;
+  stageId: string | null;
+  planId: string | null;
+  effectiveDate: Date;
+};
+
 export async function recordFutureStudentIntake(
   database: TransactionClient,
-  input: {
-    semester: Period;
-    studentId: string;
-    stageId: string | null;
-    planId: string | null;
-    recordedById: string;
-  },
+  input: FutureIntakeInput,
 ): Promise<void> {
-  const { semester, studentId, stageId, planId, recordedById } = input;
-  const stage = stageId
-    ? await database.stage.findFirst({
-        where: { id: stageId, deletedAt: null, track: { status: "ACTIVE" } },
-      })
-    : null;
-  if (stageId && !stage) throw badRequest("O estágio escolhido não está disponível.");
-  const plan = planId
-    ? await database.semesterClassPlan.findFirst({
-        where: { id: planId, semesterId: semester.id, deletedAt: null, closedAt: null },
-      })
-    : null;
-  if (planId && !plan)
-    throw badRequest("A turma escolhida não está disponível no próximo período.");
+  const stage = await selectedStage(database, input.stageId);
+  const plan = await selectedPlan(database, input);
   if (plan?.scheduleType === "REGULAR" && stage && plan.sharedStageId !== stage.id)
     throw badRequest("O estágio deve corresponder à turma regular escolhida.");
-
-  const existing = await database.semesterPlacement.findFirst({
-    where: { semesterId: semester.id, studentId, mode: "ENTRY", deletedAt: null, declinedAt: null },
+  await upsertFuturePlacement(database, {
+    ...input,
+    data: {
+      trackId: stage?.trackId ?? null,
+      stageId: stage?.id ?? null,
+      planId: plan?.id ?? null,
+      effectiveDate: input.semester.startDate,
+    },
   });
-  const data = {
-    trackId: stage?.trackId ?? null,
-    stageId: stage?.id ?? null,
-    planId: plan?.id ?? null,
-    effectiveDate: semester.startDate,
-  };
-  if (
+}
+
+async function selectedStage(
+  database: TransactionClient,
+  stageId: string | null,
+): Promise<Stage | null> {
+  if (!stageId) return null;
+  const stage = await database.stage.findFirst({
+    where: { id: stageId, deletedAt: null, track: { status: "ACTIVE" } },
+  });
+  if (!stage) throw badRequest("O estágio escolhido não está disponível.");
+  return stage;
+}
+
+async function selectedPlan(
+  database: TransactionClient,
+  input: FutureIntakeInput,
+): Promise<FuturePlan | null> {
+  if (!input.planId) return null;
+  const plan = await database.semesterClassPlan.findFirst({
+    where: {
+      id: input.planId,
+      semesterId: input.semester.id,
+      deletedAt: null,
+      closedAt: null,
+    },
+  });
+  if (!plan) throw badRequest("A turma escolhida não está disponível no próximo período.");
+  return plan;
+}
+
+function samePlacement(
+  existing: {
+    trackId: string | null;
+    stageId: string | null;
+    planId: string | null;
+    effectiveDate: Date | null;
+  } | null,
+  data: PlacementData,
+): boolean {
+  return Boolean(
     existing?.trackId === data.trackId &&
     existing.stageId === data.stageId &&
     existing.planId === data.planId &&
-    existing.effectiveDate?.getTime() === data.effectiveDate.getTime()
-  )
-    return;
+    existing.effectiveDate?.getTime() === data.effectiveDate.getTime(),
+  );
+}
+
+async function upsertFuturePlacement(
+  database: TransactionClient,
+  input: FutureIntakeInput & { data: PlacementData },
+): Promise<void> {
+  const { semester, studentId, recordedById, data } = input;
+  const existing = await database.semesterPlacement.findFirst({
+    where: { semesterId: semester.id, studentId, mode: "ENTRY", deletedAt: null, declinedAt: null },
+  });
+  if (samePlacement(existing, data)) return;
   if (existing?.publishedAt)
     throw badRequest(
       "A turma do próximo período já foi confirmada. Revise a organização para alterá-la.",
@@ -78,7 +124,7 @@ export async function recordFutureStudentIntake(
       version: placement.version,
       action: "PROPOSED",
       recordedById,
-      snapshot: { studentId, stageId: stage?.id ?? null, planId: plan?.id ?? null, mode: "ENTRY" },
+      snapshot: { studentId, stageId: data.stageId, planId: data.planId, mode: "ENTRY" },
     },
   });
 }

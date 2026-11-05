@@ -1,10 +1,6 @@
 import { attachDocumentSession } from "../student-documents/router.js";
-import {
-  studentIntakeOptions,
-  enrollNewStudent,
-  allocateIntakeStudent,
-  resumeStudentIntake,
-} from "./intake.js";
+import { enrollNewStudent, allocateIntakeStudent, resumeStudentIntake } from "./intake.js";
+import { studentIntakeOptions } from "./intake-options.js";
 import { readStudentPendingActions } from "./pending-actions.js";
 import { searchIds } from "../search.js";
 import { enrollmentSubject, studentSubject } from "../activity/subjects.js";
