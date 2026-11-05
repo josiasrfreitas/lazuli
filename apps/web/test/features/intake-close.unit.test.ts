@@ -56,6 +56,13 @@ function scenario(step: "student" | "pedagogy" | "contract", complete = false): 
       selected: undefined,
       waitingPlacement: false,
     },
+    documents: {
+      query: {
+        data: {
+          files: [{ kind: "student" }, { kind: "residence" }, { kind: "photo" }],
+        },
+      },
+    },
     existing: {
       existing: { data: undefined },
       existingEnrollment: complete ? {} : undefined,

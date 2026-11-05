@@ -91,7 +91,7 @@ const row: FinanceInstallmentRow = {
   status: "OVERDUE",
   overdueDays: 14,
 };
-void test("shared URLs map every installment view and preserve the flat page size", () => {
+void test("shared URLs map every installment view and preserve the page size", () => {
   assert.deepEqual(
     queryInput(
       normalizeFilters(
@@ -100,7 +100,7 @@ void test("shared URLs map every installment view and preserve the flat page siz
       ),
     ),
     {
-      view: "all",
+      view: "grouped",
       search: "Ana",
       page: 2,
       pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
@@ -190,7 +190,7 @@ void test("combined installment filters map to the validated query and ignore in
     amountTo: "350",
   };
   assert.deepEqual(queryInput(normalizeFilters(params, { page: 1, pageSize: 25 })), {
-    view: "all",
+    view: "grouped",
     page: 1,
     pageSize: 25,
     search: "Ana",

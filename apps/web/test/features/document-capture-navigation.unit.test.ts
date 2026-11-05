@@ -15,7 +15,11 @@ function scenario(): Scenario {
   const steps: string[] = [];
   const closed: boolean[] = [];
   const errors: string[] = [];
-  const documents = { captureBusy: false, selection: null as Context["documents"]["selection"] };
+  const documents = {
+    captureBusy: false,
+    selection: null as Context["documents"]["selection"],
+    query: { data: { files: [] } },
+  };
   const flow: Partial<Context["flow"]> = {
     busy: { current: false },
     step: "student",

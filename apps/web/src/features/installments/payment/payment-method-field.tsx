@@ -1,7 +1,17 @@
 "use client";
 
 import { Check, ChevronDown, Plus } from "lucide-react";
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactElement } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type ReactElement,
+  type RefObject,
+  type SetStateAction,
+} from "react";
 import {
   capitalizePaymentMethodName,
   financeCreatePaymentMethodInputSchema,
@@ -20,7 +30,24 @@ import {
 import { trpc } from "~/lib/trpc";
 import type { PaymentFormState } from "./logic";
 
-const usePaymentMethodField = (state: PaymentFormState) => {
+type PaymentMethodModel = {
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  adding: boolean;
+  setAdding: Dispatch<SetStateAction<boolean>>;
+  name: string;
+  setName: Dispatch<SetStateAction<string>>;
+  error: string;
+  setError: Dispatch<SetStateAction<string>>;
+  input: RefObject<HTMLInputElement | null>;
+  inputId: string;
+  create: ReturnType<typeof trpc.finance.createPaymentMethod.useMutation>;
+  selected: PaymentFormState["methods"][number] | undefined;
+  close: () => void;
+  submit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+function usePaymentMethodField(state: PaymentFormState): PaymentMethodModel {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -84,9 +111,7 @@ const usePaymentMethodField = (state: PaymentFormState) => {
     close,
     submit,
   };
-};
-
-type PaymentMethodModel = ReturnType<typeof usePaymentMethodField>;
+}
 
 export function PaymentMethodField({ state }: { state: PaymentFormState }): ReactElement {
   const model = usePaymentMethodField(state);
