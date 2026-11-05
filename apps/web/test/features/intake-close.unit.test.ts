@@ -4,8 +4,7 @@ import { createRequestSave } from "../../src/features/students/new-student/new-s
 import { initialNewStudentState } from "../../src/features/students/new-student/reducer.js";
 
 type Context = Parameters<typeof createRequestSave>[0];
-// These fixtures supply only the collaborators used by the save preparation command.
-type Stub<T> = { [K in keyof T]?: T[K] extends object ? Stub<T[K]> : T[K] };
+// Only the collaborators used by save preparation are supplied here.
 type SavedInput = Parameters<Context["persistence"]["persist"]>[0];
 type Scenario = {
   request: ReturnType<typeof createRequestSave>;
@@ -76,7 +75,7 @@ function scenario(step: "student" | "pedagogy" | "contract", complete = false): 
     },
     today: "2026-10-29",
     existingStudentId: complete ? "09444c84-c30d-4c2f-9827-29428c489e81" : undefined,
-  } as Stub<Context> as Context;
+  } as unknown as Context;
   return { request: createRequestSave(context), confirmations, persisted, errors, context };
 }
 
