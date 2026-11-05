@@ -20,7 +20,7 @@ import {
 import { trpc } from "~/lib/trpc";
 import type { PaymentFormState } from "./logic";
 
-export function PaymentMethodField({ state }: { state: PaymentFormState }): ReactElement {
+const usePaymentMethodField = (state: PaymentFormState) => {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -68,6 +68,40 @@ export function PaymentMethodField({ state }: { state: PaymentFormState }): Reac
     });
   };
 
+  return {
+    open,
+    setOpen,
+    adding,
+    setAdding,
+    name,
+    setName,
+    error,
+    setError,
+    input,
+    inputId,
+    create,
+    selected,
+    close,
+    submit,
+  };
+};
+
+type PaymentMethodModel = ReturnType<typeof usePaymentMethodField>;
+
+export function PaymentMethodField({ state }: { state: PaymentFormState }): ReactElement {
+  const model = usePaymentMethodField(state);
+  return <PaymentMethodFieldView state={state} model={model} />;
+}
+
+function PaymentMethodFieldView({
+  state,
+  model,
+}: {
+  state: PaymentFormState;
+  model: PaymentMethodModel;
+}): ReactElement {
+  const { open, setOpen, create, selected, close } = model;
+
   return (
     <Field className="max-w-64">
       <Label id="payment-method-label">Forma de pagamento</Label>
@@ -90,63 +124,7 @@ export function PaymentMethodField({ state }: { state: PaymentFormState }): Reac
           </span>
           <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-icon" />
         </PopoverTrigger>
-        <PopoverContent align="start" size="md" showArrow={false} aria-label="Formas de pagamento">
-          <div className="grid gap-1">
-            {state.methods.map((method) => (
-              <button
-                key={method.id}
-                type="button"
-                className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-2 text-left text-control text-foreground outline-none hover:bg-accent focus-visible:bg-accent focus-visible:shadow-focus"
-                aria-current={selected?.code === method.code ? "true" : undefined}
-                onClick={() => {
-                  state.dispatch({
-                    type: "method",
-                    value: method.code,
-                    externalFinancing: method.allowsExternalInstallments,
-                  });
-                  close();
-                }}
-              >
-                <span className="min-w-0 truncate">{method.name}</span>
-                {selected?.code === method.code && <Check aria-hidden="true" className="size-4" />}
-              </button>
-            ))}
-            <div className="my-1 border-t border-border" />
-            {adding ? (
-              <form noValidate onSubmit={submit} className="grid gap-2 pt-1">
-                <Label htmlFor={inputId}>Nova forma de pagamento</Label>
-                <Input
-                  id={inputId}
-                  ref={input}
-                  name="paymentMethodName"
-                  autoComplete="off"
-                  size="sm"
-                  maxLength={MAX_PAYMENT_METHOD_NAME_LENGTH}
-                  placeholder="Ex.: transferência"
-                  value={name}
-                  invalid={Boolean(error)}
-                  disabled={create.isPending}
-                  onChange={(event) => {
-                    setName(capitalizePaymentMethodName(event.target.value));
-                    setError("");
-                  }}
-                />
-                {error && <FieldError match>{error}</FieldError>}
-                <Button type="submit" size="sm" loading={create.isPending}>
-                  Adicionar
-                </Button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-control text-foreground outline-none hover:bg-accent focus-visible:bg-accent focus-visible:shadow-focus"
-                onClick={() => setAdding(true)}
-              >
-                <Plus aria-hidden="true" className="size-4" /> Adicionar
-              </button>
-            )}
-          </div>
-        </PopoverContent>
+        <PaymentMethodOptions state={state} model={model} />
       </Popover>
       {state.methodsError && (
         <FieldError match>
@@ -157,5 +135,81 @@ export function PaymentMethodField({ state }: { state: PaymentFormState }): Reac
         </FieldError>
       )}
     </Field>
+  );
+}
+
+function PaymentMethodOptions({
+  state,
+  model,
+}: {
+  state: PaymentFormState;
+  model: PaymentMethodModel;
+}): ReactElement {
+  const { adding, setAdding, selected, close } = model;
+  return (
+    <PopoverContent align="start" size="md" showArrow={false} aria-label="Formas de pagamento">
+      <div className="grid gap-1">
+        {state.methods.map((method) => (
+          <button
+            key={method.id}
+            type="button"
+            className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-2 text-left text-control text-foreground outline-none hover:bg-accent focus-visible:bg-accent focus-visible:shadow-focus"
+            aria-current={selected?.code === method.code ? "true" : undefined}
+            onClick={() => {
+              state.dispatch({
+                type: "method",
+                value: method.code,
+                externalFinancing: method.allowsExternalInstallments,
+              });
+              close();
+            }}
+          >
+            <span className="min-w-0 truncate">{method.name}</span>
+            {selected?.code === method.code && <Check aria-hidden="true" className="size-4" />}
+          </button>
+        ))}
+        <div className="my-1 border-t border-border" />
+        {adding ? (
+          <NewPaymentMethodForm model={model} />
+        ) : (
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-control text-foreground outline-none hover:bg-accent focus-visible:bg-accent focus-visible:shadow-focus"
+            onClick={() => setAdding(true)}
+          >
+            <Plus aria-hidden="true" className="size-4" /> Adicionar
+          </button>
+        )}
+      </div>
+    </PopoverContent>
+  );
+}
+
+function NewPaymentMethodForm({ model }: { model: PaymentMethodModel }): ReactElement {
+  const { submit, inputId, input, name, error, create, setName, setError } = model;
+  return (
+    <form noValidate onSubmit={submit} className="grid gap-2 pt-1">
+      <Label htmlFor={inputId}>Nova forma de pagamento</Label>
+      <Input
+        id={inputId}
+        ref={input}
+        name="paymentMethodName"
+        autoComplete="off"
+        size="sm"
+        maxLength={MAX_PAYMENT_METHOD_NAME_LENGTH}
+        placeholder="Ex.: transferência"
+        value={name}
+        invalid={Boolean(error)}
+        disabled={create.isPending}
+        onChange={(event) => {
+          setName(capitalizePaymentMethodName(event.target.value));
+          setError("");
+        }}
+      />
+      {error && <FieldError match>{error}</FieldError>}
+      <Button type="submit" size="sm" loading={create.isPending}>
+        Adicionar
+      </Button>
+    </form>
   );
 }

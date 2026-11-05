@@ -107,8 +107,9 @@ function installmentIdentityColumns(grouped: boolean): DataTableColumn<FinanceIn
       width: "narrow",
       cell: (row) => installmentVm(row, "").origin,
     },
-    ...(!grouped
-      ? [
+    ...(grouped
+      ? []
+      : [
           {
             id: "payer",
             header: "Pagador",
@@ -119,8 +120,7 @@ function installmentIdentityColumns(grouped: boolean): DataTableColumn<FinanceIn
               </span>
             ),
           },
-        ]
-      : []),
+        ]),
     {
       id: "beneficiaries",
       header: "Beneficiário",
@@ -145,23 +145,15 @@ function installmentIdentityColumns(grouped: boolean): DataTableColumn<FinanceIn
   ];
 }
 
-export function installmentColumns(
-  today: string,
-  situations: readonly InstallmentSituation[],
-  grouped = false,
-): readonly DataTableColumn<FinanceInstallmentRow>[] {
+export function installmentColumns(input: {
+  today: string;
+  situations: readonly InstallmentSituation[];
+  grouped: boolean;
+}): readonly DataTableColumn<FinanceInstallmentRow>[] {
+  const { today, situations, grouped } = input;
   const mode = installmentColumnMode(situations);
   return [
-    ...(mode === "paid" || mode === "waived"
-      ? []
-      : [
-          {
-            id: "selection",
-            header: <PaymentSelectionHeaderCheckbox />,
-            width: "selection" as const,
-            cell: (row: FinanceInstallmentRow) => <PaymentSelectionCheckbox row={row} />,
-          },
-        ]),
+    ...(mode === "paid" || mode === "waived" ? [] : [selectionColumn()]),
     ...installmentIdentityColumns(grouped),
     {
       id: "nominal",
@@ -170,52 +162,7 @@ export function installmentColumns(
       numeric: true,
       cell: (row) => <InstallmentAmount row={row} column="nominal" />,
     },
-    ...(mode === "standard" || mode === "paid"
-      ? [
-          {
-            id: "paid",
-            header: "Valor pago",
-            width: "standard" as const,
-            numeric: true,
-            cell: (row: FinanceInstallmentRow) => <InstallmentAmount row={row} column="paid" />,
-          },
-        ]
-      : []),
-    ...(mode === "paid"
-      ? [
-          {
-            id: "paidOn",
-            header: "Data do pagamento",
-            width: "narrow" as const,
-            cell: (row: FinanceInstallmentRow) => (
-              <span className="font-numeric whitespace-nowrap tabular-nums">
-                {formatDateOnlyBR(row.paidOn ?? undefined)}
-              </span>
-            ),
-          },
-        ]
-      : []),
-    ...(mode === "standard"
-      ? [
-          {
-            id: "status",
-            header: "Situação",
-            width: "standard" as const,
-            cell: (row: FinanceInstallmentRow) => {
-              const { badge } = installmentVm(row, today);
-              return (
-                <Badge
-                  variant={badge.variant}
-                  title={badge.description}
-                  className="whitespace-normal"
-                >
-                  {badge.label}
-                </Badge>
-              );
-            },
-          },
-        ]
-      : []),
+    ...conditionalColumns(mode, today),
     {
       id: "actions",
       header: "Ações",
@@ -226,11 +173,61 @@ export function installmentColumns(
   ];
 }
 
+function selectionColumn(): DataTableColumn<FinanceInstallmentRow> {
+  return {
+    id: "selection",
+    header: <PaymentSelectionHeaderCheckbox />,
+    width: "selection",
+    cell: (row) => <PaymentSelectionCheckbox row={row} />,
+  };
+}
+
+function conditionalColumns(
+  mode: ReturnType<typeof installmentColumnMode>,
+  today: string,
+): DataTableColumn<FinanceInstallmentRow>[] {
+  const result: DataTableColumn<FinanceInstallmentRow>[] = [];
+  if (mode === "standard" || mode === "paid")
+    result.push({
+      id: "paid",
+      header: "Valor pago",
+      width: "standard",
+      numeric: true,
+      cell: (row) => <InstallmentAmount row={row} column="paid" />,
+    });
+  if (mode === "paid")
+    result.push({
+      id: "paidOn",
+      header: "Data do pagamento",
+      width: "narrow",
+      cell: (row) => (
+        <span className="font-numeric whitespace-nowrap tabular-nums">
+          {formatDateOnlyBR(row.paidOn ?? undefined)}
+        </span>
+      ),
+    });
+  if (mode === "standard") result.push(statusColumn(today));
+  return result;
+}
+
+function statusColumn(today: string): DataTableColumn<FinanceInstallmentRow> {
+  return {
+    id: "status",
+    header: "Situação",
+    width: "standard",
+    cell: (row) => {
+      const { badge } = installmentVm(row, today);
+      return (
+        <Badge variant={badge.variant} title={badge.description} className="whitespace-normal">
+          {badge.label}
+        </Badge>
+      );
+    },
+  };
+}
+
 function PayerGroupHeader({ group, paid }: { group: PayerGroup; paid: boolean }): ReactElement {
-  const summary =
-    "paidAmountCents" in group
-      ? `${group.installmentCount} ${group.installmentCount === 1 ? "parcela" : "parcelas"} · ${group.beneficiaries.length} ${group.beneficiaries.length === 1 ? "aluno" : "alunos"}`
-      : overduePayerSummaryVm(group).description;
+  const summary = groupSummary(group);
   const amount =
     paid && "paidAmountCents" in group ? group.paidAmountCents : group.collectibleBalanceCents;
   const waived = group.rows.every((row) => row.status === "WAIVED");
@@ -260,16 +257,33 @@ function PayerGroupHeader({ group, paid }: { group: PayerGroup; paid: boolean })
       </div>
       <div className="w-full shrink-0 text-right sm:ml-auto sm:w-auto">
         <span className="block text-xs text-muted-foreground">
-          {paid ? "Total pago" : waived ? "Total dispensado" : "Saldo em aberto"}
+          {groupAmountLabel(paid, waived)}
         </span>
         <strong
-          className={`font-numeric block font-semibold tabular-nums ${paid ? "text-success" : waived ? "text-muted-foreground" : "text-destructive"}`}
+          className={`font-numeric block font-semibold tabular-nums ${groupAmountColor(paid, waived)}`}
         >
           {formatBRLFromCents(total)}
         </strong>
       </div>
     </header>
   );
+}
+
+function groupSummary(group: PayerGroup): string {
+  if (!("paidAmountCents" in group)) return overduePayerSummaryVm(group).description;
+  const parcels = group.installmentCount === 1 ? "parcela" : "parcelas";
+  const students = group.beneficiaries.length === 1 ? "aluno" : "alunos";
+  return `${group.installmentCount} ${parcels} · ${group.beneficiaries.length} ${students}`;
+}
+
+function groupAmountLabel(paid: boolean, waived: boolean): string {
+  if (paid) return "Total pago";
+  return waived ? "Total dispensado" : "Saldo em aberto";
+}
+
+function groupAmountColor(paid: boolean, waived: boolean): string {
+  if (paid) return "text-success";
+  return waived ? "text-muted-foreground" : "text-destructive";
 }
 
 function columnWidth(column: { width?: DataTableColumn<FinanceInstallmentRow>["width"] }): string {
@@ -280,17 +294,19 @@ function columnWidth(column: { width?: DataTableColumn<FinanceInstallmentRow>["w
   return "w-36";
 }
 
+type GroupColumns = readonly DataTableColumn<FinanceInstallmentRow & { id: string }>[];
+type GroupTableProps = {
+  group: PayerGroup;
+  columns: GroupColumns;
+  onRowClick?: ((row: FinanceInstallmentRow) => void) | undefined;
+};
+
 function PayerGroupCard({
   group,
   columns,
   paid,
   onRowClick,
-}: {
-  group: PayerGroup;
-  columns: readonly DataTableColumn<FinanceInstallmentRow & { id: string }>[];
-  paid: boolean;
-  onRowClick?: ((row: FinanceInstallmentRow) => void) | undefined;
-}): ReactElement {
+}: GroupTableProps & { paid: boolean }): ReactElement {
   const groupId = `installments-payer-${group.payer.id}`;
   return (
     <section
@@ -300,80 +316,110 @@ function PayerGroupCard({
       data-slot={"paidAmountCents" in group ? "payer-group" : "overdue-payer-group"}
     >
       <PayerGroupHeader group={group} paid={paid} />
-      <div className="overflow-x-auto scrollbar-subtle">
-        <Table
-          aria-labelledby={groupId}
-          aria-describedby={`${groupId}-summary`}
-          className="w-full min-w-4xl table-fixed"
-          density="compact"
-        >
-          <colgroup>
-            {columns.map((column) => (
-              <col key={column.id} className={columnWidth(column)} />
-            ))}
-          </colgroup>
-          <TableHeader>
-            <TableRow interactive={false}>
-              {columns.map((column) => (
-                <TableHead
-                  key={column.id}
-                  id={`${groupId}-column-${column.id}`}
-                  scope="col"
-                  {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
-                >
-                  {column.header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {group.rows.map((row) => {
-              const displayRow = { ...row, id: row.installmentId };
-              return (
-                <TableRow
-                  key={row.installmentId}
-                  interactive={Boolean(onRowClick)}
-                  className={
-                    onRowClick
-                      ? "cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                      : undefined
-                  }
-                  tabIndex={onRowClick ? 0 : undefined}
-                  onClick={
-                    onRowClick
-                      ? (event) => {
-                          if (event.defaultPrevented || isRowControl(event.target)) return;
-                          onRowClick(row);
-                        }
-                      : undefined
-                  }
-                  onKeyDown={
-                    onRowClick
-                      ? (event) => {
-                          if (event.key === "Enter" && !isRowControl(event.target)) {
-                            event.preventDefault();
-                            onRowClick(row);
-                          }
-                        }
-                      : undefined
-                  }
-                >
-                  {columns.map((column) => (
-                    <TableCell
-                      key={column.id}
-                      headers={`${groupId}-column-${column.id}`}
-                      {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
-                    >
-                      {column.cell(displayRow)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      <PayerGroupTable group={group} groupId={groupId} columns={columns} onRowClick={onRowClick} />
     </section>
+  );
+}
+
+function PayerGroupTable({
+  group,
+  groupId,
+  columns,
+  onRowClick,
+}: GroupTableProps & { groupId: string }): ReactElement {
+  return (
+    <div className="overflow-x-auto scrollbar-subtle">
+      <Table
+        aria-labelledby={groupId}
+        aria-describedby={`${groupId}-summary`}
+        className="w-full min-w-4xl table-fixed"
+        density="compact"
+      >
+        <colgroup>
+          {columns.map((column) => (
+            <col key={column.id} className={columnWidth(column)} />
+          ))}
+        </colgroup>
+        <TableHeader>
+          <TableRow interactive={false}>
+            {columns.map((column) => (
+              <TableHead
+                key={column.id}
+                id={`${groupId}-column-${column.id}`}
+                scope="col"
+                {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
+              >
+                {column.header}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {group.rows.map((row) => (
+            <PayerGroupRow
+              key={row.installmentId}
+              row={row}
+              groupId={groupId}
+              columns={columns}
+              onRowClick={onRowClick}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function PayerGroupRow({
+  row,
+  groupId,
+  columns,
+  onRowClick,
+}: {
+  row: FinanceInstallmentRow;
+  groupId: string;
+  columns: GroupColumns;
+  onRowClick?: ((row: FinanceInstallmentRow) => void) | undefined;
+}): ReactElement {
+  const displayRow = { ...row, id: row.installmentId };
+  return (
+    <TableRow
+      interactive={Boolean(onRowClick)}
+      className={
+        onRowClick
+          ? "cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          : undefined
+      }
+      tabIndex={onRowClick ? 0 : undefined}
+      onClick={
+        onRowClick
+          ? (event) => {
+              if (event.defaultPrevented || isRowControl(event.target)) return;
+              onRowClick(row);
+            }
+          : undefined
+      }
+      onKeyDown={
+        onRowClick
+          ? (event) => {
+              if (event.key === "Enter" && !isRowControl(event.target)) {
+                event.preventDefault();
+                onRowClick(row);
+              }
+            }
+          : undefined
+      }
+    >
+      {columns.map((column) => (
+        <TableCell
+          key={column.id}
+          headers={`${groupId}-column-${column.id}`}
+          {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
+        >
+          {column.cell(displayRow)}
+        </TableCell>
+      ))}
+    </TableRow>
   );
 }
 
@@ -427,7 +473,7 @@ export function InstallmentsTable({
 }: TableState & { updating: boolean; footer: ReactNode }): ReactElement {
   const today = businessDate(new Date());
   const situations = state.situations ?? [];
-  const columns = installmentColumns(today, situations, state.groups !== undefined);
+  const columns = installmentColumns({ today, situations, grouped: state.groups !== undefined });
   const paid = installmentColumnMode(situations) === "paid";
   const guidance =
     state.showGroupedSearchGuidance || state.showOverdueSearchGuidance ? (

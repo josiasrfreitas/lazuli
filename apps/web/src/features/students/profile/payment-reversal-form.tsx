@@ -47,6 +47,40 @@ const DATE_ONLY_LENGTH = 10;
 const MAX_REFUND_REFERENCE_LENGTH = 120;
 const MAX_REVERSAL_REASON_LENGTH = 500;
 
+type ReversalFields = {
+  today: string;
+  kind: Kind;
+  setKind: (kind: Kind) => void;
+  amounts: Record<string, number | null>;
+  setAmounts: (
+    update: (current: Record<string, number | null>) => Record<string, number | null>,
+  ) => void;
+  date: string;
+  setDate: (date: string) => void;
+  method: string;
+  setMethod: (method: string) => void;
+  reference: string;
+  setReference: (reference: string) => void;
+  reason: string;
+  setReason: (reason: string) => void;
+  proof: File | undefined;
+  setProof: (proof: File | undefined) => void;
+  error: string;
+  setError: (error: string) => void;
+  committedId: string | null;
+  setCommittedId: (id: string | null) => void;
+  uploadId: string;
+  commandId: string;
+  reverse: { isPending: boolean; mutateAsync: (command: Attempt) => Promise<{ id: string }> };
+  uploading: boolean;
+  setUploading: (uploading: boolean) => void;
+  allocations: Attempt["allocations"];
+  total: number;
+  tooMuch: boolean;
+  busy: boolean;
+  locked: boolean;
+};
+
 function initialAmounts(options: Options, attempt: Attempt | null): Record<string, number | null> {
   return Object.fromEntries(
     options.allocations.map((row) => [
@@ -69,11 +103,15 @@ function reversalDefaults(
 } {
   return {
     kind: attempt?.kind ?? "CANCELLATION",
-    date: attempt?.occurredOn?.toISOString().slice(0, DATE_ONLY_LENGTH) ?? today,
+    date: defaultRefundDate(attempt, today),
     method: attempt?.refundMethod ?? "",
     reference: attempt?.refundReference ?? "",
     reason: attempt?.reason ?? "",
   };
+}
+
+function defaultRefundDate(attempt: Attempt | null, today: string): string {
+  return attempt?.occurredOn?.toISOString().slice(0, DATE_ONLY_LENGTH) ?? today;
 }
 
 function selectedAllocations(
@@ -86,7 +124,23 @@ function selectedAllocations(
   });
 }
 
-const useReversalFields = (options: Options, attempt: Attempt | null) => {
+function reversalTotals(
+  options: Options,
+  amounts: Record<string, number | null>,
+): {
+  allocations: Attempt["allocations"];
+  total: number;
+  tooMuch: boolean;
+} {
+  const allocations = selectedAllocations(options, amounts);
+  return {
+    allocations,
+    total: allocations.reduce((sum, row) => sum + row.amountCents, 0),
+    tooMuch: options.allocations.some((row) => (amounts[row.id] ?? 0) > row.availableAmountCents),
+  };
+}
+
+const useReversalFields = (options: Options, attempt: Attempt | null): ReversalFields => {
   const today = saoPauloDateOnly(new Date());
   const defaults = reversalDefaults(attempt, today);
   const [kind, setKind] = useState<Kind>(defaults.kind);
@@ -104,11 +158,7 @@ const useReversalFields = (options: Options, attempt: Attempt | null) => {
   const [commandId] = useState(() => crypto.randomUUID());
   const reverse = trpc.finance.reversePayment.useMutation();
   const [uploading, setUploading] = useState(false);
-  const allocations = selectedAllocations(options, amounts);
-  const total = allocations.reduce((sum, row) => sum + row.amountCents, 0);
-  const tooMuch = options.allocations.some(
-    (row) => (amounts[row.id] ?? 0) > row.availableAmountCents,
-  );
+  const { allocations, total, tooMuch } = reversalTotals(options, amounts);
   const busy = reverse.isPending || uploading;
   const locked = busy || Boolean(attempt) || Boolean(committedId);
   return {
@@ -143,8 +193,6 @@ const useReversalFields = (options: Options, attempt: Attempt | null) => {
     locked,
   };
 };
-
-type ReversalFields = ReturnType<typeof useReversalFields>;
 
 function useUploadAction(
   props: FormProps,
@@ -181,6 +229,11 @@ function reversalErrorMessage(error_: Error | null, rejected: boolean): string {
   return error_ instanceof Error ? error_.message : "Não foi possível registrar a operação.";
 }
 
+function isReversalRejected(error_: Error | null): boolean {
+  const code = (error_ as { data?: { code?: string } } | null)?.data?.code;
+  return ["BAD_REQUEST", "CONFLICT", "FORBIDDEN"].includes(code ?? "");
+}
+
 function useConfirmAction(input: {
   props: FormProps;
   state: ReversalFields;
@@ -199,11 +252,11 @@ function useConfirmAction(input: {
       state.setCommittedId(result.id);
       await (command.kind === "REFUND" && state.proof ? upload(result.id) : props.onSaved());
     } catch (error_) {
-      const code = (error_ as { data?: { code?: string } })?.data?.code;
-      const rejected = ["BAD_REQUEST", "CONFLICT", "FORBIDDEN"].includes(code ?? "");
+      const failure = error_ instanceof Error ? error_ : null;
+      const rejected = isReversalRejected(failure);
       if (rejected) props.onAttemptChange(null);
       props.onUncertainChange(!rejected);
-      state.setError(reversalErrorMessage(error_ instanceof Error ? error_ : null, rejected));
+      state.setError(reversalErrorMessage(failure, rejected));
     } finally {
       props.onBusyChange(false);
     }
@@ -445,19 +498,16 @@ function ReversalSubmit({
       </Button>
     );
   return (
-    <Button
-      type="submit"
-      disabled={
-        state.total <= 0 ||
-        state.tooMuch ||
-        state.locked ||
-        (state.kind === "REFUND" && !state.method)
-      }
-      loading={state.busy}
-    >
+    <Button type="submit" disabled={disabledSubmit(state)} loading={state.busy}>
       <RotateCcw aria-hidden="true" />{" "}
       {state.kind === "CANCELLATION" ? "Confirmar cancelamento" : "Registrar estorno"}
     </Button>
+  );
+}
+
+function disabledSubmit(state: ReversalFields): boolean {
+  return (
+    state.total <= 0 || state.tooMuch || state.locked || (state.kind === "REFUND" && !state.method)
   );
 }
 

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
+import {
+  useEffect,
+  useState,
+  type ComponentProps,
+  type Dispatch,
+  type ReactElement,
+  type SetStateAction,
+} from "react";
 import { useRouter } from "next/navigation";
 import { DollarSign, Handshake, X } from "lucide-react";
 import { Button, DataTablePage, FloatingToolbar, TablePagination } from "@lazuli/ui";
@@ -140,6 +147,13 @@ export function InstallmentsPagination({
 }
 
 type InstallmentsPageState = ReturnType<typeof useInstallments>;
+type TableData = Pick<ComponentProps<typeof InstallmentsTable>, "rows" | "groups">;
+
+function tableData(data: InstallmentsPageState["data"]): TableData {
+  if (!data) return {};
+  if (data.view === "all" || data.view === "paid") return { rows: data.rows };
+  return { groups: data.groups };
+}
 
 function InstallmentsTableFooter({
   state,
@@ -177,8 +191,7 @@ function InstallmentsTableContent({
   const situations = filters.status === "vencidas" ? (["OVERDUE"] as const) : filters.situations;
   return (
     <InstallmentsTable
-      rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
-      groups={data?.view === "overdue" || data?.view === "grouped" ? data.groups : undefined}
+      {...tableData(data)}
       situations={situations}
       onRowClick={onRowClick}
       error={query.isError}

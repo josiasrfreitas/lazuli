@@ -11,20 +11,17 @@ import {
 
 export type FinanceRow = FinanceInstallmentRow & { id: string };
 
-export function financeColumns({
-  onReceive,
-  onViewProof,
-  priorityId,
-  onTreat,
-  situations,
-}: {
+type FinanceColumnOptions = {
   onReceive: (row: FinanceInstallmentRow) => void;
   onViewProof: (row: FinanceInstallmentRow) => void;
   priorityId?: string | undefined;
   onTreat: (row: FinanceInstallmentRow) => void;
   situations: readonly InstallmentSituation[];
-}): DataTableColumn<FinanceRow>[] {
-  const mode = installmentColumnMode(situations);
+};
+
+export function financeColumns(options: FinanceColumnOptions): DataTableColumn<FinanceRow>[] {
+  const mode = installmentColumnMode(options.situations);
+  const overdue = mode === "unpaid" && options.situations[0] === "OVERDUE";
   return [
     {
       id: "kind",
@@ -34,11 +31,9 @@ export function financeColumns({
     },
     {
       id: "due",
-      header: mode === "unpaid" && situations[0] === "OVERDUE" ? "Tempo em atraso" : "Vencimento",
+      header: overdue ? "Tempo em atraso" : "Vencimento",
       width: "medium",
-      cell: (row) => (
-        <DueDate row={row} overdue={mode === "unpaid" && situations[0] === "OVERDUE"} />
-      ),
+      cell: (row) => <DueDate row={row} overdue={overdue} />,
     },
     {
       id: "amount",
@@ -47,84 +42,92 @@ export function financeColumns({
       numeric: true,
       cell: (row) => <InstallmentAmounts row={row} />,
     },
-    ...(mode === "standard" || mode === "paid"
-      ? [
-          {
-            id: "paid",
-            header: "Valor pago",
-            width: "standard" as const,
-            numeric: true,
-            cell: (row: FinanceRow) => money(row.paidAmountCents),
-          },
-        ]
-      : []),
-    ...(mode === "paid"
-      ? [
-          {
-            id: "paidOn",
-            header: "Data do pagamento",
-            width: "medium" as const,
-            cell: (row: FinanceRow) => formatDateOnlyBR(row.paidOn ?? undefined),
-          },
-          {
-            id: "paymentMethods",
-            header: "Forma de pagamento",
-            width: "medium" as const,
-            cell: (row: FinanceRow) => row.paymentMethodNames?.join(", ") || "—",
-          },
-        ]
-      : []),
-    ...(mode === "standard"
-      ? [
-          {
-            id: "status",
-            header: "Situação",
-            width: "standard" as const,
-            cell: (row: FinanceRow) => <InstallmentStatus row={row} />,
-          },
-        ]
-      : []),
+    ...conditionalFinanceColumns(mode),
     {
       id: "action",
       header: <span className="sr-only">Ações</span>,
       width: "medium",
-      cell: (row) => {
-        if (row.status === "PAID") {
-          return (
-            <Button
-              size="sm"
-              variant="secondary"
-              aria-label={`Ver comprovante de ${row.payer.name}, vencimento ${formatDateOnlyBR(row.dueDate)}`}
-              onClick={() => onViewProof(row)}
-            >
-              <Paperclip aria-hidden="true" /> Ver comprovante
-            </Button>
-          );
-        }
-        if (row.collectibleBalanceCents <= 0) return null;
-        return (
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              size="sm"
-              variant={row.installmentId === priorityId ? "primary" : "secondary"}
-              onClick={() => onReceive(row)}
-              aria-label={`Receber ${row.origin === "MATERIAL" ? "material" : `parcela ${row.sequenceNumber}`} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
-            >
-              <DollarSign aria-hidden="true" /> Receber
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onTreat(row)}
-              aria-label={`Negociar ou suspender ${row.origin === "MATERIAL" ? "cobrança de material" : `parcela ${row.sequenceNumber}`}`}
-            >
-              <Handshake aria-hidden="true" /> Negociar
-            </Button>
-          </div>
-        );
-      },
+      cell: (row) => <FinanceAction row={row} options={options} />,
     },
   ];
+}
+
+function conditionalFinanceColumns(
+  mode: ReturnType<typeof installmentColumnMode>,
+): DataTableColumn<FinanceRow>[] {
+  const columns: DataTableColumn<FinanceRow>[] = [];
+  if (mode === "standard" || mode === "paid")
+    columns.push({
+      id: "paid",
+      header: "Valor pago",
+      width: "standard",
+      numeric: true,
+      cell: (row) => money(row.paidAmountCents),
+    });
+  if (mode === "paid")
+    columns.push(
+      {
+        id: "paidOn",
+        header: "Data do pagamento",
+        width: "medium",
+        cell: (row) => formatDateOnlyBR(row.paidOn ?? undefined),
+      },
+      {
+        id: "paymentMethods",
+        header: "Forma de pagamento",
+        width: "medium",
+        cell: (row) => row.paymentMethodNames?.join(", ") || "—",
+      },
+    );
+  if (mode === "standard")
+    columns.push({
+      id: "status",
+      header: "Situação",
+      width: "standard",
+      cell: (row) => <InstallmentStatus row={row} />,
+    });
+  return columns;
+}
+
+function FinanceAction({
+  row,
+  options,
+}: {
+  row: FinanceInstallmentRow;
+  options: FinanceColumnOptions;
+}): ReactElement | null {
+  if (row.status === "PAID")
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        aria-label={`Ver comprovante de ${row.payer.name}, vencimento ${formatDateOnlyBR(row.dueDate)}`}
+        onClick={() => options.onViewProof(row)}
+      >
+        <Paperclip aria-hidden="true" /> Ver comprovante
+      </Button>
+    );
+  if (row.collectibleBalanceCents <= 0) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <Button
+        size="sm"
+        variant={row.installmentId === options.priorityId ? "primary" : "secondary"}
+        onClick={() => options.onReceive(row)}
+        aria-label={`Receber ${row.origin === "MATERIAL" ? "material" : `parcela ${row.sequenceNumber}`} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
+      >
+        <DollarSign aria-hidden="true" /> Receber
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => options.onTreat(row)}
+        aria-label={`Negociar ou suspender ${row.origin === "MATERIAL" ? "cobrança de material" : `parcela ${row.sequenceNumber}`}`}
+      >
+        <Handshake aria-hidden="true" /> Negociar
+      </Button>
+    </div>
+  );
 }
 
 function ChargeKind({ row }: { row: FinanceInstallmentRow }): ReactElement {

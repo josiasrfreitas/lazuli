@@ -57,7 +57,6 @@ export function StudentFinanceSection({
   const [proofRow, setProofRow] = useState<FinanceInstallmentRow | null>(null);
   const [creatingContract, setCreatingContract] = useState(false);
   const [reversingPayment, setReversingPayment] = useState(false);
-  const utils = trpc.useUtils();
   const noContract = state.summary.data?.contracts.length === 0;
   const hasHistory = Boolean(state.summary.data?.installmentCount);
   return (
@@ -88,6 +87,60 @@ export function StudentFinanceSection({
           </section>
         </div>
       )}
+      <StudentFinanceDialogs
+        id={id}
+        profile={profile}
+        state={state}
+        contractId={contractId}
+        setContractId={setContractId}
+        treatmentIds={treatmentIds}
+        setTreatmentIds={setTreatmentIds}
+        proofRow={proofRow}
+        setProofRow={setProofRow}
+        creatingContract={creatingContract}
+        setCreatingContract={setCreatingContract}
+        reversingPayment={reversingPayment}
+        setReversingPayment={setReversingPayment}
+      />
+    </div>
+  );
+}
+
+type FinanceDialogsProps = {
+  id: string;
+  profile: StudentProfile | undefined;
+  state: StudentFinanceState;
+  contractId: string | null;
+  setContractId: (id: string | null) => void;
+  treatmentIds: string[] | null;
+  setTreatmentIds: (ids: string[] | null) => void;
+  proofRow: FinanceInstallmentRow | null;
+  setProofRow: (row: FinanceInstallmentRow | null) => void;
+  creatingContract: boolean;
+  setCreatingContract: (open: boolean) => void;
+  reversingPayment: boolean;
+  setReversingPayment: (open: boolean) => void;
+};
+
+function StudentFinanceDialogs(props: FinanceDialogsProps): ReactElement {
+  const {
+    id,
+    profile,
+    state,
+    contractId,
+    setContractId,
+    treatmentIds,
+    setTreatmentIds,
+    proofRow,
+    setProofRow,
+    creatingContract,
+    setCreatingContract,
+    reversingPayment,
+    setReversingPayment,
+  } = props;
+  const utils = trpc.useUtils();
+  return (
+    <>
       <NewContractDialog
         open={creatingContract}
         initialFields={{
@@ -135,7 +188,7 @@ export function StudentFinanceSection({
       {reversingPayment && (
         <PaymentReversalDialog studentId={id} onClose={() => setReversingPayment(false)} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -303,7 +356,7 @@ function FinanceTable({
   onViewProof: (row: FinanceInstallmentRow) => void;
 }): ReactElement {
   const overdue = state.situations.length === 1 && state.situations[0] === "OVERDUE";
-  if (overdue && state.data?.total === 0 && !state.query.isError)
+  if (isEmptyOverdue(state, overdue))
     return (
       <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border py-5">
         <div className="flex items-center gap-3">
@@ -346,6 +399,10 @@ function FinanceTable({
       pagination={financePagination(state)}
     />
   );
+}
+
+function isEmptyOverdue(state: StudentFinanceState, overdue: boolean): boolean {
+  return overdue && state.data?.total === 0 && !state.query.isError;
 }
 function financeTableState(state: StudentFinanceState): DataTableState<FinanceRow> {
   if (state.query.isError) return { kind: "error" };
