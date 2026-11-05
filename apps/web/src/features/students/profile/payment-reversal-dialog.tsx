@@ -4,7 +4,12 @@ import { useState, type FormEvent, type ReactElement } from "react";
 import { Download, Paperclip, RotateCcw } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { saoPauloDateOnly } from "@lazuli/domain";
-import { MAX_PAYMENT_PROOF_BYTES, PAYMENT_PROOF_ACCEPT } from "@lazuli/validators";
+import {
+  financeReversePaymentInputSchema,
+  MAX_PAYMENT_PROOF_BYTES,
+  PAYMENT_PROOF_ACCEPT,
+  type z,
+} from "@lazuli/validators";
 import {
   Button,
   CurrencyInput,
@@ -33,6 +38,23 @@ type Payment = RouterOutputs["finance"]["studentPayments"]["rows"][number];
 type Options = RouterOutputs["finance"]["paymentReversalOptions"];
 type Method = RouterOutputs["finance"]["paymentMethods"][number];
 type Kind = "CANCELLATION" | "REFUND";
+type Attempt = z.infer<typeof financeReversePaymentInputSchema>;
+
+function attemptKey(studentId: string): string {
+  return `lazuli:payment-reversal-attempt:${studentId}`;
+}
+
+function savedAttempt(studentId: string): Attempt | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(attemptKey(studentId));
+    if (!raw) return null;
+    const parsed = financeReversePaymentInputSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
 
 export function PaymentReversalDialog({
   studentId,
@@ -41,7 +63,9 @@ export function PaymentReversalDialog({
   studentId: string;
   onClose: () => void;
 }): ReactElement {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState<Attempt | null>(() => savedAttempt(studentId));
+  const [uncertain, setUncertain] = useState(Boolean(attempt));
+  const [selectedId, setSelectedId] = useState<string | null>(attempt?.paymentEntryId ?? null);
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState(0);
   const payments = trpc.finance.studentPayments.useInfiniteQuery(
@@ -56,6 +80,16 @@ export function PaymentReversalDialog({
   );
   const methods = trpc.finance.paymentMethods.useQuery();
   const utils = trpc.useUtils();
+
+  function retainAttempt(value: Attempt | null): void {
+    setAttempt(value);
+    try {
+      if (value) sessionStorage.setItem(attemptKey(studentId), JSON.stringify(value));
+      else sessionStorage.removeItem(attemptKey(studentId));
+    } catch {
+      // The mounted dialog still retains the exact command if storage is unavailable.
+    }
+  }
 
   async function refresh(): Promise<void> {
     await Promise.allSettled([
@@ -74,13 +108,13 @@ export function PaymentReversalDialog({
     <Dialog
       open
       onOpenChange={(open, event) => {
-        if (!open && busy) event.cancel();
+        if (!open && (busy || attempt)) event.cancel();
         else if (!open) onClose();
       }}
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="h-160 md:max-w-4xl" showCloseButton={!busy}>
+        <DialogContent className="h-160 md:max-w-4xl" showCloseButton={!busy && !attempt}>
           <DialogHeader>
             <DialogTitle>Cancelar ou estornar recebimento</DialogTitle>
             <DialogDescription>
@@ -103,6 +137,7 @@ export function PaymentReversalDialog({
                   key={payment.id}
                   payment={payment}
                   selected={payment.id === paymentId}
+                  disabled={Boolean(attempt)}
                   onSelect={() => setSelectedId(payment.id)}
                 />
               ))}
@@ -130,6 +165,10 @@ export function PaymentReversalDialog({
                   options={options.data}
                   methods={methods.data ?? []}
                   methodsLoading={methods.isPending}
+                  attempt={attempt}
+                  uncertain={uncertain}
+                  onAttemptChange={retainAttempt}
+                  onUncertainChange={setUncertain}
                   onBusyChange={setBusy}
                   onSaved={refresh}
                 />
@@ -145,16 +184,19 @@ export function PaymentReversalDialog({
 function PaymentChoice({
   payment,
   selected,
+  disabled,
   onSelect,
 }: {
   payment: Payment;
   selected: boolean;
+  disabled: boolean;
   onSelect: () => void;
 }): ReactElement {
   return (
     <button
       type="button"
       aria-pressed={selected}
+      disabled={disabled}
       onClick={onSelect}
       className="grid w-full gap-1 rounded-md border border-border p-3 text-left text-sm hover:bg-accent aria-pressed:border-primary aria-pressed:bg-accent/40"
     >
@@ -178,24 +220,38 @@ function PaymentReversalForm({
   options,
   methods,
   methodsLoading,
+  attempt,
+  uncertain,
+  onAttemptChange,
+  onUncertainChange,
   onBusyChange,
   onSaved,
 }: {
   options: Options;
   methods: Method[];
   methodsLoading: boolean;
+  attempt: Attempt | null;
+  uncertain: boolean;
+  onAttemptChange: (attempt: Attempt | null) => void;
+  onUncertainChange: (uncertain: boolean) => void;
   onBusyChange: (busy: boolean) => void;
   onSaved: () => Promise<void>;
 }): ReactElement {
   const today = saoPauloDateOnly(new Date());
-  const [kind, setKind] = useState<Kind>("CANCELLATION");
+  const [kind, setKind] = useState<Kind>(attempt?.kind ?? "CANCELLATION");
   const [amounts, setAmounts] = useState<Record<string, number | null>>(() =>
-    Object.fromEntries(options.allocations.map((row) => [row.id, row.availableAmountCents])),
+    Object.fromEntries(
+      options.allocations.map((row) => [
+        row.id,
+        attempt?.allocations.find((line) => line.paymentAllocationId === row.id)?.amountCents ??
+          (attempt ? 0 : row.availableAmountCents),
+      ]),
+    ),
   );
-  const [date, setDate] = useState(today);
-  const [method, setMethod] = useState("");
-  const [reference, setReference] = useState("");
-  const [reason, setReason] = useState("");
+  const [date, setDate] = useState(attempt?.occurredOn?.toISOString().slice(0, 10) ?? today);
+  const [method, setMethod] = useState(attempt?.refundMethod ?? "");
+  const [reference, setReference] = useState(attempt?.refundReference ?? "");
+  const [reason, setReason] = useState(attempt?.reason ?? "");
   const [proof, setProof] = useState<File | undefined>();
   const [error, setError] = useState("");
   const [committedId, setCommittedId] = useState<string | null>(null);
@@ -212,6 +268,7 @@ function PaymentReversalForm({
     (row) => (amounts[row.id] ?? 0) > row.availableAmountCents,
   );
   const busy = reverse.isPending || uploading;
+  const locked = busy || Boolean(attempt) || Boolean(committedId);
 
   async function upload(reversalId: string): Promise<void> {
     if (!proof) {
@@ -237,43 +294,61 @@ function PaymentReversalForm({
     }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
+  async function confirm(command: Attempt): Promise<void> {
     if (busy || committedId) return;
     setError("");
+    onAttemptChange(command);
     onBusyChange(true);
     try {
-      const result = await reverse.mutateAsync({
-        commandId,
-        paymentEntryId: options.paymentEntryId,
-        kind,
-        ...(kind === "REFUND"
-          ? {
-              occurredOn: new Date(`${date}T00:00:00.000Z`),
-              refundMethod: method,
-              refundReference: reference || null,
-            }
-          : {}),
-        reason: reason || null,
-        allocations,
-      });
+      const result = await reverse.mutateAsync(command);
+      onAttemptChange(null);
+      onUncertainChange(false);
       setCommittedId(result.id);
-      if (kind === "REFUND" && proof) await upload(result.id);
+      if (command.kind === "REFUND" && proof) await upload(result.id);
       else await onSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível registrar a operação.");
+      const code = (cause as { data?: { code?: string } })?.data?.code;
+      const rejected = ["BAD_REQUEST", "CONFLICT", "FORBIDDEN"].includes(code ?? "");
+      if (rejected) onAttemptChange(null);
+      onUncertainChange(!rejected);
+      setError(
+        rejected
+          ? cause instanceof Error
+            ? cause.message
+            : "Não foi possível registrar a operação."
+          : "Resultado ainda não confirmado. Recupere a mesma operação antes de continuar.",
+      );
     } finally {
       onBusyChange(false);
     }
   }
 
+  function submit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    if (attempt || locked) return;
+    void confirm({
+      commandId,
+      paymentEntryId: options.paymentEntryId,
+      kind,
+      ...(kind === "REFUND"
+        ? {
+            occurredOn: new Date(`${date}T00:00:00.000Z`),
+            refundMethod: method,
+            refundReference: reference || null,
+          }
+        : {}),
+      reason: reason || null,
+      allocations,
+    });
+  }
+
   return (
     <div className="grid content-start gap-4">
-      <form className="grid gap-4" onSubmit={(event) => void submit(event)}>
+      <form className="grid gap-4" onSubmit={submit}>
         <SegmentedControl
           aria-label="Tipo da operação"
           value={kind}
-          disabled={busy || Boolean(committedId)}
+          disabled={locked}
           onValueChange={(value) => {
             if (value === "CANCELLATION" || value === "REFUND") setKind(value);
           }}
@@ -303,7 +378,7 @@ function PaymentReversalForm({
                 id={`reversal-${row.id}`}
                 size="sm"
                 value={amounts[row.id] ?? null}
-                disabled={busy || Boolean(committedId) || row.availableAmountCents === 0}
+                disabled={locked || row.availableAmountCents === 0}
                 onValueChange={(value) =>
                   setAmounts((current) => ({ ...current, [row.id]: value }))
                 }
@@ -330,7 +405,7 @@ function PaymentReversalForm({
                 min={options.date}
                 max={today}
                 value={date}
-                disabled={busy}
+                disabled={locked}
                 onChange={(event) => setDate(event.target.value)}
               />
             </Field>
@@ -340,7 +415,7 @@ function PaymentReversalForm({
                 id="refund-method"
                 required
                 value={method}
-                disabled={busy || methodsLoading}
+                disabled={locked || methodsLoading}
                 onChange={(event) => setMethod(event.target.value)}
                 className="h-control-sm rounded-sm border border-input bg-field px-3 text-control text-foreground"
               >
@@ -359,7 +434,7 @@ function PaymentReversalForm({
                 size="sm"
                 maxLength={120}
                 value={reference}
-                disabled={busy}
+                disabled={locked}
                 onChange={(event) => setReference(event.target.value)}
               />
             </Field>
@@ -372,7 +447,7 @@ function PaymentReversalForm({
                 accept={PAYMENT_PROOF_ACCEPT}
                 acceptLabel="PDF, JPG ou PNG"
                 maxSize={MAX_PAYMENT_PROOF_BYTES}
-                disabled={busy || Boolean(committedId)}
+                disabled={locked}
                 status={uploading ? "uploading" : "idle"}
                 renderTrigger={(picker) => (
                   <Button
@@ -397,21 +472,23 @@ function PaymentReversalForm({
             rows={2}
             maxLength={500}
             value={reason}
-            disabled={busy || Boolean(committedId)}
+            disabled={locked}
             onChange={(event) => setReason(event.target.value)}
           />
         </Field>
         {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
-        {committedId && proof && error ? (
+        {uncertain && attempt ? (
+          <Button type="button" loading={busy} onClick={() => void confirm(attempt)}>
+            Recuperar a mesma operação
+          </Button>
+        ) : committedId && proof && error ? (
           <Button type="button" loading={uploading} onClick={() => void upload(committedId)}>
             Tentar enviar comprovante
           </Button>
         ) : (
           <Button
             type="submit"
-            disabled={
-              total <= 0 || tooMuch || Boolean(committedId) || (kind === "REFUND" && !method)
-            }
+            disabled={total <= 0 || tooMuch || locked || (kind === "REFUND" && !method)}
             loading={busy}
           >
             <RotateCcw aria-hidden="true" />{" "}

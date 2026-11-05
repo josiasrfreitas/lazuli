@@ -15,6 +15,44 @@ const overdue: SettlementInput = {
   effectiveDate: "2026-02-10",
 };
 void describe("payment settlement", () => {
+  void it("starts charging interest on refunded principal only after the refund date", () => {
+    const input: SettlementInput = {
+      nominalCents: 10_000,
+      terms: { dueDate: "2026-01-01", monthlyPct: 3, discountPct: 0 },
+      payments: [{ date: "2026-01-01", amountCents: 10_000 }],
+      refunds: [{ date: "2026-01-31", amountCents: 10_000 }],
+      principalAdjustments: [],
+      postedInterestCents: 0,
+      effectiveDate: "2026-01-31",
+    };
+    assert.equal(quoteSettlement(input).newInterestCents, 0);
+    assert.equal(quoteSettlement(input).balanceCents, 10_000);
+    assert.equal(quoteSettlement({ ...input, effectiveDate: "2026-02-10" }).newInterestCents, 100);
+    assert.equal(
+      quoteSettlement({
+        ...input,
+        refunds: [{ date: "2026-01-31", amountCents: 4_000 }],
+        effectiveDate: "2026-02-10",
+      }).newInterestCents,
+      40,
+    );
+  });
+  void it("reopens charges paid by a later refund before adding refunded principal", () => {
+    const input: SettlementInput = {
+      nominalCents: 10_000,
+      terms: { dueDate: "2026-01-01", monthlyPct: 3, discountPct: 0 },
+      payments: [{ date: "2026-01-11", amountCents: 10_100 }],
+      refunds: [{ date: "2026-01-21", amountCents: 500 }],
+      principalAdjustments: [],
+      postedInterestCents: 100,
+      effectiveDate: "2026-01-21",
+    };
+    const result = quoteSettlement(input);
+    assert.equal(result.balanceCents, 500);
+    assert.equal(result.outstandingChargesCents, 100);
+    assert.equal(result.newInterestCents, 0);
+    assert.equal(quoteSettlement({ ...input, effectiveDate: "2026-01-31" }).newInterestCents, 4);
+  });
   void it("allocates partial receipts to interest first and charges only incremental simple interest", () => {
     assert.deepEqual(quoteSettlement({ ...overdue, receivedCents: 20_667 }), {
       outstandingChargesCents: 667,

@@ -61,6 +61,7 @@ async function loadPayment(database: FinanceDatabase, paymentEntryId: string) {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         select: {
           id: true,
+          commandId: true,
           kind: true,
           occurredOn: true,
           createdAt: true,

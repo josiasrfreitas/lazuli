@@ -9,7 +9,6 @@ import {
 } from "@lazuli/domain";
 import { badRequest } from "../../trpc/errors.js";
 import { type FinanceDatabase, toDateOnlyString } from "./shared.js";
-import { remainingAllocationCents } from "./payment-net.js";
 
 const settlementInclude = {
   agreements: { orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }, { id: "asc" }] },
@@ -19,7 +18,10 @@ const settlementInclude = {
     where: { deletedAt: null, paymentEntry: { deletedAt: null } },
     include: {
       paymentEntry: true,
-      reversals: { where: { deletedAt: null, reversal: { deletedAt: null } } },
+      reversals: {
+        where: { deletedAt: null, reversal: { deletedAt: null } },
+        include: { reversal: { select: { kind: true, occurredOn: true, createdAt: true } } },
+      },
     },
     orderBy: { id: "asc" },
   },
@@ -57,9 +59,22 @@ export function settlementLine(input: {
     terms: settlementTerms(item),
     payments: item.allocations.map((row) => ({
       date: toDateOnlyString(row.paymentEntry.date),
-      amountCents: remainingAllocationCents(row),
+      amountCents:
+        row.amountCents -
+        row.reversals
+          .filter((line) => line.reversal.kind === "CANCELLATION")
+          .reduce((sum, line) => sum + line.amountCents, 0),
       recordedAt: row.paymentEntry.createdAt.toISOString(),
     })),
+    refunds: item.allocations.flatMap((row) =>
+      row.reversals
+        .filter((line) => line.reversal.kind === "REFUND")
+        .map((line) => ({
+          date: toDateOnlyString(line.reversal.occurredOn),
+          amountCents: line.amountCents,
+          recordedAt: line.reversal.createdAt.toISOString(),
+        })),
+    ),
     ...settlementFacts(item),
     postedInterestCents: item.adjustments
       .filter((row) => contract && row.type === "INTEREST")
@@ -131,13 +146,19 @@ function validateSettlementItem(input: { item: SettlementItem; date: string; now
   const laterPayment = item.allocations.some(
     (row) => toDateOnlyString(row.paymentEntry.date) > date,
   );
+  const laterRefund = item.allocations.some((row) =>
+    row.reversals.some(
+      (line) =>
+        line.reversal.kind === "REFUND" && toDateOnlyString(line.reversal.occurredOn) > date,
+    ),
+  );
   const laterAdjustment = item.adjustments.some(
     (row) =>
       (row.effectiveDate ? toDateOnlyString(row.effectiveDate) : saoPauloDateOnly(row.createdAt)) >
       date,
   );
   const laterAgreement = item.agreements.some((row) => toDateOnlyString(row.effectiveDate) > date);
-  if (laterPayment || laterAdjustment || laterAgreement)
+  if (laterPayment || laterRefund || laterAdjustment || laterAgreement)
     throw badRequest(`Parcela ${item.sequenceNumber}: data anterior a fato já efetivado.`);
   assertContractRates(item);
 }

@@ -33,6 +33,7 @@ export type SettlementInput = {
   nominalCents: number;
   terms: InterestTerms & { discountPct: number };
   payments: SettlementPayment[];
+  refunds?: SettlementPayment[];
   principalAdjustments: SettlementPayment[];
   postedInterestCents: number;
   chargeAdjustments?: SettlementPayment[];
@@ -60,7 +61,9 @@ type AccrualState = {
 
 /** Read-only calculation for one installment; never rewrites earlier financial facts. */
 export function quoteSettlement(input: SettlementInput): SettlementQuote {
-  const paid = input.payments.reduce((sum, payment) => sum + payment.amountCents, 0);
+  const paid =
+    input.payments.reduce((sum, payment) => sum + payment.amountCents, 0) -
+    (input.refunds ?? []).reduce((sum, refund) => sum + refund.amountCents, 0);
   const balanceCents = input.nominalCents + recordedAdjustments(input) - paid;
   const accrued = interestThroughDate(input);
   const newInterestCents =
@@ -204,6 +207,16 @@ function applyHistoricalFact(input: {
       date: fact.date,
     };
   }
+  if (fact.kind === "refund") {
+    const reopenedCharges = Math.min(fact.amountCents, state.paidInterest);
+    return {
+      ...state,
+      principal: state.principal + fact.amountCents - reopenedCharges,
+      interest,
+      paidInterest: state.paidInterest - reopenedCharges,
+      date: fact.date,
+    };
+  }
   const unpaidInterest = Math.max(
     0,
     roundedInterest(interest) + state.charges - state.paidInterest,
@@ -219,7 +232,7 @@ function applyHistoricalFact(input: {
 }
 
 type SettlementFact =
-  | (SettlementPayment & { kind: "payment" | "adjustment" | "charge" })
+  | (SettlementPayment & { kind: "payment" | "refund" | "adjustment" | "charge" })
   | { kind: "suspension"; date: string; newDueDate: string; recordedAt?: string };
 function orderedFacts(input: SettlementInput): SettlementFact[] {
   const facts: SettlementFact[] = [
@@ -227,6 +240,7 @@ function orderedFacts(input: SettlementInput): SettlementFact[] {
     ...(input.chargeAdjustments ?? []).map((fact) => ({ ...fact, kind: "charge" as const })),
     ...(input.suspensions ?? []).map((fact) => ({ ...fact, kind: "suspension" as const })),
     ...input.payments.map((fact) => ({ ...fact, kind: "payment" as const })),
+    ...(input.refunds ?? []).map((fact) => ({ ...fact, kind: "refund" as const })),
   ];
   const result: SettlementFact[] = [];
   for (const fact of facts) {
