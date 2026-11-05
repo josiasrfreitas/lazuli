@@ -143,6 +143,7 @@ export {
 } from "./finance.js";
 export type {
   FinanceOverduePayerGroup,
+  FinancePayerGroup,
   FinanceInstallmentRow,
   FinanceInstallmentsInput,
   FinanceInstallmentsOutput,

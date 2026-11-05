@@ -319,7 +319,7 @@ function PayerGroupCard({
                   key={column.id}
                   id={`${groupId}-column-${column.id}`}
                   scope="col"
-                  numeric={column.numeric}
+                  {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
                 >
                   {column.header}
                 </TableHead>
@@ -362,7 +362,7 @@ function PayerGroupCard({
                     <TableCell
                       key={column.id}
                       headers={`${groupId}-column-${column.id}`}
-                      numeric={column.numeric}
+                      {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
                     >
                       {column.cell(displayRow)}
                     </TableCell>
@@ -460,7 +460,7 @@ export function InstallmentsTable({
     <DataTable<FinanceInstallmentRow & { id: string }>
       label="Lista de recebíveis"
       columns={columns}
-      onRowClick={state.onRowClick}
+      {...(state.onRowClick ? { onRowClick: state.onRowClick } : {})}
       state={installmentsState(state, rows)}
       updating={updating}
       footer={footer}

@@ -302,7 +302,7 @@ function PaymentReversalForm({
               <CurrencyInput
                 id={`reversal-${row.id}`}
                 size="sm"
-                value={amounts[row.id]}
+                value={amounts[row.id] ?? null}
                 disabled={busy || Boolean(committedId) || row.availableAmountCents === 0}
                 onValueChange={(value) =>
                   setAmounts((current) => ({ ...current, [row.id]: value }))

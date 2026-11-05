@@ -58,8 +58,9 @@ type LedgerTables =
 
 export type InstallmentQueryRow = Omit<
   FinanceInstallmentRow,
-  "payer" | "beneficiaries" | "suspendedUntil" | "material"
+  "payer" | "beneficiaries" | "suspendedUntil" | "material" | "paidOn"
 > & {
+  paidOn: string | null;
   material: NonNullable<FinanceInstallmentRow["material"]> | null;
   suspendedUntil: string | null;
   payerId: string;

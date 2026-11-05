@@ -31,7 +31,7 @@ function scenario(): Scenario {
     },
   };
   const context: Context = {
-    documents,
+    documents: documents as Context["documents"],
     flow: flow as Context["flow"],
     identity: {
       addressPending: false,
