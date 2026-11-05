@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { createCaller, createTRPCContext } from "@lazuli/api";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { userAgent } from "next/server";
 import type { ReactNode } from "react";
 
 import { getStaffIdentity } from "@lazuli/auth/server";
+import { createServiceLogger, requestIdFromHeaders, withCheckpoint } from "@lazuli/logging";
 import { EmptyState } from "@lazuli/ui";
 
 import { AdminHome, type InitialDashboardData } from "~/features/admin-home/home";
 
 import { homeHrefFor } from "~/components/app-shell/nav-items";
 import { experienceActivationHref } from "~/lib/staff-experience";
+import { createPageCaller } from "~/lib/page-caller";
+
+const logger = createServiceLogger("web");
+const INITIAL_DASHBOARD_REQUESTS = 3;
 
 export const metadata: Metadata = { title: "Início" };
 
@@ -21,7 +25,14 @@ export default async function HomePage({
   searchParams: Promise<{ entrada?: string }>;
 }): Promise<ReactNode> {
   const requestHeaders = await headers();
-  const identity = await getStaffIdentity({ headers: requestHeaders });
+  const requestLogger = logger.child({
+    request_id: requestIdFromHeaders(requestHeaders),
+    route: "/",
+  });
+  const identity = await withCheckpoint(requestLogger, {
+    checkpoint: "staff_identity",
+    action: () => getStaffIdentity({ headers: requestHeaders }),
+  });
 
   if (identity === null) {
     // The (app) layout guard already redirects; this only satisfies the type.
@@ -38,28 +49,7 @@ export default async function HomePage({
 
   if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") {
     const params = await searchParams;
-    const caller = createCaller(
-      await createTRPCContext({ session: { user: { email: identity.email } } }),
-    );
-    const [home, business, pendingLessons] = await Promise.all([
-      caller.dashboard.home().then(
-        (data) => ({ data, updatedAt: Date.now() }),
-        (): undefined => undefined,
-      ),
-      caller.dashboard.business().then(
-        (data) => ({ data, updatedAt: Date.now() }),
-        (): undefined => undefined,
-      ),
-      caller.dashboard.pendingLessonSummaries().then(
-        (data) => ({ data, updatedAt: Date.now() }),
-        (): undefined => undefined,
-      ),
-    ]);
-    const initial: InitialDashboardData = {
-      ...(home ? { home } : {}),
-      ...(business ? { business } : {}),
-      ...(pendingLessons ? { pendingLessons } : {}),
-    };
+    const initial = await loadDashboardInitialData(identity.email, requestLogger);
     return (
       <AdminHome
         name={identity.name}
@@ -84,4 +74,43 @@ export default async function HomePage({
       />
     </div>
   );
+}
+
+async function loadDashboardInitialData(
+  email: string,
+  requestLogger: ReturnType<typeof createServiceLogger>,
+): Promise<InitialDashboardData> {
+  const caller = await createPageCaller(email);
+  const started = performance.now();
+  const [home, business, pendingLessons] = await Promise.all([
+    caller.dashboard.home().then(
+      (data) => ({ data, updatedAt: Date.now() }),
+      (): undefined => undefined,
+    ),
+    caller.dashboard.business().then(
+      (data) => ({ data, updatedAt: Date.now() }),
+      (): undefined => undefined,
+    ),
+    caller.dashboard.pendingLessonSummaries().then(
+      (data) => ({ data, updatedAt: Date.now() }),
+      (): undefined => undefined,
+    ),
+  ]);
+  const loadedCount =
+    Number(Boolean(home)) + Number(Boolean(business)) + Number(Boolean(pendingLessons));
+  requestLogger[loadedCount === INITIAL_DASHBOARD_REQUESTS ? "info" : "warn"](
+    {
+      checkpoint: "initial_data",
+      duration_ms: Math.round(performance.now() - started),
+      loaded_count: loadedCount,
+      expected_count: INITIAL_DASHBOARD_REQUESTS,
+      status: loadedCount === INITIAL_DASHBOARD_REQUESTS ? "ok" : "partial",
+    },
+    "Dashboard initial data settled",
+  );
+  return {
+    ...(home ? { home } : {}),
+    ...(business ? { business } : {}),
+    ...(pendingLessons ? { pendingLessons } : {}),
+  };
 }

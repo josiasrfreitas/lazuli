@@ -1,12 +1,14 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { StaffRole } from "@lazuli/auth";
 import { z } from "@lazuli/validators";
+import { createServiceLogger, safeError } from "@lazuli/logging";
 import superjson from "superjson";
 
 import type { Context } from "./context.js";
 import { parseTrpcDevelopmentDelay, withDevelopmentTiming } from "./development-timing.js";
 
 const isDevelopment = globalThis.process.env.NODE_ENV === "development";
+const logger = createServiceLogger("web");
 const developmentDelay = isDevelopment
   ? parseTrpcDevelopmentDelay(globalThis.process.env.TRPC_DEV_DELAY_MS)
   : 0;
@@ -33,13 +35,42 @@ const trpc = initTRPC.context<Context>().create({
 export const router = trpc.router;
 export const createCallerFactory = trpc.createCallerFactory;
 
-const timingMiddleware = trpc.middleware(async ({ next, path }) => {
-  return await withDevelopmentTiming({
-    delayMs: developmentDelay,
-    log: (message) => process.stdout.write(message),
-    next,
-    path,
-  });
+const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
+  const started = performance.now();
+  try {
+    const result = await withDevelopmentTiming({
+      delayMs: developmentDelay,
+      log: (message) => logger.debug({ procedure: path }, message.trim()),
+      next,
+      path,
+    });
+    const fields = {
+      request_id: ctx.requestId,
+      procedure: path,
+      procedure_type: type,
+      duration_ms: Math.round(performance.now() - started),
+      staff_user_id: ctx.staffUser?.id,
+    };
+    if (result.ok) logger.info({ ...fields, status: "ok" }, "tRPC procedure completed");
+    else
+      logger.warn(
+        { ...fields, status: "error", error_code: result.error.code },
+        "tRPC procedure failed",
+      );
+    return result;
+  } catch (error) {
+    logger.error(
+      {
+        request_id: ctx.requestId,
+        procedure: path,
+        procedure_type: type,
+        duration_ms: Math.round(performance.now() - started),
+        ...safeError(error),
+      },
+      "tRPC procedure threw",
+    );
+    throw error;
+  }
 });
 
 /** Open to anyone; no session required. */

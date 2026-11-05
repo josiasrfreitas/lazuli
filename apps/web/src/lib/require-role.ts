@@ -2,7 +2,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getStaffIdentity, type StaffIdentity, type StaffRole } from "@lazuli/auth/server";
+import { createServiceLogger, requestIdFromHeaders, withCheckpoint } from "@lazuli/logging";
 import { experienceActivationHref, experienceHome } from "./staff-experience";
+
+const logger = createServiceLogger("web");
 
 /**
  * Guards a page that only some roles may open, for use inside the `(app)` route
@@ -13,7 +16,12 @@ import { experienceActivationHref, experienceHome } from "./staff-experience";
  */
 export async function requireRole(allowed: readonly StaffRole[]): Promise<StaffIdentity> {
   const requestHeaders = await headers();
-  const identity = await getStaffIdentity({ headers: requestHeaders });
+  const identity = await withCheckpoint(
+    logger.child({
+      request_id: requestIdFromHeaders(requestHeaders),
+    }),
+    { checkpoint: "staff_identity", action: () => getStaffIdentity({ headers: requestHeaders }) },
+  );
 
   if (identity === null) {
     redirect("/login");

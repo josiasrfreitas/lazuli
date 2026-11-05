@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense, type ReactElement } from "react";
-import { createCaller, createTRPCContext } from "@lazuli/api";
 import { FinanceAnalyticsLoading } from "~/features/finance-analytics/finance-analytics-loading";
 import { FinanceAnalyticsPage } from "~/features/finance-analytics/finance-analytics-page";
 import { requireRole } from "~/lib/require-role";
+import { createPageCaller } from "~/lib/page-caller";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 export const metadata: Metadata = { title: "Visão financeira" };
 export default async function FinanceiroRoute(): Promise<ReactElement> {
@@ -17,7 +17,7 @@ export default async function FinanceiroRoute(): Promise<ReactElement> {
 
 async function FinanceAnalyticsData({ email }: { email: string }): Promise<ReactElement> {
   const year = Number(toDateOnlySaoPaulo(new Date()).split("-")[0]);
-  const caller = createCaller(await createTRPCContext({ session: { user: { email } } }));
+  const caller = await createPageCaller(email);
   const [initial, initialClosings] = await Promise.all([
     caller.finance.analytics({ year }).then(
       (data) => ({ data, updatedAt: Date.now() }),

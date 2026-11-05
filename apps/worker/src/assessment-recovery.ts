@@ -1,6 +1,8 @@
 import { recoverStudentDocuments } from "@lazuli/worker-handlers/student-documents";
 import { recoverAssessmentFiles } from "@lazuli/worker-handlers/assessment-files";
 import { db } from "@lazuli/db";
+import { safeError } from "@lazuli/logging";
+import { logger } from "./logger.js";
 
 const RECOVERY_POLL_MS = 15_000;
 
@@ -13,8 +15,8 @@ export function startAssessmentRecovery(): () => void {
     try {
       await recoverAssessmentFiles(db);
       await recoverStudentDocuments(db);
-    } catch {
-      process.stdout.write("[worker] assessment file recovery failed\n");
+    } catch (error) {
+      logger.error(safeError(error), "Assessment file recovery failed");
     } finally {
       recovering = false;
     }

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import { createCaller, createTRPCContext } from "@lazuli/api";
 import { financeInstallmentsPaginationPolicy } from "@lazuli/validators";
 
 import { normalizeFilters, queryInput } from "~/features/installments/filters";
 import { InstallmentsPage } from "~/features/installments/installments-page";
 import { requireRole } from "~/lib/require-role";
+import { createPageCaller } from "~/lib/page-caller";
 
 export const metadata: Metadata = { title: "Recebíveis" };
 
@@ -17,9 +17,7 @@ export default async function RecebiveisRoute({
   const identity = await requireRole(["ADMIN", "SYSTEM_ADMIN"]);
   if (Object.keys(await searchParams).length > 0) return <InstallmentsPage />;
 
-  const caller = createCaller(
-    await createTRPCContext({ session: { user: { email: identity.email } } }),
-  );
+  const caller = await createPageCaller(identity.email);
   const initial = await caller.finance
     .installments(
       queryInput(

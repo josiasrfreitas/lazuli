@@ -1,5 +1,7 @@
 import { db } from "@lazuli/db";
 import { refreshStudentHealthPending } from "@lazuli/worker-handlers";
+import { safeError } from "@lazuli/logging";
+import { logger } from "./logger.js";
 
 const REFRESH_MS = 60_000;
 export function startStudentHealthRefresh(): () => void {
@@ -9,8 +11,8 @@ export function startStudentHealthRefresh(): () => void {
     running = true;
     try {
       await refreshStudentHealthPending(db);
-    } catch {
-      process.stdout.write("[worker] student health refresh failed\n");
+    } catch (error) {
+      logger.error(safeError(error), "Student health refresh failed");
     } finally {
       running = false;
     }

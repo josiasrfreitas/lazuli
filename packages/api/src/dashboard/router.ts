@@ -31,6 +31,7 @@ export const dashboardRouter = router({
       database: ctx.db,
       now: ctx.now ?? new Date(),
       staffUser: ctx.staffUser,
+      ...(ctx.requestId ? { requestId: ctx.requestId } : {}),
       ...(input?.month ? { month: input.month } : {}),
     }),
   ),
@@ -76,6 +77,7 @@ export const dashboardRouter = router({
       database: ctx.db,
       now: ctx.now ?? new Date(),
       requestedMonth: input?.month,
+      requestId: ctx.requestId,
     });
   }),
   adminMetrics: adminProcedure.query(({ ctx }) =>

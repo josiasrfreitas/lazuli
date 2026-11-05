@@ -1,9 +1,10 @@
 import type { JSX as ReactJSX } from "react";
 import type { Metadata } from "next";
-import { createCaller, createTRPCContext } from "@lazuli/api";
 import { ClassAgenda, type InitialAgendaData } from "~/features/class-records/agenda";
 import { monday, schoolToday, shiftDate } from "~/features/class-records/calendar-model";
 import { requireRole } from "~/lib/require-role";
+import { createPageCaller } from "~/lib/page-caller";
+const LAST_WEEKDAY_OFFSET = 6;
 export const metadata: Metadata = { title: "Agenda" };
 export default async function Page({
   searchParams,
@@ -18,10 +19,8 @@ export default async function Page({
 
   const today = schoolToday();
   const from = monday(today);
-  const to = shiftDate(from, 6);
-  const caller = createCaller(
-    await createTRPCContext({ session: { user: { email: identity.email } } }),
-  );
+  const to = shiftDate(from, LAST_WEEKDAY_OFFSET);
+  const caller = await createPageCaller(identity.email);
   const [lessons, appointments, experiments] = await Promise.all([
     caller.classRecords.list({ from, to }).then(
       (data) => ({ data, updatedAt: Date.now() }),

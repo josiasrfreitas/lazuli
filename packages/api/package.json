@@ -21,6 +21,7 @@
     "@lazuli/db": "workspace:*",
     "@lazuli/domain": "workspace:*",
     "@lazuli/job-contracts": "workspace:*",
+    "@lazuli/logging": "workspace:*",
     "@lazuli/validators": "workspace:*",
     "@trpc/server": "catalog:",
     "kysely": "catalog:",
