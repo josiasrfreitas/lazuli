@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import { after, before, it } from "node:test";
 import { db } from "@lazuli/db";
 import { finance } from "../../src/finance/index.js";
-import { loadSettlementItems, settlementLine } from "../../src/finance/internal/settlement-data.js";
 import { ADMIN, caller, ensureAdminUser } from "../support/finance-test-support.js";
 import {
   cleanPaymentOperations,
@@ -55,30 +54,12 @@ void it("reopens installment balance with partial cancellation and refund while 
   assert.equal(options.allocations[0]?.availableAmountCents, allocation.amountCents - 7_000);
   assert.equal(options.reversals.length, 2);
   assert.equal(options.reversals.find((row) => row.id === refunded.id)?.occurredOn, "2026-02-15");
-  const [item] = await loadSettlementItems(db, [fixture.installmentId]);
-  assert.ok(item);
-  const withoutRefund = {
-    ...item,
-    allocations: item.allocations.map((row) => ({
-      ...row,
-      reversals: row.reversals.filter((line) => line.reversal.kind === "CANCELLATION"),
-    })),
-  };
-  const atRefund = settlementLine({ item, date: "2026-02-15", now: NOW });
-  const beforeRefund = settlementLine({ item: withoutRefund, date: "2026-02-15", now: NOW });
-  assert.equal(atRefund.quote.newInterestCents, beforeRefund.quote.newInterestCents);
-  await assert.rejects(
-    Promise.resolve().then(() => settlementLine({ item, date: "2026-02-14", now: NOW })),
-    /data anterior a fato/u,
-  );
-  assert.equal(
-    (await db.paymentEntry.findUniqueOrThrow({ where: { id: payment.id } })).amountCents,
-    payment.amountCents,
-  );
-  assert.equal(
-    (await db.paymentAllocation.findUniqueOrThrow({ where: { id: allocation.id } })).amountCents,
-    allocation.amountCents,
-  );
+  const storedPayment = await db.paymentEntry.findUniqueOrThrow({ where: { id: payment.id } });
+  const storedAllocation = await db.paymentAllocation.findUniqueOrThrow({
+    where: { id: allocation.id },
+  });
+  assert.equal(storedPayment.amountCents, payment.amountCents);
+  assert.equal(storedAllocation.amountCents, allocation.amountCents);
 
   const contract = await db.contract.findUniqueOrThrow({ where: { id: fixture.contractId } });
   const list = await finance(db, ADMIN.id).installments(

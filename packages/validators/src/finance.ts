@@ -347,6 +347,8 @@ export const financeRegisterPaymentInputSchema = z
   .strict();
 
 export const financePaymentReversalKindSchema = z.enum(["CANCELLATION", "REFUND"]);
+const MAX_REVERSAL_REASON_LENGTH = 500;
+const MAX_REFUND_REFERENCE_LENGTH = 120;
 
 export const financeReversePaymentInputSchema = z
   .object({
@@ -354,9 +356,9 @@ export const financeReversePaymentInputSchema = z
     paymentEntryId: z.string().uuid(),
     kind: financePaymentReversalKindSchema,
     occurredOn: dateOnlyInputSchema.optional(),
-    reason: z.string().trim().max(500).nullish(),
+    reason: z.string().trim().max(MAX_REVERSAL_REASON_LENGTH).nullish(),
     refundMethod: paymentMethodSchema.nullish(),
-    refundReference: z.string().trim().max(120).nullish(),
+    refundReference: z.string().trim().max(MAX_REFUND_REFERENCE_LENGTH).nullish(),
     allocations: z.array(
       z
         .object({

@@ -19,9 +19,11 @@ export async function receivePaymentReversalProof(
   try {
     paymentProofStaff(ctx);
     requireSameOrigin(request);
-    let metadata: unknown;
+    let metadata: PaymentReversalProofUpload;
     try {
-      metadata = JSON.parse(decodeURIComponent(request.headers.get("x-upload-metadata") ?? ""));
+      metadata = JSON.parse(
+        decodeURIComponent(request.headers.get("x-upload-metadata") ?? ""),
+      ) as PaymentReversalProofUpload;
     } catch {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Dados do comprovante inválidos." });
     }

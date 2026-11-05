@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
+import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { financeReversePaymentInputSchema, z } from "@lazuli/validators";
 
@@ -7,6 +8,45 @@ import { badRequest, notFound } from "../../trpc/errors.js";
 import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
 export type ReversePaymentInput = z.infer<typeof financeReversePaymentInputSchema>;
+const DATE_ONLY_LENGTH = 10;
+
+type ReversalResult = {
+  id: string;
+  paymentEntryId: string;
+  kind: ReversePaymentInput["kind"];
+  amountCents: number;
+};
+
+type PaymentReversalOptions = {
+  paymentEntryId: string;
+  date: string;
+  payerId: string;
+  payerName: string;
+  paymentMethodName: string;
+  originalAmountCents: number;
+  availableAmountCents: number;
+  unallocatedAmountCents: number;
+  allocations: Array<{
+    id: string;
+    installmentId: string;
+    sequenceNumber: number;
+    dueDate: string;
+    kind: ReversalPayment["allocations"][number]["installment"]["order"]["kind"];
+    originalAmountCents: number;
+    availableAmountCents: number;
+  }>;
+  reversals: Array<
+    Omit<
+      ReversalPayment["reversals"][number],
+      "occurredOn" | "createdAt" | "method" | "createdBy"
+    > & {
+      occurredOn: string;
+      createdAt: string;
+      refundMethodName: string | null;
+      createdByName: string;
+    }
+  >;
+};
 
 function fingerprint(input: ReversePaymentInput): string {
   return createHash("sha256")
@@ -14,73 +54,82 @@ function fingerprint(input: ReversePaymentInput): string {
       JSON.stringify({
         paymentEntryId: input.paymentEntryId,
         kind: input.kind,
-        occurredOn: input.occurredOn?.toISOString().slice(0, 10) ?? null,
+        occurredOn: input.occurredOn?.toISOString().slice(0, DATE_ONLY_LENGTH) ?? null,
         reason: input.reason?.trim() || null,
         refundMethod: input.refundMethod ?? null,
         refundReference: input.refundReference?.trim() || null,
-        allocations: input.allocations.toSorted((a, b) =>
-          a.paymentAllocationId.localeCompare(b.paymentAllocationId),
+        allocations: input.allocations.toSorted((left, right) =>
+          left.paymentAllocationId.localeCompare(right.paymentAllocationId),
         ),
       }),
     )
     .digest("hex");
 }
 
-async function loadPayment(database: FinanceDatabase, paymentEntryId: string) {
-  return database.paymentEntry.findFirst({
-    where: { id: paymentEntryId, deletedAt: null },
+const paymentSelect = {
+  id: true,
+  date: true,
+  payerId: true,
+  amountCents: true,
+  paymentMethod: { select: { name: true } },
+  payer: { select: { name: true } },
+  allocations: {
+    where: { deletedAt: null },
+    orderBy: { id: "asc" },
     select: {
       id: true,
-      date: true,
-      payerId: true,
       amountCents: true,
-      paymentMethod: { select: { name: true } },
-      payer: { select: { name: true } },
-      allocations: {
-        where: { deletedAt: null },
-        orderBy: { id: "asc" },
+      installment: {
         select: {
           id: true,
-          amountCents: true,
-          installment: {
-            select: {
-              id: true,
-              sequenceNumber: true,
-              dueDate: true,
-              order: { select: { kind: true } },
-            },
-          },
-          reversals: {
-            where: { deletedAt: null, reversal: { deletedAt: null } },
-            select: { amountCents: true },
-          },
+          sequenceNumber: true,
+          dueDate: true,
+          order: { select: { kind: true } },
         },
       },
       reversals: {
-        where: { deletedAt: null },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        select: {
-          id: true,
-          commandId: true,
-          kind: true,
-          occurredOn: true,
-          createdAt: true,
-          amountCents: true,
-          reason: true,
-          refundReference: true,
-          method: { select: { name: true } },
-          createdBy: { select: { name: true } },
-          proofs: {
-            where: { deletedAt: null },
-            select: { id: true, fileName: true },
-          },
-        },
+        where: { deletedAt: null, reversal: { deletedAt: null } },
+        select: { amountCents: true },
       },
     },
+  },
+  reversals: {
+    where: { deletedAt: null },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: {
+      id: true,
+      commandId: true,
+      kind: true,
+      occurredOn: true,
+      createdAt: true,
+      amountCents: true,
+      reason: true,
+      refundReference: true,
+      method: { select: { name: true } },
+      createdBy: { select: { name: true } },
+      proofs: {
+        where: { deletedAt: null },
+        select: { id: true, fileName: true },
+      },
+    },
+  },
+} satisfies Prisma.PaymentEntrySelect;
+type ReversalPayment = Prisma.PaymentEntryGetPayload<{ select: typeof paymentSelect }>;
+
+async function loadPayment(
+  database: FinanceDatabase,
+  paymentEntryId: string,
+): Promise<ReversalPayment | null> {
+  return database.paymentEntry.findFirst({
+    where: { id: paymentEntryId, deletedAt: null },
+    select: paymentSelect,
   });
 }
 
-export async function paymentReversalOptions(database: FinanceDatabase, paymentEntryId: string) {
+export async function paymentReversalOptions(
+  database: FinanceDatabase,
+  paymentEntryId: string,
+): Promise<PaymentReversalOptions> {
   const payment = await loadPayment(database, paymentEntryId);
   if (!payment) throw notFound("Recebimento não encontrado.");
   const allocations = payment.allocations.map((allocation) => ({
@@ -127,12 +176,7 @@ export async function reversePayment(input: {
   values: ReversePaymentInput;
   staffUserId: string;
   now: Date;
-}): Promise<{
-  id: string;
-  paymentEntryId: string;
-  kind: ReversePaymentInput["kind"];
-  amountCents: number;
-}> {
+}): Promise<ReversalResult> {
   const { database, values } = input;
   const existing = await database.paymentReversal.findUnique({
     where: { commandId: values.commandId },
@@ -143,31 +187,10 @@ export async function reversePayment(input: {
   `;
   const payment = await paymentReversalOptions(database, values.paymentEntryId);
   const amountCents = values.allocations.reduce((total, row) => total + row.amountCents, 0);
-  if (amountCents > payment.availableAmountCents)
-    throw badRequest("O valor supera o saldo disponível deste recebimento.");
-  const allocationById = new Map(payment.allocations.map((row) => [row.id, row]));
-  for (const row of values.allocations) {
-    const allocation = allocationById.get(row.paymentAllocationId);
-    if (!allocation || row.amountCents > allocation.availableAmountCents)
-      throw badRequest("Uma das parcelas não possui esse valor disponível para reversão.");
-  }
-  if (values.kind === "REFUND") {
-    if (!values.refundMethod) throw badRequest("Informe a forma usada na devolução.");
-    const method = await database.paymentMethod.findFirst({
-      where: { code: values.refundMethod, active: true, deletedAt: null },
-      select: { code: true },
-    });
-    if (!method) throw badRequest("Selecione uma forma de devolução disponível.");
-  }
-  const today = saoPauloDateOnly(input.now);
-  const occurredOn =
-    values.kind === "CANCELLATION" ? new Date(`${today}T00:00:00.000Z`) : values.occurredOn;
-  if (!occurredOn) throw badRequest("Informe a data da devolução.");
-  if (toDateOnlyString(occurredOn) > today)
-    throw badRequest("A data da devolução não pode estar no futuro.");
-  if (values.kind === "REFUND" && toDateOnlyString(occurredOn) < payment.date)
-    throw badRequest("A devolução não pode anteceder o recebimento.");
-  const result = await database.paymentReversal.create({
+  assertAvailableAllocations({ values, payment, amountCents });
+  await validateRefundMethod(database, values);
+  const occurredOn = reversalDate(values, payment.date, input.now);
+  return database.paymentReversal.create({
     data: {
       commandId: values.commandId,
       commandFingerprint: fingerprint(values),
@@ -188,7 +211,47 @@ export async function reversePayment(input: {
     },
     select: { id: true, paymentEntryId: true, kind: true, amountCents: true },
   });
-  return result;
+}
+
+function assertAvailableAllocations(input: {
+  values: ReversePaymentInput;
+  payment: PaymentReversalOptions;
+  amountCents: number;
+}): void {
+  const { values, payment, amountCents } = input;
+  if (amountCents > payment.availableAmountCents)
+    throw badRequest("O valor supera o saldo disponível deste recebimento.");
+  const allocationById = new Map(payment.allocations.map((row) => [row.id, row]));
+  for (const row of values.allocations) {
+    const allocation = allocationById.get(row.paymentAllocationId);
+    if (!allocation || row.amountCents > allocation.availableAmountCents)
+      throw badRequest("Uma das parcelas não possui esse valor disponível para reversão.");
+  }
+}
+
+async function validateRefundMethod(
+  database: FinanceDatabase,
+  values: ReversePaymentInput,
+): Promise<void> {
+  if (values.kind !== "REFUND") return;
+  if (!values.refundMethod) throw badRequest("Informe a forma usada na devolução.");
+  const method = await database.paymentMethod.findFirst({
+    where: { code: values.refundMethod, active: true, deletedAt: null },
+    select: { code: true },
+  });
+  if (!method) throw badRequest("Selecione uma forma de devolução disponível.");
+}
+
+function reversalDate(values: ReversePaymentInput, paymentDate: string, now: Date): Date {
+  const today = saoPauloDateOnly(now);
+  const occurredOn =
+    values.kind === "CANCELLATION" ? new Date(`${today}T00:00:00.000Z`) : values.occurredOn;
+  if (!occurredOn) throw badRequest("Informe a data da devolução.");
+  if (toDateOnlyString(occurredOn) > today)
+    throw badRequest("A data da devolução não pode estar no futuro.");
+  if (values.kind === "REFUND" && toDateOnlyString(occurredOn) < paymentDate)
+    throw badRequest("A devolução não pode anteceder o recebimento.");
+  return occurredOn;
 }
 
 function existingResult(
@@ -200,7 +263,7 @@ function existingResult(
     commandFingerprint: string;
   },
   values: ReversePaymentInput,
-) {
+): ReversalResult {
   if (existing.commandFingerprint !== fingerprint(values))
     throw new TRPCError({
       code: "CONFLICT",

@@ -46,6 +46,8 @@ export type GroupedQueryRow = InstallmentQueryRow &
     "installmentCount" | "groupBalanceCents" | "groupPaidCents" | "maxOverdueDays"
   >;
 const BACKSLASH_CODE_POINT = 92;
+const PAYER_ID_FIELD = "payerId";
+const PAYER_NAME_FIELD = "payerName";
 type LedgerTables =
   | "Installment"
   | "Order"
@@ -179,13 +181,15 @@ function aggregateQuery(kysely: DatabaseClient["$kysely"]): QueryCreator<Aggrega
         .innerJoin("PaymentEntry", "PaymentEntry.id", "PaymentAllocation.payment_entry_id")
         .select("PaymentAllocation.installment_id")
         .select(
-          sql<number>`sum("PaymentAllocation".amount_cents - coalesce((
-          select sum(reversal_line.amount_cents)
-          from payment_reversal_allocations reversal_line
-          join payment_reversals reversal on reversal.id = reversal_line.payment_reversal_id
-          where reversal_line.payment_allocation_id = "PaymentAllocation".id
-            and reversal_line.deleted_at is null and reversal.deleted_at is null
-        ), 0))::integer`.as("amount_cents"),
+          sql<number>`
+            sum("PaymentAllocation".amount_cents - coalesce((
+              select sum(reversal_line.amount_cents)
+              from payment_reversal_allocations reversal_line
+              join payment_reversals reversal on reversal.id = reversal_line.payment_reversal_id
+              where reversal_line.payment_allocation_id = "PaymentAllocation".id
+                and reversal_line.deleted_at is null and reversal.deleted_at is null
+            ), 0))::integer
+          `.as("amount_cents"),
         )
         .where("PaymentAllocation.deleted_at", "is", null)
         .where("PaymentEntry.deleted_at", "is", null)
@@ -236,20 +240,22 @@ function ledgerSelection(input: {
     "Payer.name as payerName",
     sql<string>`to_char("Installment".due_date, 'YYYY-MM-DD')`.as("dueDate"),
     sql<string>`to_char("Installment".due_date, 'YYYY-MM-DD')`.as("dueDateSort"),
-    sql<string | null>`(
-      select to_char(max(payment.date), 'YYYY-MM-DD')
-      from "PaymentAllocation" allocation
-      join "PaymentEntry" payment on payment.id = allocation.payment_entry_id
-      where allocation.installment_id = "Installment".id
-        and allocation.deleted_at is null and payment.deleted_at is null
-        and allocation.amount_cents > coalesce((
-          select sum(reversal_line.amount_cents)
-          from payment_reversal_allocations reversal_line
-          join payment_reversals reversal on reversal.id = reversal_line.payment_reversal_id
-          where reversal_line.payment_allocation_id = allocation.id
-            and reversal_line.deleted_at is null and reversal.deleted_at is null
-        ), 0)
-    )`.as("paidOn"),
+    sql<string | null>`
+      (
+        select to_char(max(payment.date), 'YYYY-MM-DD')
+        from "PaymentAllocation" allocation
+        join "PaymentEntry" payment on payment.id = allocation.payment_entry_id
+        where allocation.installment_id = "Installment".id
+          and allocation.deleted_at is null and payment.deleted_at is null
+          and allocation.amount_cents > coalesce((
+            select sum(reversal_line.amount_cents)
+            from payment_reversal_allocations reversal_line
+            join payment_reversals reversal on reversal.id = reversal_line.payment_reversal_id
+            where reversal_line.payment_allocation_id = allocation.id
+              and reversal_line.deleted_at is null and reversal.deleted_at is null
+          ), 0)
+      )
+    `.as("paidOn"),
     "Installment.amount_cents as originalAmountCents",
     input.expected.as("expectedAmountCents"),
     input.paid.as("paidAmountCents"),
@@ -305,7 +311,7 @@ function overdueQuery(input: QueryInput): QueryCreator<OverdueDatabase> {
     .with("qualified_payers", (database) =>
       database
         .selectFrom("ledger")
-        .select("payerId")
+        .select(PAYER_ID_FIELD)
         .distinct()
         .where("status", "=", "OVERDUE")
         .where(matchesFilters(input))
@@ -317,7 +323,11 @@ function overdueQuery(input: QueryInput): QueryCreator<OverdueDatabase> {
         .selectAll()
         .where("status", "=", "OVERDUE")
         .where(matchesFilters(input))
-        .where("payerId", "in", database.selectFrom("qualified_payers").select("payerId")),
+        .where(
+          PAYER_ID_FIELD,
+          "in",
+          database.selectFrom("qualified_payers").select(PAYER_ID_FIELD),
+        ),
     );
 }
 
@@ -326,13 +336,13 @@ function overdueSummaries(input: QueryInput): QueryCreator<SummaryDatabase> {
     database
       .selectFrom("overdue")
       .select([
-        "payerId",
-        "payerName",
+        PAYER_ID_FIELD,
+        PAYER_NAME_FIELD,
         sql<number>`count(*)::integer`.as("installmentCount"),
         sql<number>`sum("collectibleBalanceCents")::double precision`.as("groupBalanceCents"),
         sql<number>`max("overdueDays")::integer`.as("maxOverdueDays"),
       ])
-      .groupBy(["payerId", "payerName"]),
+      .groupBy([PAYER_ID_FIELD, PAYER_NAME_FIELD]),
   );
 }
 
@@ -353,7 +363,7 @@ export async function loadOverduePage(
         .selectFrom("payer_summaries")
         .selectAll()
         .orderBy("maxOverdueDays", "desc")
-        .orderBy("payerId", "asc")
+        .orderBy(PAYER_ID_FIELD, "asc")
         .limit(FINANCE_OVERDUE_PAYERS_PAGE_SIZE)
         .offset((input.page - 1) * FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
     )
@@ -377,7 +387,7 @@ function groupedQuery(input: QueryInput): QueryCreator<GroupedDatabase> {
     .with("qualified_payers", (database) =>
       database
         .selectFrom("ledger")
-        .select("payerId")
+        .select(PAYER_ID_FIELD)
         .distinct()
         .where(matchesFilters(input))
         .where(matchesSearch(input.search)),
@@ -387,7 +397,11 @@ function groupedQuery(input: QueryInput): QueryCreator<GroupedDatabase> {
         .selectFrom("ledger")
         .selectAll()
         .where(matchesFilters(input))
-        .where("payerId", "in", database.selectFrom("qualified_payers").select("payerId")),
+        .where(
+          PAYER_ID_FIELD,
+          "in",
+          database.selectFrom("qualified_payers").select(PAYER_ID_FIELD),
+        ),
     );
 }
 
@@ -396,8 +410,8 @@ function groupedSummaries(input: QueryInput): QueryCreator<GroupedSummaryDatabas
     database
       .selectFrom("grouped")
       .select([
-        "payerId",
-        "payerName",
+        PAYER_ID_FIELD,
+        PAYER_NAME_FIELD,
         sql<number>`count(*)::integer`.as("installmentCount"),
         sql<number>`sum("collectibleBalanceCents")::double precision`.as("groupBalanceCents"),
         sql<number>`sum("paidAmountCents")::double precision`.as("groupPaidCents"),
@@ -405,7 +419,7 @@ function groupedSummaries(input: QueryInput): QueryCreator<GroupedSummaryDatabas
           "maxOverdueDays",
         ),
       ])
-      .groupBy(["payerId", "payerName"]),
+      .groupBy([PAYER_ID_FIELD, PAYER_NAME_FIELD]),
   );
 }
 
@@ -426,8 +440,8 @@ export async function loadGroupedPage(
         .selectFrom("payer_summaries")
         .selectAll()
         .orderBy("maxOverdueDays", "desc")
-        .orderBy("payerName", "asc")
-        .orderBy("payerId", "asc")
+        .orderBy(PAYER_NAME_FIELD, "asc")
+        .orderBy(PAYER_ID_FIELD, "asc")
         .limit(FINANCE_OVERDUE_PAYERS_PAGE_SIZE)
         .offset((input.page - 1) * FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
     )

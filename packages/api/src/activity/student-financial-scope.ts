@@ -27,7 +27,7 @@ export async function studentFinancialActivityScope(
     where: { paymentEntryId: { in: payments.map((row) => row.id) } },
     select: { id: true },
   });
-  const keys = financialKeys(payments, agreements, reversals);
+  const keys = financialKeys({ payments, agreements, reversals });
   return {
     area: "FINANCIAL",
     OR: [
@@ -54,11 +54,12 @@ export async function studentFinancialActivityScope(
   };
 }
 
-function financialKeys(
-  payments: { id: string; operationId: string | null }[],
-  agreements: { commandId: string }[],
-  reversals: { id: string }[],
-): string[] {
+function financialKeys(input: {
+  payments: { id: string; operationId: string | null }[];
+  agreements: { commandId: string }[];
+  reversals: { id: string }[];
+}): string[] {
+  const { payments, agreements, reversals } = input;
   return [
     ...payments.map((row) => `finance.registerPayment:${row.id}`),
     ...payments.flatMap((row) =>

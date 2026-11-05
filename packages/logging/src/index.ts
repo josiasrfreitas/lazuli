@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import pino, { type DestinationStream, type Logger } from "pino";
-import { configuredLogLevel, type LogLevel } from "./config.js";
+import {
+  configuredLogLevel,
+  isDevelopment,
+  useDevelopmentColor,
+  useJsonLogFormat,
+  type LogLevel,
+} from "./config.js";
 import { formatDevelopmentLine } from "./development-format.js";
 
 type ServiceName = "web" | "worker";
@@ -27,7 +33,7 @@ export function createServiceLogger(
     timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
     formatters: {
       level: (label: string) => ({ level: label.toUpperCase() }),
-      log: (value: Record<string, unknown>) => {
+      log: (value: Record<string, string | number | boolean | null | undefined | object>) => {
         if (typeof value.error_stack !== "string") return value;
         const { error_stack, ...fields } = value;
         return { ...fields, exception: error_stack };
@@ -50,8 +56,7 @@ export function createServiceLogger(
     },
   };
   if (options.destination !== undefined) return pino(configuration, options.destination);
-  if (process.env.NODE_ENV === "development" && process.env.LOG_FORMAT !== "json")
-    return pino(configuration, developmentDestination);
+  if (isDevelopment() && !useJsonLogFormat()) return pino(configuration, developmentDestination);
   return pino(configuration);
 }
 
@@ -59,11 +64,7 @@ const developmentDestination: DestinationStream = {
   write(line: string): void {
     try {
       process.stdout.write(
-        formatDevelopmentLine(
-          line,
-          !process.env.NO_COLOR &&
-            (Boolean(process.stdout.isTTY) || process.env.FORCE_COLOR === "1"),
-        ),
+        formatDevelopmentLine(line, useDevelopmentColor(Boolean(process.stdout.isTTY))),
       );
     } catch {
       process.stdout.write("[logging] Failed to format a log line.\n");
@@ -84,7 +85,7 @@ export function logDevelopmentProcess(
     facts?: Record<string, number | boolean> | undefined;
   },
 ): void {
-  if (process.env.NODE_ENV !== "development") return;
+  if (!isDevelopment()) return;
   logger.info(
     {
       request_id: event.requestId,

@@ -1,70 +1,111 @@
 const ANSI = {
-  reset: "\u001b[0m",
-  gray: "\u001b[90m",
-  green: "\u001b[32m",
-  yellow: "\u001b[33m",
-  red: "\u001b[31m",
-  cyan: "\u001b[36m",
+  reset: "\u001B[0m",
+  gray: "\u001B[90m",
+  green: "\u001B[32m",
+  yellow: "\u001B[33m",
+  red: "\u001B[31m",
+  cyan: "\u001B[36m",
 } as const;
+const CLOCK_START = 11;
+const CLOCK_END = 19;
+const LEVEL_WIDTH = 5;
 
-function paint(value: string, color: keyof typeof ANSI, enabled: boolean): string {
-  return enabled ? `${ANSI[color]}${value}${ANSI.reset}` : value;
+type LogValue = string | number | boolean | null | LogValue[] | { [key: string]: LogValue };
+type LogEntry = Record<string, LogValue>;
+
+function paint(value: string, options: { color: keyof typeof ANSI; enabled: boolean }): string {
+  return options.enabled ? `${ANSI[options.color]}${value}${ANSI.reset}` : value;
 }
 
-function fact(value: unknown): string | null {
+function stringField(entry: LogEntry, key: string): string | null {
+  const value = entry[key];
+  return typeof value === "string" ? value : null;
+}
+
+function operation(entry: LogEntry): string | null {
+  const explicit = stringField(entry, "operation");
+  if (explicit) return explicit;
+  const type = stringField(entry, "procedure_type");
+  if (type === "query") return "GET";
+  if (type === "mutation") return "POST";
+  return null;
+}
+
+function subject(entry: LogEntry): string {
+  const resource = stringField(entry, "resource") ?? stringField(entry, "procedure");
+  if (resource) {
+    const action = operation(entry);
+    return `${action ? `${action} ` : ""}${resource}`;
+  }
+  return stringField(entry, "checkpoint") ?? stringField(entry, "service_name") ?? "app";
+}
+
+function levelColor(level: string): keyof typeof ANSI {
+  if (level === "ERROR" || level === "FATAL") return "red";
+  if (level === "WARN") return "yellow";
+  return "green";
+}
+
+function heading(entry: LogEntry, useColor: boolean): string {
+  const time = stringField(entry, "timestamp")?.slice(CLOCK_START, CLOCK_END) ?? "--:--:--";
+  const level = stringField(entry, "level") ?? "INFO";
+  const requestId = stringField(entry, "request_id")?.split("-", 1)[0] ?? "no request";
+  const message =
+    stringField(entry, "process_step") ?? stringField(entry, "message") ?? "Event recorded";
+  return `${paint(`[${time}]`, { color: "gray", enabled: useColor })} ${paint(level.padEnd(LEVEL_WIDTH), { color: levelColor(level), enabled: useColor })} ${paint(`[${requestId}]`, { color: "cyan", enabled: useColor })} ${paint(subject(entry), { color: "gray", enabled: useColor })} · ${message}`;
+}
+
+function statusDetail(value: LogValue | undefined): string | null {
+  if (typeof value !== "string") return null;
+  if (value === "ok") return "status=success";
+  if (value === "error") return "status=failure";
+  return `status=${value}`;
+}
+
+function fact(value: LogValue): string | null {
   if (typeof value === "boolean") return value ? "yes" : "no";
   return typeof value === "number" && Number.isFinite(value) ? String(value) : null;
 }
 
+function factDetails(value: LogValue | undefined): string[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  return Object.entries(value).flatMap(([name, item]) => {
+    const safe = fact(item);
+    return safe === null ? [] : [`${name}=${safe}`];
+  });
+}
+
+function details(entry: LogEntry): string[] {
+  const duration = entry.duration_ms;
+  const user = stringField(entry, "user_id") ?? stringField(entry, "staff_user_id");
+  const error = stringField(entry, "error_code");
+  const cause = stringField(entry, "error_cause_code");
+  const type = stringField(entry, "error_cause_name");
+  return [
+    ...(typeof duration === "number" ? [`${duration}ms`] : []),
+    statusDetail(entry.status),
+    ...(user ? [`user=${user}`] : []),
+    ...(error ? [`error=${error}`] : []),
+    ...(cause ? [`cause=${cause}`] : []),
+    ...(type ? [`type=${type}`] : []),
+    ...factDetails(entry.facts),
+  ].filter((item): item is string => item !== null);
+}
+
+function exceptionLines(entry: LogEntry, useColor: boolean): string {
+  const exception = stringField(entry, "exception");
+  const level = stringField(entry, "level");
+  if (!exception || (level !== "ERROR" && level !== "FATAL")) return "";
+  return `${exception
+    .split("\n")
+    .map((frame) => paint(`  ${frame}`, { color: "red", enabled: useColor }))
+    .join("\n")}\n`;
+}
+
 /** A readable terminal view over the same safe, structured event stored as JSON in cloud logs. */
 export function formatDevelopmentLine(line: string, useColor: boolean): string {
-  const entry = JSON.parse(line) as Record<string, unknown>;
-  const time = typeof entry.timestamp === "string" ? entry.timestamp.slice(11, 19) : "--:--:--";
-  const level = typeof entry.level === "string" ? entry.level : "INFO";
-  const levelColor =
-    level === "ERROR" || level === "FATAL" ? "red" : level === "WARN" ? "yellow" : "green";
-  const requestId =
-    typeof entry.request_id === "string" ? entry.request_id.split("-", 1)[0] : "no request";
-  const resource = typeof entry.resource === "string" ? entry.resource : entry.procedure;
-  const operation =
-    typeof entry.operation === "string"
-      ? entry.operation
-      : entry.procedure_type === "query"
-        ? "GET"
-        : entry.procedure_type === "mutation"
-          ? "POST"
-          : null;
-  const step = typeof entry.process_step === "string" ? entry.process_step : null;
-  const message = step ?? (typeof entry.message === "string" ? entry.message : "Event recorded");
-  const subject =
-    typeof resource === "string"
-      ? `${operation ? `${operation} ` : ""}${resource}`
-      : typeof entry.checkpoint === "string"
-        ? entry.checkpoint
-        : String(entry.service_name ?? "app");
-  const details: string[] = [];
-  if (typeof entry.duration_ms === "number") details.push(`${entry.duration_ms}ms`);
-  if (typeof entry.status === "string")
-    details.push(
-      `status=${entry.status === "ok" ? "success" : entry.status === "error" ? "failure" : entry.status}`,
-    );
-  if (typeof entry.user_id === "string") details.push(`user=${entry.user_id}`);
-  else if (typeof entry.staff_user_id === "string") details.push(`user=${entry.staff_user_id}`);
-  if (typeof entry.error_code === "string") details.push(`error=${entry.error_code}`);
-  if (typeof entry.error_cause_code === "string") details.push(`cause=${entry.error_cause_code}`);
-  if (typeof entry.error_cause_name === "string") details.push(`type=${entry.error_cause_name}`);
-  if (entry.facts && typeof entry.facts === "object" && !Array.isArray(entry.facts)) {
-    for (const [name, value] of Object.entries(entry.facts)) {
-      const safe = fact(value);
-      if (safe !== null) details.push(`${name}=${safe}`);
-    }
-  }
-  const heading = `${paint(`[${time}]`, "gray", useColor)} ${paint(level.padEnd(5), levelColor, useColor)} ${paint(`[${requestId}]`, "cyan", useColor)} ${paint(subject, "gray", useColor)} · ${message}`;
-  const summary = `${heading}${details.length ? ` · ${details.join(" · ")}` : ""}\n`;
-  const exception = typeof entry.exception === "string" ? entry.exception : null;
-  if (exception === null || (level !== "ERROR" && level !== "FATAL")) return summary;
-  return `${summary}${exception
-    .split("\n")
-    .map((frame) => paint(`  ${frame}`, "red", useColor))
-    .join("\n")}\n`;
+  const entry = JSON.parse(line) as LogEntry;
+  const fields = details(entry);
+  const suffix = fields.length > 0 ? ` · ${fields.join(" · ")}` : "";
+  return `${heading(entry, useColor)}${suffix}\n${exceptionLines(entry, useColor)}`;
 }

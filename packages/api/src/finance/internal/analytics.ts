@@ -134,7 +134,10 @@ async function readPaymentAnalytics(
       receivedCents,
       count: countByCode.get(method) ?? 0,
     }))
-    .toSorted((a, b) => b.receivedCents - a.receivedCents || a.method.localeCompare(b.method));
+    .toSorted(
+      (left, right) =>
+        right.receivedCents - left.receivedCents || left.method.localeCompare(right.method),
+    );
   const catalog = await database.paymentMethod.findMany({
     where: { code: { in: methods.map((row) => row.method) } },
     select: { code: true, name: true },

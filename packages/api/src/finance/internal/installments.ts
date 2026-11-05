@@ -123,7 +123,7 @@ async function loadPaymentMethodNames(
   for (const [installmentId, names] of methods)
     result.set(
       installmentId,
-      [...names].sort((left, right) => left.localeCompare(right, "pt-BR")),
+      [...names].toSorted((left, right) => left.localeCompare(right, "pt-BR")),
     );
   return result;
 }

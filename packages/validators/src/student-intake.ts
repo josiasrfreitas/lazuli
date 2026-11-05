@@ -9,6 +9,21 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 const MAX_CALENDAR_DAYS = 7;
 const entryPeriodSchema = z.enum(["CURRENT", "NEXT"]);
 
+function validateLeadChoice(
+  value: {
+    candidateId: string | null;
+    leadRegistration: z.infer<typeof leadRegistrationSchema> | null;
+  },
+  context: z.RefinementCtx,
+): void {
+  if (value.candidateId && value.leadRegistration)
+    context.addIssue({
+      code: "custom",
+      path: ["leadRegistration"],
+      message: "Escolha um lead existente ou um novo rascunho.",
+    });
+}
+
 export const studentIntakeOptionsSchema = z
   .object({
     stageId: z.string().uuid().nullable(),
@@ -44,12 +59,7 @@ export const studentIntakeEnrollSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (value.candidateId && value.leadRegistration)
-      context.addIssue({
-        code: "custom",
-        path: ["leadRegistration"],
-        message: "Escolha um lead existente ou um novo rascunho.",
-      });
+    validateLeadChoice(value, context);
     if (value.entryPeriod === "NEXT" && value.classId)
       context.addIssue({
         code: "custom",

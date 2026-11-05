@@ -220,6 +220,8 @@ export async function installmentPayments(
         originalAmountCents: allocation.amountCents,
         proofs: allocation.paymentEntry.proofs,
       }))
-      .toSorted((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)),
+      .toSorted(
+        (left, right) => right.date.localeCompare(left.date) || right.id.localeCompare(left.id),
+      ),
   };
 }
