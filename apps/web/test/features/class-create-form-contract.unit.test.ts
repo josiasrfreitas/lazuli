@@ -25,6 +25,11 @@ void it("offers teacher search and two masked schedule rows without a manual yea
   assert.doesNotMatch(markup, /name="year"|name="portalClassName"/u);
   assert.match(markup, /name="semesterId"/u);
   assert.match(markup, /name="sharedStageId"/u);
+  const startDate = inputs.find((tag) => tag.includes('name="startDate"'));
+  assert.match(startDate ?? "", /placeholder="dd\/mm\/aaaa"/u);
+  assert.match(startDate ?? "", /inputMode="numeric"|inputmode="numeric"/u);
+  assert.match(startDate ?? "", /autoComplete="off"|autocomplete="off"/u);
+  assert.doesNotMatch(startDate ?? "", /type="date"/u);
   for (const index of [0, 1]) {
     assert.match(markup, new RegExp(`name="weekday-${index}"`, "u"));
     for (const [field, placeholder] of [

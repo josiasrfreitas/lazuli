@@ -57,6 +57,7 @@ export {
 } from "./installment-generation.js";
 export {
   deriveInstallmentLedger,
+  deriveInstallmentLedgers,
   deriveOrderLedger,
   derivePaymentEntryRemainder,
   type DeriveInstallmentLedgerInput,

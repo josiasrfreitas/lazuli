@@ -55,6 +55,33 @@ void describe("sessions-generate worker", () => {
       ],
     );
   });
+
+  void it("does not generate lessons before an explicit class start date", async () => {
+    await cleanDatabase();
+    const fixtures = await seedGenerationFixtures();
+    await db.class.update({
+      where: { id: fixtures.regularClassId },
+      data: { startDate: new Date("2040-03-10T00:00:00.000Z") },
+    });
+    const first = await generateClassSessions({
+      database: db,
+      payload: { classId: fixtures.regularClassId },
+    });
+    const repeat = await generateClassSessions({
+      database: db,
+      payload: { classId: fixtures.regularClassId },
+    });
+    const rows = await db.classSession.findMany({
+      where: { classId: fixtures.regularClassId },
+      select: { date: true },
+    });
+    assert.equal(first.sessionsCreated, 1);
+    assert.equal(repeat.sessionsCreated, 0);
+    assert.deepEqual(
+      rows.map((row) => row.date.toISOString().slice(0, 10)),
+      ["2040-03-13"],
+    );
+  });
   void it("persists completion once under duplicate delivery and preserves confirmed encounters on a fresh retry", async () => {
     await cleanDatabase();
     const fixtures = await seedGenerationFixtures();

@@ -12,6 +12,7 @@ type SessionGenerationDatabase = Pick<
 
 type SessionGenerationClass = {
   id: string;
+  startDate: Date | null;
   semester: SemesterWindow;
   scheduleSlots: SessionGenerationSlot[];
 };
@@ -98,6 +99,7 @@ async function loadSessionGenerationClasses(input: {
     },
     select: {
       id: true,
+      startDate: true,
       semester: { select: { id: true, name: true, startDate: true, endDate: true } },
       scheduleSlots: {
         where: { deletedAt: null },
@@ -159,11 +161,13 @@ function generationWindow(classes: readonly SessionGenerationClass[]): {
     return null;
   }
 
-  let startDate = firstClass.semester.startDate;
+  let startDate = firstClass.startDate ?? firstClass.semester.startDate;
   let endDate = firstClass.semester.endDate;
 
   for (const classRow of classes) {
-    startDate = new Date(Math.min(startDate.getTime(), classRow.semester.startDate.getTime()));
+    startDate = new Date(
+      Math.min(startDate.getTime(), (classRow.startDate ?? classRow.semester.startDate).getTime()),
+    );
     endDate = new Date(Math.max(endDate.getTime(), classRow.semester.endDate.getTime()));
   }
 
@@ -178,7 +182,7 @@ function planRowsForClass(input: {
   const rows: SessionRow[] = [];
 
   for (const date of dateRange(
-    input.classRow.semester.startDate,
+    input.classRow.startDate ?? input.classRow.semester.startDate,
     input.classRow.semester.endDate,
   )) {
     resolveSemesterForDate(date, input.semesters);

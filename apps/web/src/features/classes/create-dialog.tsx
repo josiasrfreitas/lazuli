@@ -15,6 +15,7 @@ import {
 } from "@lazuli/ui";
 import { classCreateInputSchema } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
+import { parseDateBR } from "~/lib/masks";
 import type { RouterOutputs } from "@lazuli/api";
 import { ClassCreateFields, initialClassDraft, type ClassDraft } from "./create-fields";
 
@@ -35,6 +36,7 @@ function parseClassDraft(draft: ClassDraft): ReturnType<typeof classCreateInputS
     scheduleType: draft.scheduleType,
     format: draft.format,
     semesterId: draft.semesterId,
+    startDate: parseDateBR(draft.startDate) ?? "",
     slots: draft.slots.filter((slot) => slot.weekday || slot.startTime || slot.endTime),
     ...(draft.scheduleType === "REGULAR" ? { sharedStageId: draft.sharedStageId } : {}),
   });

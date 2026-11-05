@@ -7,8 +7,9 @@ import type { Prisma, TransactionClient } from "@lazuli/db";
 import { pendingClassRecordCutoff as pendingRecordCutoff } from "../class-records/pending-policy.js";
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import { readCoverage } from "./home-schedule.js";
+import { loadPendingLessonSessions } from "./home-lesson-data.js";
 import { readSemesterPending } from "./home-semester.js";
-import { recordSessionInclude, responsibleTeacher, timeOnly } from "../class-records/data.js";
+import { responsibleTeacher, timeOnly } from "../class-records/data.js";
 import {
   dateOnly,
   endedWhere,
@@ -380,12 +381,7 @@ async function lessonPage(
   };
   const [total, rows] = await Promise.all([
     database.classSession.count({ where }),
-    database.classSession.findMany({
-      where,
-      ...page,
-      orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
-      include: recordSessionInclude,
-    }),
+    loadPendingLessonSessions(database, { where, page }),
   ]);
   return {
     total,

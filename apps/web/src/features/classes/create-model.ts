@@ -3,6 +3,7 @@ export type ClassDraft = {
   format: "IN_PERSON" | "ONLINE";
   teacherId: string;
   semesterId: string;
+  startDate: string;
   sharedStageId: string;
   slots: Array<{
     weekday:
@@ -21,7 +22,7 @@ export type ClassDraft = {
 
 export type ClassOptions = {
   teachers: { id: string; name: string }[];
-  semesters: { id: string; name: string }[];
+  semesters: { id: string; name: string; startDate: Date; endDate: Date }[];
   stages: { id: string; name: string; internalCode: string }[];
 };
 
@@ -30,6 +31,7 @@ export const initialClassDraft: ClassDraft = {
   format: "IN_PERSON",
   teacherId: "",
   semesterId: "",
+  startDate: "",
   sharedStageId: "",
   slots: [emptyClassSlot(), emptyClassSlot()],
 };

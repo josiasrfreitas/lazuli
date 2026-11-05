@@ -3,10 +3,13 @@ import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ChevronDown, ClipboardList, X, BookOpen } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
+import { Button } from "@lazuli/ui";
+import { trpc } from "~/lib/trpc";
 import { PendingDisclosure } from "./home-pending-disclosure";
 import styles from "./home-pending.module.css";
 
-type Teacher = RouterOutputs["dashboard"]["pendingLessons"][number];
+type Teacher = RouterOutputs["dashboard"]["pendingLessonSummaries"][number];
+type Lesson = RouterOutputs["dashboard"]["pendingLessonPage"]["lessons"][number];
 
 export function PendingLessons({ teachers }: { teachers: Teacher[] }): ReactElement | null {
   if (teachers.length === 0) return null;
@@ -24,8 +27,10 @@ export function PendingLessons({ teachers }: { teachers: Teacher[] }): ReactElem
 }
 
 function TeacherGroup({ teacher }: { teacher: Teacher }): ReactElement {
+  const [open, setOpen] = useState(false);
   return (
     <PendingDisclosure
+      onOpenChange={setOpen}
       summary={
         <>
           <span className={`${styles.icon} ${styles.recordIcon}`}>
@@ -34,8 +39,7 @@ function TeacherGroup({ teacher }: { teacher: Teacher }): ReactElement {
           <span className={styles.identity}>
             <strong>Aulas sem registro</strong>
             <span>
-              {teacher.teacherName} · {teacher.lessons.length}{" "}
-              {teacher.lessons.length === 1 ? "aula" : "aulas"}
+              {teacher.teacherName} · {teacher.total} {teacher.total === 1 ? "aula" : "aulas"}
             </span>
           </span>
           <span className={styles.priorities}>
@@ -56,32 +60,41 @@ function TeacherGroup({ teacher }: { teacher: Teacher }): ReactElement {
         </>
       }
     >
-      <LessonList teacher={teacher} />
+      <LessonList teacher={teacher} open={open} />
     </PendingDisclosure>
   );
 }
 
-function LessonList({ teacher }: { teacher: Teacher }): ReactElement {
+function LessonList({ teacher, open }: { teacher: Teacher; open: boolean }): ReactElement {
   const [requestedPage, setPage] = useState(1);
-  const page = Math.min(
-    requestedPage,
-    Math.max(1, Math.ceil(teacher.lessons.length / PENDING_PAGE_SIZE)),
+  const page = Math.min(requestedPage, Math.max(1, Math.ceil(teacher.total / PENDING_PAGE_SIZE)));
+  const query = trpc.dashboard.pendingLessonPage.useQuery(
+    { teacherId: teacher.teacherId, page, pageSize: PENDING_PAGE_SIZE },
+    { enabled: open },
   );
   return (
     <>
-      <ul className={styles.lessonList}>
-        {teacher.lessons
-          .slice((page - 1) * PENDING_PAGE_SIZE, page * PENDING_PAGE_SIZE)
-          .map((lesson) => (
-            <LessonCase key={lesson.id} lesson={lesson} />
-          ))}
-      </ul>
-      <PendingPagination
-        total={teacher.lessons.length}
-        page={page}
-        onPageChange={setPage}
-        label="Paginação de aulas sem registro"
-      />
+      {open && query.isPending && <p role="status">Carregando aulas…</p>}
+      {open && query.isError && (
+        <Button size="sm" variant="ghost" onClick={() => void query.refetch()}>
+          Tentar novamente
+        </Button>
+      )}
+      {query.data && (
+        <>
+          <ul className={styles.lessonList}>
+            {query.data.lessons.map((lesson) => (
+              <LessonCase key={lesson.id} lesson={lesson} />
+            ))}
+          </ul>
+          <PendingPagination
+            total={query.data.total}
+            page={page}
+            onPageChange={setPage}
+            label="Paginação de aulas sem registro"
+          />
+        </>
+      )}
     </>
   );
 }
@@ -106,7 +119,7 @@ function MissingIndicators({
   );
 }
 
-function LessonCase({ lesson }: { lesson: Teacher["lessons"][number] }): ReactElement {
+function LessonCase({ lesson }: { lesson: Lesson }): ReactElement {
   return (
     <li>
       <Link

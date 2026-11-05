@@ -24,10 +24,21 @@ const REGULAR_CLASS_INPUT = {
   format: "IN_PERSON",
   sharedStageId: STAGE_ID,
   semesterId: SEMESTER_ID,
+  startDate: "2026-03-01",
   slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
 };
 
 void describe("class schedule input", () => {
+  void it("requires a real explicit start date", () => {
+    assert.equal(
+      classCreateInputSchema.safeParse({ ...REGULAR_CLASS_INPUT, startDate: undefined }).success,
+      false,
+    );
+    assert.equal(
+      classCreateInputSchema.safeParse({ ...REGULAR_CLASS_INPUT, startDate: "2026-02-30" }).success,
+      false,
+    );
+  });
   void it("accepts a regular class without a manually assigned code or capacity", () => {
     const parsed = classCreateInputSchema.parse({
       ...REGULAR_CLASS_INPUT,

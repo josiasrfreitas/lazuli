@@ -1,6 +1,6 @@
 import {
   buildReceivablesSnapshot,
-  deriveInstallmentLedger,
+  deriveInstallmentLedgers,
   saoPauloMonthDateOnlyUtcBounds,
   toWhatsAppUrl,
   type InstallmentLedger,
@@ -56,16 +56,20 @@ export type OverdueListResult = {
 
 export async function receivablesSnapshot(database: FinanceDatabase): Promise<ReceivablesSnapshot> {
   const now = new Date();
-  const derivedInstallments = await loadDerivedReceivablesInstallments(database, now);
+  const installments = await loadSnapshotInstallments(database);
+  const ledgers = deriveInstallmentLedgers({
+    installments: installments.map((installment) => ({ ...installment, orderCancelledAt: null })),
+    now,
+  });
   const receivedThisMonthCents = await loadReceivedThisMonthCents(database, now);
 
   return buildReceivablesSnapshot({
     now,
     receivedThisMonthCents,
-    installments: derivedInstallments.map((installment) => ({
+    installments: installments.map((installment, index) => ({
       dueDate: installment.dueDate,
-      isCollectible: installment.isCollectible,
-      ledger: installment.ledger,
+      isCollectible: installment.waivedAt === null,
+      ledger: ledgers[index]!,
     })),
   });
 }
@@ -98,17 +102,16 @@ async function loadDerivedReceivablesInstallments(
 ): Promise<DerivedReceivablesInstallment[]> {
   const installments = await loadActiveOrderInstallments(database);
 
-  return installments.map((installment) => {
-    const isCollectible = installment.order.cancelledAt === null && installment.waivedAt === null;
-    const ledger = deriveInstallmentLedger({
-      amountCents: installment.amountCents,
-      dueDate: installment.dueDate,
-      waivedAt: installment.waivedAt,
+  const ledgers = deriveInstallmentLedgers({
+    installments: installments.map((installment) => ({
+      ...installment,
       orderCancelledAt: installment.order.cancelledAt,
-      adjustments: installment.adjustments,
-      allocations: installment.allocations,
-      now,
-    });
+    })),
+    now,
+  });
+  return installments.map((installment, index) => {
+    const isCollectible = installment.order.cancelledAt === null && installment.waivedAt === null;
+    const ledger = ledgers[index]!;
 
     return {
       id: installment.id,
@@ -183,6 +186,23 @@ async function loadActiveOrderInstallments(
       },
     },
   });
+  return loadInstallmentEntries(database, installments);
+}
+
+/** The snapshot does not need parties, contacts or the overdue list's presentation fields. */
+async function loadSnapshotInstallments(database: FinanceDatabase) {
+  const installments = await database.installment.findMany({
+    // Only active orders enter this read, so their ledger cancellation fact is null.
+    where: { order: { cancelledAt: null } },
+    select: { id: true, amountCents: true, dueDate: true, waivedAt: true },
+  });
+  return loadInstallmentEntries(database, installments);
+}
+
+async function loadInstallmentEntries<Row extends { id: string }>(
+  database: FinanceDatabase,
+  installments: Row[],
+) {
   const installmentIds = installments.map((installment) => installment.id);
   const adjustments = await database.installmentAdjustment.findMany({
     where: { installmentId: { in: installmentIds } },
@@ -192,12 +212,26 @@ async function loadActiveOrderInstallments(
     where: { installmentId: { in: installmentIds } },
     select: { installmentId: true, amountCents: true },
   });
+  const adjustmentsByInstallment = groupByInstallment(adjustments);
+  const allocationsByInstallment = groupByInstallment(allocations);
 
   return installments.map((installment) => ({
     ...installment,
-    adjustments: adjustments.filter((adjustment) => adjustment.installmentId === installment.id),
-    allocations: allocations.filter((allocation) => allocation.installmentId === installment.id),
+    adjustments: adjustmentsByInstallment.get(installment.id) ?? [],
+    allocations: allocationsByInstallment.get(installment.id) ?? [],
   }));
+}
+
+function groupByInstallment<Row extends { installmentId: string }>(
+  rows: Row[],
+): Map<string, Row[]> {
+  const byInstallment = new Map<string, Row[]>();
+  for (const row of rows) {
+    const group = byInstallment.get(row.installmentId) ?? [];
+    group.push(row);
+    byInstallment.set(row.installmentId, group);
+  }
+  return byInstallment;
 }
 
 function sortInstallmentsByDueDate(

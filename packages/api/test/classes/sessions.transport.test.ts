@@ -31,6 +31,7 @@ void it("scopes and paginates prepared encounters through the HTTP adapter", asy
     format: "IN_PERSON",
     sharedStageId: fixtures.stageId,
     semesterId: fixtures.semesterId,
+    startDate: "2026-03-01",
     slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
   });
   const other = await caller().classes.create({
@@ -38,6 +39,7 @@ void it("scopes and paginates prepared encounters through the HTTP adapter", asy
     scheduleType: "PERSONALIZED",
     format: "ONLINE",
     semesterId: fixtures.semesterId,
+    startDate: "2026-03-01",
     slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" }],
   });
   await db.classSession.createMany({

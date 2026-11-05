@@ -402,6 +402,7 @@ model Class {
   format                  ClassFormat
   sharedStageId           String?           @map("shared_stage_id") @db.Uuid
   semesterId              String            @map("semester_id") @db.Uuid
+  startDate               DateTime?         @map("start_date") @db.Date
   year                    Int
   capacity                Int
   status                  ClassStatus       @default(ACTIVE)

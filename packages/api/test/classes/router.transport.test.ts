@@ -35,6 +35,7 @@ void it("creates a regular class through the HTTP adapter", async () => {
       format: "IN_PERSON",
       sharedStageId: fixtures.stageId,
       semesterId: fixtures.semesterId,
+      startDate: "2026-03-01",
 
       slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
     },
@@ -96,6 +97,7 @@ async function createSourceClassOverHttp(
       format: "IN_PERSON",
       sharedStageId: fixtures.stageId,
       semesterId: fixtures.semesterId,
+      startDate: "2026-03-01",
 
       slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
     },

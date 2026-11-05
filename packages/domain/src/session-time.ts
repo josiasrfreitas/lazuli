@@ -27,6 +27,9 @@ type LocalDateTimeParts = {
   minute: number;
 };
 
+// Reuse timezone rules/options, never a formatted instant. Public callers use Sao Paulo only.
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+
 export type SaoPauloMonthInstantBounds = {
   startInstant: Date;
   endExclusiveInstant: Date;
@@ -142,15 +145,20 @@ function earliestExactCandidate(input: {
 }
 
 function localDateTimeParts(input: { instant: Date; timeZone: string }): LocalDateTimeParts {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: input.timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(input.instant);
+  let formatter = dateTimeFormatters.get(input.timeZone);
+  if (formatter === undefined) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: input.timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    dateTimeFormatters.set(input.timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(input.instant);
   const part = (type: string): string => parts.find((item) => item.type === type)?.value ?? "";
 
   return {

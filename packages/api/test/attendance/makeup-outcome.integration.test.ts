@@ -52,6 +52,63 @@ void it("records actual delivery through the legacy entry point without rewritin
   });
   assert.equal(percent.percent, 1);
   assert.equal(percent.presentCount, 0);
+  const coverage = await db.makeupCoverage.findFirstOrThrow({
+    where: { attendanceId: fixtureData.absence.id },
+  });
+  await db.makeupCoverage.update({
+    where: { id: coverage.id },
+    data: { deletedAt: fixtureData.after },
+  });
+  const withoutCoverage = await harness.caller().attendance.enrollmentSemesterPercent({
+    enrollmentId: fixtureData.enrollmentId,
+    semesterId: fixtureData.semesterId,
+  });
+  assert.equal(withoutCoverage.compensatedMinutes, 0);
+  assert.equal(withoutCoverage.percent, 0);
+  await db.makeupCoverage.update({ where: { id: coverage.id }, data: { deletedAt: null } });
+  await db.pedagogicalAppointment.update({
+    where: { id: coverage.appointmentId },
+    data: { deletedAt: fixtureData.after },
+  });
+  const withoutAppointment = await harness.caller().attendance.enrollmentSemesterPercent({
+    enrollmentId: fixtureData.enrollmentId,
+    semesterId: fixtureData.semesterId,
+  });
+  assert.equal(withoutAppointment.compensatedMinutes, 0);
+  assert.equal(withoutAppointment.percent, 0);
+});
+void it("caps source compensation at lesson minutes and ignores it after correcting to present", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  const makeupId = await insertMakeup({
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+  });
+  await harness.caller(harness.ns.otherTeacher, fixtureData.after).attendance.markMakeupOutcome({
+    ...actual,
+    makeupId,
+    coverages: fixtureData.input.coverages,
+  });
+  const session = await db.classSession.findUniqueOrThrow({ where: { id: fixtureData.sessionId } });
+  await db.classSession.update({
+    where: { id: session.id },
+    data: {
+      endTime: new Date(session.startTime.getTime() + 60 * 60 * 1000),
+    },
+  });
+  const input = { enrollmentId: fixtureData.enrollmentId, semesterId: fixtureData.semesterId };
+  const capped = await harness.caller().attendance.enrollmentSemesterPercent(input);
+  assert.equal(capped.heldMinutes, 60);
+  assert.equal(capped.compensatedMinutes, 60);
+  assert.equal(capped.percent, 1);
+  await db.attendance.update({
+    where: { id: fixtureData.absence.id },
+    data: { status: "PRESENT" },
+  });
+  const corrected = await harness.caller().attendance.enrollmentSemesterPercent(input);
+  assert.equal(corrected.presentCount, 1);
+  assert.equal(corrected.presentMinutes, 60);
+  assert.equal(corrected.compensatedMinutes, 0);
+  assert.equal(corrected.percent, 1);
 });
 void it("corrects to a no-show with a reason while preserving actual delivery in history", async () => {
   const fixtureData = await appointmentFixture(harness);

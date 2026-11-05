@@ -7,7 +7,11 @@ import { readAdminHome, readHomeBusiness } from "./home.js";
 import { adminProcedure, router, teacherProcedure } from "../trpc/init.js";
 import { readAdminDashboardMetrics, readTeacherHome } from "./data.js";
 
-import { readPendingLessons } from "./home-lessons.js";
+import {
+  readPendingLessonPage,
+  readPendingLessonSummaries,
+  readPendingLessons,
+} from "./home-lessons.js";
 import { readOverdueContracts } from "../finance/internal/overdue-contracts.js";
 
 const MAX_HOME_PAGE = 100_000;
@@ -27,6 +31,7 @@ export const dashboardRouter = router({
       database: ctx.db,
       now: ctx.now ?? new Date(),
       staffUser: ctx.staffUser,
+      ...(ctx.requestId ? { requestId: ctx.requestId } : {}),
       ...(input?.month ? { month: input.month } : {}),
     }),
   ),
@@ -50,6 +55,18 @@ export const dashboardRouter = router({
   pendingLessons: adminProcedure.query(({ ctx }) =>
     readPendingLessons(ctx.db, ctx.now ?? new Date()),
   ),
+  pendingLessonSummaries: adminProcedure.query(({ ctx }) =>
+    readPendingLessonSummaries(ctx.db, ctx.now ?? new Date()),
+  ),
+  pendingLessonPage: adminProcedure
+    .input(
+      z.object({
+        teacherId: z.string().min(1).nullable(),
+        page: z.number().int().min(1).max(MAX_HOME_PAGE),
+        pageSize: z.number().int().min(1).max(MAX_HOME_PAGE_SIZE),
+      }),
+    )
+    .query(({ ctx, input }) => readPendingLessonPage(ctx.db, ctx.now ?? new Date(), input)),
   overdueContracts: adminProcedure.query(({ ctx }) => {
     if (!canAccess(ctx.staffUser.role, "finance")) throw new TRPCError({ code: "FORBIDDEN" });
     return readOverdueContracts(ctx.db, ctx.now ?? new Date());
@@ -60,6 +77,7 @@ export const dashboardRouter = router({
       database: ctx.db,
       now: ctx.now ?? new Date(),
       requestedMonth: input?.month,
+      requestId: ctx.requestId,
     });
   }),
   adminMetrics: adminProcedure.query(({ ctx }) =>

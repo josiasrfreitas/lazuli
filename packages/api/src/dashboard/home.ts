@@ -1,4 +1,5 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
+import { createServiceLogger, withCheckpoint } from "@lazuli/logging";
 import type { Context, StaffUser } from "../trpc/context.js";
 import { canAccess } from "../trpc/rbac.js";
 import { readAnalytics } from "../finance/internal/analytics.js";
@@ -20,7 +21,13 @@ type HomeSummary = {
   groups: Awaited<ReturnType<typeof readHomePending>>[];
   agenda: Awaited<ReturnType<typeof readHomeAgenda>>;
 };
-type HomeContext = { database: Context["db"]; now: Date; staffUser: StaffUser; month?: string };
+type HomeContext = {
+  database: Context["db"];
+  now: Date;
+  staffUser: StaffUser;
+  month?: string;
+  requestId?: string;
+};
 type Analytics = Awaited<ReturnType<typeof readAnalytics>>;
 type Comparison = Awaited<ReturnType<typeof readBusinessComparison>>;
 type HomeBusiness = {
@@ -43,23 +50,41 @@ type HomeBusiness = {
 const YEAR_LENGTH = 4;
 const REPORT_MONTHS = 6;
 const CONTRACT_REPORT_MONTHS = 8;
+const logger = createServiceLogger("web");
 export async function readAdminHome({
   database,
   now,
   staffUser,
   month,
+  requestId,
 }: HomeContext): Promise<HomeSummary> {
+  const requestLogger = logger.child({ request_id: requestId, procedure: "dashboard.home" });
   const today = saoPauloDateOnly(now);
   const finance = canAccess(staffUser.role, "finance");
   const kinds = finance
     ? HOME_GROUPS
     : HOME_GROUPS.filter((kind) => kind !== "contracts" && kind !== "renewals");
   const [groups, agenda, audience, school, leadConversion] = await Promise.all([
-    readHomeGroups(database, { now, kinds }),
-    readHomeAgenda(database, now),
-    readStudentAges(database, now),
-    readHomeSchool({ database, now, requestedMonth: month }),
-    readLeadConversion(database, homePeriod(now, { requestedMonth: month })),
+    withCheckpoint(requestLogger, {
+      checkpoint: "home_groups",
+      action: () => readHomeGroups(database, { now, kinds }),
+    }),
+    withCheckpoint(requestLogger, {
+      checkpoint: "home_agenda",
+      action: () => readHomeAgenda(database, now),
+    }),
+    withCheckpoint(requestLogger, {
+      checkpoint: "student_ages",
+      action: () => readStudentAges(database, now),
+    }),
+    withCheckpoint(requestLogger, {
+      checkpoint: "home_school",
+      action: () => readHomeSchool({ database, now, requestedMonth: month }),
+    }),
+    withCheckpoint(requestLogger, {
+      checkpoint: "lead_conversion",
+      action: () => readLeadConversion(database, homePeriod(now, { requestedMonth: month })),
+    }),
   ]);
   return {
     today,
@@ -110,17 +135,28 @@ export async function readHomeBusiness({
   database,
   now,
   requestedMonth,
+  requestId,
 }: {
   database: Context["db"];
   now: Date;
   requestedMonth?: string | undefined;
+  requestId?: string | undefined;
 }): Promise<HomeBusiness> {
+  const requestLogger = logger.child({ request_id: requestId, procedure: "dashboard.business" });
   const period = homePeriod(now, { requestedMonth });
   const [analytics, comparison] = await Promise.all([
-    readAnalytics(database, { year: Number(period.month.slice(0, YEAR_LENGTH)), now }),
-    readBusinessComparison(database, {
-      period,
-      contractPeriod: homePeriod(now, { requestedMonth, seriesMonths: CONTRACT_REPORT_MONTHS }),
+    withCheckpoint(requestLogger, {
+      checkpoint: "business_analytics",
+      action: () =>
+        readAnalytics(database, { year: Number(period.month.slice(0, YEAR_LENGTH)), now }),
+    }),
+    withCheckpoint(requestLogger, {
+      checkpoint: "business_comparison",
+      action: () =>
+        readBusinessComparison(database, {
+          period,
+          contractPeriod: homePeriod(now, { requestedMonth, seriesMonths: CONTRACT_REPORT_MONTHS }),
+        }),
     }),
   ]);
   const current = analytics.months.find((row) => row.month === period.month)!;

@@ -149,18 +149,63 @@ void it("includes contractual ownership without a beneficiary and excludes a rem
     assert.equal(summary.overdueCents, 10_000);
     assert.equal(summary.oldestOverdueDays, 31);
     assert.equal(summary.debtState, "SEVERE_OVERDUE");
+    assert.deepEqual(await service.studentOverdueTotals({ studentIds: [studentId], now: NOW }), [
+      { studentId, hasActiveOrder: true, overdueCents: 10_000 },
+    ]);
     const list = await service.installments({ studentId, view: "all", page: 1, pageSize: 25 }, NOW);
     assert.equal(list.total, 1);
     await db.contract.update({ where: { id: contract.id }, data: { deletedAt: new Date() } });
     const removed = await service.studentSummary({ studentId, now: NOW });
     assert.equal(removed.installmentCount, 0);
     assert.equal(removed.receivedCents, 0);
+    assert.deepEqual(await service.studentOverdueTotals({ studentIds: [studentId], now: NOW }), [
+      { studentId, hasActiveOrder: false, overdueCents: 0 },
+    ]);
   } finally {
     await db.order.update({
       where: { id: fixture.orderId },
       data: { contractId: null, payerId: fixture.payerId },
     });
     await db.contract.deleteMany({ where: { studentId } });
+    await cleanInstallmentsTestData();
+    await db.$disconnect();
+  }
+});
+
+void it("chooses the student's initial charge filter server-side without a summary request", async () => {
+  await ensureAdminUser();
+  try {
+    const fixture = await createFinancialRulesFixture();
+    const studentId = fixture.studentIds[0]!;
+    const service = finance(db, ADMIN.id);
+    const values = { studentId, view: "all" as const, page: 1, pageSize: 25 as const };
+    const auto = await service.installments({ ...values, studentFilter: "auto" }, NOW);
+    assert.equal(auto.view, "all");
+    assert.ok("rows" in auto && "studentFilter" in auto);
+    assert.equal(auto.studentFilter, "overdue");
+    assert.equal(auto.total, 1);
+    assert.deepEqual(
+      auto.rows.map((row) => row.installmentId),
+      [fixture.partialId],
+    );
+    const manual = await service.installments({ ...values, studentFilter: "all" }, NOW);
+    assert.equal(manual.total, 4);
+    const dueToday = await service.installments(
+      { ...values, studentFilter: "auto" },
+      new Date("2026-03-01T02:59:59Z"),
+    );
+    assert.ok("rows" in dueToday && "studentFilter" in dueToday);
+    assert.equal(dueToday.studentFilter, "all");
+    assert.equal(dueToday.total, 4);
+    const explicit = await service.installments(
+      { ...values, studentFilter: "overdue" },
+      new Date("2026-03-01T02:59:59Z"),
+    );
+    assert.ok("rows" in explicit && "studentFilter" in explicit);
+    assert.equal(explicit.studentFilter, "overdue");
+    assert.equal(explicit.total, 0);
+    assert.deepEqual(explicit.rows, []);
+  } finally {
     await cleanInstallmentsTestData();
     await db.$disconnect();
   }

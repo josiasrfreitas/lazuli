@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import {
   BookOpen,
   CalendarDays,
@@ -22,24 +23,55 @@ import {
   TabsPanel,
   TabsTab,
 } from "@lazuli/ui";
-import { trpc } from "~/lib/trpc";
 import { firstTwoNames } from "~/lib/format";
 import { useAnimationPreviewDelay } from "~/lib/animation-preview";
 import { StudentPhoto } from "~/features/student-documents/student-photo";
-import { StudentPlanning } from "~/features/stage-planning/student-planning";
-import { useStudentProfile, useStudentPedagogy, type StudentProfile } from "./logic";
+
+import {
+  useStudentProfile,
+  useStudentPedagogy,
+  useStudentSectionData,
+  type StudentProfile,
+} from "./logic";
 import { StudentStatus } from "./student-identity";
 import { ProfileError } from "./profile-shared";
-import { StudentPedagogySection } from "./student-pedagogy";
-import { StudentFinanceSection } from "./student-finance";
-import { StudentRegistrationLoading, StudentRegistrationSection } from "./student-registration";
-import { StudentContractRenewal } from "./student-contract-renewal";
+
+import { FinanceOverviewLoading } from "./finance-overview-loading";
+import type { StudentFinanceState } from "./finance-logic";
+import { StudentRegistrationLoading } from "./student-registration-loading";
+
 import { StudentOverview, StudentOverviewLoading } from "./student-overview";
-import { StudentAgendaDialog } from "./student-agenda-dialog";
-import { CurrentEnrollment } from "./current-enrollment";
+import { StudentAgendaAction } from "./student-agenda-action";
+
 import { PedagogyLoading, EnrollmentLoading } from "./student-loading";
 import { useSectionCarousel } from "./use-section-carousel";
 import styles from "./student-profile.module.css";
+
+// Only the active section participates in the initial client graph.
+const StudentRegistrationSection = dynamic(
+  () => import("./student-registration").then((module) => module.StudentRegistrationSection),
+  { loading: StudentRegistrationLoading },
+);
+const StudentPedagogySection = dynamic(
+  () => import("./student-pedagogy").then((module) => module.StudentPedagogySection),
+  { loading: PedagogyLoading },
+);
+const StudentFinanceSection = dynamic(
+  () => import("./student-finance").then((module) => module.StudentFinanceSection),
+  { loading: FinanceOverviewLoading },
+);
+const StudentPlanning = dynamic(
+  () =>
+    import("~/features/stage-planning/student-planning").then((module) => module.StudentPlanning),
+  { loading: EnrollmentLoading },
+);
+const CurrentEnrollment = dynamic(
+  () => import("./current-enrollment").then((module) => module.CurrentEnrollment),
+  { loading: EnrollmentLoading },
+);
+const StudentContractRenewal = dynamic(() =>
+  import("./student-contract-renewal").then((module) => module.StudentContractRenewal),
+);
 
 const OVERVIEW_SECTION = "visao-geral";
 const PEDAGOGY_SECTION = "pedagogico";
@@ -80,12 +112,18 @@ export function StudentPage({ id, pedagogyWorkspacePreview }: PageProps): ReactE
 }
 
 function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProps): ReactElement {
-  const pedagogy = useStudentPedagogy(id);
-  const finance = trpc.finance.studentSummary.useQuery({ studentId: id });
+  const [requestedSection, setSection] = useQueryState(
+    SECTION_QUERY,
+    parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION),
+  );
+  const { pedagogy, finance, hasPpt } = useStudentSectionData(id, requestedSection);
   const entranceComplete = useEntranceComplete(Boolean(profile));
   const [registrationBusy, setRegistrationBusy] = useState(false);
-  const hasPpt = hasPersonalizedEnrollment(pedagogy.data);
   const { activeSection, activeTab, navigate } = useStudentSectionNavigation({
+    section: requestedSection,
+    setSection: (next) => {
+      void setSection(next);
+    },
     pedagogyReady: Boolean(pedagogy.data),
     hasPpt,
     registrationBusy,
@@ -107,6 +145,7 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProp
     pedagogy,
     hasPpt,
     latestTermination: finance.data?.latestTermination,
+    finance,
     pedagogyWorkspacePreview,
     navigate,
     onBusyChange: setRegistrationBusy,
@@ -182,7 +221,9 @@ function studentHeaderProps({
   return {
     id,
     profile,
-    canSchedule: Boolean(pedagogy.data?.enrollments.some((row) => row.current)),
+    canSchedule: pedagogy.data
+      ? pedagogy.data.enrollments.some((row) => row.current)
+      : (profile?.hasCurrentEnrollment ?? false),
     registrationBusy,
     financeActive: activeSection === "financeiro",
     renewalReady: entranceComplete && Boolean(profile) && !financePending,
@@ -190,15 +231,15 @@ function studentHeaderProps({
   };
 }
 
-function hasPersonalizedEnrollment(data: ReturnType<typeof useStudentPedagogy>["data"]): boolean {
-  return Boolean(data?.enrollments.some((row) => row.class.scheduleType === "PERSONALIZED"));
-}
-
 function useStudentSectionNavigation({
+  section,
+  setSection,
   pedagogyReady,
   hasPpt,
   registrationBusy,
 }: {
+  section: StudentSection;
+  setSection: (next: StudentSection) => void;
   pedagogyReady: boolean;
   hasPpt: boolean;
   registrationBusy: boolean;
@@ -208,10 +249,6 @@ function useStudentSectionNavigation({
   navigate: (next: StudentSection) => void;
 } {
   const switchSection = useSectionCarousel();
-  const [section, setSection] = useQueryState(
-    SECTION_QUERY,
-    parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION),
-  );
   const activeSection = resolveSection(section, { pedagogyReady, hasPpt });
   const activeTab = activeSection === PLANNING_SECTION ? PEDAGOGY_SECTION : activeSection;
   const navigate = (next: StudentSection): void => {
@@ -279,6 +316,7 @@ type SectionContentProps = {
   profile: StudentProfile | undefined;
   pedagogy: ReturnType<typeof useStudentPedagogy>;
   hasPpt: boolean;
+  finance: StudentFinanceState["summary"];
   latestTermination: RouterOutputs["finance"]["studentSummary"]["latestTermination"] | undefined;
   pedagogyWorkspacePreview: ReactNode;
   navigate: (section: StudentSection) => void;
@@ -295,7 +333,7 @@ function SectionContent(props: SectionContentProps): ReactElement {
     <div className={styles.tabContent}>
       {section === OVERVIEW_SECTION &&
         (profile ? (
-          <StudentOverview profile={profile} navigate={navigate} />
+          <StudentOverview profile={profile} navigate={navigate} pedagogy={props.pedagogy} />
         ) : (
           <StudentOverviewLoading />
         ))}
@@ -308,7 +346,9 @@ function SectionContent(props: SectionContentProps): ReactElement {
       {(section === PEDAGOGY_SECTION || section === PLANNING_SECTION) && (
         <PedagogyContent {...props} />
       )}
-      {section === "financeiro" && <StudentFinanceSection id={id} profile={profile} />}
+      {section === "financeiro" && (
+        <StudentFinanceSection id={id} profile={profile} summary={props.finance} />
+      )}
     </div>
   );
 }
@@ -364,6 +404,7 @@ function PedagogySection({
     return (
       <StudentPedagogySection
         profile={profile}
+        query={pedagogy}
         latestTermination={latestTermination}
         pedagogyWorkspacePreview={pedagogyWorkspacePreview}
       />
@@ -442,7 +483,7 @@ function StudentHeaderActions({
         </Button>
       )}
       {profile ? (
-        <StudentAgendaDialog
+        <StudentAgendaAction
           profile={profile}
           canSchedule={canSchedule}
           secondary={Boolean(renewalAction)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactElement } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CircleCheck, GraduationCap, Plus, Search, UsersRound } from "lucide-react";
 
@@ -15,6 +16,7 @@ import {
 import {
   STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
   studentPaginationPolicy,
+  type StudentListOutput,
 } from "@lazuli/validators";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
 import { useSearchDraft } from "~/lib/use-search-draft";
@@ -28,11 +30,19 @@ import {
   type StudentsFilters,
 } from "./logic";
 import { studentFilterOptionResult } from "./filter-options";
-import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentsTable } from "./students-table";
 import { tableStateVm } from "./view-model";
 
 const STUDENT_PREVIEW_DELAY_MS = 1600;
+const NewStudentDialog = dynamic(
+  () => import("./new-student/new-student-dialog").then((module) => module.NewStudentDialog),
+  { loading: () => <p role="status">Carregando cadastro do aluno...</p> },
+);
+
+export type InitialStudentsData = {
+  list?: { data: StudentListOutput; updatedAt: number };
+  classOptions?: { data: Array<{ id: string; label: string }>; updatedAt: number };
+};
 
 export type StudentsFilterFieldsProps = {
   filters: StudentsFilters;
@@ -194,10 +204,11 @@ function paginationFor(filters: ReturnType<typeof useStudentsFilters>): UrlPagin
 
 function useStudentFilterFields(
   filters: ReturnType<typeof useStudentsFilters>,
+  initialClassOptions?: InitialStudentsData["classOptions"],
 ): TableFilterField[] {
   const [classSearch, setClassSearch] = useState("");
   const [teacherSearch, setTeacherSearch] = useState("");
-  const classes = useStudentFilterOptions("class", classSearch);
+  const classes = useStudentFilterOptions("class", classSearch, initialClassOptions);
   const teachers = useStudentFilterOptions("teacher", teacherSearch);
   const selectedClasses = useSelectedStudentFilterOptions("class", filters.classIds);
   const selectedTeachers = useSelectedStudentFilterOptions("teacher", filters.teacherIds);
@@ -245,12 +256,16 @@ function studentTableState({
   });
 }
 
-export function StudentsPage(): ReactElement {
+export function StudentsPage({ initial }: { initial?: InitialStudentsData }): ReactElement {
   const previewReady = useAnimationPreviewDelay(STUDENT_PREVIEW_DELAY_MS);
   const filters = useStudentsFilters();
   const openStudent = useOpenStudent();
-  const students = useStudentsList(filters);
-  const fields = useStudentFilterFields(filters);
+  const defaultList =
+    filters.page === 1 &&
+    filters.pageSize === studentPaginationPolicy.defaultPageSize &&
+    !hasStudentFilters(filters);
+  const students = useStudentsList(filters, defaultList ? initial?.list : undefined);
+  const fields = useStudentFilterFields(filters, initial?.classOptions);
   const [creating, setCreating] = useState(false);
   const [resuming, setResuming] = useState<string | null>(null);
   const pagination = paginationFor(filters);
@@ -273,23 +288,25 @@ export function StudentsPage(): ReactElement {
           onContinue={setResuming}
         />
       </DataTablePage>
-      <NewStudentDialog
-        onCreated={(id) => {
-          setCreating(false);
-          if (resuming) {
-            setResuming(null);
-            void students.refetch();
-          } else openStudent(id);
-        }}
-        existingStudentId={resuming ?? undefined}
-        onOpenChange={(open) => {
-          if (!open) {
+      {(creating || Boolean(resuming)) && (
+        <NewStudentDialog
+          onCreated={(id) => {
             setCreating(false);
-            setResuming(null);
-          }
-        }}
-        open={creating || Boolean(resuming)}
-      />
+            if (resuming) {
+              setResuming(null);
+              void students.refetch();
+            } else openStudent(id);
+          }}
+          existingStudentId={resuming ?? undefined}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreating(false);
+              setResuming(null);
+            }
+          }}
+          open
+        />
+      )}
     </>
   );
 }

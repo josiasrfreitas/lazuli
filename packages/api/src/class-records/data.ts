@@ -36,7 +36,18 @@ export const recordSessionInclude = {
   },
 } satisfies Prisma.ClassSessionInclude;
 export type RecordSession = Prisma.ClassSessionGetPayload<{ include: typeof recordSessionInclude }>;
-export function responsibleTeacher(session: RecordSession): { id: string; name: string } | null {
+type ResponsibleSession = Pick<
+  RecordSession,
+  "id" | "date" | "scheduleSlotId" | "responsibilityFrozenAt" | "usualTeacherId" | "classRecord"
+> & {
+  class: Pick<
+    RecordSession["class"],
+    "teacherId" | "teacher" | "teacherAssignments" | "substitutions"
+  >;
+};
+export function responsibleTeacher(
+  session: ResponsibleSession,
+): { id: string; name: string } | null {
   if (session.classRecord) return session.classRecord.teachingTeacher;
   const substitute = session.class.substitutions.find(
     (row) =>

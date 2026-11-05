@@ -1,0 +1,24 @@
+{
+  "name": "@lazuli/logging",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "lazuli-lint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node ../../scripts/run-test-tier.mjs unit"
+  },
+  "dependencies": {
+    "pino": "catalog:"
+  },
+  "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

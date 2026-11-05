@@ -14,15 +14,30 @@ import { StudentChooseClass } from "./student-choose-class";
 import type { RouterOutputs } from "@lazuli/api";
 
 type PedagogyProps = {
+  query?: ReturnType<typeof useStudentPedagogy>;
   profile: StudentProfile;
   pedagogyWorkspacePreview?: ReactNode;
   latestTermination?: RouterOutputs["finance"]["studentSummary"]["latestTermination"] | undefined;
 };
 
 export function StudentPedagogySection(props: PedagogyProps): ReactElement {
-  const { profile, pedagogyWorkspacePreview } = props;
+  return props.query ? (
+    <StudentPedagogyContent {...props} query={props.query} />
+  ) : (
+    <StudentPedagogyWithQuery {...props} />
+  );
+}
+
+function StudentPedagogyWithQuery(props: PedagogyProps): ReactElement {
+  const query = useStudentPedagogy(props.profile.id);
+  return <StudentPedagogyContent {...props} query={query} />;
+}
+
+function StudentPedagogyContent(
+  props: PedagogyProps & { query: ReturnType<typeof useStudentPedagogy> },
+): ReactElement {
+  const { profile, pedagogyWorkspacePreview, query } = props;
   const id = profile.id;
-  const query = useStudentPedagogy(id);
   if (query.isPending) return <PedagogyLoadingState />;
   if (query.isError) return <PedagogyError onRetry={() => void query.refetch()} />;
   const current = query.data.enrollments.filter((enrollment) => enrollment.current);

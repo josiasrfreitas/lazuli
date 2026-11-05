@@ -25,18 +25,7 @@ export async function listInstallments(input: {
   values: FinanceInstallmentsInput;
   now: Date;
 }): Promise<FinanceInstallmentsOutput> {
-  const queryInput = {
-    kysely: input.database.$kysely,
-    businessDate: saoPauloDateOnly(input.now),
-    search: input.values.search,
-    studentId: input.values.studentId,
-    statuses: input.values.view === "overdue" ? undefined : input.values.statuses,
-    origins: input.values.origins,
-    dueFrom: input.values.dueFrom,
-    dueTo: input.values.dueTo,
-    amountFromCents: input.values.amountFromCents,
-    amountToCents: input.values.amountToCents,
-  };
+  const queryInput = installmentQueryInput(input);
   const counts = await loadInstallmentCounts(queryInput);
   if (input.values.view === "overdue") {
     return listOverdueInstallments({
@@ -46,7 +35,9 @@ export async function listInstallments(input: {
       counts,
     });
   }
-  const total = input.values.view === "paid" ? counts.paid : counts.all;
+  const { studentFilter, total } = studentInitialFilter(input.values, counts);
+  if (input.values.studentFilter === "auto" && studentFilter === "overdue")
+    queryInput.statuses = ["OVERDUE"];
   const rows = await loadInstallmentPage({
     ...queryInput,
     view: input.values.view,
@@ -67,7 +58,46 @@ export async function listInstallments(input: {
   };
   return input.values.view === "paid"
     ? { view: "paid", ...response }
-    : { view: "all", ...response };
+    : { view: "all", ...response, ...(studentFilter ? { studentFilter } : {}) };
+}
+
+function installmentQueryInput(
+  input: Parameters<typeof listInstallments>[0],
+): Parameters<typeof loadInstallmentCounts>[0] {
+  return {
+    kysely: input.database.$kysely,
+    businessDate: saoPauloDateOnly(input.now),
+    search: input.values.search,
+    studentId: input.values.studentId,
+    statuses: installmentStatuses(input.values),
+    origins: input.values.origins,
+    dueFrom: input.values.dueFrom,
+    dueTo: input.values.dueTo,
+    amountFromCents: input.values.amountFromCents,
+    amountToCents: input.values.amountToCents,
+  };
+}
+
+function installmentStatuses(
+  values: FinanceInstallmentsInput,
+): FinanceInstallmentsInput["statuses"] {
+  if (values.studentFilter === "overdue") return ["OVERDUE"];
+  if (values.studentFilter === "paid") return ["PAID"];
+  return values.view === "overdue" ? undefined : values.statuses;
+}
+
+function studentInitialFilter(
+  values: FinanceInstallmentsInput,
+  counts: Awaited<ReturnType<typeof loadInstallmentCounts>>,
+): { studentFilter: Exclude<FinanceInstallmentsInput["studentFilter"], "auto">; total: number } {
+  if (values.studentFilter === "auto") {
+    const studentFilter = counts.overdue > 0 ? "overdue" : "all";
+    return { studentFilter, total: studentFilter === "overdue" ? counts.overdue : counts.all };
+  }
+  return {
+    studentFilter: values.studentFilter,
+    total: values.view === "paid" ? counts.paid : counts.all,
+  };
 }
 
 async function loadBeneficiaries(

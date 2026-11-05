@@ -4,8 +4,11 @@ import { userAgent } from "next/server";
 import type { ReactNode } from "react";
 
 import { auth, getStaffIdentity } from "@lazuli/auth/server";
+import { createServiceLogger, requestIdFromHeaders, withCheckpoint } from "@lazuli/logging";
 
 import { AppShell } from "~/components/app-shell/app-shell";
+
+const logger = createServiceLogger("web");
 
 /**
  * The authenticated surface of the product. Every route inside this group is
@@ -22,7 +25,13 @@ import { AppShell } from "~/components/app-shell/app-shell";
  */
 export default async function AppLayout({ children }: { children: ReactNode }): Promise<ReactNode> {
   const requestHeaders = await headers();
-  const identity = await getStaffIdentity({ headers: requestHeaders });
+  const identity = await withCheckpoint(
+    logger.child({ request_id: requestIdFromHeaders(requestHeaders) }),
+    {
+      checkpoint: "app_layout_identity",
+      action: () => getStaffIdentity({ headers: requestHeaders }),
+    },
+  );
 
   if (identity === null) {
     const session = await auth.getSession({ headers: requestHeaders });

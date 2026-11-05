@@ -18,6 +18,7 @@
     "@lazuli/api": "workspace:*",
     "@lazuli/auth": "workspace:*",
     "@lazuli/domain": "workspace:*",
+    "@lazuli/logging": "workspace:*",
     "@lazuli/ui": "workspace:*",
     "@lazuli/validators": "workspace:*",
     "@tanstack/react-query": "catalog:",

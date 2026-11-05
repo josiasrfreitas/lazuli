@@ -3,6 +3,7 @@
 import { useState, type ReactElement } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { X } from "lucide-react";
+import type { RouterOutputs } from "@lazuli/api";
 import { ScheduleAppointmentDialog } from "~/features/appointments/schedule-dialog";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -16,6 +17,21 @@ import styles from "./calendar.module.css";
 
 const LAST_WEEKDAY = 6;
 type AgendaView = "dia" | "semana";
+type InitialQuery<T> = { data: T; updatedAt: number };
+export type InitialAgendaData = {
+  today: string;
+  lessons?: InitialQuery<RouterOutputs["classRecords"]["list"]>;
+  appointments?: InitialQuery<RouterOutputs["appointments"]["list"]>;
+  experiments?: InitialQuery<RouterOutputs["classRecords"]["experimentalSessions"]>;
+};
+
+function initialQueryOptions<T>(initial?: InitialQuery<T>): {
+  initialData?: T;
+  initialDataUpdatedAt?: number;
+} {
+  return initial ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt } : {};
+}
+
 type AgendaDataProps = {
   teacherView: boolean;
   date: string;
@@ -29,13 +45,21 @@ type AgendaDataProps = {
   clearClass: () => void;
   clearStudent: () => void;
   schedule: () => void;
+  initial?: InitialAgendaData | undefined;
 };
 
-export function ClassAgenda({ teacherView = false }: { teacherView?: boolean }): ReactElement {
+export function ClassAgenda({
+  teacherView = false,
+  admin = false,
+  initial,
+}: {
+  teacherView?: boolean;
+  admin?: boolean;
+  initial?: InitialAgendaData;
+}): ReactElement {
   const today = schoolToday();
   const [creating, setCreating] = useState(false);
-  const me = trpc.me.useQuery();
-  const admin = me.data?.role === "ADMIN" || me.data?.role === "SYSTEM_ADMIN";
+  const readyInitial = initial?.today === today ? initial : undefined;
   const [params, setParams] = useQueryStates({
     semana: parseAsString.withDefault(monday(today)),
     turma: parseAsString,
@@ -66,6 +90,7 @@ export function ClassAgenda({ teacherView = false }: { teacherView?: boolean }):
         clearClass={() => void setParams({ turma: null })}
         clearStudent={() => void setParams({ aluno: null })}
         schedule={() => setCreating(true)}
+        initial={readyInitial}
       />
     </div>
   );
@@ -78,16 +103,23 @@ function AgendaData(props: AgendaDataProps): ReactElement {
     to: shiftDate(selectedWeek, LAST_WEEKDAY),
     ...(props.classId ? { classId: props.classId } : {}),
   };
-  const query = trpc.classRecords.list.useQuery(range);
-  const appointments = trpc.appointments.list.useQuery({
-    from: range.from,
-    through: range.to,
-    ...(props.studentId ? { studentId: props.studentId } : {}),
-  });
-  const experiments = trpc.classRecords.experimentalSessions.useQuery({
-    from: range.from,
-    to: range.to,
-  });
+  const sameWeek = props.initial !== undefined && selectedWeek === monday(props.initial.today);
+  const query = trpc.classRecords.list.useQuery(
+    range,
+    initialQueryOptions(sameWeek && !props.classId ? props.initial?.lessons : undefined),
+  );
+  const appointments = trpc.appointments.list.useQuery(
+    {
+      from: range.from,
+      through: range.to,
+      ...(props.studentId ? { studentId: props.studentId } : {}),
+    },
+    initialQueryOptions(sameWeek && !props.studentId ? props.initial?.appointments : undefined),
+  );
+  const experiments = trpc.classRecords.experimentalSessions.useQuery(
+    { from: range.from, to: range.to },
+    initialQueryOptions(sameWeek ? props.initial?.experiments : undefined),
+  );
   const generation = useSessionGeneration(range);
   const pending = [query.isPending, appointments.isPending, experiments.isPending].some(Boolean);
   const error = firstAgendaError(query.error, appointments.error, experiments.error);

@@ -15,6 +15,13 @@ export async function computeEnrollmentPercentInWindow(
   return compute(input);
 }
 
+export async function computeEnrollmentsPercentInWindow(
+  input: Parameters<(typeof import("@lazuli/db"))["computeEnrollmentsPercentInWindow"]>[0],
+): Promise<Map<string, AttendanceProgress>> {
+  const { computeEnrollmentsPercentInWindow: compute } = await import("@lazuli/db");
+  return compute(input);
+}
+
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;
 
 /** The enrollment facts the percent window needs; `class` is only used for RBAC scoping. */
