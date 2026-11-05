@@ -71,7 +71,7 @@ void describe("monthly contract", () => {
     assert.equal(addCalendarMonths("2026-01-05", 1), "2026-02-05");
   });
 
-  void it("applies the negotiation floor to the agreed price, independently of punctuality", () => {
+  void it("applies the negotiation floor without capping the agreed price", () => {
     assert.equal(
       priceAfterDiscountCents(ROUNDING_AMOUNT_CENTS, ROUNDING_DISCOUNT_PCT),
       EXPECTED_ROUNDED_CENTS,
@@ -90,11 +90,11 @@ void describe("monthly contract", () => {
     assert.equal(preview.onTimeMonthlyCents, 18_400);
     assert.throws(
       () => previewMonthlyContract({ ...terms, monthlyAmountCents: 19_999 }),
-      /fora da faixa/,
+      /abaixo do mínimo/,
     );
-    assert.throws(
-      () => previewMonthlyContract({ ...terms, monthlyAmountCents: 25_001 }),
-      /fora da faixa/,
+    assert.equal(
+      previewMonthlyContract({ ...terms, monthlyAmountCents: 25_001 }).chargedMonthlyCents,
+      25_001,
     );
   });
 });

@@ -2,7 +2,7 @@
 import { useState, type ReactElement, type ReactNode, type FormEvent } from "react";
 import { Check, X } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -93,7 +93,7 @@ export function LeadFormDialog({
           <DialogBody ref={body}>
             <form id={id} onSubmit={onSubmit} noValidate className="grid gap-4 pt-4">
               {children}
-              {error && <Alert variant="destructive">{error}</Alert>}
+              {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
             </form>
           </DialogBody>
           <LeadFormFooter

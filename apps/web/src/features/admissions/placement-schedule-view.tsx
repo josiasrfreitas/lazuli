@@ -3,7 +3,7 @@
 import type { JSX as ReactJSX } from "react";
 import { ArrowLeft, CalendarPlus, X } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -102,7 +102,7 @@ function ScheduleForm({
         </p>
       )}
       {(save.error || registration?.error) && (
-        <Alert variant="destructive">{save.error?.message ?? registration?.error}</Alert>
+        <ToastAlert variant="destructive">{save.error?.message ?? registration?.error}</ToastAlert>
       )}
     </form>
   );

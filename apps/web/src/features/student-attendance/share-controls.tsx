@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Check, Copy, ExternalLink, Monitor, QrCode, RefreshCw } from "lucide-react";
-import { Alert, Badge, Button, Input } from "@lazuli/ui";
+import { ToastAlert, Badge, Button, Input } from "@lazuli/ui";
 import type { ONLINE_WINDOW_MINUTES } from "@lazuli/validators";
 import { QrWindowForm } from "./qr-fields";
 import { attendanceTime } from "./location";
@@ -35,7 +35,7 @@ export function AttendanceShareControls(props: Props): ReactElement {
           Encerrar link
         </Button>
       )}
-      {props.error && <Alert variant="destructive">{props.error}</Alert>}
+      {props.error && <ToastAlert variant="destructive">{props.error}</ToastAlert>}
     </section>
   );
 }

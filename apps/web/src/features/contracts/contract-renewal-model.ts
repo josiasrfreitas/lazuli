@@ -109,7 +109,8 @@ function restoreRenewalTerms(
 ): void {
   const previous = initialRenewalFields(data);
   for (const key of Object.keys(previous) as Array<keyof ContractFields>) {
-    if (!key.startsWith("material")) state.change(key, previous[key]);
+    const value = previous[key];
+    if (!key.startsWith("material") && value !== undefined) state.change(key, value);
   }
   due.changeDueDate(initialDueDate(data, previous.firstDueDate));
   state.setErrors({});

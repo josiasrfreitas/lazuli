@@ -1,7 +1,7 @@
 "use client";
 import { useState, type ReactElement } from "react";
 import { ArrowRight, Search } from "lucide-react";
-import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
+import { ToastAlert, Button, InlineSkeleton } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
@@ -123,7 +123,7 @@ function AllocationResults({
       <p className="text-caption text-muted-foreground">Informe uma data de entrada válida.</p>
     );
   if (allocation.query.isError)
-    return <Alert variant="destructive">{allocation.query.error.message}</Alert>;
+    return <ToastAlert variant="destructive">{allocation.query.error.message}</ToastAlert>;
   if (!allocation.query.data) return <InlineSkeleton className="h-24 w-full" />;
   if (allocation.query.data.length === 0) return <NoMatchingClass />;
   return (

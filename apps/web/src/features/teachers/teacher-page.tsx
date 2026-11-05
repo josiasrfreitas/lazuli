@@ -2,7 +2,7 @@
 import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
 import { type ClientError, trpc } from "~/lib/trpc";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button } from "@lazuli/ui";
+import { ToastAlert, Button } from "@lazuli/ui";
 import { TeacherDialog } from "./teacher-dialog";
 import { DepartureDialog } from "./departure-dialog";
 import { TeacherClasses } from "./teacher-classes";
@@ -46,7 +46,7 @@ type TeacherLoadErrorProps = {
 };
 function TeacherLoadError(props: TeacherLoadErrorProps): ReactElement {
   return (
-    <Alert variant="destructive">
+    <ToastAlert variant="destructive">
       <p>{props.teacherError?.message}</p>
       <Button
         size="compact-responsive"
@@ -55,7 +55,7 @@ function TeacherLoadError(props: TeacherLoadErrorProps): ReactElement {
       >
         Tentar novamente
       </Button>
-    </Alert>
+    </ToastAlert>
   );
 }
 

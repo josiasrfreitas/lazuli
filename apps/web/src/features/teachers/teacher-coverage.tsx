@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -104,12 +104,12 @@ type CoverageResultsProps = {
 function CoverageResults({ query, onOpen }: CoverageResultsProps): ReactElement {
   if (query.isError)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         <p>Não foi possível carregar as pendências.</p>
         <Button variant="secondary" size="compact-responsive" onClick={() => void query.refetch()}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   if (!query.data || query.isFetching)
     return (

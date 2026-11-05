@@ -3,7 +3,7 @@
 import { useState, type JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Check, Download, FileCheck2, FileUp } from "lucide-react";
-import { Alert, Button, Textarea } from "@lazuli/ui";
+import { ToastAlert, Button, Textarea } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { SelectControl } from "~/features/classes/form-controls";
 import { PlacementAttachmentDialog } from "~/features/assessment-files/placement-attachment-dialog";
@@ -56,7 +56,9 @@ export function TeacherPlacement({ visit }: { visit: Visit }): ReactJSX.Element 
       <h3 className="text-sm font-semibold">Prova de nivelamento</h3>
       <PlacementContent visit={visit} actions={actions} />
       {(result.error || download.error) && (
-        <Alert variant="destructive">{result.error?.message || download.error?.message}</Alert>
+        <ToastAlert variant="destructive">
+          {result.error?.message || download.error?.message}
+        </ToastAlert>
       )}
       {attaching && (
         <PlacementAttachmentDialog

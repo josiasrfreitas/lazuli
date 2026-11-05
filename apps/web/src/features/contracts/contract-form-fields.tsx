@@ -3,8 +3,18 @@ import { ContractScholarshipFields } from "./contract-scholarship-fields";
 import { ContractMaterialSection } from "./contract-material-section";
 
 import type { ReactElement } from "react";
-import { Button, CurrencyInput, Field, FieldError, FormRow, Label } from "@lazuli/ui";
-import { UserMinus, UserPlus } from "lucide-react";
+import {
+  Button,
+  CurrencyInput,
+  Field,
+  FieldError,
+  FormRow,
+  Label,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@lazuli/ui";
+import { Info, UserMinus, UserPlus } from "lucide-react";
 import { formatBRLFromCents } from "~/lib/format";
 import { maskPhoneBR } from "~/lib/masks";
 import { PersonDocumentField } from "~/components/person-document-field";
@@ -12,6 +22,7 @@ import type { ContractFields } from "./contract-form-model";
 import { PaymentSection } from "./contract-payment-section";
 import { TextField } from "./contract-text-field";
 import { ContractPayerFields } from "./contract-payer-fields";
+import { ContractSelectedStudent } from "./contract-selected-student";
 import { PartyPicker } from "./party-picker";
 import { InlinePersonFields, PersonDocument } from "./contract-person-fields";
 
@@ -116,6 +127,26 @@ function GuardianInputs({ fields, errors, change }: StudentProps): ReactElement 
 
 export function ContractStudentField(props: StudentProps): ReactElement {
   const { fields, errors, change } = props;
+  if (fields.studentMode === "existing" && fields.studentId) {
+    return (
+      <ContractSelectedStudent
+        id={fields.studentId}
+        name={fields.studentName}
+        onClear={() => {
+          for (const name of Object.keys(fields) as (keyof ContractFields)[]) {
+            if (
+              name.startsWith("student") &&
+              name !== "studentMode" &&
+              name !== "studentGuardianMode"
+            )
+              change(name, "");
+          }
+          change("studentMode", "existing");
+          change("studentGuardianMode", "");
+        }}
+      />
+    );
+  }
   return (
     <div className="space-y-3">
       <FormRow columns={fields.studentMode === "create" ? 2 : 1}>
@@ -234,9 +265,14 @@ export function PriceFields({
   const amount = Number(reais) * CENTS_PER_REAL + Number(centavos?.padEnd(2, "0") ?? 0);
   return (
     <Field name="monthlyAmount">
-      <Label>
-        {fields.scholarshipMode === "NONE" ? "Mensalidade acordada" : "Mensalidade antes da bolsa"}
-      </Label>
+      <div className="flex items-center gap-1">
+        <Label>
+          {fields.scholarshipMode === "NONE"
+            ? "Mensalidade acordada"
+            : "Mensalidade antes da bolsa"}
+        </Label>
+        <TuitionPriceHelp />
+      </div>
       <CurrencyInput
         name="monthlyAmount"
         autoComplete="off"
@@ -250,6 +286,42 @@ export function PriceFields({
       />
       {errors.monthlyAmount && <FieldError match>{errors.monthlyAmount}</FieldError>}
     </Field>
+  );
+}
+
+function TuitionPriceHelp(): ReactElement {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Como a mensalidade define o total do contrato"
+          />
+        }
+      >
+        <Info aria-hidden="true" />
+      </TooltipTrigger>
+      <TooltipContent side="top" align="start">
+        <div className="grid gap-2">
+          <p>
+            O mais comum é pagar uma mensalidade por mês durante a vigência. Por isso, multiplicamos
+            este valor pelo número de meses para definir o total do contrato, antes de eventual
+            bolsa.
+          </p>
+          <p>
+            Você pode mudar a quantidade de parcelas para dividir esse total de outra forma, sem
+            alterar o total nem a vigência.
+          </p>
+          <p>
+            Exemplo sem bolsa: R$ 250 × 12 meses = R$ 3.000. Em 3 parcelas, o pagamento será de R$
+            1.000 por mês.
+          </p>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -288,7 +360,7 @@ export function ConditionsSection(props: FormProps): ReactElement {
         <details className="text-caption text-muted-foreground">
           <summary className="cursor-pointer">Condições financeiras da escola</summary>
           <p className="mt-2">
-            Teto {formatBRLFromCents(offer.tuitionCeilingCents)} · desconto máximo{" "}
+            Referência {formatBRLFromCents(offer.tuitionCeilingCents)} · desconto máximo{" "}
             {offer.maximumDiscountPct.toLocaleString("pt-BR")}% · pontualidade{" "}
             {(props.fields.scholarshipMode === "NONE"
               ? offer.punctualityDiscountPct

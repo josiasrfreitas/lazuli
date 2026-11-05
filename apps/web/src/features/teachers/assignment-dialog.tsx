@@ -11,7 +11,7 @@ import {
   type FormEvent,
 } from "react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -221,7 +221,7 @@ function AssignmentForm(props: AssignmentContentProps): ReactElement {
             saveIsPending={props.saveIsPending}
           />
         </FormSection>
-        {props.error && <Alert variant="destructive">{props.error}</Alert>}
+        {props.error && <ToastAlert variant="destructive">{props.error}</ToastAlert>}
         <p className="text-caption text-muted-foreground">
           A cobertura será atualizada para os encontros deste período. Uma coincidência de horário
           impede a confirmação.

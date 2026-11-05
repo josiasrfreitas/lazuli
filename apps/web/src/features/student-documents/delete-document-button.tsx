@@ -3,7 +3,7 @@
 import { useRef, useState, type ReactElement, type RefObject } from "react";
 import { Trash2 } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -134,7 +134,7 @@ function DeleteConfirmation({
               mantidos.
             </DialogDescription>
           </DialogHeader>
-          {error && <Alert variant="destructive">{error}</Alert>}
+          {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
           <DialogFooter>
             <Button
               ref={cancel}

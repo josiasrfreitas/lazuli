@@ -3,7 +3,7 @@ import type { JSX as ReactJSX } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { ToastAlert, Button } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";
 import styles from "./workspace.module.css";
 
@@ -56,13 +56,13 @@ export function TeacherQueryState({
 }): ReactNode {
   if (pending) return loading ?? <QueryLoading label={label} />;
   return error ? (
-    <Alert variant="destructive">
+    <ToastAlert variant="destructive">
       {error.message}
       <Button variant="secondary" onClick={retry}>
         <RefreshCw aria-hidden="true" />
         Tentar novamente
       </Button>
-    </Alert>
+    </ToastAlert>
   ) : null;
 }
 

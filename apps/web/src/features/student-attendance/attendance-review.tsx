@@ -3,7 +3,7 @@
 import type { JSX as ReactJSX } from "react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Check, ClipboardCheck } from "lucide-react";
-import { Alert, Avatar, Button, Input, Switch } from "@lazuli/ui";
+import { ToastAlert, Alert, Avatar, Button, Input, Switch } from "@lazuli/ui";
 import type { RouterInputs } from "@lazuli/api";
 import type { ClassRecord } from "~/features/class-records/shared";
 import type { AttendanceStatus } from "./staff-section";
@@ -381,7 +381,7 @@ function ReviewFeedback({
     <>
       {restriction && <Alert>{restriction}</Alert>}
       {error && (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           {error.message}
           {error.conflict && onRefresh && (
             <Button
@@ -394,7 +394,7 @@ function ReviewFeedback({
               Atualizar lista
             </Button>
           )}
-        </Alert>
+        </ToastAlert>
       )}
     </>
   );

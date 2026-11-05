@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
-import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
+import { RefreshCw } from "lucide-react";
+import { Button, InlineSkeleton, ToastAlert } from "@lazuli/ui";
 
 export function ProfileLoading(): ReactElement {
   return (
@@ -21,18 +21,15 @@ export function ProfileError({
   isRetrying?: boolean;
 }): ReactElement {
   return (
-    <Alert variant="neutral" aria-busy={isRetrying}>
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <AlertCircle className="size-4 shrink-0 text-destructive" aria-hidden="true" />
-          <p>{message}</p>
-        </div>
+    <ToastAlert variant="destructive" toastTimeout={0}>
+      <div className="grid gap-2">
+        <p>{message}</p>
         <Button variant="secondary" size="sm" onClick={onRetry} disabled={isRetrying}>
           <RefreshCw aria-hidden="true" />
           {isRetrying ? "Tentando novamente…" : "Tentar novamente"}
         </Button>
       </div>
-    </Alert>
+    </ToastAlert>
   );
 }
 export function ProfileFact({

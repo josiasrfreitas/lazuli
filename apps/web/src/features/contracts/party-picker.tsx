@@ -5,11 +5,17 @@ import { Field, FieldError, Label, SearchSelect, type SearchSelectOption } from 
 import { detectPersonDocument } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 
+export type ContractPartyOption = SearchSelectOption & {
+  documentType?: string | null;
+  phone?: string | null;
+  email?: string | null;
+};
+
 type PartyPickerProps = {
   kind: "student" | "payer";
   value: SearchSelectOption | null;
   draftValue?: SearchSelectOption | null | undefined;
-  onChange: (value: SearchSelectOption | null) => void;
+  onChange: (value: ContractPartyOption | null) => void;
   onClear: () => void;
   onCreate: (query: string) => void;
   onSearchChange: (query: string) => void;
@@ -20,27 +26,34 @@ type PartyPickerProps = {
   error?: string | undefined;
 };
 
-type PartyRow = { id: string; name: string; document?: string | null; detail?: string | null };
+type PartyRow = {
+  id: string;
+  name: string;
+  document?: string | null;
+  detail?: string | null;
+  documentType?: string | null;
+  phone?: string | null;
+  email?: string | null;
+};
 
-function toOption(row: PartyRow): SearchSelectOption {
+function toOption(row: PartyRow): ContractPartyOption {
   const description = row.detail ?? row.document;
   return {
     id: row.id,
     label: row.name,
     ...(row.document ? { document: detectPersonDocument(row.document).documentNumber } : {}),
     ...(description ? { description } : {}),
+    ...(row.documentType === undefined ? {} : { documentType: row.documentType }),
+    ...(row.phone === undefined ? {} : { phone: row.phone }),
+    ...(row.email === undefined ? {} : { email: row.email }),
   };
-}
-
-function selectedName(option: SearchSelectOption): SearchSelectOption {
-  return { ...option, label: option.label.trim().split(/\s+/u).slice(0, 2).join(" ") };
 }
 
 function usePartyOptions(
   kind: PartyPickerProps["kind"],
   search: string,
 ): {
-  options: SearchSelectOption[];
+  options: ContractPartyOption[];
   pending: boolean;
   failed: boolean;
 } {
@@ -70,9 +83,11 @@ function PickerInput(
   return (
     <SearchSelect
       name={`${props.kind}Search`}
+      resultsOnly={props.kind === "payer"}
+      minQueryLength={props.kind === "payer" ? 1 : 0}
       placeholder={`Digite o nome do ${props.kind === "student" ? "aluno" : "pagador"}`}
       query={props.createMode ? (props.draftName ?? props.search) : props.search}
-      value={selectedValue ? selectedName(selectedValue) : null}
+      value={selectedValue}
       onClear={() => {
         props.setSearch("");
         props.setSelected(null);
@@ -89,7 +104,7 @@ function PickerInput(
       }}
       onSelect={(option) => {
         props.setSelected(option);
-        props.onChange(option);
+        props.onChange(options.find((result) => result.id === option.id) ?? option);
         props.setSearch("");
       }}
       onCreate={props.onCreate}

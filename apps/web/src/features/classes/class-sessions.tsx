@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Alert,
+  ToastAlert,
   Badge,
   Button,
   DataTable,
@@ -97,12 +97,12 @@ export function GenerationNotice({ classId }: { classId: string }): ReactElement
     return <InlineSkeleton className="h-16 w-full" aria-label="Consultando preparação das aulas" />;
   if (query.isError)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível consultar a preparação.{" "}
         <Button variant="link" size="inline" onClick={() => void query.refetch()}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   return (
     <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-border pb-4">

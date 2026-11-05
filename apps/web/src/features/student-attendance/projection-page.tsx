@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactElement } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Alert } from "@lazuli/ui";
+import { Alert, ToastAlert } from "@lazuli/ui";
 import { attendanceTokenSchema } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { attendanceTime } from "./location";
@@ -40,7 +40,7 @@ function ProjectionContent({ token }: { token: string }): ReactElement {
     const timer = globalThis.setInterval(poll, PROJECTION_POLL_MS);
     return () => globalThis.clearInterval(timer);
   }, [read, token]);
-  if (query.error) return <Alert>{query.error.message}</Alert>;
+  if (query.error) return <ToastAlert variant="destructive">{query.error.message}</ToastAlert>;
   if (!query.data?.token || !query.data.expiresAt)
     return (
       <p role="status" className="text-lg">

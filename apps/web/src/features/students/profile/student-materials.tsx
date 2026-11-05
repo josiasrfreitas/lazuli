@@ -3,7 +3,7 @@
 import { useState, type ComponentProps, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Alert,
+  ToastAlert,
   Badge,
   Button,
   DataTable,
@@ -165,12 +165,12 @@ function MaterialQueryState({
 }): ReactElement {
   if (error)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível carregar os materiais.{" "}
         <Button variant="link" size="inline" onClick={onRetry}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   return data ? <MaterialDetails data={data} /> : <MaterialLoading />;
 }

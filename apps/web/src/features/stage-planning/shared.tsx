@@ -1,7 +1,7 @@
 import { Pencil, RefreshCw } from "lucide-react";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button, DataTable, type DataTableColumn } from "@lazuli/ui";
+import { ToastAlert, Button, DataTable, type DataTableColumn } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";
 import { formatDateOnlyBR } from "~/lib/format";
 export type Planning = RouterOutputs["planning"]["detail"];
@@ -33,13 +33,13 @@ export function PlanningState({
   if (pending) return <QueryLoading label={label} />;
   if (error)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         <span>{error.message}</span>
         <Button variant="secondary" onClick={retry}>
           <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   return null;
 }

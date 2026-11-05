@@ -1,6 +1,6 @@
 import type { FormEvent, JSX as ReactJSX } from "react";
 import { ArrowLeft, ArrowRight, RefreshCw, TriangleAlert, X } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { ToastAlert, Button } from "@lazuli/ui";
 import { TaskDialog } from "~/features/shared/task-form";
 import { formatDateOnlyBR } from "~/lib/format";
 import {
@@ -71,14 +71,14 @@ function TerminationFormBody(props: TerminationViewProps): ReactJSX.Element {
   const { preview, state, onSubmit, onRefresh, mutationError } = props;
   return (
     <form id="contract-termination" className="grid gap-3" onSubmit={onSubmit}>
-      <Alert variant="destructive" className="py-2 text-caption">
+      <ToastAlert variant="destructive">
         <strong>Atenção: esta ação é irreversível.</strong>
         <p>
           Ao confirmar, o contrato será rescindido e as matrículas selecionadas serão encerradas em{" "}
           {formatDateOnlyBR(preview.today)}.
         </p>
         <p>Os pagamentos já recebidos continuarão no histórico. Não haverá reembolso automático.</p>
-      </Alert>
+      </ToastAlert>
       <TerminationDetails {...props} />
       {(state.error ?? mutationError) && (
         <p role="alert" className="flex items-start gap-1.5 text-caption text-destructive">

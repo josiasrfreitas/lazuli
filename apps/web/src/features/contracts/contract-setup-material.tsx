@@ -5,12 +5,12 @@ import { BookOpen } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  materialPriceQuote,
-  materialScholarshipQuote,
+  materialFinalPriceQuote,
+  materialFinalSaleQuote,
   materialInstallmentPlan,
 } from "@lazuli/domain";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Field,
   FieldError,
@@ -57,8 +57,8 @@ export type SetupMaterial = {
   prices: MaterialQueries["prices"];
   stages: MaterialQueries["stages"];
   status: MaterialQueries["status"];
-  quote: ReturnType<typeof materialPriceQuote> | null;
-  effective: ReturnType<typeof materialScholarshipQuote> | null;
+  quote: ReturnType<typeof materialFinalPriceQuote> | null;
+  effective: ReturnType<typeof materialFinalSaleQuote> | null;
   count: number;
   plan: ReturnType<typeof materialInstallmentPlan> | null;
   installmentError: string;
@@ -79,17 +79,23 @@ function materialQuote({
   unit,
   prices,
   count,
+  fields,
 }: {
   enabled: boolean;
   unit: ReturnType<typeof priceForCategory>;
   prices: SetupMaterial["prices"]["data"];
   count: number;
+  fields: MaterialProps["fields"];
 }): SetupMaterial["quote"] {
   if (!enabled || !unit || !prices || count === 0) return null;
-  return materialPriceQuote({
-    installments: unit.installments * count,
-    installmentCents: unit.installmentCents,
-    cardFeePct: prices.cardFeePct,
+  const rate =
+    fields.materialPayment === "CASH" || fields.materialScholarshipMode === "FULL"
+      ? 0
+      : prices.cardFeeRates[String(materialInstallmentCount(fields))];
+  if (rate === undefined) return null;
+  return materialFinalPriceQuote({
+    cashCents: unit.cashCents * count,
+    cardFeePct: rate,
   });
 }
 
@@ -111,12 +117,17 @@ function effectiveMaterialQuote({
 }): SetupMaterial["effective"] {
   if (!quote || !prices) return null;
   try {
-    return materialScholarshipQuote({
+    const rate =
+      fields.materialPayment === "CASH" || fields.materialScholarshipMode === "FULL"
+        ? 0
+        : prices.cardFeeRates[String(materialInstallmentCount(fields))];
+    if (rate === undefined) return null;
+    return materialFinalSaleQuote({
       quote,
       ...materialPriceInput(fields),
       payment: fields.materialPayment === "CASH" ? "CASH" : "INSTALLMENTS",
       scholarshipPct: scholarshipInput(fields, true).scholarshipPct ?? 0,
-      cardFeePct: prices.cardFeePct,
+      cardFeePct: rate,
     });
   } catch {
     return null;
@@ -196,36 +207,47 @@ export function useSetupMaterial({
   useSuggestedStage({ fields, change, stages, suggested });
   const count = fields.materialStageIds.split(",").filter(Boolean).length;
   const unit = priceForCategory(fields.materialCategory, prices.data);
-  const quote = materialQuote({ enabled, unit, prices: prices.data, count });
+  const quote = materialQuote({ enabled, unit, prices: prices.data, count, fields });
   const priceError = materialPriceError(fields);
   const effective = effectiveMaterialQuote({ fields, quote, prices: prices.data });
-  const total = quote
-    ? String(fields.materialPayment === "CASH" ? quote.cashCents : quote.totalCents)
-    : "";
+  const total = quotedMaterialTotal(fields, quote);
   const version = enabled ? (unit?.version ?? "") : "";
   useSyncMaterialQuote({ fields, change, version, total });
-  const { plan, installmentError } = installmentPlan(fields, effective);
+  const { plan, installmentError: planError } = installmentPlan(fields, effective);
+  const installmentError = materialRateError({ fields, prices: prices.data, planError });
   return { prices, stages, quote, effective, count, plan, installmentError, status, priceError };
 }
 
+function quotedMaterialTotal(
+  fields: MaterialProps["fields"],
+  quote: SetupMaterial["quote"],
+): string {
+  if (!quote) return "";
+  return String(fields.materialPayment === "CASH" ? quote.cashCents : quote.totalCents);
+}
+
+function materialRateError({
+  fields,
+  prices,
+  planError,
+}: {
+  fields: MaterialProps["fields"];
+  prices: SetupMaterial["prices"]["data"];
+  planError: string;
+}): string {
+  if (
+    fields.materialPayment !== "INSTALLMENTS" ||
+    fields.materialScholarshipMode === "FULL" ||
+    !prices
+  )
+    return planError;
+  return prices.cardFeeRates[String(materialInstallmentCount(fields))] === undefined
+    ? "Configure a taxa para esta quantidade de parcelas em Ajustes."
+    : planError;
+}
+
 export function SetupScholarship(props: MaterialProps & { material?: boolean }): ReactElement {
-  const active = props.material
-    ? props.fields.materialScholarshipMode !== "NONE"
-    : props.fields.scholarshipMode !== "NONE";
-  const error = props.material
-    ? props.errors.materialScholarshipPct || props.errors.materialScholarshipAgreement
-    : props.errors.scholarshipPct || props.errors.scholarshipAgreement;
-  return (
-    <details className={styles.disclosure} open={active || error ? true : undefined}>
-      <summary>
-        {props.material ? "Bolsa do material" : "Bolsa de mensalidade"}
-        <span>Opcional</span>
-      </summary>
-      <div className={styles.disclosureBody}>
-        <ContractScholarshipFields {...props} />
-      </div>
-    </details>
-  );
+  return <ContractScholarshipFields {...props} />;
 }
 
 export function SetupMaterialFields({
@@ -447,15 +469,15 @@ export function MaterialQuoteSummary({
     );
   if (material.prices.isError)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível carregar o preço.{" "}
         <Button type="button" variant="link" onClick={() => void material.prices.refetch()}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   if (!material.prices.data)
-    return <Alert variant="warning">Configure os preços do material em Ajustes.</Alert>;
+    return <ToastAlert variant="warning">Configure os preços do material em Ajustes.</ToastAlert>;
   if (!material.quote)
     return (
       <MaterialQuotePrompt message="Escolha a faixa de preço para ver o resumo da aquisição." />
@@ -477,25 +499,44 @@ function MaterialQuoteBody({
   change,
   errors,
 }: MaterialSummaryProps): ReactElement {
-  const { effective } = material;
   return (
     <div className={styles.materialTotal} aria-live="polite">
       <MaterialPriceDisplay fields={fields} material={material} change={change} errors={errors} />
-      {change && fields.materialScholarshipMode !== "NONE" && effective && (
+      <MaterialChargeDetails fields={fields} material={material} change={change} />
+      <p className={styles.help}>Material é repasse, separado das mensalidades.</p>
+    </div>
+  );
+}
+
+function MaterialChargeDetails({
+  fields,
+  material,
+  change,
+}: MaterialSummaryProps): ReactElement | null {
+  const effective = material.effective;
+  if (!effective) return null;
+  return (
+    <>
+      {change && fields.materialPayment === "INSTALLMENTS" && (
+        <div>
+          <span>Total no cartão</span>
+          <strong>{money(effective.chargedCents)}</strong>
+        </div>
+      )}
+      {change && fields.materialScholarshipMode !== "NONE" && (
         <div>
           <span>Com bolsa</span>
           <strong>{money(effective.chargedCents)}</strong>
         </div>
       )}
-      {effective && <p>{materialChargeLabel(fields, material)}</p>}
-      {fields.materialPayment === "INSTALLMENTS" && effective && effective.chargedCents > 0 && (
+      <p>{materialChargeLabel(fields, material)}</p>
+      {fields.materialPayment === "INSTALLMENTS" && effective.chargedCents > 0 && (
         <p>
-          Taxa do cartão {money(effective.feeCents)} · líquido a receber{" "}
+          Taxa do cartão {money(effective.feeCents)} · preço à vista{" "}
           {money(effective.receivableCents)}
         </p>
       )}
-      <p className={styles.help}>Material é repasse, separado das mensalidades.</p>
-    </div>
+    </>
   );
 }
 
@@ -510,9 +551,7 @@ function MaterialPriceDisplay({
       <MaterialAgreedPrice
         fields={fields}
         change={change}
-        referenceCents={
-          fields.materialPayment === "CASH" ? material.quote.cashCents : material.quote.totalCents
-        }
+        referenceCents={material.quote.cashCents}
         error={errors?.materialCustomPrice || material.priceError || undefined}
       />
     );

@@ -6,6 +6,7 @@ export type MonthlyContractTerms = {
   installmentCount?: number | undefined;
   firstDueDate: string;
   monthlyAmountCents: number;
+  /** Legacy field name: reference amount used to suggest tuition and calculate its floor. */
   tuitionCeilingCents: number;
   maximumDiscountPct: number;
   punctualityDiscountPct: number;
@@ -96,12 +97,8 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
     chargedMonthlyCents,
     scholarshipPct > 0 ? 0 : terms.punctualityDiscountPct,
   );
-  if (
-    terms.monthlyAmountCents > terms.tuitionCeilingCents ||
-    terms.monthlyAmountCents < floorCents
-  ) {
-    throw new Error("Mensalidade acordada fora da faixa autorizada.");
-  }
+  if (terms.monthlyAmountCents < floorCents)
+    throw new Error("Mensalidade acordada abaixo do mínimo autorizado.");
   return {
     endsOn: addCalendarMonths(terms.startsOn, terms.durationMonths),
     chargedMonthlyCents,

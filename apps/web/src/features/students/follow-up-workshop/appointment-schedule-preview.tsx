@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from "react";
-import { Alert } from "@lazuli/ui";
+import { ToastAlert } from "@lazuli/ui";
 import type { AppointmentSnapshot } from "@lazuli/validators";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import {
@@ -58,7 +58,7 @@ export function ScheduleForm({ onSave }: Props): ReactElement {
         submit();
       }}
     >
-      {error && <Alert variant="destructive">{error}</Alert>}
+      {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
       <PurposeField value={purpose} onChange={setPurpose} />
       <div className="flex flex-wrap items-end gap-3">
         <MeetingDateField value={date} onChange={setDate} />

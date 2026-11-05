@@ -3,7 +3,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { type ReactElement, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, BookOpen, Clock3, Users } from "lucide-react";
-import { Alert, Badge, Button, EmptyState, Pagination } from "@lazuli/ui";
+import { ToastAlert, Badge, Button, EmptyState, Pagination } from "@lazuli/ui";
 import { TeacherClassesLoading } from "./teacher-loading";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { formatClassScheduleTime, formatFormat, formatTrackName } from "../classes/labels";
@@ -91,12 +91,12 @@ function TeacherClassResults({
 }: TeacherClassResultsProps): ReactElement {
   if (query.isError)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         <p>Não foi possível carregar as turmas.</p>
         <Button size="compact-responsive" variant="secondary" onClick={() => void query.refetch()}>
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   if (!query.data) return <TeacherClassesLoading />;
   if (query.data.rows.length === 0)

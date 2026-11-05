@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactElement } from "react";
 import { ArrowLeft, ArrowRight, Check, FileText, LoaderCircle } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { ToastAlert, Button } from "@lazuli/ui";
 import { BrandSignature } from "~/components/app-shell/brand-signature";
 import {
   ENROLLMENT_DOCUMENTS,
@@ -104,7 +104,7 @@ function MobilePageContent({
     );
   return (
     <>
-      {state.error && <Alert variant="warning">Sem conexão. Tentando novamente…</Alert>}
+      {state.error && <ToastAlert variant="warning">Sem conexão. Tentando novamente…</ToastAlert>}
       {selected ? (
         <MobileSelectedDocument
           token={token}

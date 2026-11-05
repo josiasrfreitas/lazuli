@@ -54,7 +54,13 @@ function registerCompositionTest(): void {
         installmentCount: INSTALLMENT_COUNT,
         startDate: PAST_START_DATE,
         dueDay: FINANCE_DUE_DAY_FIFTH,
-        payer: { mode: "create", name: `${PREFIX}batch-payer` },
+        payer: {
+          mode: "create",
+          name: `${PREFIX}batch-payer`,
+          documentType: "RG",
+          documentNumber: "1234567",
+          phone: "82999990000",
+        },
       }),
     );
     const installmentIds = created.installments.map((installment) => installment.id);

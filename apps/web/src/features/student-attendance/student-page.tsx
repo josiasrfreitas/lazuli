@@ -1,6 +1,6 @@
 "use client";
 import type { ReactElement } from "react";
-import { Alert, Button } from "@lazuli/ui";
+import { Alert, Button, ToastAlert } from "@lazuli/ui";
 import { StudentAttendanceFrame } from "./student-frame";
 import { DeclarationForm } from "./declaration-form";
 import { usePublicLink, type PublicLink } from "./public-link";
@@ -20,12 +20,14 @@ function PublicContent({ link }: { link: PublicLink }): ReactElement | null {
     return <Alert>Abra o QR ou o link de presença compartilhado pelo professor.</Alert>;
   if (link.invalid)
     return (
-      <Alert>Este link está incompleto ou é inválido. Peça ao professor um novo acesso.</Alert>
+      <ToastAlert variant="destructive">
+        Este link está incompleto ou é inválido. Peça ao professor um novo acesso.
+      </ToastAlert>
     );
   if (link.error)
     return (
       <div className="grid gap-4">
-        <Alert>{link.error.message}</Alert>
+        <ToastAlert variant="destructive">{link.error.message}</ToastAlert>
         <Button variant="secondary" onClick={link.retry}>
           Tentar novamente
         </Button>

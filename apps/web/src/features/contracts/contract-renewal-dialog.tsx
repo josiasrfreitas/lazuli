@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -71,7 +71,7 @@ function RenewalPending({
   if (!error) return <RenewalLoading />;
   return (
     <div className={styles.feedback}>
-      <Alert variant="destructive">Não foi possível carregar os termos anteriores.</Alert>
+      <ToastAlert variant="destructive">Não foi possível carregar os termos anteriores.</ToastAlert>
       <Button variant="secondary" loading={loading} onClick={retry}>
         Tentar novamente
       </Button>

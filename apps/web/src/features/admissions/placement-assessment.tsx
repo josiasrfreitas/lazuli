@@ -4,7 +4,7 @@ import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { CalendarDays, X } from "lucide-react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -133,12 +133,12 @@ function PendingVisitDialog({
           </DialogHeader>
           <DialogBody>
             {error ? (
-              <Alert variant="destructive">
+              <ToastAlert variant="destructive">
                 {error}
                 <Button variant="ghost" onClick={retry}>
                   Tentar novamente
                 </Button>
-              </Alert>
+              </ToastAlert>
             ) : (
               <div className={styles.body}>
                 <PencilLoader size="sm" label="Carregando atendimento" />

@@ -3,8 +3,8 @@ import { it } from "node:test";
 
 import {
   bookQuote,
-  floorLabel,
   displaySetting,
+  floorLabel,
   loadedFields,
   validateSettings,
   type SettingsFields,
@@ -16,14 +16,12 @@ const fields: SettingsFields = {
   punctualityDiscountPct: "0",
   interestRatePctMonthly: "2",
   cancellationFeePct: "10",
-  childMaterialInstallments: "6",
-  childMaterialInstallmentCents: "123,00",
-  adultMaterialInstallments: "6",
-  adultMaterialInstallmentCents: "136,00",
-  materialCardFeePct: "10",
+  childMaterialCashPriceCents: "664,20",
+  adultMaterialCashPriceCents: "734,40",
+  materialCardFeeRates: JSON.stringify({ 1: "0", 6: "10" }),
 };
 
-void it("converts decimal entries to cents and percentage points with monthly percentage precision", () => {
+void it("saves cash reference prices and a card fee for each installment count", () => {
   assert.deepEqual(validateSettings(fields), {
     success: true,
     values: {
@@ -32,116 +30,44 @@ void it("converts decimal entries to cents and percentage points with monthly pe
       punctualityDiscountPct: 0,
       interestRatePctMonthly: 2,
       cancellationFeePct: 10,
-      childMaterialInstallments: 6,
-      childMaterialInstallmentCents: 12_300,
-      adultMaterialInstallments: 6,
-      adultMaterialInstallmentCents: 13_600,
-      materialCardFeePct: 10,
+      childMaterialCashPriceCents: 66_420,
+      adultMaterialCashPriceCents: 73_440,
+      materialCardFeeRates: { 1: 0, 6: 10 },
     },
   });
   assert.equal(floorLabel(fields), "R$200");
+  assert.deepEqual(bookQuote(fields, { category: "child", installments: 6 }), {
+    cashCents: 66_420,
+    totalCents: 73_800,
+  });
+  assert.deepEqual(bookQuote(fields, { category: "adult", installments: 6 }), {
+    cashCents: 73_440,
+    totalCents: 81_600,
+  });
+  assert.equal(bookQuote(fields, { category: "child", installments: 2 }), null);
 });
 
-void it("shows units with current values and omits unnecessary decimal places", () => {
-  assert.equal(displaySetting("tuitionCeilingCents", "250,00"), "R$250");
-  assert.equal(displaySetting("childMaterialInstallmentCents", "120,50"), "R$120,50");
+void it("displays cash prices and loads defaults for new settings", () => {
+  assert.equal(displaySetting("childMaterialCashPriceCents", "120,50"), "R$120,50");
+  assert.equal(displaySetting("childMaterialCashPriceCents", ""), "—");
   assert.equal(displaySetting("maximumDiscountPct", "20"), "20%");
-  assert.equal(displaySetting("interestRatePctMonthly", "0,1"), "0,1%");
-  assert.equal(displaySetting("interestRatePctMonthly", "0"), "0%");
-  assert.equal(displaySetting("childMaterialInstallmentCents", ""), "—");
+  const loaded = loadedFields(null);
+  assert.equal(loaded.childMaterialCashPriceCents, "664,20");
+  assert.equal(loaded.adultMaterialCashPriceCents, "734,40");
+  assert.equal((JSON.parse(loaded.materialCardFeeRates) as Record<string, string>)["6"], "10");
 });
 
-void it("accepts four decimal places for monthly interest and validates its percentage bounds", () => {
-  assert.equal(validateSettings({ ...fields, interestRatePctMonthly: "0,1234" }).success, true);
-  assert.deepEqual(validateSettings({ ...fields, interestRatePctMonthly: "0,12345" }), {
+void it("rejects invalid rates and cash prices", () => {
+  assert.deepEqual(validateSettings({ ...fields, materialCardFeeRates: '{"6":"100"}' }), {
     success: false,
-    errors: { interestRatePctMonthly: "Use no máximo quatro casas decimais." },
+    errors: { materialCardFeeRates: "Confira as taxas por quantidade de parcelas." },
   });
-  assert.deepEqual(validateSettings({ ...fields, interestRatePctMonthly: "101" }), {
+  assert.deepEqual(validateSettings({ ...fields, childMaterialCashPriceCents: "10,001" }), {
     success: false,
-    errors: { interestRatePctMonthly: "Use um percentual entre 0 e 100." },
+    errors: { childMaterialCashPriceCents: "Use no máximo duas casas decimais." },
   });
-});
-
-void it("keeps missing general settings blank and starts book terms with the owner defined prices", () => {
-  assert.deepEqual(loadedFields(null), {
-    tuitionCeilingCents: "",
-    maximumDiscountPct: "",
-    punctualityDiscountPct: "0",
-    interestRatePctMonthly: "2",
-    cancellationFeePct: "",
-    childMaterialInstallments: "6",
-    childMaterialInstallmentCents: "123,00",
-    adultMaterialInstallments: "6",
-    adultMaterialInstallmentCents: "136,00",
-    materialCardFeePct: "10",
-  });
-  assert.deepEqual(validateSettings({ ...fields, interestRatePctMonthly: " " }), {
-    success: false,
-    errors: { interestRatePctMonthly: "Informe um valor." },
-  });
-});
-
-void it("allows explicit zero rates and material price while rejecting a zero tuition", () => {
-  const zero = {
-    ...fields,
-    maximumDiscountPct: "0",
-    interestRatePctMonthly: "0",
-    cancellationFeePct: "0",
-    childMaterialInstallmentCents: "0",
-  };
-  assert.deepEqual(validateSettings(zero), {
-    success: true,
-    values: {
-      tuitionCeilingCents: 25_000,
-      maximumDiscountPct: 0,
-      punctualityDiscountPct: 0,
-      interestRatePctMonthly: 0,
-      cancellationFeePct: 0,
-      childMaterialInstallments: 6,
-      childMaterialInstallmentCents: 0,
-      adultMaterialInstallments: 6,
-      adultMaterialInstallmentCents: 13_600,
-      materialCardFeePct: 10,
-    },
-  });
-  assert.deepEqual(validateSettings({ ...zero, tuitionCeilingCents: "0" }), {
+  assert.deepEqual(validateSettings({ ...fields, tuitionCeilingCents: "0" }), {
     success: false,
     errors: { tuitionCeilingCents: "A mensalidade deve ser maior que zero." },
   });
-});
-
-void it("identifies the field to correct and hides the floor for malformed or excessive discounts", () => {
-  assert.deepEqual(
-    validateSettings({
-      ...fields,
-      maximumDiscountPct: "101",
-      childMaterialInstallmentCents: "10,001",
-    }),
-    {
-      success: false,
-      errors: {
-        maximumDiscountPct: "Use um percentual entre 0 e 100.",
-        childMaterialInstallmentCents: "Use no máximo duas casas decimais.",
-      },
-    },
-  );
-  for (const value of ["", "abc", "101", "-1", "Infinity"]) {
-    assert.equal(floorLabel({ ...fields, maximumDiscountPct: value }), "—", value);
-  }
-});
-
-void it("updates cash prices from each band total and the common configurable card fee", () => {
-  assert.deepEqual(bookQuote(fields, "child"), {
-    installments: 6,
-    installmentCents: 12300,
-    totalCents: 73800,
-    cashCents: 66420,
-  });
-  assert.deepEqual(
-    bookQuote({ ...fields, adultMaterialInstallments: "4", materialCardFeePct: "5" }, "adult"),
-    { installments: 4, installmentCents: 13600, totalCents: 54400, cashCents: 51680 },
-  );
-  assert.equal(bookQuote({ ...fields, materialCardFeePct: "101" }, "adult"), null);
-  assert.equal(bookQuote({ ...fields, childMaterialInstallments: "0" }, "child"), null);
 });

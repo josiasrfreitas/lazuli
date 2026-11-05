@@ -2,6 +2,7 @@
 import type { FormEvent, RefObject, ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
+  ToastAlert,
   Alert,
   Button,
   Dialog,
@@ -208,7 +209,7 @@ function TeacherFormBody(props: TeacherFormBodyProps): ReactElement {
         {props.departed && (
           <Alert variant="neutral">O encerramento da atuação bloqueia o acesso ao sistema.</Alert>
         )}
-        {props.failure && <Alert variant="destructive">{props.failure}</Alert>}
+        {props.failure && <ToastAlert variant="destructive">{props.failure}</ToastAlert>}
       </form>
     </DialogBody>
   );

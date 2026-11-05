@@ -35,7 +35,8 @@ export async function createPayer(input: {
   return input.database.payer.create({
     data: {
       name: input.values.name,
-      taxId: input.values.taxId ?? null,
+      documentType: input.values.documentType ?? null,
+      documentNumber: input.values.documentNumber ?? null,
       phone: input.values.phone ?? null,
       email: input.values.email ?? null,
       createdById: input.staffUserId,

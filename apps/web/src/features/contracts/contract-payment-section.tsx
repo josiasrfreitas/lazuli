@@ -1,6 +1,6 @@
 "use client";
 
-import { materialPriceQuote, materialScholarshipQuote, addCalendarMonths } from "@lazuli/domain";
+import { materialFinalPriceQuote, materialFinalSaleQuote, addCalendarMonths } from "@lazuli/domain";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { useId, type ReactElement } from "react";
@@ -9,7 +9,12 @@ import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
 import { parseDateBR } from "~/lib/masks";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
-import { materialPriceInput, scholarshipInput, paymentPlanLabel } from "./contract-form-model";
+import {
+  materialInstallmentCount,
+  materialPriceInput,
+  scholarshipInput,
+  paymentPlanLabel,
+} from "./contract-form-model";
 
 const CENTS_PER_REAL = 100;
 
@@ -95,12 +100,12 @@ function useMaterialPayment(fields: FormProps["fields"]): {
   const quote = materialQuote(fields, prices.data);
   if (fields.materialPayment === "NONE" || !quote) return null;
   try {
-    const net = materialScholarshipQuote({
+    const net = materialFinalSaleQuote({
       ...materialPriceInput(fields),
       quote,
       payment: fields.materialPayment === "CASH" ? "CASH" : "INSTALLMENTS",
       scholarshipPct: scholarshipInput(fields, true).scholarshipPct ?? 0,
-      cardFeePct: prices.data?.cardFeePct ?? 0,
+      cardFeePct: selectedMaterialCardFee(fields, prices.data),
     });
     return net.receivableCents > 0 ? { count: 1, amountCents: net.receivableCents } : null;
   } catch {
@@ -108,20 +113,32 @@ function useMaterialPayment(fields: FormProps["fields"]): {
   }
 }
 
+function selectedMaterialCardFee(
+  fields: FormProps["fields"],
+  prices: RouterOutputs["finance"]["readMaterialPrice"] | undefined,
+): number {
+  if (fields.materialPayment === "CASH" || fields.materialScholarshipMode === "FULL") return 0;
+  return prices?.cardFeeRates[String(materialInstallmentCount(fields))] ?? 0;
+}
+
 function materialQuote(
   fields: FormProps["fields"],
   prices: RouterOutputs["finance"]["readMaterialPrice"] | undefined,
-): (ReturnType<typeof materialPriceQuote> & { version: string }) | undefined {
+): (ReturnType<typeof materialFinalPriceQuote> & { version: string }) | undefined {
   if (!prices) return undefined;
   let unitQuote;
   if (fields.materialCategory === "CHILD") unitQuote = prices.child;
   else if (fields.materialCategory === "ADULT") unitQuote = prices.adult;
   if (!unitQuote) return undefined;
+  const cardFeePct =
+    fields.materialPayment === "CASH" || fields.materialScholarshipMode === "FULL"
+      ? 0
+      : prices.cardFeeRates[String(materialInstallmentCount(fields))];
+  if (cardFeePct === undefined) return undefined;
   return {
-    ...materialPriceQuote({
-      installments: unitQuote.installments * fields.materialStageIds.split(",").length,
-      installmentCents: unitQuote.installmentCents,
-      cardFeePct: prices.cardFeePct,
+    ...materialFinalPriceQuote({
+      cashCents: unitQuote.cashCents * fields.materialStageIds.split(",").filter(Boolean).length,
+      cardFeePct,
     }),
     version: unitQuote.version,
   };
@@ -133,7 +150,11 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
     ? Math.round(Number(fields.enrollmentFee.replace(",", ".")) * CENTS_PER_REAL)
     : 0;
   const rows = preview
-    ? previewCalendar(preview.installments, material, parseDateBR(fields.firstDueDate) ?? undefined)
+    ? previewCalendar(
+        preview.installments,
+        material,
+        parseDateBR(fields.billingFirstDueDate ?? fields.firstDueDate) ?? undefined,
+      )
     : [];
   const id = useId();
   const special = fields.paymentPlan === "special" && fields.scholarshipMode !== "FULL";
@@ -188,7 +209,7 @@ function PaymentPreviewDetails({
       )}
       {(material || enrollmentFeeCents > 0) && (
         <p className="text-caption font-medium">
-          Total a receber pela escola{" "}
+          Total das cobranças{" "}
           {formatBRLFromCents(
             preview.principalAmountCents +
               (material?.count ?? 0) * (material?.amountCents ?? 0) +

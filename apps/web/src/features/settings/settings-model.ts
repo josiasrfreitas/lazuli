@@ -5,16 +5,22 @@ import {
   type FinanceSettingsInput,
 } from "@lazuli/validators";
 
-import { INITIAL_MATERIAL_PRICING, materialPriceQuote } from "@lazuli/domain";
-
-const MAX_DATABASE_INTEGER = 2_147_483_647;
+import { INITIAL_MATERIAL_PRICING, materialFinalPriceQuote } from "@lazuli/domain";
 
 const CENTS_PER_REAL = 100;
 const MAX_PERCENT = 100;
 const MONEY_DECIMAL_PLACES = 2;
 const PERCENT_DECIMAL_PLACES = 4;
 export type SettingsFields = Record<
-  Exclude<keyof FinanceSettingsInput, "materialPriceCents">,
+  Exclude<
+    keyof FinanceSettingsInput,
+    | "materialPriceCents"
+    | "childMaterialInstallments"
+    | "childMaterialInstallmentCents"
+    | "adultMaterialInstallments"
+    | "adultMaterialInstallmentCents"
+    | "materialCardFeePct"
+  >,
   string
 >;
 export type SettingsErrors = Partial<SettingsFields>;
@@ -29,7 +35,6 @@ export function displaySetting(name: keyof SettingsFields, text: string): string
     maximumFractionDigits: monetary ? MONEY_DECIMAL_PLACES : PERCENT_DECIMAL_PLACES,
   }).format(numeric);
   if (monetary) return `R$${value}`;
-  if (name.endsWith("Installments")) return value;
   return `${value}%`;
 }
 
@@ -73,43 +78,27 @@ function loadedMaterialFields(
   row: SettingsRow | null,
 ): Pick<
   SettingsFields,
-  | "childMaterialInstallments"
-  | "childMaterialInstallmentCents"
-  | "adultMaterialInstallments"
-  | "adultMaterialInstallmentCents"
-  | "materialCardFeePct"
+  "childMaterialCashPriceCents" | "adultMaterialCashPriceCents" | "materialCardFeeRates"
 > {
   return {
-    ...loadedChildMaterialFields(row),
-    ...loadedAdultMaterialFields(row),
-    materialCardFeePct: number(
-      row?.materialCardFeePct ?? INITIAL_MATERIAL_PRICING.materialCardFeePct,
+    childMaterialCashPriceCents: amount(
+      row?.childMaterialCashPriceCents ?? INITIAL_MATERIAL_PRICING.childMaterialCashPriceCents,
     ),
-  };
-}
-
-function loadedChildMaterialFields(
-  row: SettingsRow | null,
-): Pick<SettingsFields, "childMaterialInstallments" | "childMaterialInstallmentCents"> {
-  return {
-    childMaterialInstallments: number(
-      row?.childMaterialInstallments ?? INITIAL_MATERIAL_PRICING.childMaterialInstallments,
+    adultMaterialCashPriceCents: amount(
+      row?.adultMaterialCashPriceCents ?? INITIAL_MATERIAL_PRICING.adultMaterialCashPriceCents,
     ),
-    childMaterialInstallmentCents: amount(
-      row?.childMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.childMaterialInstallmentCents,
-    ),
-  };
-}
-
-function loadedAdultMaterialFields(
-  row: SettingsRow | null,
-): Pick<SettingsFields, "adultMaterialInstallments" | "adultMaterialInstallmentCents"> {
-  return {
-    adultMaterialInstallments: number(
-      row?.adultMaterialInstallments ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallments,
-    ),
-    adultMaterialInstallmentCents: amount(
-      row?.adultMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallmentCents,
+    materialCardFeeRates: JSON.stringify(
+      Object.fromEntries(
+        Object.entries(
+          row?.materialCardFeeRates ??
+            Object.fromEntries(
+              Array.from({ length: 12 }, (_unused, index) => [
+                String(index + 1),
+                INITIAL_MATERIAL_PRICING.materialCardFeePct,
+              ]),
+            ),
+        ).map(([count, rate]) => [count, String(rate)]),
+      ),
     ),
   };
 }
@@ -121,17 +110,29 @@ function decimal(text: string): number {
 
 function fieldError(name: keyof SettingsFields, text: string): string | undefined {
   if (text.trim() === "") return "Informe um valor.";
+  if (name === "materialCardFeeRates") return cardFeeRatesError(text);
   const value = decimal(text);
   if (!Number.isFinite(value)) return "Use um número, como 10 ou 0,5.";
-  if (name.endsWith("Installments")) return installmentError(text, value);
   if (!name.endsWith("Cents")) return percentError(text, value);
   return amountError({ name, text, value });
 }
 
-function installmentError(text: string, value: number): string | undefined {
-  return /^\d+$/u.test(text.trim()) && value >= 1 && value <= MAX_DATABASE_INTEGER
-    ? undefined
-    : "Informe uma quantidade inteira maior que zero.";
+function cardFeeRatesError(text: string): string | undefined {
+  try {
+    const rates = JSON.parse(text) as Record<string, string>;
+    if (!rates || typeof rates !== "object" || Object.keys(rates).length === 0)
+      return "Configure pelo menos uma taxa do cartão.";
+    for (const [count, rate] of Object.entries(rates))
+      if (
+        !/^[1-9]\d*$/u.test(count) ||
+        percentError(rate, decimal(rate)) ||
+        decimal(rate) >= MAX_PERCENT
+      )
+        return "Confira as taxas por quantidade de parcelas.";
+    return undefined;
+  } catch {
+    return "Confira as taxas por quantidade de parcelas.";
+  }
 }
 
 function percentError(text: string, value: number): string | undefined {
@@ -170,15 +171,17 @@ export function validateSettings(
     punctualityDiscountPct: decimal(fields.punctualityDiscountPct),
     interestRatePctMonthly: decimal(fields.interestRatePctMonthly),
     cancellationFeePct: decimal(fields.cancellationFeePct),
-    childMaterialInstallments: decimal(fields.childMaterialInstallments),
-    childMaterialInstallmentCents: Math.round(
-      decimal(fields.childMaterialInstallmentCents) * CENTS_PER_REAL,
+    childMaterialCashPriceCents: Math.round(
+      decimal(fields.childMaterialCashPriceCents) * CENTS_PER_REAL,
     ),
-    adultMaterialInstallments: decimal(fields.adultMaterialInstallments),
-    adultMaterialInstallmentCents: Math.round(
-      decimal(fields.adultMaterialInstallmentCents) * CENTS_PER_REAL,
+    adultMaterialCashPriceCents: Math.round(
+      decimal(fields.adultMaterialCashPriceCents) * CENTS_PER_REAL,
     ),
-    materialCardFeePct: decimal(fields.materialCardFeePct),
+    materialCardFeeRates: Object.fromEntries(
+      Object.entries(JSON.parse(fields.materialCardFeeRates) as Record<string, string>).map(
+        ([count, rate]) => [count, decimal(rate)],
+      ),
+    ),
   });
   if (result.success) return { success: true, values: result.data };
   for (const issue of result.error.issues) {
@@ -203,27 +206,22 @@ export function floorLabel(fields: SettingsFields): string {
 
 export function bookQuote(
   fields: SettingsFields,
-  category: "child" | "adult",
-): {
-  installments: number;
-  installmentCents: number;
-  totalCents: number;
-  cashCents: number;
-} | null {
-  const count = category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments";
+  { category, installments = 1 }: { category: "child" | "adult"; installments?: number },
+): ReturnType<typeof materialFinalPriceQuote> | null {
   const amountKey =
-    category === "child" ? "childMaterialInstallmentCents" : "adultMaterialInstallmentCents";
-  if (
-    [count, amountKey, "materialCardFeePct"].some((key) =>
-      fieldError(key as keyof SettingsFields, fields[key as keyof SettingsFields]),
-    )
-  )
-    return null;
+    category === "child" ? "childMaterialCashPriceCents" : "adultMaterialCashPriceCents";
   try {
-    return materialPriceQuote({
-      installments: decimal(fields[count]),
-      installmentCents: Math.round(decimal(fields[amountKey]) * CENTS_PER_REAL),
-      cardFeePct: decimal(fields.materialCardFeePct),
+    const rates = JSON.parse(fields.materialCardFeeRates) as Record<string, string>;
+    const rate = rates[String(installments)];
+    if (
+      rate === undefined ||
+      fieldError(amountKey, fields[amountKey]) ||
+      fieldError("materialCardFeeRates", fields.materialCardFeeRates)
+    )
+      return null;
+    return materialFinalPriceQuote({
+      cashCents: Math.round(decimal(fields[amountKey]) * CENTS_PER_REAL),
+      cardFeePct: decimal(rate),
     });
   } catch {
     return null;

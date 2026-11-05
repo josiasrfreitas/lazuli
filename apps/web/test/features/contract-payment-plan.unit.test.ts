@@ -10,7 +10,10 @@ import {
   emptyContractFields,
   suggestMonthlyAmount,
 } from "../../src/features/contracts/contract-form-model.js";
-import { fieldErrors } from "../../src/features/contracts/new-contract-state.js";
+import {
+  fieldErrors,
+  monthlyAmountError,
+} from "../../src/features/contracts/new-contract-state.js";
 import { PaymentSection } from "../../src/features/contracts/contract-payment-section.js";
 import { paymentPlanLabel } from "../../src/features/contracts/contract-form-model.js";
 
@@ -76,6 +79,16 @@ void it("prefills the global tuition while preserving a manually edited monthly 
       { tuitionCeilingCents: 30_000, edited: true },
     ).monthlyAmount,
     "",
+  );
+});
+
+void it("allows a monthly amount above the reference and keeps the discount floor", () => {
+  assert.equal(monthlyAmountError("260,00", offer), undefined);
+  assert.equal(monthlyAmountError("200,00", offer), undefined);
+  assert.match(monthlyAmountError("199,99", offer) ?? "", /pelo menos.*200,00/u);
+  assert.equal(
+    contractPreview({ ...fields, monthlyAmount: "260,00" }, offer)?.chargedMonthlyCents,
+    26_000,
   );
 });
 

@@ -25,18 +25,22 @@ function ToastList(): ReactNode {
             key={toast.id}
             toast={toast}
             swipeDirection={[]}
-            className="lz-toast relative rounded-lg border border-border bg-popover p-3 pr-9 text-popover-foreground shadow-lg data-[limited]:hidden data-[type=error]:border-destructive/40"
+            className="lz-toast relative rounded-lg border border-border bg-popover p-3 pr-9 text-popover-foreground shadow-lg data-[limited]:hidden data-[type=error]:border-destructive/40 data-[type=warning]:border-warning/40"
           >
             <Toast.Content>
               <div className="flex items-start gap-3">
-                {toast.type === "error" && (
+                {(toast.type === "error" || toast.type === "warning") && (
                   <CircleAlert
                     aria-hidden="true"
-                    className="lz-toast-icon mt-0.5 size-5 shrink-0 text-destructive"
+                    className={
+                      toast.type === "warning"
+                        ? "lz-toast-icon mt-0.5 size-5 shrink-0 text-warning"
+                        : "lz-toast-icon mt-0.5 size-5 shrink-0 text-destructive"
+                    }
                   />
                 )}
                 <div className="min-w-0">
-                  <Toast.Title className="text-sm font-medium" />
+                  <Toast.Title render={<div />} className="text-sm font-medium" />
                   {toast.description && (
                     <Toast.Description className="mt-1 text-sm leading-relaxed text-muted-foreground" />
                   )}

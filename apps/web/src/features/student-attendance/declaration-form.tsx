@@ -1,7 +1,7 @@
 "use client";
 import type { ReactElement } from "react";
 import { ArrowRight, CircleAlert, MapPin } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { ToastAlert, Button } from "@lazuli/ui";
 import { StudentNameField, StudentNameChoices } from "./student-fields";
 import { StudentReceipt } from "./receipt";
 import type { LinkInfo } from "./public-link";
@@ -57,12 +57,12 @@ function DeclarationIdentity({ model }: { model: DeclarationModel }): ReactEleme
         />
       )}
       {model.result?.error && (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           {model.result.error}
           <Button type="button" variant="ghost" onClick={model.retry}>
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       )}
     </>
   );
@@ -79,7 +79,7 @@ function DeclarationAction({ model }: { model: DeclarationModel }): ReactElement
           <span>Ao confirmar, permita sua localização para verificar que você está na escola.</span>
         </p>
       )}
-      {model.error && <Alert variant="destructive">{model.error}</Alert>}
+      {model.error && <ToastAlert variant="destructive">{model.error}</ToastAlert>}
       <Button size="compact-responsive" type="submit" disabled={!model.canSubmit}>
         {label}
         <ArrowRight aria-hidden />

@@ -1,7 +1,7 @@
 "use client";
 import { type ReactElement } from "react";
 import Link from "next/link";
-import { Alert } from "@lazuli/ui";
+import { ToastAlert } from "@lazuli/ui";
 import { AttendanceSettingsForm } from "./settings-fields";
 import { trpc } from "~/lib/trpc";
 import { useSettingsForm, type Settings } from "./settings-model";
@@ -17,7 +17,7 @@ export function AttendanceSettingsPage(): ReactElement {
         Informe as coordenadas reais e os limites usados pelo QR presencial. Aulas online dispensam
         localização. Novos limites valem para os próximos links.
       </p>
-      {query.error && <Alert>{query.error.message}</Alert>}
+      {query.error && <ToastAlert variant="destructive">{query.error.message}</ToastAlert>}
       {query.isPending && <p role="status">Carregando configuração…</p>}
       {query.data !== undefined && <SettingsForm initial={query.data} />}
     </div>

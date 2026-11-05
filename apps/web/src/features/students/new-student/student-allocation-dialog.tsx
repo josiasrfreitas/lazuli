@@ -3,7 +3,7 @@ import type { JSX as ReactJSX, ReactNode } from "react";
 import { useState } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -241,11 +241,7 @@ function AllocationDialogBody({
         selectedId={selectedId}
         onSelect={onSelect}
       />
-      {mutationError && (
-        <Alert variant="destructive" className="mt-3 shrink-0">
-          {mutationError}
-        </Alert>
-      )}
+      {mutationError && <ToastAlert variant="destructive">{mutationError}</ToastAlert>}
     </DialogBody>
   );
 }

@@ -6,7 +6,7 @@ import { RotateCcw, Save, X } from "lucide-react";
 import { MAX_UPLOAD_FILE_BYTES } from "@lazuli/validators";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Alert,
+  ToastAlert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -340,13 +340,13 @@ function ProofFields({
       />
       {fields.filesPending && <PencilLoader size="sm" label="Consultando arquivos" />}
       {fields.filesError && (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           Não foi possível consultar os arquivos.
           <Button size="sm" variant="ghost" onClick={fields.refreshFiles}>
             <RotateCcw aria-hidden="true" />
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       )}
       {fields.existing.length > 0 && (
         <FileList rows={fields.existing} showPhase={false} refresh={fields.refreshFiles} />
@@ -408,9 +408,11 @@ function EntryForm({ fields, actions, props }: EntryModel): ReactJSX.Element {
         <ProofFields fields={fields} busy={actions.busy} />
         <CorrectionField fields={fields} data={props.data} busy={actions.busy} />
         {fields.form.save.error && (
-          <Alert variant="destructive">{fields.form.save.error.message}</Alert>
+          <ToastAlert variant="destructive">{fields.form.save.error.message}</ToastAlert>
         )}
-        {actions.uploadError && <Alert variant="destructive">{actions.uploadError}</Alert>}
+        {actions.uploadError && (
+          <ToastAlert variant="destructive">{actions.uploadError}</ToastAlert>
+        )}
       </form>
     </div>
   );

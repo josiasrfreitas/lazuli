@@ -2,11 +2,7 @@ import { z } from "zod";
 
 import { civilDateSchema } from "./civil-date.js";
 import { payerCreateInputSchema } from "./finance.js";
-import {
-  studentCreateInputSchema,
-  documentTypeSchema,
-  DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
-} from "./student.js";
+import { studentCreateInputSchema } from "./student.js";
 
 const MAX_PERCENT = 100;
 const PERCENT_DECIMAL_PLACES = 4;
@@ -31,24 +27,7 @@ const scholarshipPercentage = z
     message: "Use até quatro casas decimais no percentual da bolsa.",
   });
 
-const newContractPayerSchema = payerCreateInputSchema
-  .omit({ taxId: true })
-  .extend({
-    documentType: documentTypeSchema.nullish(),
-    documentNumber: z.string().trim().min(1, "Informe o número do documento.").nullish(),
-  })
-  .refine((payer) => Boolean(payer.documentNumber?.trim()), {
-    path: ["documentNumber"],
-    message: "Informe o CPF ou RG do pagador.",
-  })
-  .refine((payer) => Boolean(payer.phone?.trim() || payer.email?.trim()), {
-    path: ["phone"],
-    message: "Informe pelo menos um contato: telefone ou e-mail.",
-  })
-  .refine((payer) => !payer.documentNumber || Boolean(payer.documentType), {
-    path: ["documentType"],
-    message: DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
-  });
+const newContractPayerSchema = payerCreateInputSchema;
 
 export const contractMaterialInputSchema = z
   .object({

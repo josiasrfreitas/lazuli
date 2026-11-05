@@ -32,6 +32,8 @@ export type SearchSelectProps = {
   openOnFocus?: boolean;
   /** Keep suggestions hidden until the query has this many non-whitespace characters. */
   minQueryLength?: number;
+  /** Only open suggestions after a successful search has returned a choice. */
+  resultsOnly?: boolean;
   loading?: boolean;
   failed?: boolean;
   invalid?: boolean;
@@ -137,6 +139,7 @@ function SearchInput({ props, open, close, highlighted }: SearchInputInput): Rea
         }}
         onChange={(event) => {
           highlighted.current = undefined;
+          open();
           props.onQueryChange(event.currentTarget.value);
         }}
         onKeyDown={(event) => {
@@ -165,7 +168,7 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
   return (
     <Combobox.Root<SearchItem>
       autoHighlight
-      open={open && query.trim().length >= (props.minQueryLength ?? 0)}
+      open={searchIsOpen(open, props)}
       onOpenChange={(next) => {
         highlighted.current = undefined;
         setOpen(next);
@@ -183,11 +186,7 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
       isItemEqualToValue={(item, selected) =>
         item.kind === selected.kind && item.id === selected.id
       }
-      onValueChange={(item) => {
-        if (!item) return;
-        if (item.kind === "create") props.onCreate?.(query);
-        else if (!loading) props.onSelect(item);
-      }}
+      onValueChange={(item) => selectSearchItem(item, props)}
     >
       <SearchInput
         props={props}
@@ -203,6 +202,27 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
       />
     </Combobox.Root>
   );
+}
+
+export function searchIsOpen(
+  open: boolean,
+  props: Pick<
+    SearchSelectProps,
+    "query" | "minQueryLength" | "resultsOnly" | "loading" | "failed" | "options" | "onCreate"
+  >,
+): boolean {
+  return (
+    open &&
+    props.query.trim().length >= (props.minQueryLength ?? 0) &&
+    (!props.resultsOnly ||
+      (!props.loading && !props.failed && (props.options.length > 0 || Boolean(props.onCreate))))
+  );
+}
+
+function selectSearchItem(item: SearchItem | null, props: SearchSelectProps): void {
+  if (!item) return;
+  if (item.kind === "create") props.onCreate?.(props.query);
+  else if (!props.loading) props.onSelect(item);
 }
 
 function SelectedSearchValue(

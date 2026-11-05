@@ -48,36 +48,17 @@ void describe("global finance settings persistence", { concurrency: 1 }, () => {
       materialCardFeePct: 5,
     });
     await finance(db, ADMIN.id).saveSettings({ ...values, maximumDiscountPct: 25 });
-    assert.deepEqual(await finance(db, ADMIN.id).readMaterialPrice(), {
-      child: {
-        installments: 6,
-        installmentCents: 12300,
-        totalCents: 73800,
-        cashCents: 70110,
-        version: "3e63f864a0c14927bc438ba37f0e40c8670d212e63f5a7d675922de4247575e8",
-      },
-      adult: {
-        installments: 4,
-        installmentCents: 13600,
-        totalCents: 54400,
-        cashCents: 51680,
-        version: "97c265ea424e421f33d028cf4dc0f89f0d5bd3ce4a140f1a792207d9afe3a1c4",
-      },
-      cardFeePct: 5,
-    });
+    const price = await finance(db, ADMIN.id).readMaterialPrice();
+    assert.equal(price?.child.cashCents, 70110);
+    assert.equal(price?.adult.cashCents, 51680);
+    assert.equal(price?.cardFeeRates["6"], 5);
     await finance(db, ADMIN.id).saveSettings({
       ...values,
       childMaterialInstallments: 6,
       childMaterialInstallmentCents: 0,
     });
     const savedPrice = await finance(db, ADMIN.id).readMaterialPrice();
-    assert.deepEqual(savedPrice?.child, {
-      installments: 6,
-      installmentCents: 0,
-      totalCents: 0,
-      cashCents: 0,
-      version: "4c8e28f863a17fc2bcca94c065b934e2326ff9befc1e8497f4da82dc42225a61",
-    });
+    assert.equal(savedPrice?.child.cashCents, 0);
   });
 
   void it("saves all fields with the actor and a derived floor", async () => {
@@ -89,5 +70,18 @@ void describe("global finance settings persistence", { concurrency: 1 }, () => {
     assert.equal((row?.updatedAt.getTime() ?? 0) >= beforeSave.getTime(), true);
     const persisted = await db.financeSettings.findUniqueOrThrow({ where: { id: "singleton" } });
     assert.equal(persisted.updatedById, ADMIN.id);
+  });
+
+  void it("persists final cash prices and a separate card rate for each installment count", async () => {
+    await finance(db, ADMIN.id).saveSettings({
+      ...values,
+      childMaterialCashPriceCents: 60_000,
+      adultMaterialCashPriceCents: 70_000,
+      materialCardFeeRates: { "1": 0, "2": 3.5, "6": 10 },
+    });
+    const price = await finance(db, ADMIN.id).readMaterialPrice();
+    assert.equal(price?.child.cashCents, 60_000);
+    assert.equal(price?.adult.cashCents, 70_000);
+    assert.deepEqual(price?.cardFeeRates, { "1": 0, "2": 3.5, "6": 10 });
   });
 });

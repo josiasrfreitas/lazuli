@@ -3,7 +3,7 @@
 import type { JSX as ReactJSX } from "react";
 import { CalendarDays, Check } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button, PencilLoader } from "@lazuli/ui";
+import { ToastAlert, Button, PencilLoader } from "@lazuli/ui";
 import { dayLabel } from "~/features/admissions/labels";
 import styles from "./intake-schedule.module.css";
 
@@ -262,12 +262,12 @@ function ClassesContent({
   if (error)
     return (
       <div className={styles.centeredState}>
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           {error}
           <Button variant="secondary" size="sm" onClick={onRetry}>
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       </div>
     );
   if (choices.length > 0) return <RecurringSchedule choices={choices} {...selection} />;

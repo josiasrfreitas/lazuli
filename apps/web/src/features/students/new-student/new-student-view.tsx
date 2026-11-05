@@ -1,3 +1,4 @@
+import { leadStudentFields } from "./new-student-prefill";
 import { EnrollmentPhoto } from "~/features/student-documents/enrollment-photo";
 import { StudentDocumentPanel, StudentDocumentButton } from "~/features/student-documents/panel";
 import documentStyles from "./enrollment-documents.module.css";
@@ -5,6 +6,7 @@ import { useEffect, useState, type JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
 import {
+  ToastAlert,
   Alert,
   Button,
   Dialog,
@@ -182,11 +184,7 @@ function EnrollmentForm({ model }: { model: EnrollmentModel }): ReactJSX.Element
         ) : (
           <EnrollmentProgressFields model={model} />
         )}
-        {error && (
-          <Alert variant="destructive" className="mt-4">
-            {error}
-          </Alert>
-        )}
+        {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
       </form>
     </DialogBody>
   );
@@ -257,6 +255,7 @@ function EnrollmentStudentFields({ model }: { model: EnrollmentModel }): ReactJS
   return (
     <div className="grid min-w-0 content-start gap-5">
       <IntakeStudentFields
+        selectedFields={lead && !existingStudentId ? leadStudentFields(lead) : {}}
         documents={model.documents}
         studentId={existingStudentId}
         fields={state.fields}
@@ -270,20 +269,20 @@ function EnrollmentStudentFields({ model }: { model: EnrollmentModel }): ReactJS
         }}
       />
       {lead?.studentId && !existingStudentId && (
-        <Alert variant="warning">
+        <ToastAlert variant="warning">
           Este lead já está ligado a um aluno.{" "}
           <Link className="underline" href={`/alunos/${lead.studentId}`}>
             Abrir cadastro
           </Link>
-        </Alert>
+        </ToastAlert>
       )}
       {candidate.isError && candidateId && (
-        <Alert variant="destructive">
+        <ToastAlert variant="destructive">
           {candidate.error.message}
           <Button variant="ghost" onClick={() => void candidate.refetch()}>
             Tentar novamente
           </Button>
-        </Alert>
+        </ToastAlert>
       )}
     </div>
   );

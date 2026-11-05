@@ -69,7 +69,15 @@ export async function searchContractParties(
   query: string,
 ): Promise<{
   students: Array<{ id: string; name: string; document: string | null }>;
-  payers: Array<{ id: string; name: string; document: string | null; detail: string }>;
+  payers: Array<{
+    id: string;
+    name: string;
+    document: string | null;
+    documentType: string | null;
+    phone: string | null;
+    email: string | null;
+    detail: string;
+  }>;
 }> {
   const [students, payers] = await Promise.all([
     findContractStudents(database, query),
@@ -85,6 +93,9 @@ export async function searchContractParties(
       id: row.id,
       name: row.name,
       document: row.documentNumber,
+      documentType: row.documentType,
+      phone: row.phone,
+      email: row.email,
       detail: [
         row.documentType && row.documentNumber ? `${row.documentType} ${row.documentNumber}` : null,
         row.phone,

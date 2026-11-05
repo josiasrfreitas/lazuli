@@ -78,7 +78,9 @@ function StepIndicator({ index, state }: { index: number; state: StepperStepStat
       {state === "complete" || state === COMPLETE_DISABLED ? (
         <Check aria-hidden="true" className="size-3.5" />
       ) : (
-        <span className="font-numeric text-micro font-semibold tabular-nums">{index + 1}</span>
+        <span className="translate-y-px font-numeric text-micro leading-none font-semibold tabular-nums">
+          {index + 1}
+        </span>
       )}
     </span>
   );

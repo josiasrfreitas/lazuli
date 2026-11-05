@@ -44,26 +44,31 @@ export function setupTuitionPreview({
   billingFirstDueDate?: string | undefined;
 }): FormProps["preview"] {
   const start = parseDateBR(fields.firstDueDate);
+  const due = billingFirstDueDate ?? parseDateBR(fields.billingFirstDueDate ?? fields.firstDueDate);
   const duration = durationFromDates(fields);
-  if (!offer || !start || !validDuration(duration)) return null;
+  if (!offer || !start || !due || !validDuration(duration)) return null;
   if (monthlyAmountError(fields.monthlyAmount, offer)) return null;
   try {
     return previewMonthlyContract({
       ...offer,
       startsOn: start,
-      firstDueDate: billingFirstDueDate ?? start,
+      firstDueDate: due,
       durationMonths: duration,
       monthlyAmountCents: Math.round(
         Number(fields.monthlyAmount.replace(",", ".")) * PERCENT_DIVISOR,
       ),
       ...scholarshipInput(fields),
-      ...(fields.paymentPlan === "special" && fields.scholarshipMode !== "FULL"
-        ? { installmentCount: Number(fields.installmentCount) }
-        : {}),
+      ...paymentPlanInput(fields),
     });
   } catch {
     return null;
   }
+}
+
+function paymentPlanInput(fields: ContractFields): { installmentCount?: number } {
+  return fields.paymentPlan === "special" && fields.scholarshipMode !== "FULL"
+    ? { installmentCount: Number(fields.installmentCount) }
+    : {};
 }
 
 function validDuration(duration: number): boolean {
@@ -105,6 +110,8 @@ function validatePartyFields(fields: ContractFields, errors: SetupErrors): void 
     errors.payerId = "Selecione o responsável financeiro.";
   if (!parseDateBR(fields.agreedOn)) errors.agreedOn = "Informe a data do acordo.";
   if (!parseDateBR(fields.firstDueDate)) errors.firstDueDate = "Informe o início do contrato.";
+  if (!parseDateBR(fields.billingFirstDueDate ?? fields.firstDueDate))
+    errors.billingFirstDueDate = "Informe o primeiro vencimento.";
 }
 
 function validateTuitionFields(

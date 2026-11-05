@@ -4,10 +4,8 @@ import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { Copy } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
+  SelectionValue,
   Button,
-  Field,
-  Input,
-  Label,
   FormRow,
   Tooltip,
   TooltipContent,
@@ -16,7 +14,7 @@ import {
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { FormProps } from "./contract-form-fields";
-import { PartyPicker } from "./party-picker";
+import { PartyPicker, type ContractPartyOption } from "./party-picker";
 import { InlinePersonFields, PersonDocument } from "./contract-person-fields";
 
 type PayerProps = Pick<FormProps, "fields" | "errors" | "change"> & {
@@ -296,7 +294,7 @@ function payerPickerHandlers({
   expanded,
   setCopiedComplete,
 }: Pick<PickerProps, "change" | "expanded" | "setCopiedComplete">): {
-  onChange: (option: SearchSelectOption | null) => void;
+  onChange: (option: ContractPartyOption | null) => void;
   onClear: () => void;
   onSearchChange: (query: string) => void;
   onCreate: (query: string) => void;
@@ -304,9 +302,7 @@ function payerPickerHandlers({
   return {
     onChange: (option) => {
       setCopiedComplete(false);
-      if (option) change("payerMode", "existing");
-      change("payerId", option?.id ?? "");
-      change("payerLabel", option?.label ?? "");
+      applyPayerOption(option, change);
     },
     onClear: () => {
       setCopiedComplete(false);
@@ -322,6 +318,22 @@ function payerPickerHandlers({
       change("payerName", query.trim());
     },
   };
+}
+
+function applyPayerOption(option: ContractPartyOption | null, change: PayerProps["change"]): void {
+  if (option) change("payerMode", "existing");
+  change("payerId", option?.id ?? "");
+  change("payerLabel", option?.label ?? "");
+  if (!option) return;
+  applyPayerContact(option, change);
+}
+
+function applyPayerContact(option: ContractPartyOption, change: PayerProps["change"]): void {
+  change("payerName", option.label);
+  change("payerDocumentType", option.documentType ?? "");
+  change("payerDocumentNumber", option.document ?? "");
+  change("payerPhone", option.phone ?? "");
+  change("payerEmail", option.email ?? "");
 }
 
 export function ContractPayerFields({
@@ -342,16 +354,20 @@ export function ContractPayerFields({
     copiedComplete,
     keepCopyVisible,
   });
-  const edit: PayerProps["change"] = (name, value) => {
-    setCopiedComplete(false);
-    change(name, value);
-  };
-  const editDetails: PayerProps["change"] = (name, value) => {
-    if (expanded && fields.payerMode !== "create") change("payerMode", "create");
-    edit(name, value);
-  };
-  if (selectedPayerIsComplete(fields, expanded)) {
-    return <SelectedPayerDetails fields={fields} onClear={() => clearPayer(change)} />;
+  const { edit, editDetails } = payerEditors({ fields, change, expanded, setCopiedComplete });
+  if (
+    selectedPayerIsComplete(fields, expanded) ||
+    (copiedComplete && fields.payerMode === "create")
+  ) {
+    return (
+      <SelectedPayerDetails
+        fields={fields}
+        onClear={() => {
+          setCopiedComplete(false);
+          clearPayer(change);
+        }}
+      />
+    );
   }
   return (
     <div className="space-y-3">
@@ -369,6 +385,25 @@ export function ContractPayerFields({
       )}
     </div>
   );
+}
+
+function payerEditors({
+  fields,
+  change,
+  expanded,
+  setCopiedComplete,
+}: Pick<PayerProps, "fields" | "change" | "expanded"> & {
+  setCopiedComplete: (value: boolean) => void;
+}): { edit: PayerProps["change"]; editDetails: PayerProps["change"] } {
+  const edit: PayerProps["change"] = (name, value) => {
+    setCopiedComplete(false);
+    change(name, value);
+  };
+  const editDetails: PayerProps["change"] = (name, value) => {
+    if (expanded && fields.payerMode !== "create") change("payerMode", "create");
+    edit(name, value);
+  };
+  return { edit, editDetails };
 }
 
 function selectedPayerIsComplete(fields: PayerProps["fields"], expanded: boolean): boolean {
@@ -413,33 +448,30 @@ function SelectedPayerDetails({
   return (
     <div className="space-y-3">
       <FormRow columns={2}>
-        <Field name="selectedPayerName">
-          <Label>Nome do pagador</Label>
-          <Input size="sm" readOnly value={fields.payerName} />
-        </Field>
-        <Field name="selectedPayerDocument">
-          <Label>Documento</Label>
-          <Input
-            size="sm"
-            readOnly
-            value={fields.payerDocumentNumber}
-            placeholder="Não informado"
-          />
-        </Field>
+        <PayerValue label="Nome do pagador" value={fields.payerName} onClear={onClear} />
+        <PayerValue label="CPF ou RG" value={fields.payerDocumentNumber} />
       </FormRow>
       <FormRow columns={2}>
-        <Field name="selectedPayerPhone">
-          <Label>Telefone</Label>
-          <Input size="sm" readOnly value={fields.payerPhone} placeholder="Não informado" />
-        </Field>
-        <Field name="selectedPayerEmail">
-          <Label>E-mail</Label>
-          <Input size="sm" readOnly value={fields.payerEmail} placeholder="Não informado" />
-        </Field>
+        <PayerValue label="Telefone" value={fields.payerPhone} />
+        <PayerValue label="E-mail" value={fields.payerEmail} />
       </FormRow>
-      <Button type="button" size="sm" variant="ghost" onClick={onClear}>
-        Trocar pagador
-      </Button>
+    </div>
+  );
+}
+
+function PayerValue({
+  label,
+  value,
+  onClear,
+}: {
+  label: string;
+  value: string;
+  onClear?: () => void;
+}): ReactElement {
+  return (
+    <div className="grid min-w-0 gap-1.5" role="group" aria-label={label}>
+      <span className="text-caption font-medium leading-4">{label}</span>
+      <SelectionValue value={value} onClear={onClear} clearLabel="Limpar pagador e seus dados" />
     </div>
   );
 }

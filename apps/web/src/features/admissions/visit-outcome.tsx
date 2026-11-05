@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState, type FormEvent, type ReactElement, type RefObject } from "react";
-import { Alert, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
+import { ToastAlert, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { TextControl } from "~/features/classes/form-controls";
 import { AdmissionDialog } from "./admission-dialog";
@@ -114,7 +114,7 @@ export function OutcomeDialog({ visit, cancel, onClose }: OutcomeInput): ReactEl
       submitLabel={form.pending ? "Salvando…" : action}
     >
       <OutcomeFields {...form} />
-      {form.serverError && <Alert variant="destructive">{form.serverError}</Alert>}
+      {form.serverError && <ToastAlert variant="destructive">{form.serverError}</ToastAlert>}
     </AdmissionDialog>
   );
 }

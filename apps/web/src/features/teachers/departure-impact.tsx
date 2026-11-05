@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert } from "@lazuli/ui";
+import { ToastAlert } from "@lazuli/ui";
 import { dateLabel } from "./format";
 import { purposes } from "../appointments/shared";
 
@@ -9,7 +9,7 @@ const IMPACT_PREVIEW_LIMIT = 6;
 export function DepartureImpact({ impact, date }: DepartureImpactInput): ReactElement {
   return (
     <>
-      <Alert variant="warning">
+      <ToastAlert variant="warning">
         <p className="font-semibold">
           {impact.commitments.length + impact.appointments.length}{" "}
           {impact.commitments.length + impact.appointments.length === 1
@@ -24,7 +24,7 @@ export function DepartureImpact({ impact, date }: DepartureImpactInput): ReactEl
             : "substituições futuras serão desfeitas"}
           , inclusive quando o substituto continuar em atuação.
         </p>
-      </Alert>
+      </ToastAlert>
       {impact.commitments.length > 0 && (
         <div className="grid gap-2">
           <h3 className="text-control font-semibold">Compromissos que precisam de cobertura</h3>

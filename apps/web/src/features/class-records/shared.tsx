@@ -2,7 +2,7 @@ import { RefreshCw } from "lucide-react";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import type { ClassRecordContent, ClassRecordSnapshot } from "@lazuli/validators";
-import { Alert, Badge, Button } from "@lazuli/ui";
+import { ToastAlert, Badge, Button } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";
 export { formatDateOnlyBR as dateLabel } from "~/lib/format";
 export type ClassRecord = RouterOutputs["classRecords"]["detail"];
@@ -27,13 +27,13 @@ export function RecordState({
 }): ReactElement | null {
   if (pending) return <QueryLoading label={label} />;
   return error ? (
-    <Alert variant="destructive">
+    <ToastAlert variant="destructive">
       <span>{error.message}</span>
       <Button variant="secondary" onClick={retry}>
         <RefreshCw aria-hidden="true" />
         Tentar novamente
       </Button>
-    </Alert>
+    </ToastAlert>
   ) : null;
 }
 export function PlannedReference({

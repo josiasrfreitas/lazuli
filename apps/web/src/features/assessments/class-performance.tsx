@@ -1,7 +1,7 @@
 "use client";
 import { RefreshCw } from "lucide-react";
 import { useState, type ReactElement, type ReactNode } from "react";
-import { Alert, Button, Field, Label, SearchSelect } from "@lazuli/ui";
+import { ToastAlert, Button, Field, Label, SearchSelect } from "@lazuli/ui";
 import { normalizeSearch } from "@lazuli/domain";
 import { ClassPerformanceLoading } from "./assessment-loading";
 import { trpc } from "~/lib/trpc";
@@ -21,13 +21,13 @@ export function ClassPerformance({ classId }: { classId: string }): ReactElement
     );
   if (query.isError)
     return (
-      <Alert variant="destructive">
+      <ToastAlert variant="destructive">
         Não foi possível carregar o desempenho.
         <Button variant="secondary" onClick={() => void query.refetch()}>
           <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
-      </Alert>
+      </ToastAlert>
     );
   return <PerformanceWorkspace key={classId} rows={query.data} />;
 }

@@ -680,16 +680,16 @@ void it("persists a negotiated total and tracks material across renewal, includi
     });
     const detail = await service.readContract(initial.id, NOW);
     const order = detail.orders.find((row) => row.kind === "MATERIAL")!;
-    assert.equal(order.material!.chargedAmountCents, 150001);
+    assert.equal(order.material!.chargedAmountCents, 166668);
     assert.equal(order.material!.quotedInstallments, 6);
-    assert.equal(order.material!.quotedInstallmentCents, 25000);
+    assert.equal(order.material!.quotedInstallmentCents, 27778);
     assert.equal(order.installments.length, 1);
-    assert.equal(order.totalCents, 135001);
+    assert.equal(order.totalCents, 150001);
     const pricedMaterial = await tx.materialOrder.findUniqueOrThrow({
       where: { orderId: order.id },
     });
     assert.equal(pricedMaterial.priceOverrideCents, 150001);
-    assert.equal((await service.readMaterialPrice())!.adult.totalCents, 81600);
+    assert.equal((await service.readMaterialPrice())!.adult.cashCents, 73440);
     const renewed = await service.createMonthlyContract({
       ...values,
       commandId: randomUUID(),
@@ -769,7 +769,7 @@ void it("records bank installments on one receipt and keeps one material charge"
       NOW,
     );
     assert.ok(preview?.line);
-    assert.equal(preview.line.quote.receivedCents, 135000);
+    assert.equal(preview.line.quote.receivedCents, 150000);
     const command = {
       operationId: randomUUID(),
       date: "2026-02-02",
@@ -778,10 +778,10 @@ void it("records bank installments on one receipt and keeps one material charge"
         {
           commandId: randomUUID(),
           payerId: values.payerId,
-          amountCents: 135000,
+          amountCents: 150000,
           externalInstallments: 6,
           allocations: [
-            { installmentId: charge.id, amountCents: 135000, version: preview.line.version },
+            { installmentId: charge.id, amountCents: 150000, version: preview.line.version },
           ],
         },
       ],
@@ -794,7 +794,7 @@ void it("records bank installments on one receipt and keeps one material charge"
     const [receipt] = await service.confirmPayments(command, NOW);
     assert.ok(receipt);
     assert.equal(receipt.externalInstallments, 6);
-    assert.equal(receipt.amountCents, 135000);
+    assert.equal(receipt.amountCents, 150000);
     const replay = await service.confirmPayments(command, NOW);
     assert.equal(replay[0]?.id, receipt.id);
     assert.equal(replay[0]?.externalInstallments, 6);
@@ -803,10 +803,10 @@ void it("records bank installments on one receipt and keeps one material charge"
     const allocation = await tx.paymentAllocation.findFirstOrThrow({
       where: { paymentEntryId: receipt.id },
     });
-    assert.equal(allocation.amountCents, 135000);
+    assert.equal(allocation.amountCents, 150000);
     const chargedMaterial = await tx.materialOrder.findUniqueOrThrow({
       where: { orderId: charge.orderId },
     });
-    assert.equal(chargedMaterial.chargedAmountCents, 150000);
+    assert.equal(chargedMaterial.chargedAmountCents, 166667);
   });
 });

@@ -1,16 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import {
-  Button,
-  Field,
-  FieldError,
-  FormSection,
-  Input,
-  Label,
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@lazuli/ui";
+import { Button, Field, FieldError, FormSection, Input, Label } from "@lazuli/ui";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import {
   ContractStudentField,
@@ -19,12 +10,11 @@ import {
   TermFields,
   type FormProps,
 } from "./contract-form-fields";
+import { durationFromDates } from "./contract-form-model";
+import { TextField } from "./contract-text-field";
+import { ContractScholarshipFields } from "./contract-scholarship-fields";
 import { ContractPayerFields } from "./contract-payer-fields";
-import {
-  MaterialQuoteSummary,
-  SetupScholarship,
-  type SetupMaterial,
-} from "./contract-setup-material";
+import { MaterialQuoteSummary, type SetupMaterial } from "./contract-setup-material";
 import { setupPlanLabel, type SetupStep } from "./contract-setup-model";
 import styles from "./contract-setup.module.css";
 
@@ -50,26 +40,54 @@ export function SetupParties(
       <FormSection title="Período do contrato">
         <div className={styles.dates}>
           <TermFields {...props} />
-        </div>
-        {props.billingFirstDueDate ? (
-          <Field name="renewal-first-due" className="max-w-48">
-            <Label>Primeiro vencimento</Label>
-            <Input
-              size="sm"
-              name="renewal-first-due"
+          {!props.billingFirstDueDate && (
+            <TextField
+              name="billingFirstDueDate"
+              label="Primeiro vencimento"
               placeholder="dd/mm/aaaa"
-              inputMode="numeric"
-              value={props.billingFirstDueDate.value}
-              invalid={Boolean(props.dueError)}
-              onChange={(event) => props.billingFirstDueDate?.onChange(event.target.value)}
+              date
+              maskedDate
+              value={props.fields.billingFirstDueDate ?? props.fields.firstDueDate}
+              error={props.errors.billingFirstDueDate}
+              onChange={(value) => props.change("billingFirstDueDate", value)}
             />
-            {props.dueError && <FieldError match>{props.dueError}</FieldError>}
-          </Field>
-        ) : (
-          <p className={styles.help}>O primeiro vencimento será na data de início do contrato.</p>
+          )}
+        </div>
+        {props.billingFirstDueDate && (
+          <RenewalFirstDueDate
+            value={props.billingFirstDueDate.value}
+            onChange={props.billingFirstDueDate.onChange}
+            error={props.dueError}
+          />
         )}
       </FormSection>
     </div>
+  );
+}
+
+function RenewalFirstDueDate({
+  value,
+  onChange,
+  error,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  error?: string | undefined;
+}): ReactElement {
+  return (
+    <Field name="renewal-first-due" className="max-w-48">
+      <Label>Primeiro vencimento</Label>
+      <Input
+        size="sm"
+        name="renewal-first-due"
+        placeholder="dd/mm/aaaa"
+        inputMode="numeric"
+        value={value}
+        invalid={Boolean(error)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {error && <FieldError match>{error}</FieldError>}
+    </Field>
   );
 }
 
@@ -78,77 +96,73 @@ export function SetupTuition(
 ): ReactElement {
   return (
     <div className={styles.fields}>
-      <div className={styles.shortFields}>
+      <ContractScholarshipFields {...props}>
         <PriceFields {...props} />
+        <TuitionPaymentPlan {...props} />
         {props.allowEnrollmentFee !== false && <EnrollmentFeeField {...props} />}
-      </div>
-      <SetupScholarship {...props} />
-      <TuitionPaymentPlan {...props} />
-      <TuitionPreview preview={props.preview} />
+      </ContractScholarshipFields>
+      <TuitionPreview preview={props.preview} fields={props.fields} />
       <SchoolConditions {...props} />
     </div>
   );
 }
 
-function TuitionPaymentPlan({ fields, errors, change }: FormProps): ReactElement | null {
-  if (fields.scholarshipMode === "FULL") return null;
-  const special = fields.paymentPlan === "special";
+function TuitionPaymentPlan({ fields, errors, change }: FormProps): ReactElement {
+  const fullScholarship = fields.scholarshipMode === "FULL";
+  const duration = durationFromDates(fields);
+  const defaultCount = Number.isInteger(duration) && duration > 0 ? String(duration) : "";
+  const count = fields.paymentPlan === "special" ? fields.installmentCount : defaultCount;
   return (
-    <FormSection title="Pagamento das mensalidades">
-      <SegmentedControl
-        size="sm"
-        wrap
-        value={special ? "special" : "common"}
-        onValueChange={(value) => {
-          if (value) change("paymentPlan", value);
-        }}
-        aria-label="Parcelamento das mensalidades"
-      >
-        <SegmentedControlItem value="common">Uma parcela por mês</SegmentedControlItem>
-        <SegmentedControlItem value="special">Definir quantidade</SegmentedControlItem>
-      </SegmentedControl>
-      {special && (
-        <Field name="installmentCount" className="max-w-48">
-          <Label>Quantidade de parcelas</Label>
-          <Input
-            size="sm"
-            name="installmentCount"
-            autoComplete="off"
-            placeholder="Ex.: 6"
-            inputMode="numeric"
-            value={fields.installmentCount}
-            invalid={Boolean(errors.installmentCount)}
-            onChange={(event) => change("installmentCount", event.target.value)}
-          />
-          {errors.installmentCount && <FieldError match>{errors.installmentCount}</FieldError>}
-        </Field>
-      )}
-      <p className={styles.help}>
-        {special
-          ? "O total é dividido nessa quantidade de parcelas mensais."
-          : "As parcelas acompanham a duração do contrato."}
-      </p>
-    </FormSection>
+    <div className={styles.installmentField}>
+      <Field name="installmentCount">
+        <Label>Parcelas mensais</Label>
+        <Input
+          size="sm"
+          name="installmentCount"
+          autoComplete="off"
+          placeholder="Ex.: 12"
+          inputMode="numeric"
+          disabled={fullScholarship}
+          value={fullScholarship ? "0" : count}
+          invalid={!fullScholarship && Boolean(errors.installmentCount)}
+          onChange={(event) => {
+            change("installmentCount", event.target.value);
+            change("paymentPlan", event.target.value === defaultCount ? "common" : "special");
+          }}
+        />
+        {!fullScholarship && errors.installmentCount && (
+          <FieldError match>{errors.installmentCount}</FieldError>
+        )}
+      </Field>
+    </div>
   );
 }
 
-function TuitionPreview({ preview }: Pick<FormProps, "preview">): ReactElement | null {
-  if (!preview) return null;
+function TuitionPreview({ preview, fields }: Pick<FormProps, "preview" | "fields">): ReactElement {
+  const fullScholarship = fields.scholarshipMode === "FULL";
   return (
-    <div className={styles.tuitionTotal} aria-live="polite">
-      <strong>{setupPlanLabel(preview)}</strong>
-      <span>
-        {preview.installments.length > 0
-          ? `Total de mensalidades ${money(preview.principalAmountCents)}`
-          : "Nenhuma cobrança de mensalidade será criada."}
-      </span>
-      {preview.installments.length > 0 && (
-        <span className={styles.help}>
-          De {formatDateOnlyBR(preview.installments[0]?.dueDate)} a{" "}
-          {formatDateOnlyBR(preview.installments.at(-1)?.dueDate)}
-        </span>
-      )}
-    </div>
+    <dl className={styles.tuitionTotal} aria-label="Resumo das mensalidades" aria-live="polite">
+      <div>
+        <dt>Pagamento</dt>
+        <dd>{fullScholarship ? "Bolsa integral" : setupPlanLabel(preview)}</dd>
+        {fullScholarship && <p>Sem cobrança de mensalidades.</p>}
+      </div>
+      <div>
+        <dt>Total de mensalidades</dt>
+        <dd>{preview ? money(preview.principalAmountCents) : "A definir"}</dd>
+      </div>
+      <div>
+        <dt>Vigência</dt>
+        <dd>
+          {fields.firstDueDate && fields.endsOn
+            ? `${fields.firstDueDate} → ${fields.endsOn}`
+            : "Datas a definir"}
+        </dd>
+        {preview && preview.installments.length > 0 && (
+          <p>Primeiro vencimento em {formatDateOnlyBR(preview.installments[0]?.dueDate)}</p>
+        )}
+      </div>
+    </dl>
   );
 }
 
@@ -159,7 +173,7 @@ function SchoolConditions({ offer, fields }: FormProps): ReactElement | null {
       <summary>Condições da escola</summary>
       <dl className={styles.reviewList}>
         <div>
-          <dt>Mensalidade máxima</dt>
+          <dt>Mensalidade de referência</dt>
           <dd>{money(offer.tuitionCeilingCents)}</dd>
         </div>
         <div>
@@ -361,8 +375,9 @@ function ReviewMaterial({
           )}
           {material.effective && material.effective.receivableCents > 0 && (
             <p className={styles.help}>
-              Uma cobrança de {money(material.effective.receivableCents)} para a escola, com
-              vencimento em {billingFirstDueDate ?? fields.firstDueDate}.
+              Valor do material a receber: {money(material.effective.receivableCents)}, com
+              vencimento em{" "}
+              {billingFirstDueDate ?? fields.billingFirstDueDate ?? fields.firstDueDate}.
             </p>
           )}
         </>

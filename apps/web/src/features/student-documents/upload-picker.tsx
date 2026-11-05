@@ -1,6 +1,6 @@
 import { useState, type ReactElement, type ReactNode } from "react";
 import {
-  Alert,
+  ToastAlert,
   Button,
   FileUpload,
   Dialog,
@@ -181,11 +181,11 @@ function UploadPreviewBody({
     );
   if (!documents.create.isError) return <p role="status">Preparando envio…</p>;
   return (
-    <Alert variant="destructive">
+    <ToastAlert variant="destructive">
       Não foi possível preparar o envio. Seu arquivo continua selecionado.
       <Button type="button" variant="ghost" onClick={onRetry}>
         Tentar novamente
       </Button>
-    </Alert>
+    </ToastAlert>
   );
 }
