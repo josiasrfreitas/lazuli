@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactElement } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CircleCheck, GraduationCap, Plus, Search, UsersRound } from "lucide-react";
 
@@ -29,11 +30,14 @@ import {
   type StudentsFilters,
 } from "./logic";
 import { studentFilterOptionResult } from "./filter-options";
-import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentsTable } from "./students-table";
 import { tableStateVm } from "./view-model";
 
 const STUDENT_PREVIEW_DELAY_MS = 1600;
+const NewStudentDialog = dynamic(
+  () => import("./new-student/new-student-dialog").then((module) => module.NewStudentDialog),
+  { loading: () => <p role="status">Carregando cadastro do aluno...</p> },
+);
 
 export type InitialStudentsData = {
   list?: { data: StudentListOutput; updatedAt: number };
@@ -284,23 +288,25 @@ export function StudentsPage({ initial }: { initial?: InitialStudentsData }): Re
           onContinue={setResuming}
         />
       </DataTablePage>
-      <NewStudentDialog
-        onCreated={(id) => {
-          setCreating(false);
-          if (resuming) {
-            setResuming(null);
-            void students.refetch();
-          } else openStudent(id);
-        }}
-        existingStudentId={resuming ?? undefined}
-        onOpenChange={(open) => {
-          if (!open) {
+      {(creating || Boolean(resuming)) && (
+        <NewStudentDialog
+          onCreated={(id) => {
             setCreating(false);
-            setResuming(null);
-          }
-        }}
-        open={creating || Boolean(resuming)}
-      />
+            if (resuming) {
+              setResuming(null);
+              void students.refetch();
+            } else openStudent(id);
+          }}
+          existingStudentId={resuming ?? undefined}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreating(false);
+              setResuming(null);
+            }
+          }}
+          open
+        />
+      )}
     </>
   );
 }
