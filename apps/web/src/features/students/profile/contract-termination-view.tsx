@@ -34,6 +34,7 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
   };
   return (
     <TaskDialog
+      embedded
       title="Renegociar contrato"
       description={preview.studentName}
       onClose={onClose}
