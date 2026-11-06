@@ -473,7 +473,7 @@ function StudentHeaderActions({
         />
       ) : (
         <Button size="sm" disabled>
-          <CalendarDays aria-hidden="true" /> Agenda do aluno
+          <CalendarDays aria-hidden="true" /> Agenda
         </Button>
       )}
       {renewalAction}

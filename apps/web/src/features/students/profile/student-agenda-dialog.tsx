@@ -249,7 +249,7 @@ function AgendaDialogView({
       }}
     >
       <DialogTrigger render={<Button size="sm" variant={secondary ? "secondary" : "primary"} />}>
-        <CalendarDays aria-hidden="true" /> Agenda do aluno
+        <CalendarDays aria-hidden="true" /> Agenda
       </DialogTrigger>
       <DialogPortal>
         <DialogBackdrop />
