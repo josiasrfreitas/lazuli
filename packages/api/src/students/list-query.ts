@@ -35,6 +35,8 @@ const TIME_END_INDEX = 16;
 const LABEL_SEPARATOR = " · ";
 const LAST_WEEKDAY_SEPARATOR = " e ";
 const DATE_ONLY_LENGTH = 10;
+const TEEN_MIN_AGE = 13;
+const ADULT_MIN_AGE = 18;
 
 const openEnrollmentSelect = {
   id: true,
@@ -185,8 +187,8 @@ function scholarshipFilter(input: StudentListWhereInput): Prisma.StudentWhereInp
 function ageRangeFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
   if (!input.ageRanges?.length) return {};
   const today = new Date(saoPauloDateOnly(input.now ?? new Date()));
-  const teenCutoff = ageCutoff(today, 13);
-  const adultCutoff = ageCutoff(today, 18);
+  const teenCutoff = ageCutoff(today, TEEN_MIN_AGE);
+  const adultCutoff = ageCutoff(today, ADULT_MIN_AGE);
   const ranges: Prisma.StudentWhereInput[] = input.ageRanges.map((range) => {
     if (range === "under13") return { birthDate: { gt: teenCutoff, lte: today } };
     if (range === "teen") return { birthDate: { gt: adultCutoff, lte: teenCutoff } };

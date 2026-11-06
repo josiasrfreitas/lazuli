@@ -22,6 +22,7 @@ import type { StudentProfile } from "./logic";
 import { FinanceContractTerms } from "./finance-contract-terms";
 import { FinancePaymentHistory } from "./finance-payment-history";
 import styles from "./finance-details-dialog.module.css";
+import "./finance-details-dialog.css";
 
 type Summary = NonNullable<StudentFinanceState["summary"]["data"]>;
 type View = "contract" | "payments";
@@ -57,7 +58,11 @@ export function FinanceDetails({
       </DialogTrigger>
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className={styles.dialog} motion="subtle" showCloseButton={!pending}>
+        <DialogContent
+          className="finance-details-dialog"
+          motion="subtle"
+          showCloseButton={!pending}
+        >
           <DialogHeader>
             <div className={styles.header}>
               <div className={styles.identity}>

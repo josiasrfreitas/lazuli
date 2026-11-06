@@ -1,6 +1,15 @@
 import type { JSX as ReactJSX } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button, Checkbox, CurrencyInput, Field, FieldError, Input, Label, Textarea } from "@lazuli/ui";
+import {
+  Button,
+  Checkbox,
+  CurrencyInput,
+  Field,
+  FieldError,
+  Input,
+  Label,
+  Textarea,
+} from "@lazuli/ui";
 import { MAX_TERMINATION_FEE_PERCENT } from "@lazuli/validators";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import type { TerminationPreview } from "./contract-termination-state";

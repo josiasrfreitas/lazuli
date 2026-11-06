@@ -26,7 +26,7 @@ import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { FinancialDialogLoading } from "~/features/financial-treatments/financial-dialog-loading";
 import { ContractTerminationDialog } from "./contract-termination-dialog";
 import { ContractRenegotiationMode } from "./contract-renegotiation-mode";
-import styles from "./contract-renegotiation-dialog.module.css";
+import "./contract-renegotiation-dialog.css";
 import {
   RenegotiationFields,
   RenegotiationHistory,
@@ -56,7 +56,7 @@ export function ContractRenegotiationDialog({
           data-size="wide"
           data-layout="termination"
           showCloseButton={false}
-          className={`${styles.content} md:w-[calc(100vw-3rem)] md:max-w-[1120px] [&>[data-slot=dialog-footer]]:mt-4`}
+          className="contract-renegotiation-content md:w-[calc(100vw-3rem)] md:max-w-[1120px] [&>[data-slot=dialog-footer]]:mt-4"
         >
           <DialogCloseButton aria-label="Fechar" disabled={busy} onClick={onClose} />
           {mode === "terminate" ? (

@@ -36,7 +36,6 @@ import { ContractTerminationNotice } from "./contract-termination-notice";
 import { PaymentReversalDialog } from "./payment-reversal-dialog";
 import { formatDateOnlyBR } from "~/lib/format";
 import type { StudentProfile } from "./logic";
-import styles from "./finance-overview.module.css";
 
 const NewContractDialog = dynamic(() =>
   import("~/features/contracts/contracts-page").then((module) => module.NewContractDialog),

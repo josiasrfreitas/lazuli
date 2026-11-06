@@ -32,7 +32,10 @@ export const studentListInputSchema = z
       .max(2)
       .optional(),
     scholarship: z.array(studentScholarshipFilterSchema).max(2).optional(),
-    ageRanges: z.array(studentAgeRangeFilterSchema).max(3).optional(),
+    ageRanges: z
+      .array(studentAgeRangeFilterSchema)
+      .max(studentAgeRangeFilterSchema.options.length)
+      .optional(),
     classIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
     teacherIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
     registeredFrom: civilDateSchema.optional(),

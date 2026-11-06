@@ -89,11 +89,13 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
 
 function hasAdditionalStudentFilters(values: StudentListInput): boolean {
   return Boolean(
-    values.situations?.length ||
-    values.scholarship?.length ||
-    values.ageRanges?.length ||
-    values.classIds?.length ||
-    values.teacherIds?.length ||
+    [
+      values.situations,
+      values.scholarship,
+      values.ageRanges,
+      values.classIds,
+      values.teacherIds,
+    ].some((selection) => selection?.length) ||
     values.registeredFrom ||
     values.registeredTo,
   );

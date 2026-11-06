@@ -1,10 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { RouterInputs, RouterOutputs } from "@lazuli/api";
 import { terminationFeeCents } from "@lazuli/domain";
-import {
-  contractTerminationConfirmSchema,
-  MAX_TERMINATION_FEE_PERCENT,
-} from "@lazuli/validators";
+import { contractTerminationConfirmSchema, MAX_TERMINATION_FEE_PERCENT } from "@lazuli/validators";
 
 export type TerminationPreview = RouterOutputs["finance"]["previewTermination"];
 type Enrollment = TerminationPreview["enrollments"][number];

@@ -1,16 +1,3 @@
-.dialog {
-  --contract-dialog-width: 43.2rem;
-  --contract-dialog-min-height: 36.625rem;
-}
-
-@media (min-width: 48rem) {
-  .dialog {
-    /* User-requested proportions relative to the restored 768 × 533 px invoice. */
-    max-width: min(var(--contract-dialog-width), calc(100vw - 2rem));
-    min-height: min(var(--contract-dialog-min-height), calc(100dvh - 4rem));
-  }
-}
-
 .header {
   display: flex;
   flex-wrap: wrap;
