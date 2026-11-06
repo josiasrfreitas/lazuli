@@ -43,6 +43,15 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
       firstField="termination-fee"
       size="wide"
       compactHeader
+      headerAction={
+        props.onReduce ? (
+          <ContractRenegotiationMode
+            value="terminate"
+            onChange={props.onReduce}
+            disabled={pending || state.review}
+          />
+        ) : undefined
+      }
       actionSize="sm"
       layout="termination"
       bodyLayout="termination"
@@ -56,13 +65,6 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
       submitDisabled={state.review && (!state.acknowledged || !amounts.nameConfirmed)}
       onBack={state.review ? handleBack : undefined}
     >
-      {props.onReduce && (
-        <ContractRenegotiationMode
-          value="terminate"
-          onChange={props.onReduce}
-          disabled={pending || state.review}
-        />
-      )}
       <TerminationFormBody {...props} />
     </TaskDialog>
   );

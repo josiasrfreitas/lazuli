@@ -76,6 +76,9 @@ function TerminationPreviewLoading({
       bodyLayout="termination"
       size="wide"
       compactHeader
+      headerAction={
+        onReduce ? <ContractRenegotiationMode value="terminate" onChange={onReduce} /> : undefined
+      }
       actionSize="sm"
       title="Renegociar contrato"
       description="Confira o acerto antes de confirmar."
@@ -89,7 +92,6 @@ function TerminationPreviewLoading({
       submitDisabled
       error={error}
     >
-      {onReduce && <ContractRenegotiationMode value="terminate" onChange={onReduce} />}
       {pending ? (
         <FinancialDialogLoading termination />
       ) : (

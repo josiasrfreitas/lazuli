@@ -43,7 +43,7 @@ const NewContractDialog = dynamic(() =>
 );
 
 const financeActionClassName =
-  "flex w-full items-center gap-2 rounded-sm border border-border bg-card px-2.5 py-2 text-left text-control text-foreground outline-none transition-colors hover:bg-accent hover:border-border-strong focus-visible:bg-accent focus-visible:shadow-focus [&_svg]:size-4";
+  "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-control text-popover-foreground outline-none transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:shadow-focus [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground";
 
 export function StudentFinanceSection({
   id,
@@ -288,7 +288,7 @@ function FinanceManagementActions({
         <Ellipsis aria-hidden="true" /> Outras ações
       </PopoverTrigger>
       <PopoverContent align="end" size="menu">
-        <div className={styles.management}>
+        <div className="grid min-w-64 gap-0.5">
           {showNegotiate && (
             <button
               type="button"

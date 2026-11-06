@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CircleCheck, GraduationCap, Plus, Search, UsersRound } from "lucide-react";
+import {
+  BadgePercent,
+  Cake,
+  CircleCheck,
+  GraduationCap,
+  Plus,
+  Search,
+  UsersRound,
+} from "lucide-react";
 
 import {
   Button,
@@ -117,6 +125,33 @@ export function studentFilterFields(props: StudentsFilterFieldsProps): TableFilt
       onChange: (values) => filters.setFilters({ situations: values.join(",") || null }),
       onClear: () => filters.setFilters({ situations: null }),
     },
+    {
+      id: "scholarship",
+      label: "Bolsa",
+      kind: "options",
+      icon: BadgePercent,
+      options: [
+        { id: "scholarship", label: "Bolsista" },
+        { id: "regular", label: "Sem bolsa" },
+      ],
+      selected: filters.scholarship,
+      onChange: (values) => filters.setFilters({ scholarship: values.join(",") || null }),
+      onClear: () => filters.setFilters({ scholarship: null }),
+    },
+    {
+      id: "ageRanges",
+      label: "Faixa etária",
+      kind: "options",
+      icon: Cake,
+      options: [
+        { id: "under13", label: "Até 12 anos" },
+        { id: "teen", label: "13 a 17 anos" },
+        { id: "adult", label: "18 anos ou mais" },
+      ],
+      selected: filters.ageRanges,
+      onChange: (values) => filters.setFilters({ ageRanges: values.join(",") || null }),
+      onClear: () => filters.setFilters({ ageRanges: null }),
+    },
     ...remoteFilterFields(props),
     {
       id: "registered",
@@ -177,6 +212,8 @@ export function StudentsControls({
         onClearAll={() =>
           filters.setFilters({
             situations: null,
+            scholarship: null,
+            ageRanges: null,
             classIds: null,
             teacherIds: null,
             registeredFrom: null,
@@ -236,6 +273,8 @@ function hasStudentFilters(filters: ReturnType<typeof useStudentsFilters>): bool
   return Boolean(
     filters.search ||
     filters.situations.length > 0 ||
+    filters.scholarship.length > 0 ||
+    filters.ageRanges.length > 0 ||
     filters.classIds.length > 0 ||
     filters.teacherIds.length > 0 ||
     filters.registeredFrom ||
@@ -273,6 +312,23 @@ export function StudentsPage({ initial }: { initial?: InitialStudentsData }): Re
   const [resuming, setResuming] = useState<string | null>(null);
   const pagination = paginationFor(filters);
   const startCreating = (): void => setCreating(true);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent): void {
+      if (
+        event.key.toLowerCase() !== "n" ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.altKey ||
+        event.shiftKey
+      )
+        return;
+      if (creating || resuming) return;
+      event.preventDefault();
+      setCreating(true);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [creating, resuming]);
 
   return (
     <>

@@ -318,15 +318,17 @@ export function PaymentReversalForm(props: FormProps): ReactElement {
       <form className="grid gap-4" noValidate onSubmit={submit}>
         <ReversalKind state={state} />
         <div className="grid items-start gap-5 lg:grid-cols-2">
-          <div className={state.kind === "REFUND" ? "grid gap-4" : "contents"}>
+          <div className="grid gap-4">
             <ReversalAllocations options={props.options} state={state} />
             <ReversalReason state={state} />
           </div>
-          {state.kind === "REFUND" && (
-            <div className="min-w-0 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
-              <RefundFields props={props} state={state} />
-            </div>
-          )}
+          <div
+            className={`min-w-0 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5 ${state.kind === "CANCELLATION" ? "invisible" : ""}`}
+            inert={state.kind === "CANCELLATION"}
+            aria-hidden={state.kind === "CANCELLATION"}
+          >
+            <RefundFields props={props} state={state} />
+          </div>
         </div>
         {state.error && <ToastAlert variant="destructive">{state.error}</ToastAlert>}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">

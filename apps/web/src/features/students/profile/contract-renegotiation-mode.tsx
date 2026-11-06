@@ -12,7 +12,7 @@ export function ContractRenegotiationMode({
   disabled?: boolean;
 }): ReactElement {
   return (
-    <fieldset disabled={disabled} className="mb-3">
+    <fieldset disabled={disabled}>
       <SegmentedControl
         size="sm"
         aria-label="Como renegociar o contrato"

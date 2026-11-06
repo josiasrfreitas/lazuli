@@ -10,6 +10,7 @@ import {
   Checkbox,
   Dialog,
   DialogBackdrop,
+  DialogCloseButton,
   DialogContent,
   DialogPortal,
 } from "@lazuli/ui";
@@ -54,9 +55,10 @@ export function ContractRenegotiationDialog({
         <DialogContent
           data-size="wide"
           data-layout="termination"
-          showCloseButton={!busy}
+          showCloseButton={false}
           className={`${styles.content} md:w-[calc(100vw-3rem)] md:max-w-[1120px] [&>[data-slot=dialog-footer]]:mt-4`}
         >
+          <DialogCloseButton aria-label="Fechar" disabled={busy} onClick={onClose} />
           {mode === "terminate" ? (
             <ContractTerminationDialog
               contractId={contractId}
@@ -111,6 +113,7 @@ function ReductionDialog({
       bodyLayout="termination"
       size="wide"
       compactHeader
+      headerAction={<ContractRenegotiationMode value="reduce" onChange={onTerminate} />}
       actionSize="sm"
       onClose={onClose}
       pending={false}
@@ -120,7 +123,6 @@ function ReductionDialog({
       submitDisabled
       error={options.error?.message}
     >
-      <ContractRenegotiationMode value="reduce" onChange={onTerminate} />
       {options.isPending ? (
         <FinancialDialogLoading termination />
       ) : (
@@ -271,6 +273,13 @@ function ReductionFormView(props: ReductionFormViewProps): ReactElement {
       bodyLayout="termination"
       size="wide"
       compactHeader
+      headerAction={
+        <ContractRenegotiationMode
+          value="reduce"
+          disabled={pending || Boolean(review)}
+          onChange={onTerminate}
+        />
+      }
       actionSize="sm"
       onClose={onClose}
       pending={pending}
@@ -282,11 +291,6 @@ function ReductionFormView(props: ReductionFormViewProps): ReactElement {
       submitIcon={review ? <Check aria-hidden /> : <ArrowRight aria-hidden />}
       submitDisabled={options.lines.length === 0 || Boolean(review && !acknowledged)}
     >
-      <ContractRenegotiationMode
-        value="reduce"
-        disabled={pending || Boolean(review)}
-        onChange={onTerminate}
-      />
       <ReductionFormBody {...props} />
     </TaskDialog>
   );

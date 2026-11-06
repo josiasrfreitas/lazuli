@@ -18,6 +18,8 @@ export const STUDENT_PAGE_SIZE_OPTIONS = studentPaginationPolicy.pageSizeOptions
 export const DEFAULT_STUDENT_PAGE_SIZE = studentPaginationPolicy.defaultPageSize;
 
 export const studentListStatusFilterSchema = z.enum(["all", "active", "inactive"]);
+export const studentScholarshipFilterSchema = z.enum(["scholarship", "regular"]);
+export const studentAgeRangeFilterSchema = z.enum(["under13", "teen", "adult"]);
 
 export const studentListInputSchema = z
   .object({
@@ -29,6 +31,8 @@ export const studentListInputSchema = z
       .array(z.enum(["active", "inactive"]))
       .max(2)
       .optional(),
+    scholarship: z.array(studentScholarshipFilterSchema).max(2).optional(),
+    ageRanges: z.array(studentAgeRangeFilterSchema).max(3).optional(),
     classIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
     teacherIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
     registeredFrom: civilDateSchema.optional(),
