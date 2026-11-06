@@ -41,11 +41,6 @@
 .tabContent {
   min-width: 0;
   padding-block: 1.5rem;
-  animation: student-context-arrive 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-:global(html[data-student-carousel]) .tabContent {
-  animation: none;
 }
 
 .headerActions {
@@ -141,10 +136,6 @@
 
   .lateData {
     animation: student-context-dissolve 120ms ease-out;
-  }
-
-  .tabContent {
-    animation: student-context-dissolve 100ms ease-out;
   }
 
   .journey[data-pointer-navigation][open] > ol {

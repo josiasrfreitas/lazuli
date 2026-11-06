@@ -1,5 +1,5 @@
 import type { RouterOutputs } from "@lazuli/api";
-import { formatDateOnlyBR } from "~/lib/format";
+import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { dateLabel } from "~/features/admissions/labels";
 import { initialNewStudentState, type NewStudentFields } from "./reducer";
 
@@ -52,13 +52,37 @@ export function existingStudentSelections(pending: PendingActions): {
   stageId: string | null;
   format: "IN_PERSON" | "ONLINE";
   scheduleType: "REGULAR" | "PERSONALIZED";
+  entryPeriod: "CURRENT" | "NEXT";
+  selectedId: string;
 } {
   const linked = pending.lead;
-  const enrollmentClass = pending.enrollment?.class;
+  const future = pending.enrollment ? null : pending.futurePlacement;
   return {
     candidateId: linked?.id ?? null,
-    stageId: linked?.stageId ?? enrollmentClass?.sharedStage?.id ?? null,
-    ...existingClassFormat(pending),
+    stageId: selectedStageId(pending, future),
+    ...selectionClassFormat(pending, future),
+    entryPeriod: future ? "NEXT" : "CURRENT",
+    selectedId: future?.planId ?? "",
+  };
+}
+
+function selectedStageId(
+  pending: PendingActions,
+  future: PendingActions["futurePlacement"] | null,
+): string | null {
+  return (
+    future?.stageId ?? pending.lead?.stageId ?? pending.enrollment?.class?.sharedStage?.id ?? null
+  );
+}
+
+function selectionClassFormat(
+  pending: PendingActions,
+  future: PendingActions["futurePlacement"] | null,
+): Pick<ReturnType<typeof existingStudentSelections>, "format" | "scheduleType"> {
+  const current = existingClassFormat(pending);
+  return {
+    format: future?.plan?.format ?? current.format,
+    scheduleType: future?.plan?.scheduleType ?? current.scheduleType,
   };
 }
 
@@ -109,12 +133,18 @@ export function leadStudentSelections(lead: Lead): {
   stageId: string | null;
   format: "IN_PERSON" | "ONLINE";
   scheduleType: "REGULAR" | "PERSONALIZED";
+  entryPeriod: "CURRENT" | "NEXT";
   selectedId: string;
 } {
+  const futurePlan = Boolean(
+    lead.allocationPlan &&
+    lead.allocationPlan.semester.startDate > new Date(toDateOnlySaoPaulo(new Date())),
+  );
   return {
     stageId: lead.stageId,
     format: lead.format ?? "IN_PERSON",
     scheduleType: lead.scheduleType ?? "REGULAR",
-    selectedId: lead.allocationPlan?.classId ?? "",
+    entryPeriod: futurePlan ? "NEXT" : "CURRENT",
+    selectedId: futurePlan ? (lead.allocationPlan?.id ?? "") : (lead.allocationPlan?.classId ?? ""),
   };
 }

@@ -177,6 +177,35 @@ void it("loads period organization and confirms intention without creating a con
   assert.equal(await db.enrollment.count({ where: { studentId: student.id } }), 1);
 });
 
+void it("allows a new placement in the same track after an unfinished proposal was removed", async () => {
+  const scope = await fixture();
+  const student = await scope.student("Recreated intake");
+  await db.semesterPlacement.update({
+    where: { id: student.proposal.id },
+    data: { deletedAt: new Date("2085-05-15T15:00:00.000Z") },
+  });
+  const recreated = await caller().semesterOrganization.savePlacement({
+    semesterId: scope.semester.id,
+    studentId: student.id,
+    planId: scope.plan.id,
+    stageId: scope.catalog.firstStageId,
+    sourceProgressId: student.source.progress.id,
+    mode: "CONTINUE",
+  });
+  assert.notEqual(recreated.id, student.proposal.id);
+  assert.equal(
+    await db.semesterPlacement.count({
+      where: {
+        semesterId: scope.semester.id,
+        studentId: student.id,
+        trackId: { not: null },
+        deletedAt: null,
+      },
+    }),
+    1,
+  );
+});
+
 void it("preconfirms only contracts covering the first three months of the selected period", async () => {
   const scope = await fixture();
   const covered = await scope.student("Covered");

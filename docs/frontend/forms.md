@@ -31,6 +31,10 @@ The reference implementation is the Storybook story `Patterns/DenseForm`. New fo
   no placeholder. Use `maskDateBR` / `parseDateBR` from `~/lib/masks`.
 - Phones are masked with `maskPhoneBR`; `inputMode="tel"` / `"numeric"` on numeric fields.
 - Up to five options render as `SegmentedControl` pills, not a `Select`.
+  The shared control uses a muted rounded track and an elevated selected capsule: white in light
+  mode and blue in dark mode. Keep the shared 32/40 px sizes, focus outline, invalid state, and
+  reduced-motion behavior. Use `wrap` when choices need multiple rows; do not restyle individual
+  instances into rectangular tabs.
 
 **Keyboard**
 

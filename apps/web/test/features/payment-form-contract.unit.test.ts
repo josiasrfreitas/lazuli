@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import * as React from "react";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, trpc } from "../../src/lib/trpc.js";
@@ -33,8 +33,24 @@ const state: PaymentFormState = {
   refresh: () => {},
   isSubmitting: () => false,
 };
+function renderForm(formState: PaymentFormState, children: ReactNode = null): string {
+  const queryClient = new QueryClient();
+  const html = renderToStaticMarkup(
+    createElement(trpc.Provider, {
+      client: createTRPCClient(),
+      queryClient,
+      children: createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(PaymentForm, { state: formState, children }),
+      ),
+    }),
+  );
+  queryClient.clear();
+  return html;
+}
 void it("renders one real form with masked date and compact named payment controls", () => {
-  const html = renderToStaticMarkup(createElement(PaymentForm, { state, children: null }));
+  const html = renderForm(state);
   assert.equal((html.match(/<form\b/g) ?? []).length, 1);
   assert.match(html, /id="register-payments"/);
   assert.match(html, /noValidate=""/i);
@@ -58,14 +74,9 @@ void it("renders one real form with masked date and compact named payment contro
   assert.doesNotMatch(html, /Continuar|Stepper|Pagamento registrado/);
 });
 void it("shows the third-party name only for Pix and per receipt", () => {
-  const pix = renderToStaticMarkup(createElement(PaymentForm, { state, children: null }));
+  const pix = renderForm(state);
   assert.match(pix, /name="third-party-receipt-one"/);
-  const cash = renderToStaticMarkup(
-    createElement(PaymentForm, {
-      state: { ...state, draft: { ...PAYMENT_DRAFT, method: "CASH" } },
-      children: null,
-    }),
-  );
+  const cash = renderForm({ ...state, draft: { ...PAYMENT_DRAFT, method: "CASH" } });
   assert.doesNotMatch(cash, /third-party-|Pix feito por terceiro/);
 });
 void it("shows preview failure without claiming settlement or successful registration", () => {
@@ -76,49 +87,27 @@ void it("shows preview failure without claiming settlement or successful registr
       error: "Parcela alterada",
     },
   ];
-  const html = renderToStaticMarkup(
-    createElement(PaymentForm, {
-      state: { ...state, preview, error: "Falha na prévia" },
-      children: null,
-    }),
-  );
+  const html = renderForm({ ...state, preview, error: "Falha na prévia" });
   assert.match(html, /Prévia indisponível/);
   assert.match(html, /Parcela alterada/);
   assert.doesNotMatch(html, /Quitação integral|Pagamento registrado/);
 });
 
 void it("shows a recovery action when payment methods cannot load", () => {
-  const html = renderToStaticMarkup(
-    createElement(PaymentForm, {
-      state: { ...state, methodsError: true },
-      children: null,
-    }),
-  );
+  const html = renderForm({ ...state, methodsError: true });
   assert.match(html, /Não foi possível carregar as formas de pagamento/);
   assert.match(html, /Tentar novamente/);
 });
 
 void it("opens the main entry with an accessible search field inside the payment form", () => {
   const empty = { ...state, draft: { ...state.draft, items: [] }, preview: [] };
-  const queryClient = new QueryClient();
-  const form = createElement(PaymentForm, {
-    state: empty,
-    children: createElement(PaymentPicker, { state: empty }),
-  });
-  const html = renderToStaticMarkup(
-    createElement(trpc.Provider, {
-      client: createTRPCClient(),
-      queryClient,
-      children: createElement(QueryClientProvider, { client: queryClient }, form),
-    }),
-  );
+  const html = renderForm(empty, createElement(PaymentPicker, { state: empty }));
   const searchId = html.match(/<input id="([^"]+)"[^>]*name="search"/)?.[1];
   assert.ok(searchId);
   assert.ok(html.includes(`for="${searchId}"`));
   assert.match(html, />Buscar por pagador ou aluno<\/label>/);
   assert.match(html, /Busque e adicione os recebíveis para registrar/);
   assert.equal((html.match(/<form\b/g) ?? []).length, 1);
-  queryClient.clear();
 });
 
 void it("names each receipt by payer and keeps its allocated installments together", () => {
@@ -144,9 +133,7 @@ void it("names each receipt by payer and keeps its allocated installments togeth
       },
     ],
   };
-  const html = renderToStaticMarkup(
-    createElement(PaymentForm, { state: { ...state, draft }, children: null }),
-  );
+  const html = renderForm({ ...state, draft });
   const sections = html.match(/<section\b[\s\S]*?<\/section>/g) ?? [];
   assert.equal(sections.length, 2);
   assert.match(sections[0], /Pagador homônimo/);
@@ -162,9 +149,7 @@ void it("names each receipt by payer and keeps its allocated installments togeth
 void it("does not describe an invalid received amount as a full settlement", () => {
   for (const amount of [0, null, 30000]) {
     const draft = { ...PAYMENT_DRAFT, items: [{ ...PAYMENT_DRAFT.items[0]!, amount }] };
-    const html = renderToStaticMarkup(
-      createElement(PaymentForm, { state: { ...state, draft }, children: null }),
-    );
+    const html = renderForm({ ...state, draft });
     assert.match(html, /aria-invalid="true"/);
     assert.match(html, /Informe um valor positivo até a quitação/);
     assert.doesNotMatch(html, /Quitação integral/);

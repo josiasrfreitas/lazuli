@@ -1,6 +1,7 @@
 import { activityMoney } from "../activity/format.js";
 import { payerSubject, orderSubject, installmentSubject } from "../activity/subjects.js";
 import { activityTransaction } from "../activity/record.js";
+import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import {
   contractClosingsInputSchema,
   z,
@@ -20,6 +21,8 @@ import {
   financialTreatmentConfirmSchema,
   financeInstallmentsOutputSchema,
   financeRegisterPaymentInputSchema,
+  financeReversePaymentInputSchema,
+  financeCreatePaymentMethodInputSchema,
   financeSettingsInputSchema,
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
@@ -32,12 +35,35 @@ import {
 
 import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
-import { studentPayments } from "./payment-proofs.js";
+import { installmentPayments, studentPayments } from "./payment-proofs.js";
+import { createPaymentMethod } from "./payment-methods.js";
 import { renewalTerms } from "./internal/renewal.js";
 
 const AGREEMENT_TRANSACTION_TIMEOUT_MS = 30_000;
+const INSTALLMENTS_TRANSACTION_TIMEOUT_MS = 15_000;
+const processLogger = createServiceLogger("web");
 
 export const financeRouter = router({
+  contractInstallments: adminProcedure
+    .input(z.object({ orderId: z.string().uuid() }).strict())
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (transaction) =>
+          finance(transaction, ctx.staffUser.id).contractInstallments({
+            ...input,
+            now: ctx.now ?? new Date(),
+          }),
+        { isolationLevel: "RepeatableRead", timeout: INSTALLMENTS_TRANSACTION_TIMEOUT_MS },
+      ),
+    ),
+  paymentReversalOptions: adminProcedure
+    .input(z.object({ paymentEntryId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      finance(ctx.db, ctx.staffUser.id).paymentReversalOptions(input.paymentEntryId),
+    ),
+  installmentPayments: adminProcedure
+    .input(z.object({ installmentId: z.string().uuid() }))
+    .query(({ ctx, input }) => installmentPayments(ctx, input.installmentId)),
   studentPayments: adminProcedure
     .input(
       z.object({
@@ -54,6 +80,23 @@ export const financeRouter = router({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
   ),
+  createPaymentMethod: adminProcedure
+    .input(financeCreatePaymentMethodInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await activityTransaction(ctx, {
+        action: "finance.createPaymentMethod",
+        work: (tx) => createPaymentMethod(tx, input.name),
+        describe: ({ method, outcome }) =>
+          outcome === "existing"
+            ? null
+            : {
+                subject: { type: "school", name: "Formas de pagamento" },
+                description: `${method.name} ${outcome === "created" ? "cadastrada" : "reativada"}.`,
+              },
+      });
+      const { active: _active, ...method } = result.method;
+      return method;
+    }),
   renegotiationOptions: adminProcedure
     .input(contractTerminationPreviewSchema)
     .query(({ ctx, input }) =>
@@ -296,9 +339,20 @@ export const financeRouter = router({
     ),
   searchContractParties: adminProcedure
     .input(contractPartySearchInputSchema)
-    .query(({ ctx, input }) =>
-      finance(ctx.db, ctx.staffUser.id).searchContractParties(input.query),
-    ),
+    .query(async ({ ctx, input }) => {
+      const started = performance.now();
+      const result = await finance(ctx.db, ctx.staffUser.id).searchContractParties(input.query);
+      logDevelopmentProcess(processLogger, {
+        requestId: ctx.requestId,
+        userId: ctx.staffUser.id,
+        resource: "finance.searchContractParties",
+        operation: "DB",
+        step: "Matching students and payers found",
+        durationMs: Math.round(performance.now() - started),
+        facts: { students: result.students.length, payers: result.payers.length },
+      });
+      return result;
+    }),
   readContractOffer: adminProcedure.query(({ ctx }) =>
     finance(ctx.db, ctx.staffUser.id).readContractOffer(),
   ),
@@ -343,6 +397,25 @@ export const financeRouter = router({
         throw error;
       }
     }),
+  reversePayment: adminProcedure
+    .input(financeReversePaymentInputSchema)
+    .mutation(({ ctx, input }) =>
+      activityTransaction(ctx, {
+        action: input.kind === "CANCELLATION" ? "finance.cancelPayment" : "finance.refundPayment",
+        work: (tx) => finance(tx, ctx.staffUser.id).reversePayment(input, ctx.now ?? new Date()),
+        describe: async (result, database) => {
+          const payment = await database.paymentEntry.findUniqueOrThrow({
+            where: { id: input.paymentEntryId },
+            select: { payerId: true },
+          });
+          return {
+            subject: await payerSubject(database, payment.payerId),
+            description: `${input.kind === "CANCELLATION" ? "Recebimento cancelado" : "Valor estornado"}: ${activityMoney(result.amountCents)}${input.reason ? `. ${input.reason}` : "."}`,
+            deduplicationKey: `finance.reversePayment:${result.id}`,
+          };
+        },
+      }),
+    ),
   batchReconcile: adminProcedure
     .input(financeBatchReconcileInputSchema)
     .mutation(({ ctx, input }) =>
@@ -397,7 +470,7 @@ export const financeRouter = router({
       const now = ctx.now ?? new Date();
       return ctx.db.$transaction(
         (transaction) => finance(transaction, ctx.staffUser.id).installments(input, now),
-        { isolationLevel: "RepeatableRead" },
+        { isolationLevel: "RepeatableRead", timeout: INSTALLMENTS_TRANSACTION_TIMEOUT_MS },
       );
     }),
 });

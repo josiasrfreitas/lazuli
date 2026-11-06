@@ -1,35 +1,27 @@
 "use client";
 
-import { useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
-import { CircleCheck, DollarSign, Handshake, Search, Tags, X } from "lucide-react";
 import {
-  Button,
-  DataTablePage,
-  FloatingToolbar,
-  Input,
-  TableFilters,
-  TablePagination,
-  type TableFilterField,
-} from "@lazuli/ui";
+  useEffect,
+  useState,
+  type ComponentProps,
+  type Dispatch,
+  type ReactElement,
+  type SetStateAction,
+} from "react";
+import { useRouter } from "next/navigation";
+import { DollarSign, Handshake, X } from "lucide-react";
+import { Button, DataTablePage, FloatingToolbar, TablePagination, toastManager } from "@lazuli/ui";
 import {
   financeInstallmentsPaginationPolicy,
   financeOverduePaginationPolicy,
-  orderKindSchema,
   type FinanceInstallmentRow,
 } from "@lazuli/validators";
-import { useSearchDraft } from "~/lib/use-search-draft";
-import { trpc } from "~/lib/trpc";
 import { tablePaginationPropsFor } from "~/lib/pagination";
-import {
-  hasInstallmentFilters,
-  INSTALLMENT_STATUSES,
-  SEARCH_MAX_LENGTH,
-  situationPatch,
-  type InstallmentFilters,
-  type InstallmentFilterPatch,
-} from "./filters";
+import { hasInstallmentFilters, type InstallmentFilters } from "./filters";
 import { InstallmentActionsContext } from "./installment-actions";
 import { InstallmentsTable } from "./installments-table";
+import { InstallmentProofDialog } from "./installment-proof-dialog";
+import { installmentColumnMode } from "./column-policy";
 import { useInstallments, type InitialInstallmentsData } from "./logic";
 import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import { PaymentDialog } from "./payment/payment-dialog";
@@ -38,198 +30,13 @@ import {
   toggleSelected,
   toggleVisibleSelection,
 } from "./payment/selection";
-import { originLabel } from "./view-model";
+import { InstallmentsControls } from "./installments-controls";
 
 const MAX_NEGOTIATION_INSTALLMENTS = 100;
-
-function SearchField({
-  search,
-  onSearch,
-}: {
-  search: string;
-  onSearch: (value: string) => void;
-}): ReactElement {
-  const [value, setValue] = useSearchDraft(search, onSearch);
-  return (
-    <div className="relative w-full sm:w-44 lg:w-64 2xl:w-80">
-      <Search
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
-      />
-      <Input
-        aria-label="Buscar por pagador ou beneficiário"
-        className="pl-8"
-        type="search"
-        placeholder="Buscar por pagador ou beneficiário"
-        maxLength={SEARCH_MAX_LENGTH}
-        size="sm"
-        value={value}
-        onChange={(event) => {
-          setValue(event.target.value);
-        }}
-      />
-    </div>
-  );
-}
-
-function situationField(input: {
-  filters: InstallmentFilters;
-  onFilters: (patch: InstallmentFilterPatch) => void;
-}): TableFilterField {
-  return {
-    id: "situations",
-    label: "Situação",
-    kind: "options",
-    icon: CircleCheck,
-    promoted: true,
-    options: INSTALLMENT_STATUSES.map((id) => ({
-      id,
-      label: {
-        OVERDUE: "Vencida",
-        DUE_THIS_MONTH: "Vence este mês",
-        UPCOMING: "A vencer",
-        PAID: "Paga",
-        WAIVED: "Dispensada",
-      }[id],
-    })),
-    selected: input.filters.status === "vencidas" ? ["OVERDUE"] : input.filters.situations,
-    onChange: (values) => input.onFilters(situationPatch(values)),
-    onClear: () => input.onFilters(situationPatch([])),
-  };
-}
-
-function dueField(input: {
-  filters: InstallmentFilters;
-  onFilters: (patch: InstallmentFilterPatch) => void;
-}): TableFilterField {
-  return {
-    id: "due",
-    label: "Vencimento",
-    kind: "period",
-    promoted: true,
-    from: input.filters.dueFrom,
-    to: input.filters.dueTo,
-    onChange: (from, to) => {
-      if (from && to && from > to) {
-        if (from === input.filters.dueFrom) from = "";
-        else to = "";
-      }
-      input.onFilters({ dueFrom: from || null, dueTo: to || null });
-    },
-    onClear: () => input.onFilters({ dueFrom: null, dueTo: null }),
-  };
-}
-
-function originField(input: {
-  filters: InstallmentFilters;
-  onFilters: (patch: InstallmentFilterPatch) => void;
-}): TableFilterField {
-  return {
-    id: "origins",
-    label: "Origem",
-    kind: "options",
-    icon: Tags,
-    promoted: true,
-    options: orderKindSchema.options.map((id) => ({ id, label: originLabel(id) })),
-    selected: input.filters.origins,
-    onChange: (values) => input.onFilters({ origins: values.join(",") || null }),
-    onClear: () => input.onFilters({ origins: null }),
-  };
-}
-
-function amountField(input: {
-  filters: InstallmentFilters;
-  onFilters: (patch: InstallmentFilterPatch) => void;
-}): TableFilterField {
-  return {
-    id: "amount",
-    label: "Valor (R$)",
-    kind: "amount",
-    from: input.filters.amountFrom,
-    to: input.filters.amountTo,
-    onChange: (from, to) => {
-      if (from && to && Number(from) > Number(to)) {
-        if (from === input.filters.amountFrom) from = "";
-        else to = "";
-      }
-      input.onFilters({ amountFrom: from || null, amountTo: to || null });
-    },
-    onClear: () => input.onFilters({ amountFrom: null, amountTo: null }),
-  };
-}
-
-function InstallmentsControls({
-  search,
-  filters,
-  onSearch,
-  onFilters,
-}: {
-  search: string;
-  filters: InstallmentFilters;
-  onSearch: (value: string) => void;
-  onFilters: (patch: InstallmentFilterPatch) => void;
-}): ReactElement {
-  const student = trpc.students.byId.useQuery(
-    { id: filters.studentId ?? "" },
-    { enabled: Boolean(filters.studentId) },
-  );
-  const filterFields = [
-    ...studentFilterFields({ filters, onFilters, studentName: student.data?.contact.fullName }),
-    situationField({ filters, onFilters }),
-    originField({ filters, onFilters }),
-    dueField({ filters, onFilters }),
-    amountField({ filters, onFilters }),
-  ];
-  return (
-    <div className="flex flex-wrap items-center gap-2 2xl:gap-3">
-      <SearchField search={search} onSearch={onSearch} />
-      <TableFilters
-        fields={filterFields}
-        onClearAll={() =>
-          onFilters({
-            studentId: null,
-            status: null,
-            situations: null,
-            origins: null,
-            dueFrom: null,
-            dueTo: null,
-            amountFrom: null,
-            amountTo: null,
-          })
-        }
-      />
-    </div>
-  );
-}
-
-function studentFilterFields({
-  filters,
-  onFilters,
-  studentName,
-}: {
-  filters: InstallmentFilters;
-  onFilters: (patch: InstallmentFilterPatch) => void;
-  studentName: string | undefined;
-}): TableFilterField[] {
-  if (!filters.studentId) return [];
-  return [
-    {
-      id: "student",
-      label: "Aluno",
-      kind: "options",
-      promoted: true,
-      options: [{ id: filters.studentId, label: studentName ?? "Aluno selecionado" }],
-      selected: [filters.studentId],
-      onChange: (values) => onFilters({ studentId: values[0] ?? null }),
-      onClear: () => onFilters({ studentId: null }),
-    },
-  ];
-}
 
 type EntrySession = {
   session: FinanceInstallmentRow[] | null;
   open: boolean;
-  registered: boolean;
   begin: (rows: FinanceInstallmentRow[]) => void;
   setOpen: (open: boolean) => void;
   complete: () => void;
@@ -238,11 +45,9 @@ type EntrySession = {
 function useEntrySession(clear: () => void): EntrySession {
   const [session, setSession] = useState<FinanceInstallmentRow[] | null>(null);
   const [open, setOpen] = useState(false);
-  const [registered, setRegistered] = useState(false);
   return {
     session,
     open,
-    registered,
     setOpen,
     begin: (rows) => {
       setSession((current) => {
@@ -252,13 +57,12 @@ function useEntrySession(clear: () => void): EntrySession {
         return [...current, ...rows.filter((row) => !ids.has(row.installmentId))];
       });
       setOpen(true);
-      setRegistered(false);
     },
     complete: () => {
       setSession(null);
       setOpen(false);
       clear();
-      setRegistered(true);
+      toastManager.add({ title: "Pagamento registrado.", type: "success", timeout: 5000 });
     },
   };
 }
@@ -310,22 +114,23 @@ export function InstallmentsPagination({
   setPage,
   setPageSize,
 }: Pick<ReturnType<typeof useInstallments>, "data" | "setPage" | "setPageSize"> & {
-  filters: Pick<InstallmentFilters, "status" | "page" | "pageSize">;
+  filters: Pick<InstallmentFilters, "status" | "page" | "pageSize"> &
+    Partial<Pick<InstallmentFilters, "situations">>;
 }): ReactElement {
-  const overdue = filters.status === "vencidas";
+  const grouped = filters.status === "vencidas" || (filters.situations?.length ?? 0) > 0;
   return (
     <TablePagination
-      className={overdue ? "bg-transparent" : undefined}
+      className={grouped ? "bg-transparent" : undefined}
       itemLabel={
-        overdue
+        grouped
           ? { singular: "pagador", plural: "pagadores" }
           : { singular: "parcela", plural: "parcelas" }
       }
       {...tablePaginationPropsFor(
         {
           page: filters.page,
-          pageSize: overdue ? financeOverduePaginationPolicy.defaultPageSize : filters.pageSize,
-          ...(overdue
+          pageSize: grouped ? financeOverduePaginationPolicy.defaultPageSize : filters.pageSize,
+          ...(grouped
             ? {}
             : { pageSizeOptions: financeInstallmentsPaginationPolicy.pageSizeOptions }),
           setPage,
@@ -338,6 +143,13 @@ export function InstallmentsPagination({
 }
 
 type InstallmentsPageState = ReturnType<typeof useInstallments>;
+type TableData = Pick<ComponentProps<typeof InstallmentsTable>, "rows" | "groups">;
+
+function tableData(data: InstallmentsPageState["data"]): TableData {
+  if (!data) return {};
+  if (data.view === "all" || data.view === "paid") return { rows: data.rows };
+  return { groups: data.groups };
+}
 
 function InstallmentsTableFooter({
   state,
@@ -365,17 +177,22 @@ function InstallmentsTableFooter({
 function InstallmentsTableContent({
   state,
   toolbar,
+  onRowClick,
 }: {
   state: InstallmentsPageState;
   toolbar: ReactElement | null;
+  onRowClick: (row: FinanceInstallmentRow) => void;
 }): ReactElement {
   const { data, filters, query } = state;
+  const situations = filters.status === "vencidas" ? (["OVERDUE"] as const) : filters.situations;
   return (
     <InstallmentsTable
-      rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
-      groups={data?.view === "overdue" ? data.groups : undefined}
+      {...tableData(data)}
+      situations={situations}
+      onRowClick={onRowClick}
       error={query.isError}
       filtered={hasInstallmentFilters(filters)}
+      showGroupedSearchGuidance={filters.situations.length > 0 && filters.search.trim() !== ""}
       showOverdueSearchGuidance={filters.status === "vencidas" && filters.search.trim() !== ""}
       updating={query.isFetching}
       footer={<InstallmentsTableFooter state={state} toolbar={toolbar} />}
@@ -395,6 +212,11 @@ function InstallmentsTableFrame({
   beginPayment: (rows: FinanceInstallmentRow[]) => void;
   toolbar: ReactElement | null;
 }): ReactElement {
+  const router = useRouter();
+  const openStudentFinance = (row: FinanceInstallmentRow): void => {
+    const studentId = row.beneficiaries[0]?.studentId;
+    if (studentId) router.push(`/alunos/${studentId}?secao=financeiro`);
+  };
   return (
     <DataTablePage
       title="Recebíveis"
@@ -406,24 +228,20 @@ function InstallmentsTableFrame({
             onSearch={state.setSearch}
             onFilters={state.setFilters}
           />
-          <Button size="sm" onClick={() => beginPayment([])}>
-            <DollarSign aria-hidden="true" />
-            Registrar pagamento
-          </Button>
+          {installmentColumnMode(
+            state.filters.status === "vencidas" ? ["OVERDUE"] : state.filters.situations,
+          ) !== "paid" && (
+            <Button size="sm" onClick={() => beginPayment([])}>
+              <DollarSign aria-hidden="true" />
+              Registrar pagamento
+            </Button>
+          )}
         </div>
       }
     >
-      <InstallmentsTableContent state={state} toolbar={toolbar} />
+      <InstallmentsTableContent state={state} toolbar={toolbar} onRowClick={openStudentFinance} />
     </DataTablePage>
   );
-}
-
-function PaymentRegisteredStatus({ registered }: { registered: boolean }): ReactElement | null {
-  return registered ? (
-    <p role="status" className="px-6 pt-2 text-caption text-success">
-      Pagamento registrado.
-    </p>
-  ) : null;
 }
 
 function PaymentEntryDialog({ entry }: { entry: EntrySession }): ReactElement | null {
@@ -445,25 +263,34 @@ export function InstallmentsPage({
   const state = useInstallments(initial);
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
   const [paymentRow, setPaymentRow] = useState<FinanceInstallmentRow | null>(null);
-  const [rowPaymentRegistered, setRowPaymentRegistered] = useState(false);
+  const [proofRow, setProofRow] = useState<FinanceInstallmentRow | null>(null);
   const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
   const [treatmentRegistered, setTreatmentRegistered] = useState(false);
   useEffect(() => setRows([]), [state.filters.studentId]);
   const entry = useEntrySession(() => setRows([]));
+  const mode = installmentColumnMode(
+    state.filters.status === "vencidas" ? ["OVERDUE"] : state.filters.situations,
+  );
+  useEffect(() => {
+    if (mode === "paid" || mode === "waived") setRows([]);
+  }, [mode]);
   const visible =
-    state.data?.view === "overdue"
+    state.data?.view === "overdue" || state.data?.view === "grouped"
       ? state.data.groups.flatMap((group) => group.rows)
       : (state.data?.rows ?? []);
-  const toolbar = selectionToolbar({
-    rows,
-    visible,
-    entry,
-    paymentRow,
-    treatmentIds,
-    setRows,
-    setTreatmentIds,
-    setTreatmentRegistered,
-  });
+  const toolbar =
+    mode === "paid" || mode === "waived"
+      ? null
+      : selectionToolbar({
+          rows,
+          visible,
+          entry,
+          paymentRow,
+          treatmentIds,
+          setRows,
+          setTreatmentIds,
+          setTreatmentRegistered,
+        });
   return (
     <InstallmentsPageView
       {...{
@@ -473,10 +300,10 @@ export function InstallmentsPage({
         toolbar,
         entry,
         paymentRow,
+        proofRow,
+        setProofRow,
         setPaymentRow,
         setRows,
-        rowPaymentRegistered,
-        setRowPaymentRegistered,
         treatmentIds,
         setTreatmentIds,
         treatmentRegistered,
@@ -492,7 +319,8 @@ type InstallmentsPageViewProps = InstallmentDialogsProps & {
   visible: FinanceInstallmentRow[];
   toolbar: ReactElement | null;
   entry: EntrySession;
-  rowPaymentRegistered: boolean;
+  proofRow: FinanceInstallmentRow | null;
+  setProofRow: Dispatch<SetStateAction<FinanceInstallmentRow | null>>;
 };
 
 function InstallmentsPageView(props: InstallmentsPageViewProps): ReactElement {
@@ -504,22 +332,22 @@ function InstallmentsPageView(props: InstallmentsPageViewProps): ReactElement {
     entry,
     setRows,
     setPaymentRow,
-    setRowPaymentRegistered,
+    proofRow,
+    setProofRow,
     setTreatmentIds,
     setTreatmentRegistered,
-    rowPaymentRegistered,
   } = props;
   return (
     <InstallmentActionsContext.Provider
       value={{
         receive: (row) => {
-          setRowPaymentRegistered(false);
           setPaymentRow(row);
         },
         negotiate: (row) => {
           setTreatmentRegistered(false);
           setTreatmentIds([row.installmentId]);
         },
+        viewProof: (row) => setProofRow(row),
       }}
     >
       <PaymentSelectionContext.Provider
@@ -530,10 +358,16 @@ function InstallmentsPageView(props: InstallmentsPageViewProps): ReactElement {
           toggleVisible: () => setRows((current) => toggleVisibleSelection(current, visible)),
         }}
       >
-        <PaymentRegisteredStatus registered={entry.registered || rowPaymentRegistered} />
         <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
         <PaymentEntryDialog entry={entry} />
         <InstallmentDialogs {...props} />
+        {proofRow && (
+          <InstallmentProofDialog
+            installmentId={proofRow.installmentId}
+            payerName={proofRow.payer.name}
+            onClose={() => setProofRow(null)}
+          />
+        )}
       </PaymentSelectionContext.Provider>
     </InstallmentActionsContext.Provider>
   );
@@ -580,7 +414,6 @@ type InstallmentDialogsProps = {
   paymentRow: FinanceInstallmentRow | null;
   setPaymentRow: Dispatch<SetStateAction<FinanceInstallmentRow | null>>;
   setRows: Dispatch<SetStateAction<FinanceInstallmentRow[]>>;
-  setRowPaymentRegistered: Dispatch<SetStateAction<boolean>>;
   treatmentIds: string[] | null;
   setTreatmentIds: Dispatch<SetStateAction<string[] | null>>;
   treatmentRegistered: boolean;
@@ -606,7 +439,6 @@ function InstallmentRowPaymentDialog({
   paymentRow,
   setPaymentRow,
   setRows,
-  setRowPaymentRegistered,
 }: InstallmentDialogsProps & { paymentRow: FinanceInstallmentRow }): ReactElement {
   return (
     <PaymentDialog
@@ -621,7 +453,7 @@ function InstallmentRowPaymentDialog({
           current.filter((row) => row.installmentId !== paymentRow.installmentId),
         );
         setPaymentRow(null);
-        setRowPaymentRegistered(true);
+        toastManager.add({ title: "Pagamento registrado.", type: "success", timeout: 5000 });
       }}
     />
   );

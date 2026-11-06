@@ -1,0 +1,25 @@
+.contract-renegotiation-content > [data-slot="dialog-header"],
+.contract-renegotiation-content > [data-slot="dialog-body"],
+.contract-renegotiation-content > [data-slot="dialog-footer"] {
+  animation: contract-renegotiation-reveal 160ms ease-out both;
+}
+
+@keyframes contract-renegotiation-reveal {
+  from {
+    opacity: 0.65;
+    translate: 0 3px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contract-renegotiation-content > [data-slot="dialog-header"],
+  .contract-renegotiation-content > [data-slot="dialog-body"],
+  .contract-renegotiation-content > [data-slot="dialog-footer"] {
+    animation: none;
+  }
+}

@@ -12,8 +12,15 @@ import {
   loadOverdueTotal,
   loadInstallmentCounts,
   loadInstallmentPage,
+  loadGroupedPage,
+  loadGroupedTotal,
 } from "./installments-query.js";
-import { groupOverdueRows, type LoadedBeneficiaries, toPublicRow } from "../installments-groups.js";
+import {
+  groupOverdueRows,
+  groupPayerRows,
+  type LoadedBeneficiaries,
+  toPublicRow,
+} from "../installments-groups.js";
 import type { FinanceDatabase } from "./shared.js";
 
 type InstallmentsResponseBody = Omit<Extract<FinanceInstallmentsOutput, { view: "all" }>, "view">;
@@ -35,6 +42,14 @@ export async function listInstallments(input: {
       counts,
     });
   }
+  if (input.values.view === "grouped") {
+    return listGroupedInstallments({
+      database: input.database,
+      queryInput,
+      page: input.values.page,
+      counts,
+    });
+  }
   const { studentFilter, total } = studentInitialFilter(input.values, counts);
   if (input.values.studentFilter === "auto" && studentFilter === "overdue")
     queryInput.statuses = ["OVERDUE"];
@@ -44,12 +59,23 @@ export async function listInstallments(input: {
     page: input.values.page,
     pageSize: input.values.pageSize,
   });
-  const beneficiaries = await loadBeneficiaries(
-    input.database,
-    rows.map((row) => row.orderId),
-  );
+  const [beneficiaries, paymentMethodNames] = await Promise.all([
+    loadBeneficiaries(
+      input.database,
+      rows.map((row) => row.orderId),
+    ),
+    loadPaymentMethodNames(
+      input.database,
+      rows.filter((row) => row.status === "PAID").map((row) => row.installmentId),
+    ),
+  ]);
   const response: InstallmentsResponseBody = {
-    rows: rows.map((row) => toPublicRow(row, beneficiaries)),
+    rows: rows.map((row) => ({
+      ...toPublicRow(row, beneficiaries),
+      ...(paymentMethodNames.has(row.installmentId)
+        ? { paymentMethodNames: paymentMethodNames.get(row.installmentId) }
+        : {}),
+    })),
     page: input.values.page,
     pageSize: input.values.pageSize,
     total,
@@ -59,6 +85,47 @@ export async function listInstallments(input: {
   return input.values.view === "paid"
     ? { view: "paid", ...response }
     : { view: "all", ...response, ...(studentFilter ? { studentFilter } : {}) };
+}
+
+async function loadPaymentMethodNames(
+  database: FinanceDatabase,
+  installmentIds: string[],
+): Promise<Map<string, string[]>> {
+  if (installmentIds.length === 0) return new Map();
+  const allocations = await database.paymentAllocation.findMany({
+    where: {
+      installmentId: { in: installmentIds },
+      deletedAt: null,
+      paymentEntry: { is: { deletedAt: null } },
+    },
+    select: {
+      installmentId: true,
+      paymentEntry: { select: { paymentMethod: { select: { name: true } } } },
+      amountCents: true,
+      reversals: {
+        where: { deletedAt: null, reversal: { deletedAt: null } },
+        select: { amountCents: true },
+      },
+    },
+  });
+  const methods = new Map<string, Set<string>>();
+  for (const allocation of allocations) {
+    if (
+      allocation.amountCents <=
+      allocation.reversals.reduce((total, reversal) => total + reversal.amountCents, 0)
+    )
+      continue;
+    const names = methods.get(allocation.installmentId) ?? new Set<string>();
+    names.add(allocation.paymentEntry.paymentMethod.name);
+    methods.set(allocation.installmentId, names);
+  }
+  const result = new Map<string, string[]>();
+  for (const [installmentId, names] of methods)
+    result.set(
+      installmentId,
+      [...names].toSorted((left, right) => left.localeCompare(right, "pt-BR")),
+    );
+  return result;
 }
 
 function installmentQueryInput(
@@ -167,6 +234,30 @@ async function listOverdueInstallments(input: {
   return {
     view: "overdue",
     groups: groupOverdueRows(rows, beneficiaries),
+    page,
+    pageSize: FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
+    total,
+    pageCount: Math.ceil(total / FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
+    counts,
+  };
+}
+
+async function listGroupedInstallments(input: {
+  database: FinanceDatabase;
+  queryInput: Omit<Parameters<typeof loadGroupedPage>[0], "page">;
+  page: number;
+  counts: FinanceInstallmentsOutput["counts"];
+}): Promise<Extract<FinanceInstallmentsOutput, { view: "grouped" }>> {
+  const { database, queryInput, page, counts } = input;
+  const total = await loadGroupedTotal(queryInput);
+  const rows = await loadGroupedPage({ ...queryInput, page });
+  const beneficiaries = await loadBeneficiaries(
+    database,
+    rows.map((row) => row.orderId),
+  );
+  return {
+    view: "grouped",
+    groups: groupPayerRows(rows, beneficiaries),
     page,
     pageSize: FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
     total,

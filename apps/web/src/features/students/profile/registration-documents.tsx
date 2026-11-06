@@ -89,6 +89,7 @@ function useDocumentsModel(
     const newest = result.data?.find((item) => item.kind === upload?.id);
     if (newest) setSelectedId(newest.id);
     await utils.studentDocuments.photo.invalidate({ studentId });
+    await utils.students.pendingActions.invalidate({ id: studentId });
     await utils.dashboard.invalidate();
   }
   return {

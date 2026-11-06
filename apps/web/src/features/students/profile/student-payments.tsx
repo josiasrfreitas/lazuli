@@ -8,6 +8,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import { uploadPaymentProof } from "~/features/installments/payment/payment-proof";
+import styles from "./student-payments.module.css";
 
 type Payment = RouterOutputs["finance"]["studentPayments"]["rows"][number];
 
@@ -28,13 +29,23 @@ export function StudentPayments({
   const utils = trpc.useUtils();
   const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
   return (
-    <div className="grid gap-4 pb-2">
+    <div className={styles.list}>
       <PaymentListStatus
         pending={query.isPending}
         error={query.isError}
         empty={rows.length === 0}
         onRetry={() => void query.refetch()}
       />
+      {rows.length > 0 && (
+        <div className={styles.columns} aria-hidden="true">
+          <span>Recebido em</span>
+          <span>Referência</span>
+          <span>Forma</span>
+          <span>Valor</span>
+          <span>Doc.</span>
+          <span />
+        </div>
+      )}
       {rows.map((payment) => (
         <PaymentRow
           key={payment.id}
@@ -136,9 +147,9 @@ function PaymentRow({
 }): ReactElement {
   const upload = usePaymentProofUpload({ payment, disabled, onPendingChange, onSaved });
   return (
-    <details className="group min-w-0 rounded-md border border-border">
+    <details className={styles.row}>
       <PaymentRowSummary payment={payment} />
-      <div className="grid min-w-0 gap-3 border-t border-border p-3">
+      <div className={styles.details}>
         <div className="text-caption text-muted-foreground">
           <p>Pagador: {payment.payer.name}</p>
           {payment.thirdPartyName && <p>Pix feito por: {payment.thirdPartyName}</p>}
@@ -149,6 +160,17 @@ function PaymentRow({
             </p>
           )}
         </div>
+        {payment.reversals.length > 0 && (
+          <div className="grid gap-1 border-t border-border pt-2 text-caption">
+            <p className="font-medium">Valor original: {formatBRLFromCents(payment.amountCents)}</p>
+            {payment.reversals.map((reversal) => (
+              <p key={reversal.id} className="text-muted-foreground">
+                {reversal.kind === "CANCELLATION" ? "Cancelado" : "Estornado"} em{" "}
+                {formatDateOnlyBR(reversal.occurredOn)} · {formatBRLFromCents(reversal.amountCents)}
+              </p>
+            ))}
+          </div>
+        )}
         <PaymentProofLinks proofs={payment.proofs} />
         <PaymentProofPicker
           file={upload.file}
@@ -173,27 +195,44 @@ function PaymentRow({
 
 function PaymentRowSummary({ payment }: { payment: Payment }): ReactElement {
   return (
-    <summary className="flex cursor-pointer list-none items-center gap-2 p-3 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-      <ChevronRight
-        className="size-4 shrink-0 transition-transform group-open:rotate-90"
-        aria-hidden="true"
-      />
-      <div className="grid min-w-0 flex-1 gap-1">
-        <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-caption font-semibold">
-          <span>{formatDateOnlyBR(payment.date)}</span>
-          <span className="font-numeric tabular-nums">
-            {formatBRLFromCents(payment.amountCents)}
-          </span>
-        </div>
-        <span className="text-caption text-muted-foreground">
-          {payment.paymentMethod.name} ·{" "}
-          {payment.proofs.length === 0
-            ? "Sem comprovante"
-            : `${payment.proofs.length} ${payment.proofs.length === 1 ? "comprovante" : "comprovantes"}`}
+    <summary className={styles.summary}>
+      <time dateTime={payment.date} className={styles.date}>
+        {formatDateOnlyBR(payment.date)}
+      </time>
+      <span className={styles.reference}>
+        {paymentReference(payment)}
+        {payment.reversals.length > 0 && <small>Valor após reversões</small>}
+      </span>
+      <span className={styles.method}>{payment.paymentMethod.name}</span>
+      <span className={styles.amount}>{formatBRLFromCents(payment.availableAmountCents)}</span>
+      <span className={styles.proofCount}>
+        <Paperclip aria-hidden="true" className="size-3.5" />
+        <span aria-label={`${payment.proofs.length} comprovantes`}>
+          {payment.proofs.length > 0 ? payment.proofs.length : "—"}
         </span>
-      </div>
+      </span>
+      <ChevronRight className={styles.chevron} aria-hidden="true" />
     </summary>
   );
+}
+
+function paymentReference(payment: Payment): string {
+  const tuition = [
+    ...new Set(
+      payment.installments
+        .filter((item) => item.kind === "TUITION")
+        .map((item) => item.sequenceNumber),
+    ),
+  ].toSorted((left, right) => left - right);
+  const labels =
+    tuition.length > 0
+      ? [`${tuition.length === 1 ? "Parcela" : "Parcelas"} ${tuition.join(", ")}`]
+      : [];
+  if (payment.installments.some((item) => item.kind === "MATERIAL"))
+    labels.push("Material didático");
+  if (payment.installments.some((item) => item.kind === "ENROLLMENT_FEE")) labels.push("Matrícula");
+  if (payment.installments.some((item) => item.kind === "OTHER")) labels.push("Outras cobranças");
+  return labels.join(" · ") || "Recebimento";
 }
 
 type PaymentProofUpload = {

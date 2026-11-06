@@ -93,6 +93,87 @@ async function fixture(tx: TransactionClient): Promise<{
 void before(ensureAdminUser);
 void after(() => db.$disconnect());
 
+void it("persists a purchase-specific card rate with its charged total and net receivable without changing defaults", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const input = {
+      ...values,
+      material: {
+        stageIds: [stageId],
+        category: "ADULT" as const,
+        payment: "INSTALLMENTS" as const,
+        installmentCount: 6,
+        quoteVersion: ADULT_VERSION,
+        expectedTotalCents: 77305,
+        cardFeeOverridePct: 5,
+        priceOverrideCents: 70000,
+        scholarshipPct: 50,
+        scholarshipAgreement: "Metade do preço combinado",
+      },
+    };
+    const contract = await service.createMonthlyContract(input);
+    const detail = await service.readContract(contract.id, NOW);
+    const order = detail.orders.find((item) => item.kind === "MATERIAL")!;
+    assert.equal(order.material!.cardFeePct, 5);
+    assert.equal(order.material!.cardFeeCents, 1842);
+    assert.equal(order.material!.chargedAmountCents, 36842);
+    assert.equal(order.material!.quotedInstallments, 6);
+    assert.equal(order.material!.quotedInstallmentCents, 6140);
+    assert.deepEqual(
+      order.installments.map((item) => item.amountCents),
+      [35000],
+    );
+    assert.equal((await service.readMaterialPrice())!.cardFeeRates["6"], 10);
+    const replay = await service.createMonthlyContract(input);
+    assert.equal(replay.id, contract.id);
+    await assert.rejects(
+      service.createMonthlyContract({
+        ...input,
+        commandId: randomUUID(),
+        material: { ...input.material, expectedTotalCents: 81600 },
+      }),
+      /preço do material mudou/u,
+    );
+  });
+});
+
+void it("accepts a zero card rate on a later acquisition without changing the configured rate", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const material = {
+      stageIds: [stageId],
+      category: "ADULT" as const,
+      payment: "CASH" as const,
+      installmentCount: 1,
+      quoteVersion: ADULT_VERSION,
+      expectedTotalCents: 73440,
+    };
+    const contract = await service.createMonthlyContract({ ...values, material });
+    const added = await service.addContractMaterial({
+      commandId: randomUUID(),
+      contractId: contract.id,
+      firstDueDate: "2026-02-28",
+      material: {
+        ...material,
+        payment: "INSTALLMENTS",
+        installmentCount: 4,
+        cardFeeOverridePct: 0,
+      },
+    });
+    const detail = await service.readContract(contract.id, NOW);
+    const order = detail.orders.find((item) => item.id === added.orderId)!;
+    assert.equal(order.material!.cardFeePct, 0);
+    assert.equal(order.material!.cardFeeCents, 0);
+    assert.equal(order.material!.chargedAmountCents, 73440);
+    assert.equal(order.material!.quotedInstallmentCents, 18360);
+    assert.deepEqual(
+      order.installments.map((item) => item.amountCents),
+      [73440],
+    );
+    assert.equal((await service.readMaterialPrice())!.cardFeeRates["6"], 10);
+  });
+});
+
 void it("keeps card installments as terms and creates one net receivable with stable prices and retry safety", async () => {
   await scenario(async (tx, { stageId, values }) => {
     const service = finance(tx, ADMIN.id);

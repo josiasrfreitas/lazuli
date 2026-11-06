@@ -68,6 +68,8 @@ const filters: StudentsFilters = {
   situations: [],
   classIds: [],
   teacherIds: [],
+  scholarship: [],
+  ageRanges: [],
   registeredFrom: "",
   registeredTo: "",
   setFilters: () => {},

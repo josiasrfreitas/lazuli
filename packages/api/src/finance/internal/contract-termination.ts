@@ -89,6 +89,7 @@ export async function previewContractTermination(
     lines,
     today,
   );
+  const defaultFeePct = Number(contract.cancellationFeePct ?? DEFAULT_TERMINATION_FEE_PCT);
   return {
     contractId,
     studentId: contract.studentId,
@@ -98,8 +99,8 @@ export async function previewContractTermination(
     overduePrincipalCents,
     waivedFuturePrincipalCents: openPrincipalCents - overduePrincipalCents,
     chargesCents,
-    defaultFeePct: DEFAULT_TERMINATION_FEE_PCT,
-    defaultFeeCents: terminationFeeCents(openPrincipalCents, DEFAULT_TERMINATION_FEE_PCT),
+    defaultFeePct,
+    defaultFeeCents: terminationFeeCents(openPrincipalCents, defaultFeePct),
     lines,
     enrollments: enrollments.map((row) => projectEnrollment(row)),
     version: hash({ contract, today, lines, enrollments, items }),
@@ -172,7 +173,13 @@ function terminationLines(
         principalCents,
         chargesCents,
         version,
-        paidCents: item.allocations.reduce((sum, allocation) => sum + allocation.amountCents, 0),
+        paidCents: item.allocations.reduce(
+          (sum, allocation) =>
+            sum +
+            allocation.amountCents -
+            allocation.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+          0,
+        ),
       };
     })
     .filter((line) => line.principalCents > 0 || line.chargesCents > 0);

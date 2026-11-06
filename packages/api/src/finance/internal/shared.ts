@@ -50,6 +50,8 @@ export type FinanceDatabase = Pick<
   | "paymentMethod"
   | "paymentEntry"
   | "paymentAllocation"
+  | "paymentReversal"
+  | "paymentReversalAllocation"
   | "student"
   | "financeSettings"
   | "contract"

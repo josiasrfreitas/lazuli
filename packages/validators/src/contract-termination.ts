@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
 
-const MAX_FEE_PERCENT = 100;
+export const MAX_TERMINATION_FEE_PERCENT = 300;
 const FEE_DECIMAL_PLACES = 4;
 const MAX_ENROLLMENTS = 20;
 const MIN_REASON_LENGTH = 5;
@@ -19,7 +19,7 @@ export const contractTerminationConfirmSchema = z
     feePct: z
       .number()
       .min(0)
-      .max(MAX_FEE_PERCENT)
+      .max(MAX_TERMINATION_FEE_PERCENT, "A multa não pode passar de 300%.")
       .refine(
         (value) => Number(value.toFixed(FEE_DECIMAL_PLACES)) === value,
         "Use no máximo quatro casas decimais na multa.",

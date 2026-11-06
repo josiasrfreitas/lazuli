@@ -38,7 +38,7 @@
 .desk {
   display: grid;
   grid-template-columns: minmax(320px, 0.7fr) minmax(0, 1.6fr);
-  height: calc(89.25dvh - 142.8px);
+  height: calc(89.25dvh - 142.8px - 1.5rem);
   min-height: 0;
   overflow: hidden;
   background: var(--card);

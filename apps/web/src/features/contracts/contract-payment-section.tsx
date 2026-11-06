@@ -9,12 +9,8 @@ import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
 import { parseDateBR } from "~/lib/masks";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
-import {
-  materialInstallmentCount,
-  materialPriceInput,
-  scholarshipInput,
-  paymentPlanLabel,
-} from "./contract-form-model";
+import { selectedMaterialCardFee } from "./material-card-fee";
+import { materialPriceInput, scholarshipInput, paymentPlanLabel } from "./contract-form-model";
 
 const CENTS_PER_REAL = 100;
 
@@ -105,20 +101,12 @@ function useMaterialPayment(fields: FormProps["fields"]): {
       quote,
       payment: fields.materialPayment === "CASH" ? "CASH" : "INSTALLMENTS",
       scholarshipPct: scholarshipInput(fields, true).scholarshipPct ?? 0,
-      cardFeePct: selectedMaterialCardFee(fields, prices.data),
+      cardFeePct: selectedMaterialCardFee(fields, prices.data?.cardFeeRates) ?? 0,
     });
     return net.receivableCents > 0 ? { count: 1, amountCents: net.receivableCents } : null;
   } catch {
     return null;
   }
-}
-
-function selectedMaterialCardFee(
-  fields: FormProps["fields"],
-  prices: RouterOutputs["finance"]["readMaterialPrice"] | undefined,
-): number {
-  if (fields.materialPayment === "CASH" || fields.materialScholarshipMode === "FULL") return 0;
-  return prices?.cardFeeRates[String(materialInstallmentCount(fields))] ?? 0;
 }
 
 function materialQuote(
@@ -130,18 +118,19 @@ function materialQuote(
   if (fields.materialCategory === "CHILD") unitQuote = prices.child;
   else if (fields.materialCategory === "ADULT") unitQuote = prices.adult;
   if (!unitQuote) return undefined;
-  const cardFeePct =
-    fields.materialPayment === "CASH" || fields.materialScholarshipMode === "FULL"
-      ? 0
-      : prices.cardFeeRates[String(materialInstallmentCount(fields))];
+  const cardFeePct = selectedMaterialCardFee(fields, prices.cardFeeRates);
   if (cardFeePct === undefined) return undefined;
-  return {
-    ...materialFinalPriceQuote({
-      cashCents: unitQuote.cashCents * fields.materialStageIds.split(",").filter(Boolean).length,
-      cardFeePct,
-    }),
-    version: unitQuote.version,
-  };
+  try {
+    return {
+      ...materialFinalPriceQuote({
+        cashCents: unitQuote.cashCents * fields.materialStageIds.split(",").filter(Boolean).length,
+        cardFeePct,
+      }),
+      version: unitQuote.version,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 export function PaymentSection({ fields, errors, change, preview }: FormProps): ReactElement {

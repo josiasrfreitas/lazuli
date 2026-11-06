@@ -21,7 +21,7 @@ import { ProfileError } from "./profile-shared";
 import styles from "./student-overview.module.css";
 import loading from "./student-loading.module.css";
 
-type Navigate = (section: "pedagogico" | "financeiro") => void;
+type Navigate = (section: "cadastro" | "pedagogico" | "financeiro") => void;
 const DAYS: Record<string, string> = {
   MONDAY: "Seg",
   TUESDAY: "Ter",
@@ -52,7 +52,7 @@ export function StudentOverview({
       </div>
       <div className={styles.workGrid}>
         <StudentNotes profile={profile} />
-        <StudentPendingActions studentId={profile.id} pedagogy={pedagogy} />
+        <StudentPendingActions studentId={profile.id} pedagogy={pedagogy} onNavigate={navigate} />
       </div>
     </div>
   );

@@ -57,7 +57,7 @@ type Props = {
 const introductions: Record<SetupStep, string> = {
   parties: "Defina quem paga e por quanto tempo vale o contrato.",
   tuition: "Combine os valores e as datas de cobrança do ensino.",
-  material: "Escolha os livros e como será paga esta aquisição.",
+  material: "Selecione os livros e defina as condições de pagamento.",
   review: "Confira o combinado antes de concluir.",
 };
 
@@ -220,7 +220,6 @@ function useSetupData(props: Props): {
 export function ContractSetup(props: Props): ReactElement {
   const { fields, material, preview, formProps } = useSetupData(props);
   const [step, setStep] = useState<SetupStep>("parties");
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const [dueError, setDueError] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
@@ -231,7 +230,6 @@ export function ContractSetup(props: Props): ReactElement {
     if (props.pending) return;
     setSummaryOpen(false);
     if (next === step) return;
-    setDirection(setupSteps.indexOf(next) < index ? "backward" : "forward");
     setStep(next);
   };
   const submit = createSubmitHandler({
@@ -253,7 +251,6 @@ export function ContractSetup(props: Props): ReactElement {
         preview,
         formProps,
         step,
-        direction,
         dueError,
         summaryOpen,
         panel,
@@ -275,7 +272,6 @@ type SetupLayoutProps = {
   preview: FormProps["preview"];
   formProps: FormProps;
   step: SetupStep;
-  direction: "forward" | "backward";
   dueError: string;
   summaryOpen: boolean;
   panel: RefObject<HTMLDivElement | null>;
@@ -294,7 +290,6 @@ function SetupLayout({
   preview,
   formProps,
   step,
-  direction,
   dueError,
   summaryOpen,
   panel,
@@ -322,7 +317,6 @@ function SetupLayout({
         <SetupPanel
           panel={panel}
           step={step}
-          direction={direction}
           index={index}
           props={props}
           formProps={formProps}
@@ -391,7 +385,6 @@ function SetupAside({
 type PanelProps = {
   panel: RefObject<HTMLDivElement | null>;
   step: SetupStep;
-  direction: "forward" | "backward";
   index: number;
   props: Props;
   formProps: FormProps;
@@ -404,7 +397,6 @@ type PanelProps = {
 function SetupPanel({
   panel,
   step,
-  direction,
   index,
   props,
   formProps,
@@ -415,7 +407,7 @@ function SetupPanel({
 }: PanelProps): ReactElement {
   return (
     <div className={styles.panel} ref={panel}>
-      <div key={step} className={styles.stepSlide} data-direction={direction}>
+      <div key={step} className={styles.stepSlide}>
         <SetupHeader
           step={step}
           index={index}

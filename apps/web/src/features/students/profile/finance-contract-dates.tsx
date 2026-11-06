@@ -28,18 +28,25 @@ export function FinanceContractDates({ summary }: { summary: Summary }): ReactEl
         if (contract.scholarshipPct === FULL_SCHOLARSHIP_PCT)
           monthlyDue = "Bolsa integral · sem cobrança";
         return (
-          <dl key={contract.id} aria-label="Datas do contrato" className={styles.contractDatesRow}>
+          <dl
+            key={contract.id}
+            aria-label="Condições do contrato"
+            className={styles.contractDatesRow}
+          >
             <div>
-              <dt>Início do contrato</dt>
-              <dd>{contract.startsOn ? formatMonthYear(contract.startsOn) : NOT_INFORMED}</dd>
-            </div>
-            <div>
-              <dt>Término do contrato</dt>
-              <dd>{contract.endsOn ? formatMonthYear(contract.endsOn) : NOT_INFORMED}</dd>
+              <dt>Vigência do contrato</dt>
+              <dd>
+                {contract.startsOn ? formatMonthYear(contract.startsOn) : NOT_INFORMED} →{" "}
+                {contract.endsOn ? formatMonthYear(contract.endsOn) : NOT_INFORMED}
+              </dd>
             </div>
             <div>
               <dt>Vencimento mensal</dt>
               <dd className={styles.dueValue}>{monthlyDue}</dd>
+            </div>
+            <div>
+              <dt>Pagador</dt>
+              <dd>{contract.payerName}</dd>
             </div>
           </dl>
         );

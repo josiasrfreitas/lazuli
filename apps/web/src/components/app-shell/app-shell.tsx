@@ -13,7 +13,7 @@ import { Sidebar } from "./sidebar";
 import { SessionSync } from "./session-sync";
 import { ThemeToggle } from "./theme-toggle";
 import { AccountMenu } from "./account-menu";
-import { TeacherNavigation, TeacherPendingNotice } from "~/features/teacher-workspace/navigation";
+import { TeacherNavigation } from "~/features/teacher-workspace/navigation";
 import { AssessmentUploadProvider } from "~/features/assessment-files/queue-provider";
 
 /**
@@ -69,9 +69,7 @@ function TopBar({ identity }: { identity: StaffIdentity }): ReactNode {
         }
       >
         <CommandPalette role={identity.role} />
-        {identity.role === "TEACHER" ? (
-          <TeacherPendingNotice />
-        ) : (
+        {identity.role !== "TEACHER" && (
           <p className="hidden text-sm text-muted-foreground sm:block">
             {formatLongDateSaoPaulo(new Date())}
           </p>

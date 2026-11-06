@@ -18,21 +18,37 @@ import {
   type DataTableColumn,
   type DataTableState,
 } from "@lazuli/ui";
-import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
+import type {
+  FinanceInstallmentRow,
+  FinanceOverduePayerGroup,
+  FinancePayerGroup,
+} from "@lazuli/validators";
 import { InstallmentRowActions } from "./installment-actions";
-import { abbreviatedPersonName } from "~/lib/format";
+import {
+  abbreviatedPersonName,
+  firstTwoNames,
+  formatBRLFromCents,
+  formatDateOnlyBR,
+} from "~/lib/format";
 import {
   businessDate,
   installmentAmountVm,
   installmentVm,
   overduePayerSummaryVm,
 } from "./view-model";
-import {
-  PaymentSelectionCell,
-  PaymentSelectionCheckbox,
-  PaymentSelectionHead,
-  PaymentSelectionHeaderCheckbox,
-} from "./payment/selection";
+import { installmentColumnMode, type InstallmentSituation } from "./column-policy";
+import { PaymentSelectionCheckbox, PaymentSelectionHeaderCheckbox } from "./payment/selection";
+
+type PayerGroup = FinanceOverduePayerGroup | FinancePayerGroup;
+
+function isRowControl(target: EventTarget): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest("a, button, input, select, textarea, [role='button'], [role='checkbox']"),
+    )
+  );
+}
 
 function InstallmentAmount({
   row,
@@ -73,207 +89,12 @@ function InstallmentAmount({
   );
 }
 
-const OVERDUE_COLUMNS = [
-  { key: "installment", label: "Sequência" },
-  { key: "origin", label: "Origem" },
-  { key: "beneficiaries", label: "Beneficiário" },
-  { key: "due-date", label: "Vencimento" },
-  { key: "nominal", label: "Valor nominal" },
-  { key: "paid", label: "Valor pago" },
-  { key: "status", label: "Atraso" },
-  { key: "actions", label: "Ações" },
-] as const;
-
-function beneficiaryNames(row: FinanceInstallmentRow): string {
-  const names = row.beneficiaries.map((person) => person.fullName);
-  if (names.length < 2) return names[0] ?? "—";
-  return `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`;
-}
-
-function OverdueInstallmentRow({
-  row,
-  today,
-  groupHeadingId,
-}: {
-  row: FinanceInstallmentRow;
-  today: string;
-  groupHeadingId: string;
-}): ReactElement {
-  const vm = installmentVm(row, today);
-  return (
-    <TableRow interactive={false}>
-      <PaymentSelectionCell row={row} />
-      <TableCell headers={`${groupHeadingId}-column-installment`}>
-        <span className="font-numeric whitespace-nowrap tabular-nums">{vm.sequence}</span>
-      </TableCell>
-      <TableCell headers={`${groupHeadingId}-column-origin`}>{vm.origin}</TableCell>
-      <TableCell headers={`${groupHeadingId}-column-beneficiaries`} className="break-words">
-        {beneficiaryNames(row)}
-      </TableCell>
-      <TableCell headers={`${groupHeadingId}-column-due-date`}>
-        <span className="font-numeric whitespace-nowrap tabular-nums">{vm.dueDate}</span>
-      </TableCell>
-      <TableCell headers={`${groupHeadingId}-column-nominal`} numeric>
-        <InstallmentAmount row={row} column="nominal" />
-      </TableCell>
-      <TableCell headers={`${groupHeadingId}-column-paid`} numeric>
-        <InstallmentAmount row={row} column="paid" />
-      </TableCell>
-      <TableCell headers={`${groupHeadingId}-column-status`} numeric>
-        <Badge variant="destructive" className="whitespace-normal">
-          {row.paidAmountCents > 0 ? "Parcial · " : ""}
-          {row.overdueDays} {row.overdueDays === 1 ? "dia" : "dias"}
-        </Badge>
-      </TableCell>
-      <TableCell headers={`${groupHeadingId}-column-actions`}>
-        <InstallmentRowActions row={row} />
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function OverdueGroupHeader({
-  group,
-  headingId,
-}: {
-  group: FinanceOverduePayerGroup;
-  headingId: string;
-}): ReactElement {
-  const vm = overduePayerSummaryVm(group);
-  return (
-    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border bg-muted px-4 py-2">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Avatar aria-hidden colorKey={group.payer.id} name={group.payer.name} size="sm" />
-        <div className="min-w-0">
-          <h2 id={headingId} className="break-words font-display font-semibold text-foreground">
-            {group.payer.name}
-          </h2>
-          <p id={`${headingId}-summary`} className="text-xs text-muted-foreground">
-            {vm.description}
-          </p>
-        </div>
-      </div>
-      <div className="w-full shrink-0 text-right sm:ml-auto sm:w-auto">
-        <span className="block text-xs text-muted-foreground">Saldo em aberto</span>
-        <strong className="font-numeric block font-semibold tabular-nums text-destructive">
-          {vm.balance}
-        </strong>
-      </div>
-    </header>
-  );
-}
-
-function OverdueInstallmentsHead({ groupHeadingId }: { groupHeadingId: string }): ReactElement {
-  return (
-    <TableHeader>
-      <TableRow interactive={false}>
-        <PaymentSelectionHead />
-        {OVERDUE_COLUMNS.map((column) => (
-          <TableHead
-            id={`${groupHeadingId}-column-${column.key}`}
-            key={column.key}
-            scope="col"
-            numeric={
-              column.key === "nominal" ||
-              column.key === "paid" ||
-              column.key === "status" ||
-              column.key === "actions"
-            }
-          >
-            {column.label}
-          </TableHead>
-        ))}
-      </TableRow>
-    </TableHeader>
-  );
-}
-
-function OverduePayerGroupCard({
-  group,
-  today,
-}: {
-  group: FinanceOverduePayerGroup;
-  today: string;
-}): ReactElement {
-  const groupId = `installments-payer-${group.payer.id}`;
-  return (
-    <section
-      aria-labelledby={groupId}
-      className="contain-paint overflow-hidden rounded-lg border border-border bg-card"
-      data-payer-id={group.payer.id}
-      data-slot="overdue-payer-group"
-    >
-      <OverdueGroupHeader group={group} headingId={groupId} />
-      <div className="overflow-x-auto scrollbar-subtle">
-        <Table
-          aria-labelledby={groupId}
-          aria-describedby={`${groupId}-summary`}
-          className="w-full min-w-5xl table-fixed"
-          density="compact"
-        >
-          <colgroup>
-            <col className="w-10" />
-            <col className="w-24" />
-            <col className="w-28" />
-            <col />
-            <col className="w-28" />
-            <col className="w-28" />
-            <col className="w-28" />
-            <col className="w-28" />
-            <col className="w-28" />
-          </colgroup>
-          <OverdueInstallmentsHead groupHeadingId={groupId} />
-          <TableBody>
-            {group.rows.map((row) => (
-              <OverdueInstallmentRow
-                key={row.installmentId}
-                row={row}
-                today={today}
-                groupHeadingId={groupId}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </section>
-  );
-}
-
-function OverdueSearchGuidance(): ReactElement {
-  return (
-    <p className="shrink-0 px-5 py-3 text-sm text-muted-foreground">
-      Exibindo todas as parcelas vencidas dos pagadores encontrados.
-    </p>
-  );
-}
-
-const COLUMN_WIDTHS = {
-  selection: "selection",
-  sequence: "narrow",
-  origin: "narrow",
-  payer: "standard",
-  beneficiaries: "standard",
-  dueDate: "narrow",
-  nominal: "standard",
-  paid: "standard",
-  status: "standard",
-} as const satisfies Record<string, NonNullable<DataTableColumn<FinanceInstallmentRow>["width"]>>;
-
-function installmentSelectionColumn(): DataTableColumn<FinanceInstallmentRow> {
-  return {
-    id: "selection",
-    header: <PaymentSelectionHeaderCheckbox />,
-    width: COLUMN_WIDTHS.selection,
-    cell: (row) => <PaymentSelectionCheckbox row={row} />,
-  };
-}
-
-function installmentIdentityColumns(): DataTableColumn<FinanceInstallmentRow>[] {
+function installmentIdentityColumns(grouped: boolean): DataTableColumn<FinanceInstallmentRow>[] {
   return [
     {
       id: "sequence",
       header: "Sequência",
-      width: COLUMN_WIDTHS.sequence,
+      width: "narrow",
       cell: (row) => (
         <span className="font-numeric whitespace-nowrap tabular-nums">
           {installmentVm(row, "").sequence}
@@ -283,19 +104,27 @@ function installmentIdentityColumns(): DataTableColumn<FinanceInstallmentRow>[] 
     {
       id: "origin",
       header: "Origem",
-      width: COLUMN_WIDTHS.origin,
+      width: "narrow",
       cell: (row) => installmentVm(row, "").origin,
     },
-    {
-      id: "payer",
-      header: "Pagador",
-      width: COLUMN_WIDTHS.payer,
-      cell: (row) => <span className="break-words">{row.payer.name}</span>,
-    },
+    ...(grouped
+      ? []
+      : [
+          {
+            id: "payer",
+            header: "Pagador",
+            width: "standard" as const,
+            cell: (row: FinanceInstallmentRow) => (
+              <span className="break-words" title={row.payer.name}>
+                {firstTwoNames(row.payer.name)}
+              </span>
+            ),
+          },
+        ]),
     {
       id: "beneficiaries",
       header: "Beneficiário",
-      width: COLUMN_WIDTHS.beneficiaries,
+      width: "standard",
       cell: (row) => (
         <span className="break-words">
           {row.beneficiaries.map((person) => abbreviatedPersonName(person.fullName)).join(", ") ||
@@ -306,38 +135,86 @@ function installmentIdentityColumns(): DataTableColumn<FinanceInstallmentRow>[] 
     {
       id: "dueDate",
       header: "Vencimento",
-      width: COLUMN_WIDTHS.dueDate,
+      width: "narrow",
       cell: (row) => (
-        <span className="font-numeric tabular-nums">{installmentVm(row, "").dueDate}</span>
+        <span className="font-numeric whitespace-nowrap tabular-nums">
+          {installmentVm(row, "").dueDate}
+        </span>
       ),
     },
   ];
 }
 
-function installmentAmountColumns(): DataTableColumn<FinanceInstallmentRow>[] {
+export function installmentColumns(input: {
+  today: string;
+  situations: readonly InstallmentSituation[];
+  grouped: boolean;
+}): readonly DataTableColumn<FinanceInstallmentRow>[] {
+  const { today, situations, grouped } = input;
+  const mode = installmentColumnMode(situations);
   return [
+    ...(mode === "paid" || mode === "waived" ? [] : [selectionColumn()]),
+    ...installmentIdentityColumns(grouped),
     {
       id: "nominal",
       header: "Valor nominal",
-      width: COLUMN_WIDTHS.nominal,
+      width: "standard",
       numeric: true,
       cell: (row) => <InstallmentAmount row={row} column="nominal" />,
     },
+    ...conditionalColumns(mode, today),
     {
-      id: "paid",
-      header: "Valor pago",
-      width: COLUMN_WIDTHS.paid,
+      id: "actions",
+      header: "Ações",
+      width: "standard",
       numeric: true,
-      cell: (row) => <InstallmentAmount row={row} column="paid" />,
+      cell: (row) => <InstallmentRowActions row={row} />,
     },
   ];
 }
 
-function installmentStatusColumn(today: string): DataTableColumn<FinanceInstallmentRow> {
+function selectionColumn(): DataTableColumn<FinanceInstallmentRow> {
+  return {
+    id: "selection",
+    header: <PaymentSelectionHeaderCheckbox />,
+    width: "selection",
+    cell: (row) => <PaymentSelectionCheckbox row={row} />,
+  };
+}
+
+function conditionalColumns(
+  mode: ReturnType<typeof installmentColumnMode>,
+  today: string,
+): DataTableColumn<FinanceInstallmentRow>[] {
+  const result: DataTableColumn<FinanceInstallmentRow>[] = [];
+  if (mode === "standard" || mode === "paid")
+    result.push({
+      id: "paid",
+      header: "Valor pago",
+      width: "standard",
+      numeric: true,
+      cell: (row) => <InstallmentAmount row={row} column="paid" />,
+    });
+  if (mode === "paid")
+    result.push({
+      id: "paidOn",
+      header: "Data do pagamento",
+      width: "narrow",
+      cell: (row) => (
+        <span className="font-numeric whitespace-nowrap tabular-nums">
+          {formatDateOnlyBR(row.paidOn ?? undefined)}
+        </span>
+      ),
+    });
+  if (mode === "standard") result.push(statusColumn(today));
+  return result;
+}
+
+function statusColumn(today: string): DataTableColumn<FinanceInstallmentRow> {
   return {
     id: "status",
     header: "Situação",
-    width: COLUMN_WIDTHS.status,
+    width: "standard",
     cell: (row) => {
       const { badge } = installmentVm(row, today);
       return (
@@ -349,55 +226,264 @@ function installmentStatusColumn(today: string): DataTableColumn<FinanceInstallm
   };
 }
 
-function installmentColumns(today: string): readonly DataTableColumn<FinanceInstallmentRow>[] {
-  return [
-    installmentSelectionColumn(),
-    ...installmentIdentityColumns(),
-    ...installmentAmountColumns(),
-    installmentStatusColumn(today),
-    {
-      id: "actions",
-      header: "Ações",
-      width: "narrow",
-      numeric: true,
-      cell: (row) => <InstallmentRowActions row={row} />,
-    },
-  ];
+function PayerGroupHeader({ group, paid }: { group: PayerGroup; paid: boolean }): ReactElement {
+  const summary = groupSummary(group);
+  const amount =
+    paid && "paidAmountCents" in group ? group.paidAmountCents : group.collectibleBalanceCents;
+  const waived = group.rows.every((row) => row.status === "WAIVED");
+  const total = waived
+    ? group.rows.reduce(
+        (sum, row) => sum + Math.max(row.expectedAmountCents - row.paidAmountCents, 0),
+        0,
+      )
+    : amount;
+  const headingId = `installments-payer-${group.payer.id}`;
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border bg-muted px-4 py-2">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Avatar aria-hidden colorKey={group.payer.id} name={group.payer.name} size="sm" />
+        <div className="min-w-0">
+          <h2
+            id={headingId}
+            className="break-words font-display font-semibold text-foreground"
+            title={group.payer.name}
+          >
+            {firstTwoNames(group.payer.name)}
+          </h2>
+          <p id={`${headingId}-summary`} className="text-xs text-muted-foreground">
+            {summary}
+          </p>
+        </div>
+      </div>
+      <div className="w-full shrink-0 text-right sm:ml-auto sm:w-auto">
+        <span className="block text-xs text-muted-foreground">
+          {groupAmountLabel(paid, waived)}
+        </span>
+        <strong
+          className={`font-numeric block font-semibold tabular-nums ${groupAmountColor(paid, waived)}`}
+        >
+          {formatBRLFromCents(total)}
+        </strong>
+      </div>
+    </header>
+  );
 }
-type TableState = {
-  rows?: FinanceInstallmentRow[] | undefined;
-  groups?: FinanceOverduePayerGroup[] | undefined;
-  error: boolean;
-  filtered: boolean;
-  showOverdueSearchGuidance?: boolean;
-  onRetry: () => void;
+
+function groupSummary(group: PayerGroup): string {
+  if (!("paidAmountCents" in group)) return overduePayerSummaryVm(group).description;
+  const parcels = group.installmentCount === 1 ? "parcela" : "parcelas";
+  const students = group.beneficiaries.length === 1 ? "aluno" : "alunos";
+  return `${group.installmentCount} ${parcels} · ${group.beneficiaries.length} ${students}`;
+}
+
+function groupAmountLabel(paid: boolean, waived: boolean): string {
+  if (paid) return "Total pago";
+  return waived ? "Total dispensado" : "Saldo em aberto";
+}
+
+function groupAmountColor(paid: boolean, waived: boolean): string {
+  if (paid) return "text-success";
+  return waived ? "text-muted-foreground" : "text-destructive";
+}
+
+function columnWidth(column: { width?: DataTableColumn<FinanceInstallmentRow>["width"] }): string {
+  if (column.width === "selection") return "w-10";
+  if (column.width === "narrow") return "w-28";
+  if (column.width === "medium") return "w-48";
+  if (column.width === "wide") return "w-60";
+  return "w-36";
+}
+
+type GroupColumns = readonly DataTableColumn<FinanceInstallmentRow & { id: string }>[];
+type GroupTableProps = {
+  group: PayerGroup;
+  columns: GroupColumns;
+  onRowClick?: ((row: FinanceInstallmentRow) => void) | undefined;
 };
-function OverdueGroupsBody({
-  groups,
-  today,
+
+function PayerGroupCard({
+  group,
+  columns,
+  paid,
+  onRowClick,
+}: GroupTableProps & { paid: boolean }): ReactElement {
+  const groupId = `installments-payer-${group.payer.id}`;
+  return (
+    <section
+      aria-labelledby={groupId}
+      className="contain-paint overflow-hidden rounded-lg border border-border bg-card"
+      data-payer-id={group.payer.id}
+      data-slot={"paidAmountCents" in group ? "payer-group" : "overdue-payer-group"}
+    >
+      <PayerGroupHeader group={group} paid={paid} />
+      <PayerGroupTable group={group} groupId={groupId} columns={columns} onRowClick={onRowClick} />
+    </section>
+  );
+}
+
+function PayerGroupTable({
+  group,
+  groupId,
+  columns,
+  onRowClick,
+}: GroupTableProps & { groupId: string }): ReactElement {
+  return (
+    <div className="overflow-x-auto scrollbar-subtle">
+      <Table
+        aria-labelledby={groupId}
+        aria-describedby={`${groupId}-summary`}
+        className="w-full min-w-4xl table-fixed"
+        density="compact"
+      >
+        <colgroup>
+          {columns.map((column) => (
+            <col key={column.id} className={columnWidth(column)} />
+          ))}
+        </colgroup>
+        <TableHeader>
+          <TableRow interactive={false}>
+            {columns.map((column) => (
+              <TableHead
+                key={column.id}
+                id={`${groupId}-column-${column.id}`}
+                scope="col"
+                {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
+              >
+                {column.header}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {group.rows.map((row) => (
+            <PayerGroupRow
+              key={row.installmentId}
+              row={row}
+              groupId={groupId}
+              columns={columns}
+              onRowClick={onRowClick}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function PayerGroupRow({
+  row,
+  groupId,
+  columns,
+  onRowClick,
 }: {
-  groups: FinanceOverduePayerGroup[];
-  today: string;
+  row: FinanceInstallmentRow;
+  groupId: string;
+  columns: GroupColumns;
+  onRowClick?: ((row: FinanceInstallmentRow) => void) | undefined;
+}): ReactElement {
+  const displayRow = { ...row, id: row.installmentId };
+  return (
+    <TableRow
+      interactive={Boolean(onRowClick)}
+      className={
+        onRowClick
+          ? "cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          : undefined
+      }
+      tabIndex={onRowClick ? 0 : undefined}
+      onClick={
+        onRowClick
+          ? (event) => {
+              if (event.defaultPrevented || isRowControl(event.target)) return;
+              onRowClick(row);
+            }
+          : undefined
+      }
+      onKeyDown={
+        onRowClick
+          ? (event) => {
+              if (event.key === "Enter" && !isRowControl(event.target)) {
+                event.preventDefault();
+                onRowClick(row);
+              }
+            }
+          : undefined
+      }
+    >
+      {columns.map((column) => (
+        <TableCell
+          key={column.id}
+          headers={`${groupId}-column-${column.id}`}
+          {...(column.numeric === undefined ? {} : { numeric: column.numeric })}
+        >
+          {column.cell(displayRow)}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
+export function PayerGroupsBody({
+  groups,
+  columns,
+  paid,
+  onRowClick,
+}: {
+  groups: PayerGroup[];
+  columns: readonly DataTableColumn<FinanceInstallmentRow & { id: string }>[];
+  paid: boolean;
+  onRowClick?: ((row: FinanceInstallmentRow) => void) | undefined;
 }): ReactNode {
   return (
     <div
       className="w-0 min-w-full space-y-3 overflow-x-hidden pb-3 pr-3"
-      data-slot="overdue-payer-groups"
+      data-slot={
+        groups[0] && "paidAmountCents" in groups[0] ? "payer-groups" : "overdue-payer-groups"
+      }
     >
       {groups.map((group) => (
-        <OverduePayerGroupCard key={group.payer.id} group={group} today={today} />
+        <PayerGroupCard
+          key={group.payer.id}
+          group={group}
+          columns={columns}
+          paid={paid}
+          onRowClick={onRowClick}
+        />
       ))}
     </div>
   );
 }
+
+type TableState = {
+  rows?: FinanceInstallmentRow[] | undefined;
+  groups?: PayerGroup[] | undefined;
+  situations?: readonly InstallmentSituation[];
+  error: boolean;
+  filtered: boolean;
+  showGroupedSearchGuidance?: boolean;
+  showOverdueSearchGuidance?: boolean;
+  onRowClick?: ((row: FinanceInstallmentRow) => void) | undefined;
+  onRetry: () => void;
+};
+
 export function InstallmentsTable({
   updating,
   footer,
   ...state
 }: TableState & { updating: boolean; footer: ReactNode }): ReactElement {
   const today = businessDate(new Date());
-  const hasGroups = state.groups !== undefined;
-  if (!state.error && hasGroups && (state.groups?.length ?? 0) > 0) {
+  const situations = state.situations ?? [];
+  const columns = installmentColumns({ today, situations, grouped: state.groups !== undefined });
+  const paid = installmentColumnMode(situations) === "paid";
+  const guidance =
+    state.showGroupedSearchGuidance || state.showOverdueSearchGuidance ? (
+      <p className="shrink-0 px-5 py-3 text-sm text-muted-foreground">
+        {state.showOverdueSearchGuidance
+          ? "Exibindo todas as parcelas vencidas dos pagadores encontrados."
+          : "Exibindo as parcelas filtradas dos pagadores encontrados."}
+      </p>
+    ) : undefined;
+  if (!state.error && state.groups && state.groups.length > 0) {
     return (
       <TableContainer
         viewportBound
@@ -405,20 +491,26 @@ export function InstallmentsTable({
         className="border-0 bg-transparent"
         aria-busy={updating}
       >
-        {state.showOverdueSearchGuidance ? <OverdueSearchGuidance /> : null}
-        <OverdueGroupsBody groups={state.groups ?? []} today={today} />
+        {guidance}
+        <PayerGroupsBody
+          groups={state.groups}
+          columns={columns}
+          paid={paid}
+          onRowClick={state.onRowClick}
+        />
       </TableContainer>
     );
   }
-  const rows = hasGroups ? [] : state.rows;
+  const rows = state.groups ? [] : state.rows;
   return (
-    <DataTable
+    <DataTable<FinanceInstallmentRow & { id: string }>
       label="Lista de recebíveis"
-      columns={installmentColumns(today)}
+      columns={columns}
+      {...(state.onRowClick ? { onRowClick: state.onRowClick } : {})}
       state={installmentsState(state, rows)}
       updating={updating}
       footer={footer}
-      beforeTable={state.showOverdueSearchGuidance ? <OverdueSearchGuidance /> : undefined}
+      beforeTable={guidance}
       onRetry={state.onRetry}
       empty={{
         title: "Nenhum recebível cadastrado",

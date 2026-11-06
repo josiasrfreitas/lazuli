@@ -138,7 +138,7 @@ function RenegotiationInstallments({
     >
       <Field>
         <div
-          className="max-h-64 overflow-y-auto"
+          className="scrollbar-subtle max-h-64 overflow-y-auto pr-4"
           tabIndex={0}
           role="group"
           aria-label="Parcelas para renegociar"
@@ -209,7 +209,7 @@ function RenegotiationReviewLines({ preview }: { preview: RenegotiationPreview }
       <h3 className="text-sm font-semibold">
         Novo valor: {money(preview.newAmountCents)} por parcela
       </h3>
-      <ul className="max-h-64 overflow-y-auto text-caption">
+      <ul className="scrollbar-subtle max-h-64 overflow-y-auto pr-4 text-caption">
         {preview.lines.map((line) => (
           <li key={line.id} className="grid gap-0.5 border-b py-2">
             <span className="flex flex-wrap justify-between gap-x-3">

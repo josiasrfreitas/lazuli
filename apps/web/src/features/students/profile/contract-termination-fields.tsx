@@ -1,6 +1,16 @@
 import type { JSX as ReactJSX } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button, Checkbox, CurrencyInput, Field, Input, Label, Textarea } from "@lazuli/ui";
+import {
+  Button,
+  Checkbox,
+  CurrencyInput,
+  Field,
+  FieldError,
+  Input,
+  Label,
+  Textarea,
+} from "@lazuli/ui";
+import { MAX_TERMINATION_FEE_PERCENT } from "@lazuli/validators";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import type { TerminationPreview } from "./contract-termination-state";
 import type { TerminationViewProps } from "./contract-termination-view";
@@ -137,6 +147,7 @@ function TerminationEdit(props: TerminationViewProps): ReactJSX.Element {
 }
 
 function EditAmountFields({ preview, state }: TerminationViewProps): ReactJSX.Element {
+  const feeExceeded = Number(state.fee.replace(",", ".")) > MAX_TERMINATION_FEE_PERCENT;
   return (
     <div className="grid gap-2">
       <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,0.65fr)_minmax(0,1fr)_minmax(0,1fr)]">
@@ -147,8 +158,10 @@ function EditAmountFields({ preview, state }: TerminationViewProps): ReactJSX.El
             id="termination-fee"
             inputMode="decimal"
             value={state.fee}
+            invalid={feeExceeded}
             onChange={(event) => state.setFee(event.target.value)}
           />
+          <FieldError match={feeExceeded}>A multa não pode passar de 300%.</FieldError>
         </Field>
         <Field className="content-start">
           <Label htmlFor="termination-charges">Encargos (R$)</Label>

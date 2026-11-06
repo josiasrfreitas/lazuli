@@ -34,6 +34,7 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
   };
   return (
     <TaskDialog
+      embedded
       title="Renegociar contrato"
       description={preview.studentName}
       onClose={onClose}
@@ -42,6 +43,15 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
       firstField="termination-fee"
       size="wide"
       compactHeader
+      headerAction={
+        props.onReduce ? (
+          <ContractRenegotiationMode
+            value="terminate"
+            onChange={props.onReduce}
+            disabled={pending || state.review}
+          />
+        ) : undefined
+      }
       actionSize="sm"
       layout="termination"
       bodyLayout="termination"
@@ -55,13 +65,6 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
       submitDisabled={state.review && (!state.acknowledged || !amounts.nameConfirmed)}
       onBack={state.review ? handleBack : undefined}
     >
-      {props.onReduce && (
-        <ContractRenegotiationMode
-          value="terminate"
-          onChange={props.onReduce}
-          disabled={pending || state.review}
-        />
-      )}
       <TerminationFormBody {...props} />
     </TaskDialog>
   );
@@ -72,12 +75,9 @@ function TerminationFormBody(props: TerminationViewProps): ReactJSX.Element {
   return (
     <form id="contract-termination" className="grid gap-3" onSubmit={onSubmit}>
       <ToastAlert variant="destructive">
-        <strong>Atenção: esta ação é irreversível.</strong>
-        <p>
-          Ao confirmar, o contrato será rescindido e as matrículas selecionadas serão encerradas em{" "}
-          {formatDateOnlyBR(preview.today)}.
-        </p>
-        <p>Os pagamentos já recebidos continuarão no histórico. Não haverá reembolso automático.</p>
+        Rescisão irreversível: o contrato e as matrículas selecionadas serão encerrados em{" "}
+        {formatDateOnlyBR(preview.today)}. Os pagamentos ficam no histórico; não há reembolso
+        automático.
       </ToastAlert>
       <TerminationDetails {...props} />
       {(state.error ?? mutationError) && (

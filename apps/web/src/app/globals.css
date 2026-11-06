@@ -43,6 +43,12 @@ main:has(> [data-page-scroll="internal"]) {
   overflow: hidden;
   background: var(--muted);
 }
+.student-photo-viewer[data-empty="true"] {
+  color: var(--muted-foreground);
+}
+.student-photo-file-upload .file-upload__error {
+  display: none;
+}
 .student-photo-upload-button {
   position: absolute;
   z-index: 1;
@@ -53,9 +59,18 @@ main:has(> [data-page-scroll="internal"]) {
   border-radius: 50%;
   background: var(--popover);
   color: var(--popover-foreground);
+  opacity: 0;
+  transition: opacity var(--lz-duration-fast);
 }
-.student-photo-upload-dialog {
-  gap: 1rem;
+.student-photo-viewer:hover .student-photo-upload-button,
+.student-photo-upload-button:focus-visible,
+.student-photo-viewer[data-empty="true"] .student-photo-upload-button {
+  opacity: 1;
+}
+@media (hover: none) {
+  .student-photo-upload-button {
+    opacity: 1;
+  }
 }
 
 .registration-edit-field {

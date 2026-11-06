@@ -1,9 +1,11 @@
 import { z } from "@lazuli/validators";
+import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { staffProcedure, router } from "../trpc/init.js";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { GENERATION_STALE_MS } from "./requests.js";
 import type { Prisma } from "@lazuli/db";
+const processLogger = createServiceLogger("web");
 
 const statusSelect = {
   id: true,
@@ -89,11 +91,24 @@ export const sessionGenerationRouter = router({
         select: statusSelect,
         orderBy: { portalClassName: "asc" },
       });
-      return classes
+      const status = classes
         .filter(
           (row) =>
             ctx.staffUser.role !== "TEACHER" || usualTeacherOn(row, date)?.id === ctx.staffUser.id,
         )
         .map((row) => generationStatus(row, { now, canRequest: ctx.staffUser.role !== "TEACHER" }));
+      logDevelopmentProcess(processLogger, {
+        requestId: ctx.requestId,
+        userId: ctx.staffUser.id,
+        resource: "sessionGeneration.status",
+        operation: "DB",
+        step: "Session generation status evaluated",
+        facts: {
+          classes: status.length,
+          pending_generations: status.filter((row) => row.pending).length,
+          stale_generations: status.filter((row) => row.stale).length,
+        },
+      });
+      return status;
     }),
 });

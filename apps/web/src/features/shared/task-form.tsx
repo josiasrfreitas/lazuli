@@ -141,6 +141,7 @@ type TaskDialogProps = {
   layout?: "appointment" | "appointment-calendar" | "occurrence" | "termination";
   bodyLayout?: "calendar" | "termination" | "placement";
   compactHeader?: boolean;
+  headerAction?: ReactNode;
   scheduleFrame?: boolean;
   embedded?: boolean;
   returnAction?: { label: string; onClick: () => void } | undefined;
@@ -220,11 +221,16 @@ function TaskBody({
       )}
       <DialogHeader
         className={
-          props.compactHeader ? "flex-row flex-wrap items-baseline gap-x-3 gap-y-1" : undefined
+          props.compactHeader
+            ? `flex-row flex-wrap gap-x-3 gap-y-1 ${props.headerAction ? "items-center" : "items-baseline"}`
+            : undefined
         }
       >
         <DialogTitle>{props.title}</DialogTitle>
         <DialogDescription>{props.description}</DialogDescription>
+        {props.headerAction && (
+          <div className="-translate-y-2 ml-auto shrink-0">{props.headerAction}</div>
+        )}
       </DialogHeader>
       <DialogBody
         ref={props.bodyRef}

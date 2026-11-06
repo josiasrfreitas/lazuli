@@ -69,6 +69,7 @@ const MATERIAL_KEYS: Record<string, keyof ContractFields> = {
   payment: "materialPayment",
   installmentCount: "materialInstallments",
   priceOverrideCents: "materialCustomPrice",
+  cardFeeOverridePct: "materialCardFeePct",
 };
 
 function assignMaterialIssue(errors: Errors, ...[property, message]: [string, string]): void {

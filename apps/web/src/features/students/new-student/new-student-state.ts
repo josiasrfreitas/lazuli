@@ -7,6 +7,8 @@ import {
   type SetStateAction,
 } from "react";
 import type { RouterInputs } from "@lazuli/api";
+import type { SearchSelectOption } from "@lazuli/ui";
+import type { IntakePendingItem } from "./new-student-save";
 import { useContractFormState, useContractOffer } from "~/features/contracts/new-contract-state";
 import type { LeadRegistration } from "~/features/admissions/lead-capture-dialog";
 import { initialNewStudentState, newStudentReducer } from "./reducer";
@@ -14,11 +16,16 @@ import type { IntakeStep } from "./new-student-dialog";
 
 type Format = "IN_PERSON" | "ONLINE";
 type ScheduleType = "REGULAR" | "PERSONALIZED";
+export type EntryPeriod = "CURRENT" | "NEXT";
 export type IntakeInput =
   | RouterInputs["students"]["enrollNew"]
   | RouterInputs["students"]["resumeIntake"];
 export type BlockingItem = { label: string; step: IntakeStep; field?: string };
-type Confirmation = { input?: IntakeInput; items: string[]; blocking: BlockingItem[] } | null;
+type Confirmation = {
+  input?: IntakeInput;
+  items: IntakePendingItem[];
+  blocking: BlockingItem[];
+} | null;
 
 export type EnrollmentIdentity = {
   addressPending: boolean;
@@ -33,6 +40,10 @@ export type EnrollmentIdentity = {
   setFormat: Dispatch<SetStateAction<Format>>;
   scheduleType: ScheduleType;
   setScheduleType: Dispatch<SetStateAction<ScheduleType>>;
+  entryPeriod: EntryPeriod;
+  setEntryPeriod: Dispatch<SetStateAction<EntryPeriod>>;
+  teacherSelection: SearchSelectOption | null;
+  setTeacherSelection: Dispatch<SetStateAction<SearchSelectOption | null>>;
   selectedId: string;
   setSelectedId: Dispatch<SetStateAction<string>>;
   search: string;
@@ -50,6 +61,8 @@ export function useEnrollmentIdentity(initialCandidateId: string | undefined): E
   const [stageId, setStageId] = useState<string | null>(null);
   const [format, setFormat] = useState<Format>("IN_PERSON");
   const [scheduleType, setScheduleType] = useState<ScheduleType>("REGULAR");
+  const [entryPeriod, setEntryPeriod] = useState<EntryPeriod>("CURRENT");
+  const [teacherSelection, setTeacherSelection] = useState<SearchSelectOption | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
   const [draftLead, setDraftLead] = useState<LeadRegistration | null>(null);
@@ -68,6 +81,10 @@ export function useEnrollmentIdentity(initialCandidateId: string | undefined): E
     setFormat,
     scheduleType,
     setScheduleType,
+    entryPeriod,
+    setEntryPeriod,
+    teacherSelection,
+    setTeacherSelection,
     selectedId,
     setSelectedId,
     search,

@@ -1,8 +1,11 @@
-import type { ReactElement, ReactNode } from "react";
+import { useState, type ReactElement } from "react";
+import { ChevronRight } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge } from "@lazuli/ui";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { materialPaymentLabel } from "~/features/contracts/material-payment-label";
+import { InvoiceTotals } from "./contract-invoice-totals";
+import { ContractInstallments } from "./contract-installments";
 import styles from "./contract-invoice.module.css";
 
 export type FinanceContract = RouterOutputs["finance"]["studentSummary"]["contracts"][number];
@@ -13,34 +16,36 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
   const rows = [...contract.schedules].toSorted(
     (left, right) => Number(right.kind === "TUITION") - Number(left.kind === "TUITION"),
   );
-  const tuition = rows.find((row) => row.kind === "TUITION");
   const reduction = contract.renegotiations?.reduce((sum, row) => sum + row.reductionCents, 0) ?? 0;
   return (
     <div className={styles.container}>
-      <dl className={styles.meta}>
-        <Meta label="Vigência">
-          {contract.startsOn && contract.endsOn
-            ? `${formatDateOnlyBR(contract.startsOn)} a ${formatDateOnlyBR(contract.endsOn)}`
-            : "Não informada"}
-        </Meta>
-        <Meta label="Pagador">{contract.payerName}</Meta>
-        <Meta label="Vencimento">{tuition ? `Todo dia ${tuition.dueDay}` : "—"}</Meta>
-      </dl>
-      <TuitionScholarship contract={contract} />
       <div className={styles.itemsHeader} aria-hidden="true">
         <span>Item</span>
-        <span>Pagamento</span>
-        <span>Total</span>
+        <span>Condição de pagamento</span>
+        <span>Valor contratado</span>
       </div>
       <ol aria-label="Itens do contrato">
         {rows.map((row) => (
-          <InvoiceItem key={row.id} item={row} />
+          <InvoiceItem key={row.id} item={row} payerName={contract.payerName} />
         ))}
       </ol>
-      <InvoiceTotals rows={rows} />
-      {reduction > 0 && (
-        <p className={styles.note}>Inclui {money(reduction)} em reduções por renegociação.</p>
-      )}
+      <div className={styles.closing}>
+        <div className={styles.conditions}>
+          <TuitionScholarship contract={contract} />
+          {contract.punctualityDiscountPct > 0 && (
+            <p>
+              <strong>Pontualidade</strong>
+              <br />
+              {contract.punctualityDiscountPct.toLocaleString("pt-BR")}% de desconto nas
+              mensalidades pagas até o vencimento.
+            </p>
+          )}
+          {reduction > 0 && (
+            <p>O valor contratado já inclui {money(reduction)} em reduções por renegociação.</p>
+          )}
+        </div>
+        <InvoiceTotals rows={rows} tuition={contract} />
+      </div>
     </div>
   );
 }
@@ -62,12 +67,41 @@ function TuitionScholarship({ contract }: { contract: FinanceContract }): ReactE
   );
 }
 
-function InvoiceItem({ item }: { item: FinanceSchedule }): ReactElement {
+function InvoiceItem({
+  item,
+  payerName,
+}: {
+  item: FinanceSchedule;
+  payerName: string;
+}): ReactElement {
+  if (item.kind === "TUITION") return <TuitionItem item={item} payerName={payerName} />;
   return (
     <li className={styles.item}>
       <InvoiceDescription item={item} />
       <InvoiceTerms item={item} />
       <InvoiceValue item={item} />
+    </li>
+  );
+}
+
+function TuitionItem({
+  item,
+  payerName,
+}: {
+  item: FinanceSchedule;
+  payerName: string;
+}): ReactElement {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <li className={styles.expandableItem}>
+      <details onToggle={(event) => setExpanded(event.currentTarget.open)}>
+        <summary className={styles.item}>
+          <InvoiceDescription item={item} />
+          <InvoiceTerms item={item} />
+          <InvoiceValue item={item} />
+        </summary>
+        {expanded && <ContractInstallments orderId={item.id} payerName={payerName} />}
+      </details>
     </li>
   );
 }
@@ -79,16 +113,12 @@ function InvoiceDescription({ item }: { item: FinanceSchedule }): ReactElement {
       : invoiceItemStatus(item.collection);
   return (
     <div className={styles.description}>
-      <h4>{invoiceItemName(item)}</h4>
-      <div className={styles.itemStatus}>
+      <div className={styles.itemTitle}>
+        <h4>{invoiceItemName(item)}</h4>
+        {item.kind === "TUITION" && <ChevronRight aria-hidden="true" className={styles.chevron} />}
         <Badge variant={status.variant}>{status.label}</Badge>
-        {item.kind === "TUITION" && item.collection.paidCount > 0 && (
-          <span>
-            {item.collection.paidCount}/{item.collection.count} pagas
-          </span>
-        )}
-        {item.collection.waivedCount > 0 && <span>{item.collection.waivedCount} dispensadas</span>}
       </div>
+      <ItemCollection item={item} />
       {item.material && item.material.items.length > 1 && (
         <p>{item.material.items.map((book) => book.name).join(" · ")}</p>
       )}
@@ -97,9 +127,27 @@ function InvoiceDescription({ item }: { item: FinanceSchedule }): ReactElement {
           <summary>
             Bolsa de material: {item.material.scholarshipPct.toLocaleString("pt-BR")}%
           </summary>
-          <p className="whitespace-pre-wrap">{item.material.scholarshipAgreement}</p>
+          <p className="whitespace-pre-wrap">
+            {item.material.scholarshipAgreement || "Bolsa aplicada ao material didático."}
+          </p>
         </details>
       )}
+    </div>
+  );
+}
+
+function ItemCollection({ item }: { item: FinanceSchedule }): ReactElement | null {
+  const { paidCount, waivedCount, count } = item.collection;
+  const showPaid = item.kind === "TUITION" && paidCount > 0;
+  if (!showPaid && waivedCount === 0) return null;
+  return (
+    <div className={styles.itemStatus}>
+      {showPaid && (
+        <span>
+          {paidCount} de {count} parcelas pagas
+        </span>
+      )}
+      {waivedCount > 0 && <span>{waivedCount} dispensadas</span>}
     </div>
   );
 }
@@ -113,7 +161,7 @@ function InvoiceTerms({ item }: { item: FinanceSchedule }): ReactElement {
         {paymentTerms(item)}
         {card ? " no cartão" : ""}
       </p>
-      {card && <span>Repasse integral em até 24h</span>}
+      {card && <span>Recebimento único pela escola</span>}
       <MaterialDueDate item={item} fullScholarship={fullScholarship} />
       <MaterialCardFee item={item} />
     </div>
@@ -144,43 +192,18 @@ function MaterialCardFee({ item }: { item: FinanceSchedule }): ReactElement | nu
 function InvoiceValue({ item }: { item: FinanceSchedule }): ReactElement {
   return (
     <div className={styles.value}>
+      {item.material && item.material.listPriceCents > itemAmount(item) && (
+        <s
+          className={styles.originalValue}
+          aria-label={`Valor integral do material: ${money(item.material.listPriceCents)}`}
+        >
+          {money(item.material.listPriceCents)}
+        </s>
+      )}
       <p>{money(itemAmount(item))}</p>
       {item.collection.receivedCents > 0 && item.collection.balanceCents > 0 && (
-        <span>Saldo {money(item.collection.balanceCents)}</span>
+        <span>A receber: {money(item.collection.balanceCents)}</span>
       )}
-    </div>
-  );
-}
-
-function InvoiceTotals({ rows }: { rows: FinanceSchedule[] }): ReactElement {
-  const gross = rows.reduce((sum, row) => sum + itemAmount(row), 0);
-  const fee = rows.reduce((sum, row) => sum + (row.material?.cardFeeCents ?? 0), 0);
-  const received = rows.reduce((sum, row) => sum + row.collection.receivedCents, 0);
-  const balance = rows.reduce((sum, row) => sum + row.collection.balanceCents, 0);
-  return (
-    <dl className={styles.totals}>
-      <div>
-        <dt>Total do contrato</dt>
-        <dd>{money(gross)}</dd>
-        {fee > 0 && <span>Líquido: {money(gross - fee)}</span>}
-      </div>
-      <div>
-        <dt>Recebido</dt>
-        <dd>{money(received)}</dd>
-      </div>
-      <div>
-        <dt>Saldo a receber</dt>
-        <dd>{money(balance)}</dd>
-      </div>
-    </dl>
-  );
-}
-
-function Meta({ label, children }: { label: string; children: ReactNode }): ReactElement {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{children}</dd>
     </div>
   );
 }
@@ -212,8 +235,7 @@ export function itemAmount(schedule: FinanceSchedule): number {
 }
 export function paymentTerms(schedule: FinanceSchedule): string {
   const materialValue = schedule.material;
-  if (materialValue?.scholarshipPct === FULL_SCHOLARSHIP_PCT)
-    return "Bolsa integral · sem cobrança";
+  if (materialValue?.scholarshipPct === FULL_SCHOLARSHIP_PCT) return "Bolsa integral";
   if (typeof materialValue?.chargedAmountCents === "number")
     return materialValue.payment === "INSTALLMENTS"
       ? materialPaymentLabel(materialValue.chargedAmountCents, materialValue.quotedInstallments)

@@ -165,6 +165,12 @@ export {
   type TeachingProgramImport,
 } from "./teaching-program.js";
 export { studentPendingActions, type PendingAction } from "./pending-actions.js";
+export {
+  REGISTRATION_DOCUMENT_KINDS,
+  requiredRegistrationDocuments,
+  missingRegistrationDocuments,
+  type RegistrationDocumentKind,
+} from "./registration-documents.js";
 export { contractReduction, type ContractReductionLine } from "./contract-reduction.js";
 
 export { extractIdentityDocument } from "./identity-extraction/extract.js";

@@ -49,12 +49,6 @@
 .essentials [data-overdue] dd {
   color: var(--destructive);
 }
-.details {
-  display: grid;
-  gap: 1.75rem;
-  min-width: 0;
-  align-content: start;
-}
 .contractDates {
   display: grid;
   gap: 1rem;
@@ -102,73 +96,5 @@
   }
   .essentials > :last-child dd {
     font-size: 1.5rem;
-  }
-}
-.detailsLayout {
-  display: grid;
-  gap: 1.5rem;
-  padding-top: 1rem;
-}
-.proofs {
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  gap: 1rem;
-  border-top: 1px solid var(--border);
-  padding-top: 1rem;
-}
-@media (min-width: 768px) {
-  .detailsLayout[data-with-proofs] {
-    grid-template-columns: minmax(0, 1fr) 19rem;
-  }
-  .proofs {
-    border-top: 0;
-    border-left: 1px solid var(--border);
-    padding-top: 0;
-    padding-left: 1.25rem;
-  }
-}
-
-.paymentHistory {
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-}
-.paymentHistory > summary {
-  cursor: pointer;
-  color: var(--muted-foreground);
-  font-size: var(--lz-text-caption);
-  font-weight: 500;
-}
-.paymentHistory > summary:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
-}
-.paymentHistory > div {
-  margin-top: 0.75rem;
-  border-top: 0;
-  padding-top: 0;
-}
-
-/* This reading dialog opens at its final size; no zoom or layout transition. */
-.detailsScope :global([data-finance-details-dialog][data-finance-details-dialog]),
-.detailsScope :global([data-finance-details-dialog][data-starting-style]),
-.detailsScope :global([data-finance-details-dialog][data-ending-style]) {
-  animation: none;
-  transition: none;
-  scale: 1;
-  opacity: 1;
-}
-.detailsScope :global([data-finance-details-backdrop][data-finance-details-backdrop]) {
-  animation: none;
-  transition: none;
-  opacity: 1;
-}
-@media (min-width: 48rem) {
-  .detailsScope :global([data-finance-details-dialog][data-finance-details-dialog]) {
-    width: calc(100vw - 3rem);
-    max-width: 48rem;
-  }
-  .detailsScope :global([data-finance-details-dialog][data-proofs="true"]) {
-    max-width: 72rem;
   }
 }

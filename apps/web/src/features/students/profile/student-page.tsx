@@ -2,14 +2,7 @@
 
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import {
-  BookOpen,
-  CalendarDays,
-  LayoutDashboard,
-  MessageCircle,
-  UserRound,
-  Wallet,
-} from "lucide-react";
+import { BookOpen, CalendarDays, LayoutDashboard, UserRound, Wallet } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -472,16 +465,6 @@ function StudentHeaderActions({
 }): ReactElement {
   return (
     <div className={styles.headerActions}>
-      {profile?.whatsAppUrl && (
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={<a href={profile.whatsAppUrl} target="_blank" rel="noreferrer" />}
-        >
-          <MessageCircle aria-hidden="true" /> WhatsApp
-        </Button>
-      )}
       {profile ? (
         <StudentAgendaAction
           profile={profile}
@@ -490,7 +473,7 @@ function StudentHeaderActions({
         />
       ) : (
         <Button size="sm" disabled>
-          <CalendarDays aria-hidden="true" /> Agenda do aluno
+          <CalendarDays aria-hidden="true" /> Agenda
         </Button>
       )}
       {renewalAction}

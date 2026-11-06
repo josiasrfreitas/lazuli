@@ -15,3 +15,10 @@ export const paymentProofUploadSchema = z
   .strict();
 
 export type PaymentProofUpload = z.infer<typeof paymentProofUploadSchema>;
+
+export const paymentReversalProofUploadSchema = paymentProofUploadSchema
+  .omit({ paymentEntryId: true })
+  .extend({ paymentReversalId: z.string().uuid() })
+  .strict();
+
+export type PaymentReversalProofUpload = z.infer<typeof paymentReversalProofUploadSchema>;

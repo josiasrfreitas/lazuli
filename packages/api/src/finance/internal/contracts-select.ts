@@ -98,7 +98,13 @@ export const contractSelect = {
           },
           allocations: {
             where: { deletedAt: null, paymentEntry: { deletedAt: null } },
-            select: { amountCents: true },
+            select: {
+              amountCents: true,
+              reversals: {
+                where: { deletedAt: null, reversal: { deletedAt: null } },
+                select: { amountCents: true },
+              },
+            },
           },
         },
       },
@@ -210,7 +216,15 @@ function orderFinancialSummary(
 ): ReturnType<typeof deriveContractFinancialSummary> {
   return deriveContractFinancialSummary({
     cancelledAt: order?.cancelledAt ?? null,
-    installments: order?.installments ?? [],
+    installments:
+      order?.installments.map((installment) => ({
+        ...installment,
+        allocations: installment.allocations.map((allocation) => ({
+          amountCents:
+            allocation.amountCents -
+            allocation.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+        })),
+      })) ?? [],
     now,
     installmentCount: order?.installmentCount ?? 0,
   });

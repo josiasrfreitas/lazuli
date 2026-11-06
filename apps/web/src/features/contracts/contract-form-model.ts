@@ -7,6 +7,7 @@ import {
 
 import { parseDateBR } from "~/lib/masks";
 import { formatBRLFromCents } from "~/lib/format";
+import { materialCardFeeInput } from "./material-card-fee";
 
 const CENTS_PER_REAL = 100;
 const MONTHS_PER_YEAR = 12;
@@ -19,6 +20,8 @@ export type ContractFields = {
   materialInstallments: string;
   materialPriceMode: string;
   materialCustomPrice: string;
+  materialCardFeeMode: string;
+  materialCardFeePct: string;
   materialTotal: string;
   materialQuoteVersion: string;
   paymentPlan: string;
@@ -67,6 +70,8 @@ export const emptyContractFields: ContractFields = {
   materialInstallments: "6",
   materialPriceMode: "REFERENCE",
   materialCustomPrice: "",
+  materialCardFeeMode: "REFERENCE",
+  materialCardFeePct: "",
   materialTotal: "",
   materialQuoteVersion: "",
   paymentPlan: "common",
@@ -195,6 +200,7 @@ export function contractInputFromFields(
           material: {
             ...scholarshipInput(fields, true),
             ...materialPriceInput(fields),
+            ...materialCardFeeInput(fields),
             stageIds: fields.materialStageIds.split(","),
             quoteVersion: fields.materialQuoteVersion,
             category: fields.materialCategory,

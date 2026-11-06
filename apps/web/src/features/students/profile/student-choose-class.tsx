@@ -11,7 +11,13 @@ import { visibleActions } from "./student-pending-actions";
 
 const DIALOG_OPEN_DELAY_MS = 180;
 
-export function StudentChooseClass({ studentId }: { studentId: string }): ReactElement | null {
+export function StudentChooseClass({
+  studentId,
+  showButton = true,
+}: {
+  studentId: string;
+  showButton?: boolean;
+}): ReactElement | null {
   const [open, setOpen] = useState(false);
   const [requested, setRequested] = useQueryState("definirTurma");
   const anchor = useRef<HTMLDivElement>(null);
@@ -33,7 +39,7 @@ export function StudentChooseClass({ studentId }: { studentId: string }): ReactE
     interventions.isSuccess,
   ].every(Boolean);
   useRequestedClassDialog({ requested, ready, setRequested, setOpen, anchor, consumed });
-  if (placement?.action.type === "OPEN_LEAD")
+  if (placement?.action.type === "OPEN_LEAD" && (showButton || requested === "1"))
     return (
       <Button
         nativeButton={false}
@@ -45,9 +51,11 @@ export function StudentChooseClass({ studentId }: { studentId: string }): ReactE
   if (!allocation) return null;
   return (
     <div ref={anchor}>
-      <Button onClick={() => setOpen(true)}>
-        Definir primeira turma <ArrowRight aria-hidden="true" />
-      </Button>
+      {showButton && (
+        <Button onClick={() => setOpen(true)}>
+          Definir primeira turma <ArrowRight aria-hidden="true" />
+        </Button>
+      )}
       <NewStudentDialog
         open={open}
         initialStep="pedagogy"
