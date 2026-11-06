@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactElement } from "react";
-import { Download, Paperclip, RotateCcw } from "lucide-react";
+import { CircleX, Paperclip, RotateCcw } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
@@ -14,6 +14,9 @@ import {
   Button,
   CurrencyInput,
   Field,
+  FieldError,
+  FormRow,
+  FormSection,
   FileUpload,
   Input,
   Label,
@@ -25,6 +28,9 @@ import {
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import { uploadPaymentReversalProof } from "~/features/installments/payment/payment-reversal-proof";
+
+import { maskDateBR, parseDateBR } from "~/lib/masks";
+import { ReversalHistory } from "./payment-reversal-history";
 
 type Options = RouterOutputs["finance"]["paymentReversalOptions"];
 type Method = RouterOutputs["finance"]["paymentMethods"][number];
@@ -102,7 +108,7 @@ function reversalDefaults(
   reason: string;
 } {
   return {
-    kind: attempt?.kind ?? "CANCELLATION",
+    kind: attempt?.kind ?? "REFUND",
     date: defaultRefundDate(attempt, today),
     method: attempt?.refundMethod ?? "",
     reference: attempt?.refundReference ?? "",
@@ -111,7 +117,7 @@ function reversalDefaults(
 }
 
 function defaultRefundDate(attempt: Attempt | null, today: string): string {
-  return attempt?.occurredOn?.toISOString().slice(0, DATE_ONLY_LENGTH) ?? today;
+  return formatDateOnlyBR(attempt?.occurredOn?.toISOString().slice(0, DATE_ONLY_LENGTH) ?? today);
 }
 
 function selectedAllocations(
@@ -263,6 +269,10 @@ function useConfirmAction(input: {
   };
 }
 
+function validRefundDate(date: string | null, range: { earliest: string; today: string }): boolean {
+  return date !== null && date >= range.earliest && date <= range.today;
+}
+
 function useSubmitAction(input: {
   props: FormProps;
   state: ReversalFields;
@@ -271,14 +281,23 @@ function useSubmitAction(input: {
   return (event) => {
     event.preventDefault();
     const { props, state, confirm } = input;
-    if (props.attempt || state.locked) return;
+    if (props.attempt || state.locked || disabledSubmit(state)) return;
+    const date = parseDateBR(state.date);
+    if (
+      state.kind === "REFUND" &&
+      !validRefundDate(date, { earliest: props.options.date, today: state.today })
+    ) {
+      state.setError("Informe uma data válida entre o recebimento e hoje.");
+      event.currentTarget.querySelector<HTMLInputElement>('[name="refund-date"]')?.focus();
+      return;
+    }
     void confirm({
       commandId: state.commandId,
       paymentEntryId: props.options.paymentEntryId,
       kind: state.kind,
       ...(state.kind === "REFUND"
         ? {
-            occurredOn: new Date(`${state.date}T00:00:00.000Z`),
+            occurredOn: new Date(`${date}T00:00:00.000Z`),
             refundMethod: state.method,
             refundReference: state.reference || null,
           }
@@ -296,13 +315,29 @@ export function PaymentReversalForm(props: FormProps): ReactElement {
   const submit = useSubmitAction({ props, state, confirm });
   return (
     <div className="grid content-start gap-4">
-      <form className="grid gap-4" onSubmit={submit}>
+      <form className="grid gap-4" noValidate onSubmit={submit}>
         <ReversalKind state={state} />
-        <ReversalAllocations options={props.options} state={state} />
-        {state.kind === "REFUND" && <RefundFields props={props} state={state} />}
-        <ReversalReason state={state} />
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <div className={state.kind === "REFUND" ? "grid gap-4" : "contents"}>
+            <ReversalAllocations options={props.options} state={state} />
+            <ReversalReason state={state} />
+          </div>
+          {state.kind === "REFUND" && (
+            <div className="min-w-0 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
+              <RefundFields props={props} state={state} />
+            </div>
+          )}
+        </div>
         {state.error && <ToastAlert variant="destructive">{state.error}</ToastAlert>}
-        <ReversalSubmit props={props} state={state} upload={upload} confirm={confirm} />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <div className="grid gap-0.5" aria-live="polite" aria-atomic="true">
+            <span className="text-caption text-muted-foreground">Total a reabrir</span>
+            <span className="font-numeric text-lg font-semibold tabular-nums">
+              {formatBRLFromCents(state.total)}
+            </span>
+          </div>
+          <ReversalSubmit props={props} state={state} upload={upload} confirm={confirm} />
+        </div>
       </form>
       <ReversalHistory props={props} />
     </div>
@@ -311,8 +346,9 @@ export function PaymentReversalForm(props: FormProps): ReactElement {
 
 function ReversalKind({ state }: { state: ReversalFields }): ReactElement {
   return (
-    <>
+    <div className="grid gap-2">
       <SegmentedControl
+        size="sm"
         aria-label="Tipo da operação"
         value={state.kind}
         disabled={state.locked}
@@ -320,15 +356,21 @@ function ReversalKind({ state }: { state: ReversalFields }): ReactElement {
           if (value === "CANCELLATION" || value === "REFUND") state.setKind(value);
         }}
       >
-        <SegmentedControlItem value="CANCELLATION">Cancelar recebimento</SegmentedControlItem>
-        <SegmentedControlItem value="REFUND">Estorno</SegmentedControlItem>
+        <SegmentedControlItem value="REFUND">
+          <RotateCcw aria-hidden="true" className="mr-1.5 size-3.5 shrink-0" />
+          Estorno
+        </SegmentedControlItem>
+        <SegmentedControlItem value="CANCELLATION">
+          <CircleX aria-hidden="true" className="mr-1.5 size-3.5 shrink-0" />
+          Cancelar recebimento
+        </SegmentedControlItem>
       </SegmentedControl>
       <p className="text-caption text-muted-foreground">
         {state.kind === "CANCELLATION"
           ? "Corrige um recebimento lançado por engano no mês original."
           : "Registra uma devolução já feita, na data em que ocorreu."}
       </p>
-    </>
+    </div>
   );
 }
 
@@ -340,28 +382,47 @@ function ReversalAllocations({
   state: ReversalFields;
 }): ReactElement {
   return (
-    <div className="grid gap-2">
-      <h3 className="text-sm font-semibold">Parcelas deste recebimento</h3>
+    <FormSection title="Parcelas deste recebimento">
       {options.allocations.map((row) => (
-        <Field key={row.id} className="grid grid-cols-[minmax(0,1fr)_8rem] items-end gap-3">
-          <Label htmlFor={`reversal-${row.id}`} className="min-w-0">
-            <span className="block truncate">
-              {row.kind === "MATERIAL" ? "Material" : `Parcela ${row.sequenceNumber}`}
-            </span>
-            <span className="block text-caption font-normal text-muted-foreground">
-              Vence {formatDateOnlyBR(row.dueDate)} · disponível:{" "}
-              {formatBRLFromCents(row.availableAmountCents)}
-            </span>
-          </Label>
-          <CurrencyInput
-            id={`reversal-${row.id}`}
-            size="sm"
-            value={state.amounts[row.id] ?? null}
-            disabled={state.locked || row.availableAmountCents === 0}
-            onValueChange={(value) =>
-              state.setAmounts((current) => ({ ...current, [row.id]: value }))
-            }
-          />
+        <Field key={row.id}>
+          <div className="flex items-center gap-3">
+            <Label htmlFor={`reversal-${row.id}`} className="min-w-0 flex-1">
+              <span className="block truncate">
+                {row.kind === "MATERIAL" ? "Material" : `Parcela ${row.sequenceNumber}`}
+              </span>
+              <span className="block text-caption font-normal text-muted-foreground">
+                Vence {formatDateOnlyBR(row.dueDate)} · disponível:{" "}
+                {formatBRLFromCents(row.availableAmountCents)}
+              </span>
+            </Label>
+            <div className="w-28 shrink-0">
+              <CurrencyInput
+                id={`reversal-${row.id}`}
+                name={`reversal-${row.id}`}
+                autoComplete="off"
+                placeholder="R$ 0,00"
+                aria-invalid={(state.amounts[row.id] ?? 0) > row.availableAmountCents || undefined}
+                aria-describedby={
+                  (state.amounts[row.id] ?? 0) > row.availableAmountCents
+                    ? `reversal-error-${row.id}`
+                    : undefined
+                }
+                size="sm"
+                value={state.amounts[row.id] ?? null}
+                disabled={state.locked || row.availableAmountCents === 0}
+                onValueChange={(value) =>
+                  state.setAmounts((current) => ({ ...current, [row.id]: value }))
+                }
+              />
+            </div>
+          </div>
+          {(state.amounts[row.id] ?? 0) > row.availableAmountCents && (
+            <div>
+              <FieldError id={`reversal-error-${row.id}`} match>
+                O valor supera o disponível nesta parcela.
+              </FieldError>
+            </div>
+          )}
         </Field>
       ))}
       {options.unallocatedAmountCents > 0 && (
@@ -370,50 +431,71 @@ function ReversalAllocations({
           revertido aqui.
         </p>
       )}
-      <p className="text-right text-sm font-semibold">Total: {formatBRLFromCents(state.total)}</p>
-    </div>
+    </FormSection>
   );
 }
 
 function RefundFields({ props, state }: { props: FormProps; state: ReversalFields }): ReactElement {
+  const date = parseDateBR(state.date);
+  const invalidDate =
+    Boolean(state.error) &&
+    !validRefundDate(date, { earliest: props.options.date, today: state.today });
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <FormSection title="Dados da devolução">
+      <FormRow columns={2}>
+        <Field>
+          <Label htmlFor="refund-date">Data da devolução</Label>
+          <Input
+            id="refund-date"
+            size="sm"
+            name="refund-date"
+            autoComplete="off"
+            placeholder="dd/mm/aaaa"
+            inputMode="numeric"
+            maxLength={DATE_ONLY_LENGTH}
+            aria-invalid={invalidDate || undefined}
+            aria-describedby={invalidDate ? "refund-date-error" : undefined}
+            value={state.date}
+            disabled={state.locked}
+            onChange={(event) => {
+              state.setDate(maskDateBR(event.target.value));
+              state.setError("");
+            }}
+          />
+          {invalidDate && (
+            <FieldError id="refund-date-error" match>
+              Informe uma data entre o recebimento e hoje.
+            </FieldError>
+          )}
+        </Field>
+        <Field>
+          <Label htmlFor="refund-method">Forma da devolução</Label>
+          <select
+            id="refund-method"
+            name="refund-method"
+            autoComplete="off"
+            required
+            value={state.method}
+            disabled={state.locked || props.methodsLoading}
+            onChange={(event) => state.setMethod(event.target.value)}
+            className="h-control-sm w-full min-w-0 rounded-sm border border-input bg-field px-3 text-control text-foreground outline-none focus-visible:border-ring focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-disabled"
+          >
+            <option value="">Selecione</option>
+            {props.methods.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </FormRow>
       <Field>
-        <Label htmlFor="refund-date">Data da devolução</Label>
-        <Input
-          id="refund-date"
-          size="sm"
-          type="date"
-          required
-          min={props.options.date}
-          max={state.today}
-          value={state.date}
-          disabled={state.locked}
-          onChange={(event) => state.setDate(event.target.value)}
-        />
-      </Field>
-      <Field>
-        <Label htmlFor="refund-method">Forma da devolução</Label>
-        <select
-          id="refund-method"
-          required
-          value={state.method}
-          disabled={state.locked || props.methodsLoading}
-          onChange={(event) => state.setMethod(event.target.value)}
-          className="h-control-sm rounded-sm border border-input bg-field px-3 text-control text-foreground"
-        >
-          <option value="">Selecione</option>
-          {props.methods.map((item) => (
-            <option key={item.code} value={item.code}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field className="sm:col-span-2">
         <Label htmlFor="refund-reference">Referência da transação (opcional)</Label>
         <Input
           id="refund-reference"
+          name="refund-reference"
+          autoComplete="off"
+          placeholder="Código ou identificação da transação"
           size="sm"
           maxLength={MAX_REFUND_REFERENCE_LENGTH}
           value={state.reference}
@@ -422,13 +504,13 @@ function RefundFields({ props, state }: { props: FormProps; state: ReversalField
         />
       </Field>
       <RefundProofField state={state} />
-    </div>
+    </FormSection>
   );
 }
 
 function RefundProofField({ state }: { state: ReversalFields }): ReactElement {
   return (
-    <div className="sm:col-span-2">
+    <div className="min-w-0">
       <FileUpload
         compact
         value={state.proof ? [state.proof] : []}
@@ -447,7 +529,7 @@ function RefundProofField({ state }: { state: ReversalFields }): ReactElement {
             disabled={picker.disabled}
             onClick={picker.open}
           >
-            <Paperclip aria-hidden="true" /> Comprovante da devolução (opcional)
+            <Paperclip aria-hidden="true" /> Anexar comprovante (opcional)
           </Button>
         )}
       />
@@ -461,6 +543,9 @@ function ReversalReason({ state }: { state: ReversalFields }): ReactElement {
       <Label htmlFor="reversal-reason">Justificativa (opcional)</Label>
       <Textarea
         id="reversal-reason"
+        name="reversal-reason"
+        autoComplete="off"
+        placeholder="Descreva o motivo, se necessário"
         size="sm"
         rows={2}
         maxLength={MAX_REVERSAL_REASON_LENGTH}
@@ -508,140 +593,5 @@ function ReversalSubmit({
 function disabledSubmit(state: ReversalFields): boolean {
   return (
     state.total <= 0 || state.tooMuch || state.locked || (state.kind === "REFUND" && !state.method)
-  );
-}
-
-function ReversalHistory({ props }: { props: FormProps }): ReactElement | null {
-  if (props.options.reversals.length === 0) return null;
-  return (
-    <section className="grid gap-2 border-t border-border pt-3" aria-label="Histórico de reversões">
-      <h3 className="text-sm font-semibold">Histórico deste recebimento</h3>
-      {props.options.reversals.map((row) => (
-        <ReversalHistoryRow
-          key={row.id}
-          row={row}
-          onBusyChange={props.onBusyChange}
-          onSaved={props.onSaved}
-        />
-      ))}
-    </section>
-  );
-}
-
-function ReversalHistoryRow({
-  row,
-  onBusyChange,
-  onSaved,
-}: {
-  row: Options["reversals"][number];
-  onBusyChange: FormProps["onBusyChange"];
-  onSaved: FormProps["onSaved"];
-}): ReactElement {
-  return (
-    <div className="rounded-sm border border-border p-2 text-caption">
-      <div className="flex justify-between gap-2 font-medium">
-        <span>
-          {row.kind === "CANCELLATION" ? "Cancelamento" : "Estorno"} ·{" "}
-          {formatDateOnlyBR(row.occurredOn)}
-        </span>
-        <span>{formatBRLFromCents(row.amountCents)}</span>
-      </div>
-      <p className="text-muted-foreground">
-        {row.createdByName}
-        {row.refundMethodName ? ` · ${row.refundMethodName}` : ""}
-        {row.refundReference ? ` · ${row.refundReference}` : ""}
-      </p>
-      {row.reason && <p>{row.reason}</p>}
-      {row.proofs.map((file) => (
-        <a
-          key={file.id}
-          href={`/api/payment-reversal-proofs/${file.id}`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-interactive underline-offset-4 hover:underline"
-        >
-          <Download aria-hidden="true" className="size-3" />
-          {file.fileName}
-        </a>
-      ))}
-      {row.kind === "REFUND" && (
-        <ReversalProofAttach reversalId={row.id} onBusyChange={onBusyChange} onSaved={onSaved} />
-      )}
-    </div>
-  );
-}
-
-function ReversalProofAttach({
-  reversalId,
-  onBusyChange,
-  onSaved,
-}: {
-  reversalId: string;
-  onBusyChange: (busy: boolean) => void;
-  onSaved: () => Promise<void>;
-}): ReactElement {
-  const [file, setFile] = useState<File | undefined>();
-  const [id, setId] = useState(() => crypto.randomUUID());
-  const [error, setError] = useState("");
-  const [uploading, setUploading] = useState(false);
-
-  async function attach(): Promise<void> {
-    if (!file || uploading) return;
-    setError("");
-    setUploading(true);
-    onBusyChange(true);
-    try {
-      await uploadPaymentReversalProof({ id, paymentReversalId: reversalId, file });
-      setFile(undefined);
-      await onSaved();
-    } catch (error_) {
-      setError(error_ instanceof Error ? error_.message : "Não foi possível enviar o comprovante.");
-    } finally {
-      setUploading(false);
-      onBusyChange(false);
-    }
-  }
-
-  return (
-    <div className="grid gap-1 pt-1">
-      <FileUpload
-        compact
-        value={file ? [file] : []}
-        onValueChange={(files) => {
-          setFile(files[0]);
-          setId(crypto.randomUUID());
-          setError("");
-        }}
-        onValidationError={setError}
-        accept={PAYMENT_PROOF_ACCEPT}
-        acceptLabel="PDF, JPG ou PNG"
-        maxSize={MAX_PAYMENT_PROOF_BYTES}
-        disabled={uploading}
-        status={uploading ? "uploading" : "idle"}
-        renderTrigger={(picker) => (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={picker.disabled}
-            onClick={picker.open}
-          >
-            <Paperclip aria-hidden="true" /> Anexar comprovante
-          </Button>
-        )}
-      />
-      {file && (
-        <Button
-          type="button"
-          size="sm"
-          loading={uploading}
-          disabled={Boolean(error)}
-          onClick={() => void attach()}
-        >
-          Salvar comprovante
-        </Button>
-      )}
-      {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
-    </div>
   );
 }

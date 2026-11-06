@@ -86,6 +86,8 @@ export const dialogContentVariants = cva([
 ]);
 
 export type DialogContentProps = DialogPrimitive.Popup.Props & {
+  /** Subtle fade for compact operational forms that should not scale on entry. */
+  motion?: "default" | "subtle";
   /** Accessible name of the built-in close button. */
   closeLabel?: string;
   /** Hides the built-in close button rendered in the top-right corner. */
@@ -93,11 +95,22 @@ export type DialogContentProps = DialogPrimitive.Popup.Props & {
 };
 
 export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ children, className, closeLabel = "Fechar", showCloseButton = true, ...props }, ref) => (
+  (
+    {
+      children,
+      className,
+      closeLabel = "Fechar",
+      showCloseButton = true,
+      motion = "default",
+      ...props
+    },
+    ref,
+  ) => (
     <DialogPrimitive.Popup
       {...props}
       className={cn(dialogContentVariants(), className)}
       data-slot="dialog-content"
+      data-motion={motion}
       ref={ref}
     >
       {showCloseButton ? <DialogCloseButton aria-label={closeLabel} /> : null}

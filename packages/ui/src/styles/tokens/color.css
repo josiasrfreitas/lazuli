@@ -241,6 +241,13 @@
   --primary-foreground: var(--lz-ref-blue-50);
 }
 
+/* Pill selection stays raised and blue on the segmented control's quiet track. */
+.dark [data-slot="segmented-control"] {
+  --muted: var(--lz-ref-blue-gray-900);
+  --card: var(--lz-ref-blue-700);
+  --card-foreground: var(--lz-ref-blue-50);
+}
+
 /* Dark buttons share the tables' blue-gray palette, with blue primary actions. */
 .dark [data-slot="button"] {
   --primary: var(--lz-ref-blue-700);

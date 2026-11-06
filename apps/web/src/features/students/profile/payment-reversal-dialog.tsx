@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
+import { Check } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { financeReversePaymentInputSchema } from "@lazuli/validators";
 import {
@@ -18,6 +19,7 @@ import {
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import { PaymentReversalForm, type Attempt } from "./payment-reversal-form";
+import { PaymentChoicesLoading, PaymentReversalLoading } from "./payment-reversal-loading";
 
 type Payment = RouterOutputs["finance"]["studentPayments"]["rows"][number];
 type Options = RouterOutputs["finance"]["paymentReversalOptions"];
@@ -145,6 +147,18 @@ type DialogViewProps = {
 };
 
 function PaymentReversalDialogView(props: DialogViewProps): ReactElement {
+  const popup = useRef<HTMLDivElement>(null);
+  const focused = useRef(false);
+  const focusFirstControl = (): HTMLElement | null => {
+    const control = popup.current?.querySelector<HTMLElement>(
+      '[data-payment-choice][aria-pressed="true"]:not(:disabled), form button:not(:disabled)',
+    );
+    if (control) focused.current = true;
+    return control ?? null;
+  };
+  useEffect(() => {
+    if (!focused.current) focusFirstControl()?.focus();
+  }, [props.paymentPending, props.optionsPending]);
   return (
     <Dialog
       open
@@ -156,7 +170,10 @@ function PaymentReversalDialogView(props: DialogViewProps): ReactElement {
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className="h-160 md:max-w-4xl"
+          className="md:max-w-[min(72rem,calc(100vw-2rem))]"
+          motion="subtle"
+          ref={popup}
+          initialFocus={() => focusFirstControl() ?? popup.current ?? true}
           showCloseButton={!props.busy && !props.attempt}
         >
           <DialogHeader>
@@ -165,9 +182,11 @@ function PaymentReversalDialogView(props: DialogViewProps): ReactElement {
               Escolha um recebimento e os valores das parcelas que serão reabertos.
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="grid content-start gap-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-            <PaymentList {...props} />
-            <ReversalPanel {...props} />
+          <DialogBody className="mt-5">
+            <div className="flex flex-col gap-5 md:flex-row">
+              <PaymentList {...props} />
+              <ReversalPanel {...props} />
+            </div>
           </DialogBody>
         </DialogContent>
       </DialogPortal>
@@ -177,41 +196,53 @@ function PaymentReversalDialogView(props: DialogViewProps): ReactElement {
 
 function PaymentList(props: DialogViewProps): ReactElement {
   return (
-    <section className="grid min-w-0 content-start gap-2" aria-label="Recebimentos">
-      {props.paymentPending && <p role="status">Carregando recebimentos…</p>}
-      {props.paymentError && (
-        <ToastAlert variant="destructive">Não foi possível carregar os recebimentos.</ToastAlert>
-      )}
-      {!props.paymentPending && props.rows.length === 0 && (
-        <p className="text-sm text-muted-foreground">Nenhum recebimento para este aluno.</p>
-      )}
-      {props.rows.map((payment) => (
-        <PaymentChoice
-          key={payment.id}
-          payment={payment}
-          selected={payment.id === props.paymentId}
-          disabled={Boolean(props.attempt)}
-          onSelect={() => props.onSelect(payment.id)}
-        />
-      ))}
-      {props.hasNextPage && (
-        <Button
-          variant="ghost"
-          size="sm"
-          loading={props.fetchingNextPage}
-          onClick={props.onLoadMore}
-        >
-          Carregar mais
-        </Button>
-      )}
+    <section className="relative w-full min-w-0 shrink-0 md:w-56" aria-label="Recebimentos">
+      <div className="grid min-h-0 gap-2 md:absolute md:inset-0 md:flex md:flex-col">
+        <h3 className="text-control font-semibold text-heading">Recebimentos</h3>
+        <div className="scrollbar-subtle grid min-h-0 max-h-40 content-start gap-2 overflow-y-auto py-1 pr-4 pl-1 md:max-h-none md:flex-1">
+          {props.paymentPending && <PaymentChoicesLoading />}
+          {props.paymentError && (
+            <ToastAlert variant="destructive">
+              Não foi possível carregar os recebimentos.
+            </ToastAlert>
+          )}
+          {!props.paymentPending && props.rows.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum recebimento para este aluno.</p>
+          )}
+          {props.rows.map((payment) => (
+            <PaymentChoice
+              key={payment.id}
+              payment={payment}
+              selected={payment.id === props.paymentId}
+              disabled={props.busy || Boolean(props.attempt)}
+              onSelect={() => props.onSelect(payment.id)}
+            />
+          ))}
+          {props.hasNextPage && (
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={props.fetchingNextPage}
+              onClick={props.onLoadMore}
+            >
+              Carregar mais
+            </Button>
+          )}
+        </div>
+      </div>
     </section>
   );
 }
 
 function ReversalPanel(props: DialogViewProps): ReactElement {
   return (
-    <section className="min-w-0" aria-label="Operação sobre o recebimento">
-      {props.optionsPending && props.paymentId && <p role="status">Carregando parcelas…</p>}
+    <section
+      className="min-w-0 flex-1 border-t border-border pt-4 md:min-h-64 md:border-t-0 md:border-l md:pt-0 md:pl-5"
+      aria-label="Operação sobre o recebimento"
+    >
+      {(props.paymentPending || (props.optionsPending && props.paymentId)) && (
+        <PaymentReversalLoading />
+      )}
       {props.optionsError && (
         <ToastAlert variant="destructive">Não foi possível carregar as parcelas.</ToastAlert>
       )}
@@ -248,16 +279,22 @@ function PaymentChoice({
     <button
       type="button"
       aria-pressed={selected}
+      data-payment-choice
       disabled={disabled}
       onClick={onSelect}
-      className="grid w-full gap-1 rounded-md border border-border p-3 text-left text-sm hover:bg-accent aria-pressed:border-primary aria-pressed:bg-accent/40"
+      className="grid w-full gap-1 rounded-md border border-border p-2.5 text-left text-caption outline-none transition-colors duration-fast ease-standard hover:bg-accent focus-visible:border-ring focus-visible:shadow-focus aria-pressed:border-primary aria-pressed:bg-accent/40 disabled:cursor-not-allowed disabled:opacity-disabled"
     >
       <span className="flex justify-between gap-2 font-medium">
-        <span>{formatDateOnlyBR(payment.date)}</span>
-        <span className="font-numeric tabular-nums">{formatBRLFromCents(payment.amountCents)}</span>
+        <span className="flex min-w-0 items-start gap-1.5">
+          {selected && <Check aria-hidden="true" className="size-3.5 shrink-0 text-primary" />}
+          <span>{paymentInstallmentLabel(payment)}</span>
+        </span>
+        <span className="shrink-0 whitespace-nowrap font-numeric tabular-nums">
+          {formatBRLFromCents(payment.amountCents)}
+        </span>
       </span>
-      <span className="truncate text-caption text-muted-foreground">
-        {payment.payer.name} · {payment.paymentMethod.name}
+      <span className="text-muted-foreground">
+        {formatDateOnlyBR(payment.date)} · {payment.paymentMethod.name}
       </span>
       {payment.reversals.length > 0 && (
         <span className="text-caption text-muted-foreground">
@@ -266,4 +303,20 @@ function PaymentChoice({
       )}
     </button>
   );
+}
+
+function paymentInstallmentLabel(payment: Payment): string {
+  const sequences = [
+    ...new Set(
+      payment.installments
+        .filter((installment) => installment.kind !== "MATERIAL")
+        .map((installment) => installment.sequenceNumber),
+    ),
+  ].toSorted((left, right) => left - right);
+  const labels: string[] = [];
+  if (sequences.length > 0)
+    labels.push(`${sequences.length === 1 ? "Parcela" : "Parcelas"} ${sequences.join(", ")}`);
+  if (payment.installments.some((installment) => installment.kind === "MATERIAL"))
+    labels.push("Material didático");
+  return labels.join(" · ") || "Recebimento";
 }

@@ -1,13 +1,16 @@
 import { createHash, randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
-import type { TransactionClient } from "@lazuli/db";
+import type { OrderKind, TransactionClient } from "@lazuli/db";
 import type { PaymentProofUpload } from "@lazuli/validators";
 import type { Context, StaffUser } from "../trpc/context.js";
 import { recordActivity } from "../activity/record.js";
 import { payerSubject } from "../activity/subjects.js";
 import { toDateOnlyString } from "./internal/shared.js";
-import { studentPaymentWhere } from "./internal/student-payments-query.js";
+import {
+  studentPaymentAllocationWhere,
+  studentPaymentWhere,
+} from "./internal/student-payments-query.js";
 
 const PAYMENT_PAGE_SIZE = 20;
 
@@ -102,15 +105,13 @@ function assertSameProof(
     });
 }
 
-export async function studentPayments(
-  ctx: Context,
-  input: { studentId: string; cursor?: string | undefined; withProofs?: boolean | undefined },
-): Promise<{
+type StudentPaymentsPage = {
   rows: Array<{
     id: string;
     date: string;
     amountCents: number;
     availableAmountCents: number;
+    installments: Array<{ sequenceNumber: number; kind: OrderKind }>;
     reversals: Array<{
       id: string;
       kind: "CANCELLATION" | "REFUND";
@@ -124,7 +125,12 @@ export async function studentPayments(
     proofs: Array<{ id: string; fileName: string; byteLength: number }>;
   }>;
   nextCursor: string | undefined;
-}> {
+};
+
+export async function studentPayments(
+  ctx: Context,
+  input: { studentId: string; cursor?: string | undefined; withProofs?: boolean | undefined },
+): Promise<StudentPaymentsPage> {
   paymentProofStaff(ctx);
   const rows = await ctx.db.paymentEntry.findMany({
     where: {
@@ -135,6 +141,14 @@ export async function studentPayments(
       id: true,
       date: true,
       amountCents: true,
+      allocations: {
+        where: studentPaymentAllocationWhere(input.studentId),
+        select: {
+          installment: {
+            select: { sequenceNumber: true, order: { select: { kind: true } } },
+          },
+        },
+      },
       reversals: {
         where: { deletedAt: null },
         select: { id: true, kind: true, amountCents: true, occurredOn: true },
@@ -156,8 +170,12 @@ export async function studentPayments(
   const more = rows.length > PAYMENT_PAGE_SIZE;
   if (more) rows.pop();
   return {
-    rows: rows.map((row) => ({
+    rows: rows.map(({ allocations, ...row }) => ({
       ...row,
+      installments: allocations.map(({ installment }) => ({
+        sequenceNumber: installment.sequenceNumber,
+        kind: installment.order.kind,
+      })),
       date: toDateOnlyString(row.date),
       availableAmountCents:
         row.amountCents -

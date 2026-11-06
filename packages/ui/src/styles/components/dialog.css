@@ -63,9 +63,20 @@
     opacity: 1;
   }
 }
+.lz-dialog-popup[data-motion="subtle"] {
+  animation: lz-dialog-backdrop-arrive 160ms ease-out;
+  transition-property: opacity;
+  transition-duration: 160ms;
+}
+.lz-dialog-popup[data-motion="subtle"][data-starting-style],
+.lz-dialog-popup[data-motion="subtle"][data-ending-style] {
+  scale: 1;
+}
 @media (prefers-reduced-motion: reduce) {
   .lz-dialog-popup,
+  .lz-dialog-popup[data-motion="subtle"],
   .lz-dialog-backdrop {
     animation: lz-dialog-backdrop-arrive 100ms ease-out;
+    transition-duration: 100ms;
   }
 }
