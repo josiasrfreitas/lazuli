@@ -98,14 +98,16 @@ function FinanceAction({
 }): ReactElement | null {
   if (row.status === "PAID")
     return (
-      <Button
-        size="sm"
-        variant="secondary"
-        aria-label={`Ver comprovante de ${row.payer.name}, vencimento ${formatDateOnlyBR(row.dueDate)}`}
-        onClick={() => options.onViewProof(row)}
-      >
-        <Paperclip aria-hidden="true" /> Ver comprovante
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          variant="secondary"
+          aria-label={`Ver comprovante de ${row.payer.name}, vencimento ${formatDateOnlyBR(row.dueDate)}`}
+          onClick={() => options.onViewProof(row)}
+        >
+          <Paperclip aria-hidden="true" /> Ver comprovante
+        </Button>
+      </div>
     );
   if (row.collectibleBalanceCents <= 0) return null;
   return (
