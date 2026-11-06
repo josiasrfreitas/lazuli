@@ -220,7 +220,9 @@ function NewPaymentMethodForm({ model }: { model: PaymentMethodModel }): ReactEl
   const { submit, inputId, input, name, error, create, setName, setError } = model;
   return (
     <form noValidate onSubmit={submit} className="grid gap-2 pt-1">
-      <Label htmlFor={inputId}>Nova forma de pagamento</Label>
+      <Label htmlFor={inputId} className="sr-only">
+        Nova forma de pagamento
+      </Label>
       <Input
         id={inputId}
         ref={input}
