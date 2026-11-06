@@ -172,7 +172,13 @@ function PaymentMethodOptions({
 }): ReactElement {
   const { adding, setAdding, selected, close } = model;
   return (
-    <PopoverContent align="start" size="md" showArrow={false} aria-label="Formas de pagamento">
+    <PopoverContent
+      align="start"
+      size="md"
+      showArrow={false}
+      aria-label="Formas de pagamento"
+      className="w-(--anchor-width)"
+    >
       <div className="grid gap-1">
         {state.methods.map((method) => (
           <button
