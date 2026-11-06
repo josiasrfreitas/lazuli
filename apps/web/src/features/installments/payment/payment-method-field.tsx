@@ -174,7 +174,7 @@ function PaymentMethodOptions({
   return (
     <PopoverContent
       align="start"
-      size="md"
+      size="menu"
       showArrow={false}
       aria-label="Formas de pagamento"
       className="w-(--anchor-width)"

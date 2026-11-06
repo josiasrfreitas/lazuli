@@ -42,6 +42,9 @@ const NewContractDialog = dynamic(() =>
   import("~/features/contracts/contracts-page").then((module) => module.NewContractDialog),
 );
 
+const financeActionClassName =
+  "flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-control text-foreground outline-none hover:bg-accent focus-visible:bg-accent focus-visible:shadow-focus [&_svg]:size-4";
+
 export function StudentFinanceSection({
   id,
   profile,
@@ -287,32 +290,32 @@ function FinanceManagementActions({
       <PopoverContent align="end" size="menu" showArrow={false}>
         <div className={styles.management}>
           {showNegotiate && (
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
+              type="button"
+              className={financeActionClassName}
               onClick={() => {
                 setOpen(false);
                 onTreat();
               }}
             >
               <Handshake aria-hidden="true" /> Negociar parcelas
-            </Button>
+            </button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
+            className={financeActionClassName}
             onClick={() => {
               setOpen(false);
               onReversePayment();
             }}
           >
             <RotateCcw aria-hidden="true" /> Cancelar / estornar recebimento
-          </Button>
+          </button>
           {contracts.map((contract) => (
-            <Button
+            <button
               key={contract.id}
-              variant="ghost"
-              size="sm"
+              type="button"
+              className={financeActionClassName}
               onClick={() => {
                 setOpen(false);
                 onManageContract(contract.id);
@@ -322,7 +325,7 @@ function FinanceManagementActions({
               {contracts.length > 1 && contract.startsOn
                 ? ` · ${formatDateOnlyBR(contract.startsOn)}`
                 : ""}
-            </Button>
+            </button>
           ))}
         </div>
       </PopoverContent>

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { DollarSign, Handshake, X } from "lucide-react";
-import { Button, DataTablePage, FloatingToolbar, TablePagination } from "@lazuli/ui";
+import { Button, DataTablePage, FloatingToolbar, TablePagination, toastManager } from "@lazuli/ui";
 import {
   financeInstallmentsPaginationPolicy,
   financeOverduePaginationPolicy,
@@ -37,7 +37,6 @@ const MAX_NEGOTIATION_INSTALLMENTS = 100;
 type EntrySession = {
   session: FinanceInstallmentRow[] | null;
   open: boolean;
-  registered: boolean;
   begin: (rows: FinanceInstallmentRow[]) => void;
   setOpen: (open: boolean) => void;
   complete: () => void;
@@ -46,11 +45,9 @@ type EntrySession = {
 function useEntrySession(clear: () => void): EntrySession {
   const [session, setSession] = useState<FinanceInstallmentRow[] | null>(null);
   const [open, setOpen] = useState(false);
-  const [registered, setRegistered] = useState(false);
   return {
     session,
     open,
-    registered,
     setOpen,
     begin: (rows) => {
       setSession((current) => {
@@ -60,13 +57,12 @@ function useEntrySession(clear: () => void): EntrySession {
         return [...current, ...rows.filter((row) => !ids.has(row.installmentId))];
       });
       setOpen(true);
-      setRegistered(false);
     },
     complete: () => {
       setSession(null);
       setOpen(false);
       clear();
-      setRegistered(true);
+      toastManager.add({ title: "Pagamento registrado.", type: "success", timeout: 5000 });
     },
   };
 }
@@ -248,14 +244,6 @@ function InstallmentsTableFrame({
   );
 }
 
-function PaymentRegisteredStatus({ registered }: { registered: boolean }): ReactElement | null {
-  return registered ? (
-    <p role="status" className="px-6 pt-2 text-caption text-success">
-      Pagamento registrado.
-    </p>
-  ) : null;
-}
-
 function PaymentEntryDialog({ entry }: { entry: EntrySession }): ReactElement | null {
   return entry.session === null ? null : (
     <PaymentDialog
@@ -276,7 +264,6 @@ export function InstallmentsPage({
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
   const [paymentRow, setPaymentRow] = useState<FinanceInstallmentRow | null>(null);
   const [proofRow, setProofRow] = useState<FinanceInstallmentRow | null>(null);
-  const [rowPaymentRegistered, setRowPaymentRegistered] = useState(false);
   const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
   const [treatmentRegistered, setTreatmentRegistered] = useState(false);
   useEffect(() => setRows([]), [state.filters.studentId]);
@@ -317,8 +304,6 @@ export function InstallmentsPage({
         setProofRow,
         setPaymentRow,
         setRows,
-        rowPaymentRegistered,
-        setRowPaymentRegistered,
         treatmentIds,
         setTreatmentIds,
         treatmentRegistered,
@@ -334,7 +319,6 @@ type InstallmentsPageViewProps = InstallmentDialogsProps & {
   visible: FinanceInstallmentRow[];
   toolbar: ReactElement | null;
   entry: EntrySession;
-  rowPaymentRegistered: boolean;
   proofRow: FinanceInstallmentRow | null;
   setProofRow: Dispatch<SetStateAction<FinanceInstallmentRow | null>>;
 };
@@ -350,16 +334,13 @@ function InstallmentsPageView(props: InstallmentsPageViewProps): ReactElement {
     setPaymentRow,
     proofRow,
     setProofRow,
-    setRowPaymentRegistered,
     setTreatmentIds,
     setTreatmentRegistered,
-    rowPaymentRegistered,
   } = props;
   return (
     <InstallmentActionsContext.Provider
       value={{
         receive: (row) => {
-          setRowPaymentRegistered(false);
           setPaymentRow(row);
         },
         negotiate: (row) => {
@@ -377,7 +358,6 @@ function InstallmentsPageView(props: InstallmentsPageViewProps): ReactElement {
           toggleVisible: () => setRows((current) => toggleVisibleSelection(current, visible)),
         }}
       >
-        <PaymentRegisteredStatus registered={entry.registered || rowPaymentRegistered} />
         <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
         <PaymentEntryDialog entry={entry} />
         <InstallmentDialogs {...props} />
@@ -434,7 +414,6 @@ type InstallmentDialogsProps = {
   paymentRow: FinanceInstallmentRow | null;
   setPaymentRow: Dispatch<SetStateAction<FinanceInstallmentRow | null>>;
   setRows: Dispatch<SetStateAction<FinanceInstallmentRow[]>>;
-  setRowPaymentRegistered: Dispatch<SetStateAction<boolean>>;
   treatmentIds: string[] | null;
   setTreatmentIds: Dispatch<SetStateAction<string[] | null>>;
   treatmentRegistered: boolean;
@@ -460,7 +439,6 @@ function InstallmentRowPaymentDialog({
   paymentRow,
   setPaymentRow,
   setRows,
-  setRowPaymentRegistered,
 }: InstallmentDialogsProps & { paymentRow: FinanceInstallmentRow }): ReactElement {
   return (
     <PaymentDialog
@@ -475,7 +453,7 @@ function InstallmentRowPaymentDialog({
           current.filter((row) => row.installmentId !== paymentRow.installmentId),
         );
         setPaymentRow(null);
-        setRowPaymentRegistered(true);
+        toastManager.add({ title: "Pagamento registrado.", type: "success", timeout: 5000 });
       }}
     />
   );
