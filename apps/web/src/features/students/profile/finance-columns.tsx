@@ -46,7 +46,7 @@ export function financeColumns(options: FinanceColumnOptions): DataTableColumn<F
     {
       id: "action",
       header: <span className="sr-only">Ações</span>,
-      width: "medium",
+      width: "wide",
       cell: (row) => <FinanceAction row={row} options={options} />,
     },
   ];
@@ -109,7 +109,7 @@ function FinanceAction({
     );
   if (row.collectibleBalanceCents <= 0) return null;
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-nowrap items-center justify-end gap-2">
       <Button
         size="sm"
         variant={row.installmentId === options.priorityId ? "primary" : "secondary"}
