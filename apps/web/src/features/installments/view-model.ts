@@ -58,7 +58,7 @@ export function installmentVm(row: FinanceInstallmentRow, today: string): Instal
     sequence: `${row.sequenceNumber} de ${row.scheduleTotal}`,
     origin: originLabel(row.origin),
     dueDate: formatDateOnlyBR(row.dueDate),
-    badge: statusBadge(row, today),
+    badge: installmentStatusBadge(row, today),
   };
 }
 
@@ -70,7 +70,20 @@ export function originLabel(origin: FinanceInstallmentRow["origin"]): string {
     OTHER: "Outro",
   }[origin];
 }
-function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["badge"] {
+type InstallmentStatusRow = Pick<
+  FinanceInstallmentRow,
+  | "status"
+  | "dueDate"
+  | "paidAmountCents"
+  | "overdueDays"
+  | "collectibleBalanceCents"
+  | "suspendedUntil"
+>;
+
+export function installmentStatusBadge(
+  row: InstallmentStatusRow,
+  today: string,
+): InstallmentVm["badge"] {
   const suspension = suspensionBadge(row, today);
   if (suspension) return suspension;
   switch (row.status) {
@@ -96,7 +109,7 @@ function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["
 }
 
 function suspensionBadge(
-  row: FinanceInstallmentRow,
+  row: InstallmentStatusRow,
   today: string,
 ): InstallmentVm["badge"] | undefined {
   if (row.collectibleBalanceCents > 0 && row.suspendedUntil && row.suspendedUntil >= today)

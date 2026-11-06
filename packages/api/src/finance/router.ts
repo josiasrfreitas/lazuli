@@ -44,6 +44,18 @@ const INSTALLMENTS_TRANSACTION_TIMEOUT_MS = 15_000;
 const processLogger = createServiceLogger("web");
 
 export const financeRouter = router({
+  contractInstallments: adminProcedure
+    .input(z.object({ orderId: z.string().uuid() }).strict())
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (transaction) =>
+          finance(transaction, ctx.staffUser.id).contractInstallments({
+            ...input,
+            now: ctx.now ?? new Date(),
+          }),
+        { isolationLevel: "RepeatableRead", timeout: INSTALLMENTS_TRANSACTION_TIMEOUT_MS },
+      ),
+    ),
   paymentReversalOptions: adminProcedure
     .input(z.object({ paymentEntryId: z.string().uuid() }))
     .query(({ ctx, input }) =>

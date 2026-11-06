@@ -48,6 +48,7 @@ export function InstallmentProofDialog({
       await Promise.allSettled([
         query.refetch(),
         utils.finance.installments.invalidate(),
+        utils.finance.contractInstallments.invalidate(),
         utils.finance.studentPayments.invalidate(),
         utils.finance.studentSummary.invalidate(),
       ]);

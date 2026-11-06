@@ -18,6 +18,7 @@ import {
 import type { ContractTerminationConfirm } from "@lazuli/validators";
 import { readAnalytics } from "./internal/analytics.js";
 import { readStudentSummary } from "./internal/student-summary.js";
+import { readContractInstallments } from "./internal/contract-installments.js";
 import {
   contractRenegotiationOptions,
   previewContractRenegotiation,
@@ -102,6 +103,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
       confirmContractTermination({ database: db, values, now, staffUserId }),
     analytics: (values) => readAnalytics(db, values),
     studentSummary: (values) => readStudentSummary(db, values),
+    contractInstallments: (values) => readContractInstallments(db, values),
     studentMaterials: (values) => readStudentMaterials(db, values),
     ...renegotiationFinance(db, staffUserId),
     contractClosings: async (year, now) => {
@@ -187,6 +189,10 @@ export type FinanceModule = {
     studentId: string;
     now: Date;
   }) => ReturnType<typeof readStudentSummary>;
+  contractInstallments: (values: {
+    orderId: string;
+    now: Date;
+  }) => ReturnType<typeof readContractInstallments>;
   renegotiationOptions: (
     contractId: string,
     now: Date,
