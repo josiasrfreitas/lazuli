@@ -47,7 +47,7 @@ export async function readInstallments(
     search?: string;
     now?: Date;
   } & OptionalFilters,
-): Promise<Exclude<FinanceInstallmentsOutput, { view: "overdue" }>>;
+): Promise<Exclude<FinanceInstallmentsOutput, { view: "overdue" | "grouped" }>>;
 export async function readInstallments(
   input: {
     view?: "all" | "paid" | "overdue";

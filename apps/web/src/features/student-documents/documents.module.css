@@ -236,6 +236,21 @@
 .profilePhotoLarge[data-loaded="false"] {
   opacity: 0;
 }
+.profilePhotoEmpty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.profilePhotoEmpty svg {
+  width: 35%;
+  height: 35%;
+}
+.profilePhotoUploadLoading {
+  position: absolute;
+  inset: 0;
+  background: var(--muted);
+}
 .profilePhotoLoading {
   position: absolute;
   inset: 0;

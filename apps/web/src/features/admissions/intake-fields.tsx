@@ -33,6 +33,7 @@ export function IntakeStageSelect({
       </Label>
       <SearchSelect
         name="stageId"
+        showSearchIcon
         placeholder="Buscar estágio"
         query={query}
         value={selected ? { id: selected.id, label: `${selected.track} · ${selected.name}` } : null}

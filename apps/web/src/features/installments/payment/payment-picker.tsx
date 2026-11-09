@@ -43,7 +43,7 @@ export function PaymentPicker({ state }: { state: PaymentFormState }): ReactElem
   const [page, setPage] = useState(1);
   const query = usePaymentSearch({ search, page, enabled: open });
   const data = query.data;
-  const rows = data && data.view !== "overdue" ? data.rows : [];
+  const rows = data && (data.view === "all" || data.view === "paid") ? data.rows : [];
   return (
     <div className="grid min-w-0 grid-cols-1 gap-2">
       <PickerHeader

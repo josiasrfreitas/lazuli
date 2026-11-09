@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, type FormEvent, type ReactElement } from "react";
+import { useEffect, useState, type FormEvent, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { ArrowRight, Check, RefreshCw } from "lucide-react";
-import { ToastAlert, Alert, Button, Checkbox } from "@lazuli/ui";
+import {
+  ToastAlert,
+  Alert,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogBackdrop,
+  DialogCloseButton,
+  DialogContent,
+  DialogPortal,
+} from "@lazuli/ui";
 import {
   contractRenegotiationConfirmSchema,
   contractRenegotiationPreviewSchema,
@@ -16,6 +26,7 @@ import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { FinancialDialogLoading } from "~/features/financial-treatments/financial-dialog-loading";
 import { ContractTerminationDialog } from "./contract-termination-dialog";
 import { ContractRenegotiationMode } from "./contract-renegotiation-mode";
+import "./contract-renegotiation-dialog.css";
 import {
   RenegotiationFields,
   RenegotiationHistory,
@@ -36,20 +47,36 @@ export function ContractRenegotiationDialog({
   onClose: () => void;
 }): ReactElement {
   const [mode, setMode] = useState<"reduce" | "terminate">("reduce");
-  if (mode === "terminate")
-    return (
-      <ContractTerminationDialog
-        contractId={contractId}
-        onClose={onClose}
-        onReduce={() => setMode("reduce")}
-      />
-    );
+  const [busy, setBusy] = useState(false);
   return (
-    <ReductionDialog
-      contractId={contractId}
-      onClose={onClose}
-      onTerminate={() => setMode("terminate")}
-    />
+    <Dialog open onOpenChange={(open) => !open && !busy && onClose()}>
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogContent
+          data-size="wide"
+          data-layout="termination"
+          showCloseButton={false}
+          className="contract-renegotiation-content md:w-[calc(100vw-3rem)] md:max-w-[1120px] [&>[data-slot=dialog-footer]]:mt-4"
+        >
+          <DialogCloseButton aria-label="Fechar" disabled={busy} onClick={onClose} />
+          {mode === "terminate" ? (
+            <ContractTerminationDialog
+              contractId={contractId}
+              onClose={onClose}
+              onReduce={() => setMode("reduce")}
+              onBusyChange={setBusy}
+            />
+          ) : (
+            <ReductionDialog
+              contractId={contractId}
+              onClose={onClose}
+              onTerminate={() => setMode("terminate")}
+              onBusyChange={setBusy}
+            />
+          )}
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 
@@ -57,25 +84,36 @@ function ReductionDialog({
   contractId,
   onClose,
   onTerminate,
+  onBusyChange,
 }: {
   contractId: string;
   onClose: () => void;
   onTerminate: () => void;
+  onBusyChange: (busy: boolean) => void;
 }): ReactElement {
   const options = trpc.finance.renegotiationOptions.useQuery(
     { contractId },
     { retry: false, refetchOnWindowFocus: false },
   );
   if (options.data)
-    return <ReductionForm options={options.data} onClose={onClose} onTerminate={onTerminate} />;
+    return (
+      <ReductionForm
+        options={options.data}
+        onClose={onClose}
+        onTerminate={onTerminate}
+        onBusyChange={onBusyChange}
+      />
+    );
   return (
     <TaskDialog
+      embedded
       title="Renegociar contrato"
       description="Confira as condições antes de confirmar."
       layout="termination"
       bodyLayout="termination"
       size="wide"
       compactHeader
+      headerAction={<ContractRenegotiationMode value="reduce" onChange={onTerminate} />}
       actionSize="sm"
       onClose={onClose}
       pending={false}
@@ -85,7 +123,6 @@ function ReductionDialog({
       submitDisabled
       error={options.error?.message}
     >
-      <ContractRenegotiationMode value="reduce" onChange={onTerminate} />
       {options.isPending ? (
         <FinancialDialogLoading termination />
       ) : (
@@ -101,10 +138,12 @@ function ReductionForm({
   options,
   onClose,
   onTerminate,
+  onBusyChange,
 }: {
   options: RenegotiationOptions;
   onClose: () => void;
   onTerminate: () => void;
+  onBusyChange: (busy: boolean) => void;
 }): ReactElement {
   const utils = trpc.useUtils();
   const draft = useReductionDraft();
@@ -115,6 +154,7 @@ function ReductionForm({
     },
   });
   const pending = draft.loading || save.isPending;
+  useEffect(() => onBusyChange(pending), [onBusyChange, pending]);
   const submit = createReductionSubmit({
     ...draft,
     options,
@@ -226,12 +266,20 @@ function ReductionFormView(props: ReductionFormViewProps): ReactElement {
   const { options, onClose, onTerminate, pending, validation, review, back, acknowledged } = props;
   return (
     <TaskDialog
+      embedded
       title="Renegociar contrato"
       description={options.studentName}
       layout="termination"
       bodyLayout="termination"
       size="wide"
       compactHeader
+      headerAction={
+        <ContractRenegotiationMode
+          value="reduce"
+          disabled={pending || Boolean(review)}
+          onChange={onTerminate}
+        />
+      }
       actionSize="sm"
       onClose={onClose}
       pending={pending}
@@ -243,11 +291,6 @@ function ReductionFormView(props: ReductionFormViewProps): ReactElement {
       submitIcon={review ? <Check aria-hidden /> : <ArrowRight aria-hidden />}
       submitDisabled={options.lines.length === 0 || Boolean(review && !acknowledged)}
     >
-      <ContractRenegotiationMode
-        value="reduce"
-        disabled={pending || Boolean(review)}
-        onChange={onTerminate}
-      />
       <ReductionFormBody {...props} />
     </TaskDialog>
   );

@@ -166,11 +166,11 @@ function materialCardFeeRate(
   const rate =
     material.payment === "CASH" || material.scholarshipPct === FULL_SCHOLARSHIP_PCT
       ? 0
-      : rates[String(material.installmentCount)];
+      : (material.cardFeeOverridePct ?? rates[String(material.installmentCount)]);
   if (rate === undefined)
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Configure a taxa para esta quantidade de parcelas em Ajustes.",
+      message: "Informe a taxa desta compra ou cadastre a taxa padrão em Ajustes.",
     });
   return rate;
 }

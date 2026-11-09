@@ -6,7 +6,12 @@ import { RegistrationDocumentsLoading } from "./registration-documents-loading";
 
 export function StudentRegistrationLoading(): ReactElement {
   return (
-    <div className={styles.registration} aria-busy="true" aria-label="Carregando cadastro do aluno">
+    <div
+      className={styles.registration}
+      data-loading="true"
+      aria-busy="true"
+      aria-label="Carregando cadastro do aluno"
+    >
       <div className={`${styles.registrationFacts} ${loading.surface}`}>
         <RegistrationFactsLoading />
       </div>

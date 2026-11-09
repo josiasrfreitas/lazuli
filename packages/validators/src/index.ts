@@ -128,6 +128,8 @@ export {
   financeInstallmentViewSchema,
   financePayerInputSchema,
   financeRegisterPaymentInputSchema,
+  financePaymentReversalKindSchema,
+  financeReversePaymentInputSchema,
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
   installmentAdjustmentTypeSchema,
@@ -135,9 +137,13 @@ export {
   payerCreateInputSchema,
   payerCreateProcedureInputSchema,
   paymentMethodSchema,
+  capitalizePaymentMethodName,
+  financeCreatePaymentMethodInputSchema,
+  MAX_PAYMENT_METHOD_NAME_LENGTH,
 } from "./finance.js";
 export type {
   FinanceOverduePayerGroup,
+  FinancePayerGroup,
   FinanceInstallmentRow,
   FinanceInstallmentsInput,
   FinanceInstallmentsOutput,

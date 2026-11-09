@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import type { Prisma, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type {
-  studentIntakeOptionsSchema,
   studentIntakeEnrollSchema,
   studentIntakeAllocateSchema,
   studentIntakeResumeSchema,
@@ -13,151 +12,21 @@ import { lockCreationCommand, assertCreationCommandOwner } from "../creation-com
 import { createEnrollment } from "../enrollment/data.js";
 import { captureEnrollmentTransaction } from "../admissions/enroll.js";
 import { assertInitialStage } from "../admissions/catalog.js";
-import { lockCandidate, readCandidate, dateOnly } from "../admissions/candidates.js";
+import { lockCandidate, readCandidate } from "../admissions/candidates.js";
 import { assertPlacementReady } from "../admissions/placement.js";
 import { schedulePlacement } from "../admissions/placement.js";
 import { captureLead } from "../admissions/capture.js";
 import { requireLeadGuardian } from "../admissions/guardian.js";
-import { meetingsBetween } from "../teachers/schedule.js";
-import { lockTeacher, databaseSlotToCandidate } from "../teachers/availability.js";
+import { lockTeacher } from "../teachers/availability.js";
 import { finance } from "../finance/index.js";
 import { readStudentPendingActions } from "./pending-actions.js";
 import { createStudent, updateStudentContact } from "./data.js";
 import { lockIntakeSemester, syncStudentIntake } from "../semester-organization/student-intake.js";
-
-type IntakeValues = z.infer<typeof studentIntakeOptionsSchema>;
-type IntakeClass = Prisma.ClassGetPayload<{
-  include: {
-    scheduleSlots: true;
-    sharedStage: { select: { name: true } };
-    _count: { select: { enrollments: true } };
-  };
-}>;
-type Meeting = Awaited<ReturnType<typeof meetingsBetween>>[number];
-type IntakeOptionsResult = {
-  today: string;
-  semester: { id: string; name: string; startDate: Date; endDate: Date } | null;
-  classes: Array<{
-    id: string;
-    name: string;
-    stageName: string;
-    scheduleType: IntakeClass["scheduleType"];
-    format: IntakeClass["format"];
-    slots: Array<ReturnType<typeof databaseSlotToCandidate>>;
-    enrolled: number;
-    capacity: number;
-  }>;
-  meetings: Array<Pick<Meeting, "classId" | "date" | "startTime" | "endTime">>;
-};
-
-export async function studentIntakeOptions(
-  database: Prisma.TransactionClient,
-  options: {
-    input: z.infer<typeof studentIntakeOptionsSchema>;
-    now: Date;
-  },
-): Promise<IntakeOptionsResult> {
-  const { input, now } = options;
-
-  const today = saoPauloDateOnly(now);
-  const semester = await database.period.findFirst({
-    where: {
-      deletedAt: null,
-      startDate: { lte: new Date(today) },
-      endDate: { gte: new Date(today) },
-    },
-    orderBy: { startDate: "desc" },
-    select: { id: true, name: true, startDate: true, endDate: true },
-  });
-  const classes = await intakeClasses(database, { semesterId: semester?.id ?? null, input, today });
-  const eligibleIds = new Set(classes.map((row) => row.id));
-  const meetings = await intakeMeetings(database, { semester, input, now, today, eligibleIds });
-  return {
-    today,
-    semester,
-    classes: classes.map((row) => {
-      const slots = row.scheduleSlots.map((slot) => databaseSlotToCandidate(slot));
-      return {
-        id: row.id,
-        name: row.portalClassName,
-        stageName: row.sharedStage?.name ?? "Estágio individual",
-        scheduleType: row.scheduleType,
-        format: row.format,
-        slots,
-        enrolled: row._count.enrollments,
-        capacity: row.capacity,
-      };
-    }),
-    meetings: meetings.map((row) => ({
-      classId: row.classId,
-      date: row.date,
-      startTime: row.startTime,
-      endTime: row.endTime,
-    })),
-  };
-}
-
-async function intakeMeetings(
-  database: Prisma.TransactionClient,
-  {
-    semester,
-    input,
-    now,
-    today,
-    eligibleIds,
-  }: {
-    semester: IntakeOptionsResult["semester"];
-    input: IntakeValues;
-    now: Date;
-    today: string;
-    eligibleIds: Set<string>;
-  },
-): Promise<Meeting[]> {
-  const from = semester
-    ? [input.from, dateOnly(semester.startDate), today].toSorted().at(-1)!
-    : input.from;
-  const through = semester
-    ? [input.through, dateOnly(semester.endDate)].toSorted()[0]!
-    : input.through;
-  const candidates =
-    eligibleIds.size > 0 && from <= through
-      ? await meetingsBetween({ database, from, through, now })
-      : [];
-  return candidates.filter((row) => eligibleIds.has(row.classId) && !row.cancelled);
-}
-
-async function intakeClasses(
-  database: Prisma.TransactionClient,
-  { semesterId, input, today }: { semesterId: string | null; input: IntakeValues; today: string },
-): Promise<IntakeClass[]> {
-  if (!semesterId || !input.stageId) return [];
-  return database.class.findMany({
-    where: {
-      deletedAt: null,
-      status: "ACTIVE",
-      semesterId,
-      scheduleType: input.scheduleType,
-      format: input.format,
-      ...(input.scheduleType === "REGULAR" ? { sharedStageId: input.stageId } : {}),
-    },
-    include: {
-      scheduleSlots: { where: { deletedAt: null } },
-      sharedStage: { select: { name: true } },
-      _count: {
-        select: {
-          enrollments: {
-            where: {
-              deletedAt: null,
-              entryDate: { lte: new Date(today) },
-              OR: [{ exitDate: null }, { exitDate: { gt: new Date(today) } }],
-            },
-          },
-        },
-      },
-    },
-    orderBy: { portalClassName: "asc" },
-  });
-}
+import {
+  clearOtherStudentIntake,
+  lockNextIntakeSemester,
+  recordFutureStudentIntake,
+} from "../semester-organization/future-student-intake.js";
 
 type EnrollValues = z.infer<typeof studentIntakeEnrollSchema>;
 type EnrollInput = {
@@ -178,7 +47,10 @@ type ClassModel = Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>;
 export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult> {
   const { database, values, now } = input;
   const enrollmentDatabase = captureEnrollmentTransaction(database);
-  const semester = await lockIntakeSemester(database, now);
+  const semester =
+    values.entryPeriod === "NEXT"
+      ? await lockNextIntakeSemester(database, now)
+      : await lockIntakeSemester(database, now);
   await lockTeacher(database, "");
   await lockCreationCommand(database, values.commandId);
   await assertCreationCommandOwner(database, { id: values.commandId, owner: "studentCompletion" });
@@ -191,15 +63,19 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
   const candidate = await captureIntakeCandidate(input);
   const today = saoPauloDateOnly(now);
   assertBirthDate(values.student.birthDate, today);
-  const target = values.classId
-    ? await intakeTarget(database, {
-        classId: values.classId,
-        stageId: values.stageId,
-        candidate,
-        today,
-      })
-    : null;
-  const activeSemester = requireIntakePeriod({ semester, target, candidate });
+  const target =
+    values.entryPeriod === "CURRENT" && values.classId
+      ? await intakeTarget(database, {
+          classId: values.classId,
+          stageId: values.stageId,
+          candidate,
+          today,
+        })
+      : null;
+  const activeSemester =
+    values.entryPeriod === "CURRENT"
+      ? requireIntakePeriod({ semester, target, candidate })
+      : semester;
   const created = await createIntakeMembership(input, { enrollmentDatabase, target, today });
   await finalizeIntake(input, {
     ...created,
@@ -242,11 +118,12 @@ async function existingIntakeResult(
   if (!previous) return null;
   if (previous.commandFingerprint !== fingerprint)
     throw badRequest("Esta criação já foi concluída com outros dados.");
-  const enrollment = values.classId
-    ? await database.enrollment.findFirstOrThrow({
-        where: { studentId: previous.id, classId: values.classId },
-      })
-    : null;
+  const enrollment =
+    values.entryPeriod === "CURRENT" && values.classId
+      ? await database.enrollment.findFirstOrThrow({
+          where: { studentId: previous.id, classId: values.classId },
+        })
+      : null;
   return {
     studentId: previous.id,
     enrollmentId: enrollment?.id ?? null,
@@ -371,15 +248,23 @@ async function finalizeIntake(
           : {}),
       },
     });
-  await syncStudentIntake(database, {
-    semester,
-    studentId,
-    stageId: values.stageId,
-    enrollmentId,
-    candidate,
-    recordedById,
-    now,
-  });
+  await (values.entryPeriod === "NEXT"
+    ? recordFutureStudentIntake(database, {
+        semester: semester!,
+        studentId,
+        stageId: values.stageId,
+        planId: values.planId,
+        recordedById,
+      })
+    : syncStudentIntake(database, {
+        semester,
+        studentId,
+        stageId: values.stageId,
+        enrollmentId,
+        candidate,
+        recordedById,
+        now,
+      }));
 }
 
 async function intakeTarget(
@@ -564,34 +449,76 @@ export async function resumeStudentIntake({
   recordedById: string;
   now: Date;
 }): Promise<{ studentId: string; contractId: string | null }> {
-  const semester = await lockIntakeSemester(database, now);
+  const semester =
+    values.entryPeriod === "NEXT"
+      ? await lockNextIntakeSemester(database, now)
+      : await lockIntakeSemester(database, now);
   await lockTeacher(database, "");
   await database.$executeRaw`SELECT id FROM "Student" WHERE id = ${values.studentId}::uuid FOR UPDATE`;
   const state = await readStudentPendingActions(database, { id: values.studentId, now });
   await assertResumeState(database, { state, values });
+  if (!state.enrollment)
+    await clearOtherStudentIntake(database, {
+      studentId: values.studentId,
+      entryPeriod: values.entryPeriod,
+      recordedById,
+      now,
+    });
   await updateStudentContact({ database, id: values.studentId, values: values.contact });
   await assertResumeGuardian(database, { state, studentId: values.studentId });
-  if (!state.enrollment && values.classId) {
-    if (!values.stageId) throw badRequest("Escolha o estágio antes de confirmar a turma.");
-    await allocateIntakeStudent({
-      database,
-      values: { studentId: values.studentId, classId: values.classId, stageId: values.stageId },
-      recordedById,
-      now,
-    });
-  }
+  await allocateResumedIntake({ database, state, values, recordedById, now });
   const contract = await createMissingIntakeContract(database, { state, values, recordedById });
-  if (!state.enrollment && !values.classId)
-    await syncStudentIntake(database, {
-      semester,
+  await recordResumedIntake({ database, semester, state, values, recordedById, now });
+  return { studentId: values.studentId, contractId: contract?.id ?? null };
+}
+
+async function allocateResumedIntake(input: {
+  database: TransactionClient;
+  state: ResumeState;
+  values: ResumeValues;
+  recordedById: string;
+  now: Date;
+}): Promise<void> {
+  const { database, state, values, recordedById, now } = input;
+  if (values.entryPeriod !== "CURRENT" || state.enrollment || !values.classId) return;
+  if (!values.stageId) throw badRequest("Escolha o estágio antes de confirmar a turma.");
+  await allocateIntakeStudent({
+    database,
+    values: { studentId: values.studentId, classId: values.classId, stageId: values.stageId },
+    recordedById,
+    now,
+  });
+}
+
+async function recordResumedIntake(input: {
+  database: TransactionClient;
+  semester: Awaited<ReturnType<typeof lockIntakeSemester>>;
+  state: ResumeState;
+  values: ResumeValues;
+  recordedById: string;
+  now: Date;
+}): Promise<void> {
+  const { database, semester, state, values, recordedById, now } = input;
+  if (values.entryPeriod === "NEXT") {
+    await recordFutureStudentIntake(database, {
+      semester: semester!,
       studentId: values.studentId,
       stageId: values.stageId,
-      enrollmentId: null,
-      candidate: state.lead ? await readCandidate(database, state.lead.id) : null,
+      planId: values.planId,
       recordedById,
-      now,
     });
-  return { studentId: values.studentId, contractId: contract?.id ?? null };
+    return;
+  }
+  if (state.enrollment || values.classId) return;
+  await syncStudentIntake(database, {
+    semester,
+    studentId: values.studentId,
+    stageId: values.stageId,
+    enrollmentId: null,
+    candidate: state.lead ? await readCandidate(database, state.lead.id) : null,
+    recordedById,
+    now,
+  });
 }
 
 async function createMissingIntakeContract(
@@ -617,14 +544,21 @@ async function assertResumeState(
   database: TransactionClient,
   { state, values }: { state: ResumeState; values: ResumeValues },
 ): Promise<void> {
+  assertResumePlacement(state, values);
+  await assertResumeContract(database, { state, values });
+  if (!values.allowPending && !state.contract && !values.contract)
+    throw badRequest("Confirme o cadastro com pendências.");
+}
+
+function assertResumePlacement(state: ResumeState, values: ResumeValues): void {
   if (state.enrollment && values.classId && state.enrollment.classId !== values.classId)
     throw badRequest("Este aluno já tem turma. Atualize o cadastro para continuar.");
-  await assertResumeContract(database, { state, values });
-  if (
-    !values.allowPending &&
-    ((!state.enrollment && !values.classId) || (!state.contract && !values.contract))
-  )
-    throw badRequest("Confirme o cadastro com pendências.");
+  if (state.enrollment && values.entryPeriod === "NEXT")
+    throw badRequest("Este aluno já tem turma no período atual.");
+  if (values.entryPeriod === "NEXT" && values.classId)
+    throw badRequest("A turma de entrada pertence ao período atual.");
+  if (values.entryPeriod === "CURRENT" && values.planId)
+    throw badRequest("A turma planejada pertence ao próximo período.");
 }
 
 async function assertResumeContract(

@@ -28,11 +28,17 @@ function accrueInterest(input: {
   return BigInt(principalCents) * BigInt(Math.round(terms.monthlyPct * RATE_SCALE)) * BigInt(days);
 }
 
-export type SettlementPayment = { date: string; amountCents: number; recordedAt?: string };
+export type SettlementPayment = {
+  date: string;
+  amountCents: number;
+  recordedAt?: string;
+  sourceId?: string;
+};
 export type SettlementInput = {
   nominalCents: number;
   terms: InterestTerms & { discountPct: number };
   payments: SettlementPayment[];
+  refunds?: SettlementPayment[];
   principalAdjustments: SettlementPayment[];
   postedInterestCents: number;
   chargeAdjustments?: SettlementPayment[];
@@ -53,6 +59,7 @@ type AccrualState = {
   principal: number;
   interest: bigint;
   paidInterest: number;
+  paidInterestBySource: Record<string, number>;
   date: string;
   charges: number;
   dueDate: string;
@@ -60,7 +67,9 @@ type AccrualState = {
 
 /** Read-only calculation for one installment; never rewrites earlier financial facts. */
 export function quoteSettlement(input: SettlementInput): SettlementQuote {
-  const paid = input.payments.reduce((sum, payment) => sum + payment.amountCents, 0);
+  const paid =
+    input.payments.reduce((sum, payment) => sum + payment.amountCents, 0) -
+    (input.refunds ?? []).reduce((sum, refund) => sum + refund.amountCents, 0);
   const balanceCents = input.nominalCents + recordedAdjustments(input) - paid;
   const accrued = interestThroughDate(input);
   const newInterestCents =
@@ -157,6 +166,7 @@ function interestThroughDate(
     principal: input.nominalCents,
     interest: 0n,
     paidInterest: 0,
+    paidInterestBySource: {},
     date: input.terms.dueDate,
     dueDate: input.terms.dueDate,
     charges: 0,
@@ -204,6 +214,25 @@ function applyHistoricalFact(input: {
       date: fact.date,
     };
   }
+  if (fact.kind === "refund") {
+    const sourcePaidInterest = fact.sourceId
+      ? (state.paidInterestBySource[fact.sourceId] ?? 0)
+      : state.paidInterest;
+    const reopenedCharges = Math.min(fact.amountCents, sourcePaidInterest);
+    return {
+      ...state,
+      principal: state.principal + fact.amountCents - reopenedCharges,
+      interest,
+      paidInterest: state.paidInterest - reopenedCharges,
+      paidInterestBySource: fact.sourceId
+        ? {
+            ...state.paidInterestBySource,
+            [fact.sourceId]: sourcePaidInterest - reopenedCharges,
+          }
+        : state.paidInterestBySource,
+      date: fact.date,
+    };
+  }
   const unpaidInterest = Math.max(
     0,
     roundedInterest(interest) + state.charges - state.paidInterest,
@@ -214,12 +243,18 @@ function applyHistoricalFact(input: {
     principal: Math.max(0, state.principal - (fact.amountCents - interestPaid)),
     interest,
     paidInterest: state.paidInterest + interestPaid,
+    paidInterestBySource: fact.sourceId
+      ? {
+          ...state.paidInterestBySource,
+          [fact.sourceId]: (state.paidInterestBySource[fact.sourceId] ?? 0) + interestPaid,
+        }
+      : state.paidInterestBySource,
     date: fact.date,
   };
 }
 
 type SettlementFact =
-  | (SettlementPayment & { kind: "payment" | "adjustment" | "charge" })
+  | (SettlementPayment & { kind: "payment" | "refund" | "adjustment" | "charge" })
   | { kind: "suspension"; date: string; newDueDate: string; recordedAt?: string };
 function orderedFacts(input: SettlementInput): SettlementFact[] {
   const facts: SettlementFact[] = [
@@ -227,6 +262,7 @@ function orderedFacts(input: SettlementInput): SettlementFact[] {
     ...(input.chargeAdjustments ?? []).map((fact) => ({ ...fact, kind: "charge" as const })),
     ...(input.suspensions ?? []).map((fact) => ({ ...fact, kind: "suspension" as const })),
     ...input.payments.map((fact) => ({ ...fact, kind: "payment" as const })),
+    ...(input.refunds ?? []).map((fact) => ({ ...fact, kind: "refund" as const })),
   ];
   const result: SettlementFact[] = [];
   for (const fact of facts) {

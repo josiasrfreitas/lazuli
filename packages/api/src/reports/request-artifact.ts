@@ -1,5 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 import type { ArtifactKind } from "@lazuli/validators";
+import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import {
   createLocalReportGenerateQueue,
   enqueueReportGenerate,
@@ -7,6 +8,8 @@ import {
 } from "@lazuli/job-contracts";
 
 import type { StaffUser } from "../trpc/context.js";
+
+const processLogger = createServiceLogger("web");
 
 type RequestArtifactDatabase = Pick<
   Prisma.TransactionClient,
@@ -18,10 +21,12 @@ export async function requestReportArtifact(input: {
   reportGenerateQueue: ReportGenerateQueue;
   staffUser: StaffUser;
   kind: ArtifactKind;
+  requestId?: string | undefined;
   studentId?: string;
   classId?: string;
   now?: Date;
 }): Promise<{ artifactId: string; jobId: string }> {
+  const started = performance.now();
   if (input.studentId !== undefined) {
     await assertStudentExists({ database: input.database, studentId: input.studentId });
   }
@@ -44,6 +49,19 @@ export async function requestReportArtifact(input: {
   const job = await enqueueReportGenerate({
     queue: input.reportGenerateQueue,
     payload: { artifactId: artifact.id },
+  });
+
+  logDevelopmentProcess(processLogger, {
+    requestId: input.requestId,
+    userId: input.staffUser.id,
+    resource: "reports.requestArtifact",
+    operation: "API",
+    step: "Report requested and generation queued",
+    durationMs: Math.round(performance.now() - started),
+    facts: {
+      student_checked: input.studentId !== undefined,
+      class_checked: input.classId !== undefined,
+    },
   });
 
   return { artifactId: artifact.id, jobId: job.jobId };

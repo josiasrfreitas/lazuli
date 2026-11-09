@@ -170,18 +170,35 @@ export async function loadInstallments(
     },
   });
   const adjustments = await database.installmentAdjustment.findMany({
-    where: { installmentId: { in: installmentIds } },
+    where: { installmentId: { in: installmentIds }, deletedAt: null },
     select: { installmentId: true, amountCents: true },
   });
   const allocations = await database.paymentAllocation.findMany({
-    where: { installmentId: { in: installmentIds } },
-    select: { installmentId: true, amountCents: true },
+    where: {
+      installmentId: { in: installmentIds },
+      deletedAt: null,
+      paymentEntry: { deletedAt: null },
+    },
+    select: {
+      installmentId: true,
+      amountCents: true,
+      reversals: {
+        where: { deletedAt: null, reversal: { deletedAt: null } },
+        select: { amountCents: true },
+      },
+    },
   });
 
   return installments.map((installment) => ({
     ...installment,
     adjustments: adjustments.filter((adjustment) => adjustment.installmentId === installment.id),
-    allocations: allocations.filter((allocation) => allocation.installmentId === installment.id),
+    allocations: allocations
+      .filter((allocation) => allocation.installmentId === installment.id)
+      .map((allocation) => ({
+        amountCents:
+          allocation.amountCents -
+          allocation.reversals.reduce((total, reversal) => total + reversal.amountCents, 0),
+      })),
   }));
 }
 

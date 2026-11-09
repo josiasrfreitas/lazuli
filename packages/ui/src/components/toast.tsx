@@ -18,7 +18,7 @@ function ToastList(): ReactNode {
     <Toast.Portal>
       <Toast.Viewport
         aria-label="Notificações"
-        className="fixed inset-x-4 bottom-4 z-[100] flex flex-col gap-2 outline-none sm:left-auto sm:w-80"
+        className="fixed inset-x-4 bottom-2 z-[100] flex flex-col gap-2 outline-none sm:left-auto sm:w-[min(26.5rem,calc(100vw-2rem))]"
       >
         {toasts.map((toast) => (
           <Toast.Root

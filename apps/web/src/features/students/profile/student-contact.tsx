@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement, ReactNode } from "react";
-import { MapPin, Pencil, UserRound, UsersRound, type LucideIcon } from "lucide-react";
+import { ExternalLink, MapPin, Pencil, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import { Button, InlineSkeleton } from "@lazuli/ui";
 import { formatDateOnlyBR, toWhatsAppUrl } from "~/lib/format";
 import type { StudentProfile } from "./logic";
@@ -64,7 +64,9 @@ export function RegistrationFactsLoading(): ReactElement {
       </section>
       <section className={styles.section}>
         <SectionHeading title="Responsável" icon={UsersRound} target="guardian" />
-        <GuardianContactLoading />
+        <div className={styles.guardianName}>
+          <InlineSkeleton className="w-40 max-w-full" />
+        </div>
       </section>
       <section className={styles.section}>
         <SectionHeading title="Endereço" icon={MapPin} target="address" />
@@ -75,37 +77,8 @@ export function RegistrationFactsLoading(): ReactElement {
           <p className={styles.supporting}>
             <InlineSkeleton className="w-40 max-w-full" />
           </p>
-          <p className={styles.supporting}>
-            <InlineSkeleton className="w-24 max-w-full" />
-          </p>
         </div>
       </section>
-    </>
-  );
-}
-
-function GuardianContactLoading(): ReactElement {
-  return (
-    <>
-      <div className={styles.guardianName}>
-        <p>
-          <InlineSkeleton className="w-40 max-w-full" />
-        </p>
-        <span>
-          <InlineSkeleton className="w-12" />
-        </span>
-      </div>
-      <dl className={styles.facts}>
-        <ProfileFact label="Documento">
-          <InlineSkeleton className="w-24 max-w-full" />
-        </ProfileFact>
-        <ProfileFact label="Telefone">
-          <InlineSkeleton className="w-24 max-w-full" />
-        </ProfileFact>
-        <ProfileFact label="E-mail" wide>
-          <InlineSkeleton className="w-48 max-w-full" />
-        </ProfileFact>
-      </dl>
     </>
   );
 }
@@ -246,20 +219,20 @@ function EmailLink({ email }: { email: string | null }): ReactElement {
 function PhoneLink({ phone }: { phone: string | null }): ReactElement {
   const url = toWhatsAppUrl(phone);
   return (
-    <>
+    <span className={styles.phoneContact}>
+      {phone?.trim() || NOT_INFORMED}
       {url ? (
         <a
           className={styles.contactLink}
           href={url}
           target="_blank"
           rel="noreferrer"
+          aria-label={`Abrir conversa no WhatsApp com ${phone}`}
           title="Abrir conversa no WhatsApp"
         >
-          {phone}
+          <ExternalLink aria-hidden="true" />
         </a>
-      ) : (
-        (phone ?? NOT_INFORMED)
-      )}
-    </>
+      ) : null}
+    </span>
   );
 }

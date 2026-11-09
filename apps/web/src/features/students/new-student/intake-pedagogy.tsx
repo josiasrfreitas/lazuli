@@ -1,9 +1,17 @@
-import type { JSX as ReactJSX } from "react";
+import { useState, type JSX as ReactJSX } from "react";
 import type { ComponentProps } from "react";
 import Link from "next/link";
-import { CalendarDays, ClipboardCheck, ArrowUpRight } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ArrowUpRight, BookOpen, UserRound } from "lucide-react";
+import { normalizeSearch } from "@lazuli/domain";
 import type { RouterOutputs } from "@lazuli/api";
-import { Button, EmptyState } from "@lazuli/ui";
+import {
+  Button,
+  EmptyState,
+  Field,
+  Label,
+  SearchSelect,
+  type SearchSelectOption,
+} from "@lazuli/ui";
 import { InterestChoice } from "~/features/admissions/candidate-fields";
 import { IntakeStageSelect } from "~/features/admissions/intake-fields";
 import { IntakeClasses } from "./intake-classes";
@@ -13,12 +21,12 @@ export type IntakeFilters = {
   stageId: string | null;
   format: "IN_PERSON" | "ONLINE";
   scheduleType: "REGULAR" | "PERSONALIZED";
+  entryPeriod: "CURRENT" | "NEXT";
 };
 
 type Props = {
   draftRegistration?: LeadRegistration | null | undefined;
   filters: IntakeFilters;
-  onFiltersChange: (filters: IntakeFilters) => void;
   lead:
     | Pick<RouterOutputs["admissions"]["byId"], "id" | "englishExperience" | "stageId">
     | undefined;
@@ -29,7 +37,6 @@ type Props = {
 
 export function IntakePedagogy({
   filters,
-  onFiltersChange,
   lead,
   enrollment,
   classes,
@@ -41,24 +48,14 @@ export function IntakePedagogy({
     (lead?.englishExperience === "SOME" && !lead.stageId);
   if (enrollment) return <ExistingEnrollmentSummary enrollment={enrollment} />;
   return (
-    <>
-      <IntakeFilterPanel
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-        lead={lead}
-        draftRegistration={draftRegistration}
-        onCaptureLead={onCaptureLead}
-        waitingPlacement={waitingPlacement}
-      />
-      <IntakeClassChoices
-        filters={filters}
-        classes={classes}
-        waitingPlacement={waitingPlacement}
-        lead={lead}
-        draftRegistration={draftRegistration}
-        onCaptureLead={onCaptureLead}
-      />
-    </>
+    <IntakeClassChoices
+      filters={filters}
+      classes={classes}
+      waitingPlacement={waitingPlacement}
+      lead={lead}
+      draftRegistration={draftRegistration}
+      onCaptureLead={onCaptureLead}
+    />
   );
 }
 
@@ -79,71 +76,143 @@ function ExistingEnrollmentSummary({
   );
 }
 
-function IntakeFilterPanel({
+type ControlsProps = Pick<Props, "filters" | "lead" | "draftRegistration" | "onCaptureLead"> & {
+  onFiltersChange: (filters: IntakeFilters) => void;
+  teacherSelection: SearchSelectOption | null;
+  teacherChoices: RouterOutputs["students"]["intakeOptions"]["classes"];
+  onTeacherChange: (teacher: SearchSelectOption | null) => void;
+};
+
+export function IntakePedagogyControls({
   filters,
   onFiltersChange,
   lead,
   draftRegistration,
   onCaptureLead,
-  waitingPlacement,
-}: Pick<Props, "filters" | "onFiltersChange" | "lead" | "draftRegistration" | "onCaptureLead"> & {
-  waitingPlacement: boolean;
-}): ReactJSX.Element {
+  teacherSelection,
+  teacherChoices,
+  onTeacherChange,
+}: ControlsProps): ReactJSX.Element {
+  const waitingPlacement =
+    draftRegistration?.lead.englishExperience === "SOME" ||
+    (lead?.englishExperience === "SOME" && !lead.stageId);
   return (
-    <div className="grid shrink-0 gap-2 border-b border-border pb-3">
-      <IntakeFilterFields
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-        lead={lead}
-        waitingPlacement={waitingPlacement}
-      />
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <p className="text-caption text-muted-foreground">
-          Regular: início do semestre · PPT: entrada durante o período.
-        </p>
-        {onCaptureLead && (
-          <Button variant="ghost" size="sm" onClick={onCaptureLead}>
-            {draftRegistration
-              ? "Editar lead e nivelamento em rascunho"
-              : "Já estudou inglês? Cadastrar lead para nivelamento"}
-          </Button>
-        )}
+    <div className="flex min-w-0 flex-wrap items-end gap-x-2 gap-y-1">
+      <div className="w-44 min-w-0 shrink-0">
+        <IntakeStageSelect
+          value={filters.stageId}
+          onChange={(stageId) => onFiltersChange({ ...filters, stageId })}
+          initialOnly={!lead || lead.englishExperience === "NONE"}
+          disabled={waitingPlacement || lead?.englishExperience === "SOME"}
+          labelIcon={<BookOpen className="size-4" aria-hidden="true" />}
+        />
       </div>
+      <TeacherSearch value={teacherSelection} choices={teacherChoices} onChange={onTeacherChange} />
+      <IntakeFilterFields filters={filters} onFiltersChange={onFiltersChange} />
+      <LevelingButton draftRegistration={draftRegistration} onCaptureLead={onCaptureLead} />
     </div>
+  );
+}
+
+function LevelingButton({
+  draftRegistration,
+  onCaptureLead,
+}: Pick<ControlsProps, "draftRegistration" | "onCaptureLead">): ReactJSX.Element | null {
+  if (!onCaptureLead) return null;
+  const label = draftRegistration ? "Revisar nivelamento" : "Nivelamento";
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onCaptureLead}
+      aria-label={
+        draftRegistration ? "Revisar lead e nivelamento" : "Cadastrar lead para nivelamento"
+      }
+      title={draftRegistration ? "Revisar nivelamento" : "Cadastrar lead para nivelamento"}
+    >
+      <ClipboardCheck aria-hidden="true" />
+      <span className="hidden min-[75rem]:inline">{label}</span>
+    </Button>
   );
 }
 
 function IntakeFilterFields({
   filters,
   onFiltersChange,
-  lead,
-  waitingPlacement,
-}: Pick<Props, "filters" | "onFiltersChange" | "lead"> & {
-  waitingPlacement: boolean;
-}): ReactJSX.Element {
+}: Pick<ControlsProps, "filters" | "onFiltersChange">): ReactJSX.Element {
   const change = (patch: Partial<IntakeFilters>): void => onFiltersChange({ ...filters, ...patch });
   return (
-    <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-[auto_auto_minmax(12rem,1fr)]">
-      <InterestChoice
-        label="Modalidade"
-        value={filters.scheduleType}
-        options={{ REGULAR: "Regular", PERSONALIZED: "PPT" }}
-        onChange={(value) => change({ scheduleType: value as IntakeFilters["scheduleType"] })}
-      />
-      <InterestChoice
-        label="Formato"
-        value={filters.format}
-        options={{ IN_PERSON: "Presencial", ONLINE: "Online" }}
-        onChange={(value) => change({ format: value as IntakeFilters["format"] })}
-      />
-      <div className="col-span-2 min-w-0 sm:col-span-1">
-        <IntakeStageSelect
-          value={filters.stageId}
-          onChange={(stageId) => change({ stageId })}
-          initialOnly={!lead || lead.englishExperience === "NONE"}
-          disabled={waitingPlacement || lead?.englishExperience === "SOME"}
+    <div className="flex min-w-0 flex-wrap items-end gap-2">
+      <div className="w-fit shrink-0">
+        <InterestChoice
+          label="Modalidade"
+          value={filters.scheduleType}
+          options={{ REGULAR: "Regular", PERSONALIZED: "PPT" }}
+          onChange={(value) => change({ scheduleType: value as IntakeFilters["scheduleType"] })}
         />
       </div>
+      <div className="w-fit shrink-0">
+        <InterestChoice
+          label="Formato"
+          value={filters.format}
+          options={{ IN_PERSON: "Presencial", ONLINE: "Online" }}
+          onChange={(value) => change({ format: value as IntakeFilters["format"] })}
+        />
+      </div>
+      <div className="w-fit shrink-0">
+        <InterestChoice
+          label="Entrada"
+          value={filters.entryPeriod}
+          options={{ CURRENT: "Neste período", NEXT: "Próximo período" }}
+          onChange={(value) => change({ entryPeriod: value as IntakeFilters["entryPeriod"] })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TeacherSearch({
+  value,
+  choices,
+  onChange,
+}: {
+  value: SearchSelectOption | null;
+  choices: ControlsProps["teacherChoices"];
+  onChange: (teacher: SearchSelectOption | null) => void;
+}): ReactJSX.Element {
+  const [query, setQuery] = useState("");
+  const teachers = [
+    ...new Map(
+      choices
+        .filter((choice) => choice.teacherId)
+        .map((choice) => [choice.teacherId!, { id: choice.teacherId!, label: choice.teacherName }]),
+    ).values(),
+  ].toSorted((left, right) => left.label.localeCompare(right.label, "pt-BR"));
+  const needle = normalizeSearch(query);
+  return (
+    <div className="w-48 min-w-0 shrink-0">
+      <Field>
+        <Label>
+          <span className="inline-flex items-center gap-1.5">
+            <UserRound className="size-4" aria-hidden="true" /> Professor
+          </span>
+        </Label>
+        <SearchSelect
+          name="teacherId"
+          placeholder="Buscar professor"
+          showSearchIcon
+          value={value}
+          query={query}
+          options={teachers.filter((teacher) => normalizeSearch(teacher.label).includes(needle))}
+          onQueryChange={setQuery}
+          onSelect={(teacher) => {
+            onChange(teacher);
+            setQuery("");
+          }}
+          onClear={() => onChange(null)}
+          emptyMessage="Nenhum professor nas turmas disponíveis."
+        />
+      </Field>
     </div>
   );
 }
@@ -198,7 +267,7 @@ function IntakeClassChoices({
 }: Pick<Props, "filters" | "classes" | "lead" | "draftRegistration" | "onCaptureLead"> & {
   waitingPlacement: boolean;
 }): ReactJSX.Element {
-  if (!waitingPlacement && filters.stageId)
+  if (filters.entryPeriod === "NEXT" || (!waitingPlacement && filters.stageId))
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <IntakeClasses {...classes} />

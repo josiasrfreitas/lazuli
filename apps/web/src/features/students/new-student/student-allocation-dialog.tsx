@@ -145,7 +145,11 @@ function AllocationDialogContent(props: AllocationDialogContentProps): ReactJSX.
       />
       <AllocationFooter
         pending={allocate.isPending}
-        selectedName={selected?.name}
+        selectedName={
+          selected
+            ? `${selected.scheduleType === "PERSONALIZED" ? "PPT" : selected.stageName} · ${selected.teacherName}`
+            : undefined
+        }
         disabled={!selected || !stageId || allocate.isPending || options.isFetching}
         onClose={onClose}
         onConfirm={() => {
@@ -267,6 +271,8 @@ function AllocationClassChoices({
     <div className="mt-5 flex min-h-0 flex-1 flex-col">
       {stageId ? (
         <IntakeClasses
+          entryPeriod="CURRENT"
+          teacherId={null}
           data={data}
           pending={fetching}
           error={optionsError}

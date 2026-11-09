@@ -41,8 +41,8 @@ void describe("payment operations", () => {
       { view: "all", page: 1, pageSize: 25, search: PREFIX },
       PAYMENT_NOW,
     );
-    assert.notEqual(rows.view, "overdue");
-    if (rows.view === "overdue") throw new Error("Wrong query view");
+    assert.equal(rows.view, "all");
+    if (!("rows" in rows)) throw new Error("Wrong query view");
     const paid = rows.rows.find((row) => row.installmentId === item.installmentId);
     assert.equal(paid?.collectibleBalanceCents, 0);
     assert.equal(paid?.paidAmountCents, 103_073);

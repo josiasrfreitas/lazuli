@@ -1,8 +1,16 @@
 import { randomUUID } from "node:crypto";
-import pino, { type DestinationStream, type Logger } from "pino";
-import { configuredLogLevel, type LogLevel } from "./config.js";
+import pino, { type DestinationStream, type Logger, type LoggerOptions } from "pino";
+import {
+  configuredLogLevel,
+  isDevelopment,
+  useDevelopmentColor,
+  useJsonLogFormat,
+  type LogLevel,
+} from "./config.js";
+import { formatDevelopmentLine } from "./development-format.js";
 
 type ServiceName = "web" | "worker";
+type LogObject = Parameters<NonNullable<NonNullable<LoggerOptions["formatters"]>["log"]>>[0];
 
 const requestIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -24,7 +32,14 @@ export function createServiceLogger(
     level,
     messageKey: "message",
     timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
-    formatters: { level: (label: string) => ({ level: label.toUpperCase() }) },
+    formatters: {
+      level: (label: string) => ({ level: label.toUpperCase() }),
+      log: (value: LogObject) => {
+        if (typeof value.error_stack !== "string") return value;
+        const { error_stack, ...fields } = value;
+        return { ...fields, exception: error_stack };
+      },
+    },
     // Callers pass only allowlisted fields. Redaction is a second line of defense.
     redact: {
       paths: [
@@ -41,9 +56,49 @@ export function createServiceLogger(
       censor: "[REDACTED]",
     },
   };
-  return options.destination === undefined
-    ? pino(configuration)
-    : pino(configuration, options.destination);
+  if (options.destination !== undefined) return pino(configuration, options.destination);
+  if (isDevelopment() && !useJsonLogFormat()) return pino(configuration, developmentDestination);
+  return pino(configuration);
+}
+
+const developmentDestination: DestinationStream = {
+  write(line: string): void {
+    try {
+      process.stdout.write(
+        formatDevelopmentLine(line, useDevelopmentColor(Boolean(process.stdout.isTTY))),
+      );
+    } catch {
+      process.stdout.write("[logging] Failed to format a log line.\n");
+    }
+  },
+};
+
+/** Log only reviewed, non-identifying facts from real process steps in local development. */
+export function logDevelopmentProcess(
+  logger: Logger,
+  event: {
+    requestId?: string | undefined;
+    userId?: string | undefined;
+    resource: string;
+    operation: "GET" | "POST" | "DELETE" | "DB" | "API";
+    step: string;
+    durationMs?: number | undefined;
+    facts?: Record<string, number | boolean> | undefined;
+  },
+): void {
+  if (!isDevelopment()) return;
+  logger.info(
+    {
+      request_id: event.requestId,
+      user_id: event.userId,
+      resource: event.resource,
+      operation: event.operation,
+      process_step: event.step,
+      duration_ms: event.durationMs,
+      facts: event.facts,
+    },
+    event.step,
+  );
 }
 
 /** Keep call frames for server diagnosis without recording error messages or query values. */
@@ -73,12 +128,7 @@ export async function withCheckpoint<Result>(
   const { checkpoint, action } = options;
   const start = performance.now();
   try {
-    const result = await action();
-    logger.info(
-      { checkpoint, duration_ms: Math.round(performance.now() - start), status: "ok" },
-      `${checkpoint} completed`,
-    );
-    return result;
+    return await action();
   } catch (error) {
     logger.error(
       {
@@ -87,7 +137,7 @@ export async function withCheckpoint<Result>(
         status: "error",
         ...safeError(error),
       },
-      `${checkpoint} failed`,
+      "Failed to load data for operation",
     );
     throw error;
   }

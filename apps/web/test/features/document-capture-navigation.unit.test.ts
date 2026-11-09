@@ -15,7 +15,11 @@ function scenario(): Scenario {
   const steps: string[] = [];
   const closed: boolean[] = [];
   const errors: string[] = [];
-  const documents = { captureBusy: false, selection: null as Context["documents"]["selection"] };
+  const documents = {
+    captureBusy: false,
+    selection: null as Context["documents"]["selection"],
+    query: { data: { files: [] } },
+  };
   const flow: Partial<Context["flow"]> = {
     busy: { current: false },
     step: "student",
@@ -31,7 +35,7 @@ function scenario(): Scenario {
     },
   };
   const context: Context = {
-    documents,
+    documents: documents as object as Context["documents"],
     flow: flow as Context["flow"],
     identity: {
       addressPending: false,
@@ -42,6 +46,7 @@ function scenario(): Scenario {
     } as Context["identity"],
     classes: { minor: false, blockedLead: false } as Context["classes"],
     today: "2026-10-27",
+    existingStudentId: undefined,
     onOpenChange: (open: boolean) => closed.push(open),
     saveBeforeClose: () => {
       throw new Error("Capture must be settled before save");

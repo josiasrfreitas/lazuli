@@ -65,6 +65,7 @@ function registerSerializationTest(): void {
       payer: { id: fixture.payerId, name: `${PREFIX}Pagador` },
       beneficiaries: [{ studentId: fixture.studentId, fullName: `${PREFIX}Aluna` }],
       dueDate: "2020-04-10",
+      paidOn: null,
       originalAmountCents: 10_000,
       expectedAmountCents: 10_000,
       paidAmountCents: 0,

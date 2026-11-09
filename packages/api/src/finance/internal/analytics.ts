@@ -83,30 +83,61 @@ async function readPaymentAnalytics(
   database: FinanceDatabase,
   { year, asOf }: Period,
 ): Promise<{ months: PaymentMonth[]; methods: FinanceAnalytics["methods"] }> {
-  const paymentMonth = sql<string>`to_char(date, 'YYYY-MM')`;
-  const payments = database.$kysely
-    .selectFrom("PaymentEntry")
-    .where("deleted_at", "is", null)
-    .where("date", ">=", new Date(`${year}-01-01`))
-    .where("date", "<", new Date(`${year + 1}-01-01`))
-    .where("date", "<=", new Date(asOf));
-  const months = await payments
-    .select([
-      paymentMonth.as("month"),
-      sql<number>`sum(amount_cents)::double precision`.as("receivedCents"),
-    ])
-    .groupBy(paymentMonth)
-    .execute();
-  const methods = await payments
-    .select("method")
-    .select([
-      sql<number>`sum(amount_cents)::double precision`.as("receivedCents"),
-      sql<number>`count(*)::integer`.as("count"),
-    ])
-    .groupBy("method")
-    .orderBy("receivedCents", "desc")
-    .orderBy("method", "asc")
-    .execute();
+  const start = new Date(`${year}-01-01T00:00:00.000Z`);
+  const end = new Date(`${year + 1}-01-01T00:00:00.000Z`);
+  const movements = await database.$queryRaw<
+    Array<{
+      month: string;
+      method: string;
+      receivedCents: number;
+    }>
+  >`
+    WITH movements AS (
+      SELECT p.date AS effective_date, p.method, p.amount_cents AS amount_cents
+      FROM "PaymentEntry" p WHERE p.deleted_at IS NULL
+      UNION ALL
+      SELECT CASE WHEN r.kind = 'CANCELLATION' THEN p.date ELSE r.occurred_on END,
+        p.method, -r.amount_cents
+      FROM payment_reversals r
+      JOIN "PaymentEntry" p ON p.id = r.payment_entry_id
+      WHERE r.deleted_at IS NULL AND p.deleted_at IS NULL
+    )
+    SELECT to_char(effective_date, 'YYYY-MM') AS month, method,
+      SUM(amount_cents)::double precision AS "receivedCents"
+    FROM movements
+    WHERE effective_date >= ${start}::date AND effective_date < ${end}::date
+      AND effective_date <= ${new Date(`${asOf}T00:00:00.000Z`)}::date
+    GROUP BY month, method
+  `;
+  const monthsByMonth = new Map<string, number>();
+  const methodsByCode = new Map<string, number>();
+  for (const row of movements) {
+    monthsByMonth.set(row.month, (monthsByMonth.get(row.month) ?? 0) + row.receivedCents);
+    methodsByCode.set(row.method, (methodsByCode.get(row.method) ?? 0) + row.receivedCents);
+  }
+  const months = [...monthsByMonth].map(([month, receivedCents]) => ({ month, receivedCents }));
+  const counts = await database.$queryRaw<Array<{ method: string; count: number }>>`
+    SELECT p.method, COUNT(*)::integer AS count
+    FROM "PaymentEntry" p
+    WHERE p.deleted_at IS NULL AND p.date >= ${start}::date AND p.date < ${end}::date
+      AND p.date <= ${new Date(`${asOf}T00:00:00.000Z`)}::date
+      AND p.amount_cents > COALESCE((
+        SELECT SUM(r.amount_cents) FROM payment_reversals r
+        WHERE r.payment_entry_id = p.id AND r.deleted_at IS NULL
+      ), 0)
+    GROUP BY p.method
+  `;
+  const countByCode = new Map(counts.map((row) => [row.method, row.count]));
+  const methods = [...methodsByCode]
+    .map(([method, receivedCents]) => ({
+      method,
+      receivedCents,
+      count: countByCode.get(method) ?? 0,
+    }))
+    .toSorted(
+      (left, right) =>
+        right.receivedCents - left.receivedCents || left.method.localeCompare(right.method),
+    );
   const catalog = await database.paymentMethod.findMany({
     where: { code: { in: methods.map((row) => row.method) } },
     select: { code: true, name: true },

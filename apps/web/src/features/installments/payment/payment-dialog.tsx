@@ -18,11 +18,6 @@ import {
   FormSection,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { formatBRLFromCents as money } from "~/lib/format";
@@ -33,6 +28,7 @@ import { PaymentSummary } from "./payment-summary";
 import { PaymentGrid } from "./payment-grid";
 import { PaymentPicker } from "./payment-picker";
 import { draftReceipts } from "./draft";
+import { PaymentMethodField } from "./payment-method-field";
 const FORM_ID = "register-payments";
 
 type Props = {
@@ -179,7 +175,7 @@ function PaymentFields({ state }: { state: PaymentFormState }): ReactElement {
           />
           {invalid && <FieldError match>Informe uma data válida.</FieldError>}
         </Field>
-        <PaymentMethod state={state} />
+        <PaymentMethodField state={state} />
       </FormRow>
       <p className="text-caption text-muted-foreground">
         Juros e descontos calculados na data do recebimento.
@@ -188,51 +184,6 @@ function PaymentFields({ state }: { state: PaymentFormState }): ReactElement {
   );
 }
 
-function PaymentMethod({ state }: { state: PaymentFormState }): ReactElement {
-  return (
-    <Field className="max-w-56">
-      <Label id="payment-method-label">Forma de pagamento</Label>
-      <Select
-        value={state.draft.method}
-        onValueChange={(value) => {
-          const method = state.methods.find((item) => item.code === value);
-          if (method)
-            state.dispatch({
-              type: "method",
-              value: method.code,
-              externalFinancing: method.allowsExternalInstallments,
-            });
-        }}
-      >
-        <SelectTrigger
-          size="sm"
-          disabled={state.methodsLoading || state.methodsError}
-          aria-labelledby="payment-method-label"
-        >
-          <SelectValue>
-            {state.methods.find((method) => method.code === state.draft.method)?.name ??
-              (state.methodsLoading ? "Carregando…" : "Selecione")}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {state.methods.map((method) => (
-            <SelectItem key={method.id} value={method.code}>
-              {method.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {state.methodsError && (
-        <FieldError match>
-          Não foi possível carregar as formas de pagamento.{" "}
-          <Button variant="link" size="inline" onClick={state.refresh}>
-            Tentar novamente
-          </Button>
-        </FieldError>
-      )}
-    </Field>
-  );
-}
 function PaymentFooter({
   state,
   onClose,

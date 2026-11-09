@@ -54,7 +54,7 @@ function AgendaButton({
       aria-busy={busy || undefined}
       onClick={onOpen}
     >
-      <CalendarDays aria-hidden="true" /> Agenda do aluno
+      <CalendarDays aria-hidden="true" /> Agenda
     </Button>
   );
 }

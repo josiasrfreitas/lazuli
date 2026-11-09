@@ -11,12 +11,17 @@ const meta = {
   title: "Components/SegmentedControl",
   component: SegmentedControl,
   tags: ["autodocs"],
-  argTypes: { wrap: { control: "boolean" } },
+  argTypes: {
+    wrap: { control: "boolean" },
+    size: { control: "select", options: ["sm", "md"] },
+    invalid: { control: "boolean" },
+    disabled: { control: "boolean" },
+  },
   parameters: {
     docs: {
       description: {
         component:
-          "Inline single choice for up to five options where a dropdown would cost extra clicks. One Tab stop; arrow keys move between items and pressing the selected item again clears it. Name the group with `aria-label` or `aria-labelledby`.",
+          "Pill-shaped single choice for up to five options. A quiet track holds a raised selected capsule: white in light mode, blue in dark mode. Sizes retain 32/40 px heights; wrapped choices retain their row height. One Tab stop; arrow keys move between items and pressing the selected item again clears it. Name the group with `aria-label` or `aria-labelledby`. Keyboard focus and invalid borders remain independent of selection. Color transitions respect reduced motion.",
       },
     },
   },
@@ -30,12 +35,16 @@ function DocumentTypeExample({
   disabled = false,
   invalid = false,
   size,
+  wrap = false,
+  initialValue = null,
 }: {
   disabled?: boolean;
   invalid?: boolean;
   size?: "sm" | "md";
+  wrap?: boolean;
+  initialValue?: string | null;
 }): ReactElement {
-  const [value, setValue] = useState<string | null>(null);
+  const [value, setValue] = useState<string | null>(initialValue);
 
   return (
     <SegmentedControl
@@ -44,6 +53,7 @@ function DocumentTypeExample({
       invalid={invalid}
       onValueChange={setValue}
       value={value}
+      wrap={wrap}
       {...(size === undefined ? {} : { size })}
     >
       <SegmentedControlItem value="CPF">CPF</SegmentedControlItem>
@@ -54,7 +64,14 @@ function DocumentTypeExample({
 
 export const Playground: Story = {
   args: { value: null, onValueChange: () => {} },
-  render: () => <DocumentTypeExample />,
+  render: (args) => (
+    <DocumentTypeExample
+      size={args.size ?? "md"}
+      disabled={args.disabled ?? false}
+      invalid={args.invalid ?? false}
+      wrap={args.wrap ?? false}
+    />
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const group = canvas.getByRole("group", { name: GROUP_LABEL });
@@ -69,6 +86,8 @@ export const Playground: Story = {
     await userEvent.keyboard("{Enter}");
     await expect(rg).toHaveAttribute(PRESSED, "true");
     await expect(cpf).toHaveAttribute(PRESSED, "false");
+    await userEvent.keyboard("{Enter}");
+    await expect(rg).toHaveAttribute(PRESSED, "false");
   },
 };
 
@@ -76,8 +95,8 @@ export const Sizes: Story = {
   args: { value: null, onValueChange: () => {} },
   render: () => (
     <div className="flex flex-col items-start gap-3">
-      <DocumentTypeExample size="sm" />
-      <DocumentTypeExample size="md" />
+      <DocumentTypeExample size="sm" initialValue="CPF" />
+      <DocumentTypeExample size="md" initialValue="CPF" />
     </div>
   ),
 };
@@ -87,8 +106,9 @@ export const States: Story = {
   render: () => (
     <div className="flex flex-col items-start gap-3">
       <DocumentTypeExample />
-      <DocumentTypeExample invalid />
-      <DocumentTypeExample disabled />
+      <DocumentTypeExample initialValue="CPF" />
+      <DocumentTypeExample invalid initialValue="CPF" />
+      <DocumentTypeExample disabled initialValue="CPF" />
     </div>
   ),
 };

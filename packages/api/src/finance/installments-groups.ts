@@ -1,4 +1,8 @@
-import type { FinanceOverduePayerGroup, FinanceInstallmentRow } from "@lazuli/validators";
+import type {
+  FinanceOverduePayerGroup,
+  FinancePayerGroup,
+  FinanceInstallmentRow,
+} from "@lazuli/validators";
 
 type InstallmentGroupRow = Omit<FinanceInstallmentRow, "payer" | "beneficiaries" | "material"> & {
   material?: FinanceInstallmentRow["material"] | null;
@@ -10,6 +14,12 @@ type InstallmentGroupRow = Omit<FinanceInstallmentRow, "payer" | "beneficiaries"
 export type OverdueGroupRow = InstallmentGroupRow & {
   installmentCount: number;
   groupBalanceCents: number;
+  maxOverdueDays: number;
+};
+export type GroupedGroupRow = InstallmentGroupRow & {
+  installmentCount: number;
+  groupBalanceCents: number;
+  groupPaidCents: number;
   maxOverdueDays: number;
 };
 
@@ -32,6 +42,7 @@ export function toPublicRow(
     payer: { id: row.payerId, name: row.payerName },
     beneficiaries: beneficiaries.byOrder.get(row.orderId) ?? [],
     dueDate: row.dueDate,
+    paidOn: row.paidOn,
     suspendedUntil: row.suspendedUntil,
     originalAmountCents: row.originalAmountCents,
     expectedAmountCents: row.expectedAmountCents,
@@ -83,4 +94,37 @@ export function groupOverdueRows(
       ],
     };
   });
+}
+
+export function groupPayerRows(
+  rows: GroupedGroupRow[],
+  beneficiaries: LoadedBeneficiaries,
+): FinancePayerGroup[] {
+  const groups = new Map<string, FinancePayerGroup>();
+  for (const row of rows) {
+    let group = groups.get(row.payerId);
+    if (!group) {
+      group = {
+        payer: { id: row.payerId, name: row.payerName },
+        installmentCount: row.installmentCount,
+        collectibleBalanceCents: row.groupBalanceCents,
+        paidAmountCents: row.groupPaidCents,
+        maxOverdueDays: row.maxOverdueDays,
+        beneficiaries: [],
+        rows: [],
+      };
+      groups.set(row.payerId, group);
+    }
+    group.rows.push(toPublicRow(row, beneficiaries));
+  }
+  return [...groups.values()].map((group) => ({
+    ...group,
+    beneficiaries: [
+      ...new Map(
+        group.rows
+          .flatMap((row) => row.beneficiaries)
+          .map((student) => [student.studentId, student] as const),
+      ).values(),
+    ],
+  }));
 }

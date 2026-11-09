@@ -35,6 +35,7 @@ export function useEnrollmentPersistence({
         utils.enrollment.invalidate(),
         utils.finance.invalidate(),
         utils.semesterOrganization.invalidate(),
+        utils.dashboard.invalidate(),
       ]);
       onCreated(result.studentId);
       onOpenChange(false);

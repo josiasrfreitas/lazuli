@@ -9,7 +9,6 @@ import { PedagogyLoading } from "./student-loading";
 import { EnrollmentHistory } from "./student-history";
 import { CurrentEnrollment } from "./current-enrollment";
 import { ContractTerminationNotice } from "./contract-termination-notice";
-import { OrganizationIntention } from "./organization-intention";
 import { StudentChooseClass } from "./student-choose-class";
 import type { RouterOutputs } from "@lazuli/api";
 
@@ -54,7 +53,6 @@ function StudentPedagogyContent(
   return (
     <div className="grid min-w-0 gap-6">
       <ContractTerminationNotice termination={props.latestTermination} studentId={id} />
-      <OrganizationIntention studentId={id} />
       {current.map((enrollment) => (
         <CurrentEnrollment
           key={enrollment.id}

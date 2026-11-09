@@ -189,6 +189,7 @@ const studentContractSelect = {
       material: {
         select: {
           name: true,
+          listPriceCents: true,
           scholarshipPct: true,
           scholarshipAgreement: true,
           items: {

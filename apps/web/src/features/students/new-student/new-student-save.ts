@@ -1,4 +1,5 @@
 import type { RouterInputs } from "@lazuli/api";
+import type { RegistrationDocumentKind } from "@lazuli/domain";
 import { studentIntakeEnrollSchema, studentIntakeResumeSchema } from "@lazuli/validators";
 import {
   contractInputFromFields,
@@ -10,6 +11,7 @@ import type { NewStudentFields } from "./reducer";
 
 export function intakeSaveIssue({
   blockedLead,
+  entryPeriod,
   selectedId,
   optionsFetching,
   selected,
@@ -17,6 +19,7 @@ export function intakeSaveIssue({
   waitingPlacement,
 }: {
   blockedLead: boolean;
+  entryPeriod: "CURRENT" | "NEXT";
   selectedId: string;
   optionsFetching: boolean;
   selected: boolean;
@@ -26,7 +29,7 @@ export function intakeSaveIssue({
   if (blockedLead) return "Confira o vínculo do lead antes de salvar o aluno.";
   if (selectedId && (optionsFetching || !selected))
     return "Confira a turma na etapa pedagógica antes de salvar.";
-  if (selected && (!stageId || waitingPlacement))
+  if (entryPeriod === "CURRENT" && selected && (!stageId || waitingPlacement))
     return "Conclua o nivelamento antes de confirmar a turma.";
   return undefined;
 }
@@ -55,37 +58,71 @@ export function intakeContract({
   return studentContractInput({ fields, student, commandId });
 }
 
+export type IntakePendingItem = {
+  kind: "class" | "contract" | "documents";
+  label: string;
+};
+
+const DOCUMENT_LABELS: Record<RegistrationDocumentKind, string> = {
+  student: "identidade do aluno",
+  guardian: "identidade do responsável",
+  residence: "comprovante de residência",
+  photo: "foto do aluno",
+};
+
 export function intakePendingItems({
   selected,
+  entryPeriod,
   existingEnrollment,
   waitingPlacement,
   withContract,
   existingContract,
+  missingDocuments,
 }: {
   selected: boolean;
+  entryPeriod: "CURRENT" | "NEXT";
   existingEnrollment: boolean;
   waitingPlacement: boolean;
   withContract: boolean;
   existingContract: boolean;
-}): string[] {
-  const items: string[] = [];
+  missingDocuments: RegistrationDocumentKind[] | null;
+}): IntakePendingItem[] {
+  const items: IntakePendingItem[] = [];
   if (!selected && !existingEnrollment)
-    items.push(
-      waitingPlacement
-        ? "Concluir o nivelamento e escolher a turma."
-        : "Definir a turma na etapa pedagógica.",
-    );
+    items.push({
+      kind: "class",
+      label: pendingClassLabel(entryPeriod, waitingPlacement),
+    });
   if (!withContract && !existingContract)
-    items.push("Concluir o contrato. Os dados do contrato em rascunho não serão salvos.");
+    items.push({
+      kind: "contract",
+      label: "Concluir o contrato. Os dados do contrato em rascunho não serão salvos.",
+    });
+  if (missingDocuments === null || missingDocuments.length > 0)
+    items.push({
+      kind: "documents",
+      label: missingDocuments
+        ? `Anexar ${missingDocuments.map((kind) => DOCUMENT_LABELS[kind]).join(", ")}.`
+        : "Conferir os anexos cadastrais.",
+    });
   return items;
+}
+
+function pendingClassLabel(entryPeriod: "CURRENT" | "NEXT", waitingPlacement: boolean): string {
+  if (entryPeriod === "NEXT") return "Definir a turma do próximo período na página do aluno.";
+  return waitingPlacement
+    ? "Concluir o nivelamento e escolher a turma."
+    : "Definir a turma na página do aluno.";
 }
 
 type IntakeCommand =
   | RouterInputs["students"]["enrollNew"]
   | RouterInputs["students"]["resumeIntake"];
 type IntakeShared = {
+  entryPeriod: "CURRENT" | "NEXT";
   stageId: string | null;
   classId: string | null;
+  planId: string | null;
   contract: RouterInputs["students"]["enrollNew"]["contract"];
   allowPending: boolean;
 };

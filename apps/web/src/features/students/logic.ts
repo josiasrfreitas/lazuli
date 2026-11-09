@@ -31,6 +31,8 @@ const searchParamsConfig = {
   status: parseAsString,
   busca: parseAsString.withDefault(""),
   situacoes: parseAsString,
+  bolsa: parseAsString,
+  faixaEtaria: parseAsString,
   turmas: parseAsString,
   professores: parseAsString,
   cadastroDe: parseAsString,
@@ -39,6 +41,8 @@ const searchParamsConfig = {
 
 export type StudentFilterPatch = Partial<{
   situations: string | null;
+  scholarship: string | null;
+  ageRanges: string | null;
   classIds: string | null;
   teacherIds: string | null;
   registeredFrom: string | null;
@@ -77,6 +81,8 @@ function studentSituations(
 function studentFilterUrlPatch(patch: StudentFilterPatch): Record<string, string | null> {
   const params: Record<string, string | null> = {};
   if (patch.situations !== undefined) params.situacoes = patch.situations;
+  if (patch.scholarship !== undefined) params.bolsa = patch.scholarship;
+  if (patch.ageRanges !== undefined) params.faixaEtaria = patch.ageRanges;
   if (patch.classIds !== undefined) params.turmas = patch.classIds;
   if (patch.teacherIds !== undefined) params.professores = patch.teacherIds;
   if (patch.registeredFrom !== undefined) params.cadastroDe = patch.registeredFrom;
@@ -94,8 +100,14 @@ function situations(value: string | null): Array<"active" | "inactive"> {
   ];
 }
 
+function filterValues<const T extends string>(value: string | null, allowed: readonly T[]): T[] {
+  return [...new Set(ids(value).filter((item): item is T => allowed.includes(item as T)))];
+}
+
 export type StudentsFilters = {
   situations: Array<"active" | "inactive">;
+  scholarship: Array<"scholarship" | "regular">;
+  ageRanges: Array<"under13" | "teen" | "adult">;
   classIds: string[];
   teacherIds: string[];
   registeredFrom: string;
@@ -133,6 +145,8 @@ export function useStudentsFilters(): StudentsFilters {
 
   return {
     situations: studentSituations(params.status, params.situacoes),
+    scholarship: filterValues(params.bolsa, ["scholarship", "regular"]),
+    ageRanges: filterValues(params.faixaEtaria, ["under13", "teen", "adult"]),
     classIds: filterIdsFromUrl(params.turmas),
     teacherIds: filterIdsFromUrl(params.professores),
     registeredFrom: invalidPeriod ? "" : registeredFrom,
@@ -153,6 +167,8 @@ export function useStudentsFilters(): StudentsFilters {
 type StudentsListQueryInput = Pick<
   StudentsFilters,
   | "situations"
+  | "scholarship"
+  | "ageRanges"
   | "classIds"
   | "teacherIds"
   | "registeredFrom"
@@ -286,6 +302,8 @@ export function useStudentsList(
       status: "all",
       search: filters.search === "" ? undefined : filters.search,
       ...(filters.situations.length > 0 ? { situations: filters.situations } : {}),
+      ...(filters.scholarship.length > 0 ? { scholarship: filters.scholarship } : {}),
+      ...(filters.ageRanges.length > 0 ? { ageRanges: filters.ageRanges } : {}),
       ...(filters.classIds.length > 0 ? { classIds: filters.classIds } : {}),
       ...(filters.teacherIds.length > 0 ? { teacherIds: filters.teacherIds } : {}),
       ...(filters.registeredFrom ? { registeredFrom: filters.registeredFrom } : {}),

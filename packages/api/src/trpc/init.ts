@@ -6,6 +6,7 @@ import superjson from "superjson";
 
 import type { Context } from "./context.js";
 import { parseTrpcDevelopmentDelay, withDevelopmentTiming } from "./development-timing.js";
+import { procedureOutcomeLabel } from "./procedure-labels.js";
 
 const isDevelopment = globalThis.process.env.NODE_ENV === "development";
 const logger = createServiceLogger("web");
@@ -46,28 +47,44 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
     });
     const fields = {
       request_id: ctx.requestId,
+      user_id: ctx.staffUser?.id,
+      resource: path,
+      operation: type === "query" ? "GET" : "POST",
       procedure: path,
       procedure_type: type,
       duration_ms: Math.round(performance.now() - started),
       staff_user_id: ctx.staffUser?.id,
     };
-    if (result.ok) logger.info({ ...fields, status: "ok" }, "tRPC procedure completed");
-    else
+    if (result.ok) {
+      const label = procedureOutcomeLabel(path);
+      logger.info(
+        {
+          ...fields,
+          status: "ok",
+          process_step: label,
+          ...(Array.isArray(result.data) ? { facts: { items: result.data.length } } : {}),
+        },
+        label,
+      );
+    } else if (result.error.code !== "INTERNAL_SERVER_ERROR")
       logger.warn(
         { ...fields, status: "error", error_code: result.error.code },
-        "tRPC procedure failed",
+        `Failed: ${procedureOutcomeLabel(path)}`,
       );
     return result;
   } catch (error) {
     logger.error(
       {
         request_id: ctx.requestId,
+        user_id: ctx.staffUser?.id,
+        resource: path,
+        operation: type === "query" ? "GET" : "POST",
         procedure: path,
         procedure_type: type,
         duration_ms: Math.round(performance.now() - started),
         ...safeError(error),
       },
-      "tRPC procedure threw",
+      "Unexpected failure while processing operation",
     );
     throw error;
   }

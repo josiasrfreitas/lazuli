@@ -1,16 +1,19 @@
+import type { RegistrationDocumentKind } from "./registration-documents.js";
+
 /** Derived work to resolve. IDs remain stable so different screens can show the same item. */
 export type PendingAction = {
   id: string;
-  type: "PLACEMENT" | "CLASS_ALLOCATION" | "CONTRACT";
+  type: "PLACEMENT" | "CLASS_ALLOCATION" | "CONTRACT" | "DOCUMENTS";
   subject: { type: "STUDENT"; id: string; name: string };
   title: string;
   description: string;
   action: {
-    type: "OPEN_LEAD" | "ALLOCATE_STUDENT" | "CREATE_CONTRACT";
+    type: "OPEN_LEAD" | "ALLOCATE_STUDENT" | "CREATE_CONTRACT" | "OPEN_REGISTRATION";
     label: string;
     resourceId: string;
   };
   blockedBy: string[];
+  missingDocuments?: RegistrationDocumentKind[];
 };
 
 export function studentPendingActions(input: {
@@ -20,6 +23,7 @@ export function studentPendingActions(input: {
   hasEnrollment: boolean;
   hasContract: boolean;
   placement: { leadId: string; completed: boolean } | null;
+  missingDocuments: RegistrationDocumentKind[];
 }): PendingAction[] {
   if (!input.active) return [];
   const subject = { type: "STUDENT" as const, id: input.id, name: input.name };
@@ -55,6 +59,17 @@ export function studentPendingActions(input: {
       blockedBy: needsPlacement ? [placementId] : [],
     });
   if (!input.hasContract) items.push(contractPendingAction(subject));
+  if (input.missingDocuments.length > 0)
+    items.push({
+      id: `${input.id}:documents`,
+      type: "DOCUMENTS",
+      subject,
+      title: "Completar anexos cadastrais",
+      description: "Há documentos ou foto do aluno para anexar.",
+      action: { type: "OPEN_REGISTRATION", label: "Ver anexos", resourceId: input.id },
+      blockedBy: [],
+      missingDocuments: input.missingDocuments,
+    });
   return items;
 }
 

@@ -1,5 +1,7 @@
 import type { Prisma, TransactionClient } from "@lazuli/db";
+import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import type { Context, StaffUser } from "../trpc/context.js";
+import { procedureOutcomeLabel } from "../trpc/procedure-labels.js";
 import { ACTIVITY_ACTIONS, type ActivityAction } from "./catalog.js";
 
 export type ActivitySubject = {
@@ -12,7 +14,12 @@ export type ActivityDetails = {
   description?: string | undefined;
   deduplicationKey?: string | undefined;
 };
-type ActorContext = { staffUser: StaffUser; now?: Date | undefined };
+type ActorContext = {
+  staffUser: StaffUser;
+  now?: Date | undefined;
+  requestId?: string | undefined;
+};
+const logger = createServiceLogger("web");
 
 /** The caller owns the transaction; failed business operations cannot leave a success event. */
 export async function recordActivity(
@@ -66,11 +73,33 @@ export async function activityTransaction<T>(
   },
 ): Promise<T> {
   const { action, work, describe, options } = command;
-
-  return context.db.$transaction(async (database) => {
+  const started = performance.now();
+  const title = procedureOutcomeLabel(action);
+  logDevelopmentProcess(logger, {
+    requestId: context.requestId,
+    userId: context.staffUser.id,
+    resource: action,
+    operation: "POST",
+    step: `Starting: ${action}`,
+  });
+  let activityRecorded = false;
+  const result = await context.db.$transaction(async (database) => {
     const result = await work(database);
     const details = await describe(result, database);
-    if (details) await recordActivity(database, { context, action, details });
+    if (details) {
+      await recordActivity(database, { context, action, details });
+      activityRecorded = true;
+    }
     return result;
   }, options);
+  logDevelopmentProcess(logger, {
+    requestId: context.requestId,
+    userId: context.staffUser.id,
+    resource: action,
+    operation: "POST",
+    step: title,
+    durationMs: Math.round(performance.now() - started),
+    facts: { activity_recorded: activityRecorded },
+  });
+  return result;
 }

@@ -35,6 +35,8 @@ const TIME_END_INDEX = 16;
 const LABEL_SEPARATOR = " · ";
 const LAST_WEEKDAY_SEPARATOR = " e ";
 const DATE_ONLY_LENGTH = 10;
+const TEEN_MIN_AGE = 13;
+const ADULT_MIN_AGE = 18;
 
 const openEnrollmentSelect = {
   id: true,
@@ -92,6 +94,8 @@ type StudentListWhereInput = {
   status: StudentListStatusFilter;
   search?: string | undefined;
   situations?: StudentListInput["situations"];
+  scholarship?: StudentListInput["scholarship"];
+  ageRanges?: StudentListInput["ageRanges"];
   classIds?: string[] | undefined;
   teacherIds?: string[] | undefined;
   registeredFrom?: string | undefined;
@@ -164,10 +168,41 @@ export function buildStudentListWhere(
       situations ? { status: { in: situations } } : statusFilter(input.status),
       searchWhere,
       enrollmentFilter(input),
+      scholarshipFilter(input),
+      ageRangeFilter(input),
       input.registeredFrom ? { createdAt: { gte: dayStart(input.registeredFrom) } } : {},
       input.registeredTo ? { createdAt: { lt: dayStart(nextDay(input.registeredTo)) } } : {},
     ],
   };
+}
+
+function scholarshipFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
+  if (input.scholarship?.length !== 1) return {};
+  const contract = currentScholarshipContractWhere(input.now ?? new Date());
+  return input.scholarship[0] === "scholarship"
+    ? { contracts: { some: contract } }
+    : { contracts: { none: contract } };
+}
+
+function ageRangeFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
+  if (!input.ageRanges?.length) return {};
+  const today = new Date(saoPauloDateOnly(input.now ?? new Date()));
+  const teenCutoff = ageCutoff(today, TEEN_MIN_AGE);
+  const adultCutoff = ageCutoff(today, ADULT_MIN_AGE);
+  const ranges: Prisma.StudentWhereInput[] = input.ageRanges.map((range) => {
+    if (range === "under13") return { birthDate: { gt: teenCutoff, lte: today } };
+    if (range === "teen") return { birthDate: { gt: adultCutoff, lte: teenCutoff } };
+    return { birthDate: { lte: adultCutoff } };
+  });
+  return { OR: ranges };
+}
+
+function ageCutoff(today: Date, years: number): Date {
+  const cutoff = new Date(today);
+  const month = cutoff.getUTCMonth();
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - years);
+  if (cutoff.getUTCMonth() !== month) cutoff.setUTCDate(0);
+  return cutoff;
 }
 
 function dayStart(day: string): Date {

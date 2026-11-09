@@ -164,13 +164,37 @@ export async function readBusinessComparison(
   database: Context["db"],
   { period, contractPeriod = period }: { period: HomePeriod; contractPeriod?: HomePeriod },
 ): Promise<BusinessComparison> {
-  const [payments, contracts] = await Promise.all([
+  const [payments, reversals, contracts] = await Promise.all([
     database.paymentEntry.findMany({
       where: {
         deletedAt: null,
         date: { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) },
       },
       select: { date: true, amountCents: true },
+    }),
+    database.paymentReversal.findMany({
+      where: {
+        deletedAt: null,
+        paymentEntry: { deletedAt: null },
+        OR: [
+          {
+            kind: "CANCELLATION",
+            paymentEntry: {
+              date: { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) },
+            },
+          },
+          {
+            kind: "REFUND",
+            occurredOn: { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) },
+          },
+        ],
+      },
+      select: {
+        kind: true,
+        occurredOn: true,
+        amountCents: true,
+        paymentEntry: { select: { date: true } },
+      },
     }),
     database.contract.findMany({
       where: {
@@ -183,18 +207,16 @@ export async function readBusinessComparison(
       select: { agreedOn: true, renewedFromId: true },
     }),
   ]);
-  const received = period.months.map((month) => ({ month, value: 0 }));
+  const { received, previousReceivedCents } = receivedComparison(period, [
+    ...payments.map((payment) => ({ date: payment.date, amountCents: payment.amountCents })),
+    ...reversals.map((reversal) => ({
+      date: reversal.kind === "CANCELLATION" ? reversal.paymentEntry.date : reversal.occurredOn,
+      amountCents: -reversal.amountCents,
+    })),
+  ]);
   const datedContracts = contracts.filter(
     (row): row is typeof row & { agreedOn: Date } => row.agreedOn !== null,
   );
-  let previousReceivedCents = 0;
-  for (const payment of payments) {
-    const date = payment.date.toISOString().slice(0, DATE_ONLY_LENGTH);
-    const row = received.find((item) => item.month === date.slice(0, YEAR_MONTH_LENGTH));
-    if (row) row.value += payment.amountCents;
-    if (date.slice(0, YEAR_MONTH_LENGTH) === period.previousMonth && date <= period.previousThrough)
-      previousReceivedCents += payment.amountCents;
-  }
   return {
     received,
     previousReceivedCents,
@@ -209,4 +231,20 @@ export async function readBusinessComparison(
       (row) => row.agreedOn.toISOString().startsWith(period.month) && row.renewedFromId,
     ).length,
   };
+}
+
+function receivedComparison(
+  period: HomePeriod,
+  movements: Array<{ date: Date; amountCents: number }>,
+): Pick<BusinessComparison, "received" | "previousReceivedCents"> {
+  const received = period.months.map((month) => ({ month, value: 0 }));
+  let previousReceivedCents = 0;
+  for (const movement of movements) {
+    const date = movement.date.toISOString().slice(0, DATE_ONLY_LENGTH);
+    const row = received.find((item) => item.month === date.slice(0, YEAR_MONTH_LENGTH));
+    if (row) row.value += movement.amountCents;
+    if (date.slice(0, YEAR_MONTH_LENGTH) === period.previousMonth && date <= period.previousThrough)
+      previousReceivedCents += movement.amountCents;
+  }
+  return { received, previousReceivedCents };
 }

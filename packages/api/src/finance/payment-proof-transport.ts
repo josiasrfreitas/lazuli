@@ -12,7 +12,7 @@ const SIGNATURES = {
   "image/png": Buffer.from("89504e470d0a1a0a", "hex"),
 };
 
-function requireSameOrigin(request: Request): void {
+export function requireSameOrigin(request: Request): void {
   const url = new URL(request.url);
   const protocol =
     request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || url.protocol.slice(0, -1);
@@ -42,7 +42,10 @@ function uploadInput(request: Request): PaymentProofUpload {
   return parsed.data;
 }
 
-async function proofBytes(request: Request, input: PaymentProofUpload): Promise<Buffer> {
+export async function proofBytes(
+  request: Request,
+  input: Pick<PaymentProofUpload, "byteLength" | "contentType">,
+): Promise<Buffer> {
   const reader = request.body?.getReader() as ReadableStreamDefaultReader<Uint8Array> | undefined;
   if (!reader) throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo vazio." });
   const chunks: Uint8Array[] = [];
@@ -72,7 +75,7 @@ async function proofBytes(request: Request, input: PaymentProofUpload): Promise<
   return bytes;
 }
 
-function failure(error: Error | null): Response {
+export function proofFailure(error: Error | null): Response {
   const known = error instanceof TRPCError ? error : null;
   const statuses: Record<string, number> = {
     UNAUTHORIZED: 401,
@@ -99,7 +102,7 @@ export async function receivePaymentProof(ctx: Context, request: Request): Promi
       headers: PRIVATE_HEADERS,
     });
   } catch (error) {
-    return failure(error instanceof Error ? error : null);
+    return proofFailure(error instanceof Error ? error : null);
   }
 }
 
@@ -123,6 +126,6 @@ export async function downloadPaymentProof(ctx: Context, id: string): Promise<Re
       },
     });
   } catch (error) {
-    return failure(error instanceof Error ? error : null);
+    return proofFailure(error instanceof Error ? error : null);
   }
 }

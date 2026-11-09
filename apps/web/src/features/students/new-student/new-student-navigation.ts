@@ -3,6 +3,7 @@ import { validateDados } from "./reducer";
 import type { ClassSources } from "./new-student-sources";
 import type { EnrollmentIdentity, EnrollmentFlow } from "./new-student-state";
 import type { EnrollmentDocuments } from "~/features/student-documents/use-enrollment-documents";
+import { intakeStepCompletion } from "./new-student-completion";
 
 export type EnrollmentNavigation = {
   clearLead: () => void;
@@ -14,9 +15,10 @@ export type EnrollmentNavigation = {
 type NavigationContext = {
   identity: EnrollmentIdentity;
   flow: EnrollmentFlow;
-  documents: Pick<EnrollmentDocuments, "captureBusy" | "selection">;
+  documents: EnrollmentDocuments;
   classes: ClassSources;
   today: string;
+  existingStudentId: string | undefined;
   onOpenChange: (open: boolean) => void;
   saveBeforeClose: () => boolean;
 };
@@ -93,8 +95,15 @@ export function createEnrollmentNavigation(context: NavigationContext): Enrollme
     if (captureBlocksAdvance(documents, flow)) return;
     if (identity.addressPending) return;
     flow.setError("");
-    if (flow.step === "student") flow.setStep("address");
-    else if (flow.step === "address") flow.setStep("pedagogy");
+    if (flow.step === "student") {
+      const completion = intakeStepCompletion({
+        documents,
+        fields: identity.state.fields,
+        today,
+        existingStudentId: context.existingStudentId,
+      });
+      flow.setStep(context.existingStudentId && completion.address ? "pedagogy" : "address");
+    } else if (flow.step === "address") flow.setStep("pedagogy");
     else {
       flow.setStep("contract");
       flow.setVisitedContract(true);

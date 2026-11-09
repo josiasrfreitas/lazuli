@@ -30,7 +30,7 @@ export function MaterialStages(props: Props): ReactElement {
           className="flex-none"
           onClick={() => props.change("materialStageIds", `${props.fields.materialStageIds},`)}
         >
-          <Plus aria-hidden="true" /> Incluir outro livro
+          <Plus aria-hidden="true" /> Adicionar livro
         </Button>
       </div>
       {props.errors.materialStageIds && (

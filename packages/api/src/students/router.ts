@@ -1,10 +1,6 @@
 import { attachDocumentSession } from "../student-documents/router.js";
-import {
-  studentIntakeOptions,
-  enrollNewStudent,
-  allocateIntakeStudent,
-  resumeStudentIntake,
-} from "./intake.js";
+import { enrollNewStudent, allocateIntakeStudent, resumeStudentIntake } from "./intake.js";
+import { studentIntakeOptions } from "./intake-options.js";
 import { readStudentPendingActions } from "./pending-actions.js";
 import { searchIds } from "../search.js";
 import { enrollmentSubject, studentSubject } from "../activity/subjects.js";
@@ -43,6 +39,18 @@ const FILTER_OPTION_LIMIT = 50;
 const HEALTH_PAGE_LIMIT = 50;
 const MAX_AGENDA_DAYS = 31;
 const DAY_MS = 86_400_000;
+
+function futureIntakeDescription(hasPlan: boolean): string {
+  return hasPlan
+    ? "Entrada no próximo período com turma planejada."
+    : "Entrada no próximo período sem turma definida.";
+}
+
+function currentIntakeDescription(hasClass: boolean): string {
+  return hasClass
+    ? "Entrada neste período com turma definida."
+    : "Entrada neste período sem turma definida.";
+}
 
 export const studentsRouter = router({
   healthBatch: adminProcedure
@@ -99,7 +107,13 @@ export const studentsRouter = router({
               deduplicationKey: `finance.contract:${result.contractId}`,
             },
           });
-        return { subject };
+        return {
+          subject,
+          description:
+            input.entryPeriod === "NEXT"
+              ? futureIntakeDescription(Boolean(input.planId))
+              : "Entrada neste período registrada no cadastro.",
+        };
       },
     }),
   ),
@@ -124,9 +138,14 @@ export const studentsRouter = router({
       }),
     }),
   ),
-  intakeOptions: adminProcedure
-    .input(studentIntakeOptionsSchema)
-    .query(({ ctx, input }) => studentIntakeOptions(ctx.db, { input, now: ctx.now ?? new Date() })),
+  intakeOptions: adminProcedure.input(studentIntakeOptionsSchema).query(({ ctx, input }) =>
+    studentIntakeOptions(ctx.db, {
+      input,
+      now: ctx.now ?? new Date(),
+      requestId: ctx.requestId,
+      userId: ctx.staffUser.id,
+    }),
+  ),
   enrollNew: adminProcedure.input(studentIntakeEnrollSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.enrollNew",
@@ -155,7 +174,14 @@ export const studentsRouter = router({
               deduplicationKey: `finance.contract:${result.contractId}`,
             },
           });
-        return { subject, deduplicationKey: `students.enrollNew:${result.studentId}` };
+        return {
+          subject,
+          description:
+            input.entryPeriod === "NEXT"
+              ? futureIntakeDescription(Boolean(input.planId))
+              : currentIntakeDescription(Boolean(input.classId)),
+          deduplicationKey: `students.enrollNew:${result.studentId}`,
+        };
       },
     }),
   ),

@@ -21,6 +21,7 @@ const meta = {
   title: "Components/Dialog",
   component: DialogContent,
   tags: ["autodocs"],
+  argTypes: { motion: { control: "select", options: ["default", "subtle"] } },
   parameters: {
     docs: {
       description: {
@@ -50,17 +51,19 @@ function ContractDialog({
   defaultOpen = false,
   longContent = false,
   titleSize = "md",
+  motion = "default",
 }: {
   defaultOpen?: boolean;
   longContent?: boolean;
   titleSize?: "md" | "lg";
+  motion?: "default" | "subtle";
 }): ReactElement {
   return (
     <Dialog defaultOpen={defaultOpen}>
       <DialogTrigger render={<Button>{dialogTitle}</Button>} />
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent closeLabel="Fechar diálogo">
+        <DialogContent closeLabel="Fechar diálogo" motion={motion}>
           <DialogHeader>
             <DialogTitle size={titleSize}>{dialogTitle}</DialogTitle>
             <DialogDescription>
@@ -87,7 +90,7 @@ function ContractDialog({
 }
 
 export const Playground: Story = {
-  render: () => <ContractDialog />,
+  render: (args) => <ContractDialog motion={args.motion ?? "default"} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const trigger = canvas.getByRole("button", { name: dialogTitle });
@@ -131,4 +134,17 @@ export const LargeTitle: Story = {
     },
   },
   render: () => <ContractDialog defaultOpen titleSize="lg" />,
+};
+
+export const SubtleMotion: Story = {
+  args: { motion: "subtle" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A brief opacity transition for compact operational forms. No scaling; reduced motion uses the shared shorter fade.",
+      },
+    },
+  },
+  render: (args) => <ContractDialog motion={args.motion ?? "default"} />,
 };

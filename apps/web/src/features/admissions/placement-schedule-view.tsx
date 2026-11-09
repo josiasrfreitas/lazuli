@@ -48,11 +48,26 @@ export function PlacementScheduleView({
         <DialogContent
           className="h-[85dvh] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] md:w-[calc(100vw-2rem)] md:max-w-[1224px]"
           initialFocus={() => document.querySelector("#appointment-date")}
+          showCloseButton={!registration}
         >
-          <DialogHeader className="flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
-            <DialogTitle>Agendar nivelamento</DialogTitle>
-            <DialogDescription>{candidate.fullName}</DialogDescription>
-          </DialogHeader>
+          <div className="flex items-start justify-between gap-3">
+            <DialogHeader
+              className={`flex-row flex-wrap items-baseline gap-x-3 gap-y-1 ${registration ? "pr-0" : ""}`}
+            >
+              <DialogTitle>Agendar nivelamento</DialogTitle>
+              <DialogDescription>{candidate.fullName}</DialogDescription>
+            </DialogHeader>
+            {registration && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={actions.pending}
+                onClick={registration.onBack}
+              >
+                <ArrowLeft aria-hidden="true" /> Voltar ao lead
+              </Button>
+            )}
+          </div>
           {registration && (
             <Stepper
               className="mt-4"
@@ -253,15 +268,11 @@ function ScheduleButtons({ props, validation, actions }: ScheduleViewProps): Rea
   const { pending, requestClose } = actions;
   return (
     <div className={styles.actions}>
-      <Button
-        variant="secondary"
-        size="sm"
-        disabled={pending}
-        onClick={registration ? registration.onBack : requestClose}
-      >
-        {registration ? <ArrowLeft aria-hidden="true" /> : <X aria-hidden="true" />}
-        {registration ? "Voltar ao lead" : "Cancelar"}
-      </Button>
+      {!registration && (
+        <Button variant="secondary" size="sm" disabled={pending} onClick={requestClose}>
+          <X aria-hidden="true" /> Cancelar
+        </Button>
+      )}
       {registration && (
         <Button variant="secondary" size="sm" disabled={pending} onClick={registration.onDefer}>
           Salvar sem agendamento

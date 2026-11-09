@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent, JSX as ReactJSX } from "react";
+import { useEffect, type FormEvent, type JSX as ReactJSX } from "react";
 import { ArrowRight, RefreshCw, X } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { FinancialDialogLoading } from "~/features/financial-treatments/financial-dialog-loading";
@@ -19,10 +19,12 @@ export function ContractTerminationDialog({
   contractId,
   onClose,
   onReduce,
+  onBusyChange,
 }: {
   contractId: string;
   onClose: () => void;
   onReduce?: (() => void) | undefined;
+  onBusyChange: (busy: boolean) => void;
 }): ReactJSX.Element {
   const preview = trpc.finance.previewTermination.useQuery(
     { contractId },
@@ -35,6 +37,7 @@ export function ContractTerminationDialog({
         preview={preview.data}
         onClose={onClose}
         onReduce={onReduce}
+        onBusyChange={onBusyChange}
         onRefresh={() => {
           void preview.refetch();
         }}
@@ -68,10 +71,14 @@ function TerminationPreviewLoading({
 }): ReactJSX.Element {
   return (
     <TaskDialog
+      embedded
       layout="termination"
       bodyLayout="termination"
       size="wide"
       compactHeader
+      headerAction={
+        onReduce ? <ContractRenegotiationMode value="terminate" onChange={onReduce} /> : undefined
+      }
       actionSize="sm"
       title="Renegociar contrato"
       description="Confira o acerto antes de confirmar."
@@ -85,7 +92,6 @@ function TerminationPreviewLoading({
       submitDisabled
       error={error}
     >
-      {onReduce && <ContractRenegotiationMode value="terminate" onChange={onReduce} />}
       {pending ? (
         <FinancialDialogLoading termination />
       ) : (
@@ -103,11 +109,13 @@ function TerminationForm({
   onClose,
   onRefresh,
   onReduce,
+  onBusyChange,
 }: {
   preview: TerminationPreview;
   onClose: () => void;
   onRefresh: () => void;
   onReduce?: (() => void) | undefined;
+  onBusyChange: (busy: boolean) => void;
 }): ReactJSX.Element {
   const utils = trpc.useUtils();
   const state = useTerminationState(preview);
@@ -117,6 +125,7 @@ function TerminationForm({
       onClose();
     },
   });
+  useEffect(() => onBusyChange(mutation.isPending), [mutation.isPending, onBusyChange]);
   const amounts = terminationAmounts(preview, state);
   return (
     <TerminationView

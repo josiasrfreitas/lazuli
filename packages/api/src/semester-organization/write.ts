@@ -270,6 +270,7 @@ async function assertNoDuplicatePlacement(
       semesterId: input.semesterId,
       studentId: input.studentId,
       trackId,
+      deletedAt: null,
       ...(previous ? { id: { not: previous.id } } : {}),
     },
   });

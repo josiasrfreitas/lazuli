@@ -22,30 +22,49 @@ import { LeadCaptureDialog } from "~/features/admissions/lead-capture-dialog";
 import { IntakeNameField } from "./intake-name-field";
 import { AddressStep } from "./address-step";
 import { IntakeStudentFields } from "./dados-step";
-import { IntakePedagogy } from "./intake-pedagogy";
+import { IntakePedagogy, IntakePedagogyControls, type IntakeFilters } from "./intake-pedagogy";
 import { IntakeContract } from "./intake-contract";
 import { IntakeDialogHeading, IntakeDialogLoading } from "./intake-dialog-chrome";
 import type { EnrollmentModel, IntakeStep } from "./new-student-dialog";
 
 const DOCUMENT_PANEL_EXIT_MS = 160;
 
-function previousStep(step: IntakeStep): IntakeStep {
+function previousStep(model: EnrollmentModel): IntakeStep {
+  const { step } = model;
   if (step === "contract") return "pedagogy";
-  if (step === "pedagogy") return "address";
+  if (step === "pedagogy") {
+    if (model.existingStudentId && model.stepCompletion.address && !model.stepCompletion.student)
+      return "student";
+    return "address";
+  }
   return "student";
 }
 
-function submitLabel(step: IntakeStep): string {
-  if (step === "student") return "Ir para endereço";
+function submitLabel(model: EnrollmentModel): string {
+  const { step } = model;
+  if (step === "student")
+    return model.existingStudentId && model.stepCompletion.address
+      ? "Ir para pedagógico"
+      : "Ir para endereço";
   if (step === "address") return "Ir para pedagógico";
   if (step === "pedagogy") return "Ir para contrato";
   return "Concluir cadastro";
 }
 
 function classSummary(model: EnrollmentModel): string {
-  if (model.selected) return `Turma: ${model.selected.name}`;
+  if (model.selected)
+    return `${model.entryPeriod === "NEXT" ? "Fila: " : "Turma: "}${model.selected.scheduleType === "PERSONALIZED" ? "PPT" : model.selected.stageName} · ${model.selected.teacherName}`;
   if (model.existingEnrollment) return `Turma: ${model.existingEnrollment.class.portalClassName}`;
-  return model.step === "student" || model.step === "address" ? "" : "Turma pendente";
+  if (model.step === "student" || model.step === "address") return "";
+  return model.entryPeriod === "NEXT"
+    ? "Próximo período · turma pendente"
+    : "Neste período · turma pendente";
+}
+
+function pendingReviewStep(kind: "documents" | "class" | "contract" | undefined): IntakeStep {
+  if (kind === "documents") return "student";
+  if (kind === "class") return "pedagogy";
+  return "contract";
 }
 
 export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): ReactJSX.Element {
@@ -98,7 +117,7 @@ function EnrollmentMainContent({ model }: { model: EnrollmentModel }): ReactJSX.
   const panelVisible = step === "student" && (panelOpen || panelPresent);
   return (
     <DialogContent
-      className="enrollment-dialog-motion w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] max-w-7xl md:max-w-7xl data-[step=address]:md:max-w-4xl data-[step=student]:data-[documents=false]:md:max-w-4xl data-[documents=true]:md:max-w-7xl data-[step=pedagogy]:h-[min(52rem,calc(100dvh-4rem))] data-[step=contract]:md:max-w-6xl data-[step=contract]:h-[min(48rem,calc(100dvh-4rem))]"
+      className="enrollment-dialog-motion w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] max-w-7xl md:max-w-7xl data-[step=address]:md:max-w-4xl data-[step=student]:data-[documents=false]:md:max-w-4xl data-[documents=true]:md:max-w-7xl data-[step=pedagogy]:h-[min(54rem,calc(100dvh-2rem))] data-[step=pedagogy]:max-h-[calc(100dvh-2rem)] data-[step=pedagogy]:pb-3 data-[step=contract]:md:max-w-6xl data-[step=contract]:h-[min(48rem,calc(100dvh-4rem))]"
       data-step={step}
       data-documents={panelVisible}
       ref={popup}
@@ -125,7 +144,7 @@ function EnrollmentMainContent({ model }: { model: EnrollmentModel }): ReactJSX.
 }
 
 function EnrollmentDialogHeader({ model }: { model: EnrollmentModel }): ReactJSX.Element {
-  const { step, existingStudentId, state, existingEnrollment, selected } = model;
+  const { step, existingStudentId, existingEnrollment, selected } = model;
   return (
     <div className={documentStyles.header}>
       <IntakeDialogHeading
@@ -148,10 +167,34 @@ function EnrollmentDialogHeader({ model }: { model: EnrollmentModel }): ReactJSX
         }
         continuing={Boolean(existingStudentId)}
         step={step}
-        name={state.fields.fullName}
-        hasEnrollment={Boolean(existingEnrollment)}
         hasClass={Boolean(selected || existingEnrollment)}
+        hasStudent={model.stepCompletion.student}
+        hasAddress={model.stepCompletion.address}
         hasContract={Boolean(model.existingContract)}
+        pedagogyControls={
+          step === "pedagogy" && !existingEnrollment ? (
+            <fieldset disabled={model.pending} className="min-w-0">
+              <IntakePedagogyControls
+                filters={pedagogyFilters(model)}
+                onFiltersChange={(filters) => updatePedagogyFilters(model, filters)}
+                lead={model.lead}
+                draftRegistration={model.draftLead}
+                teacherSelection={model.teacherSelection}
+                teacherChoices={model.options.data?.classes ?? []}
+                onTeacherChange={(teacher) => {
+                  model.setDirty(true);
+                  model.setTeacherSelection(teacher);
+                  model.setSelectedId("");
+                }}
+                onCaptureLead={
+                  !model.candidateId && !existingStudentId
+                    ? () => model.setCapturingLead(true)
+                    : undefined
+                }
+              />
+            </fieldset>
+          ) : undefined
+        }
       />
     </div>
   );
@@ -339,9 +382,6 @@ function EnrollmentNameField({ model }: { model: EnrollmentModel }): ReactJSX.El
 
 function EnrollmentPedagogyFields({ model }: { model: EnrollmentModel }): ReactJSX.Element {
   const {
-    stageId,
-    format,
-    scheduleType,
     lead,
     draftLead,
     existingEnrollment,
@@ -352,14 +392,7 @@ function EnrollmentPedagogyFields({ model }: { model: EnrollmentModel }): ReactJ
   } = model;
   return (
     <IntakePedagogy
-      filters={{ stageId, format, scheduleType }}
-      onFiltersChange={(filters) => {
-        model.setDirty(true);
-        model.setStageId(filters.stageId);
-        model.setFormat(filters.format);
-        model.setScheduleType(filters.scheduleType);
-        model.setSelectedId("");
-      }}
+      filters={pedagogyFilters(model)}
       lead={lead}
       draftRegistration={draftLead}
       enrollment={existingEnrollment}
@@ -367,6 +400,8 @@ function EnrollmentPedagogyFields({ model }: { model: EnrollmentModel }): ReactJ
         !candidateId && !existingStudentId ? () => model.setCapturingLead(true) : undefined
       }
       classes={{
+        entryPeriod: model.entryPeriod,
+        teacherId: model.teacherSelection?.id ?? null,
         data: options.data,
         pending: options.isFetching,
         error: options.error?.message,
@@ -381,10 +416,29 @@ function EnrollmentPedagogyFields({ model }: { model: EnrollmentModel }): ReactJ
   );
 }
 
+function pedagogyFilters(model: EnrollmentModel): IntakeFilters {
+  return {
+    stageId: model.stageId,
+    format: model.format,
+    scheduleType: model.scheduleType,
+    entryPeriod: model.entryPeriod,
+  };
+}
+
+function updatePedagogyFilters(model: EnrollmentModel, filters: IntakeFilters): void {
+  model.setDirty(true);
+  model.setTeacherSelection(null);
+  model.setStageId(filters.stageId);
+  model.setFormat(filters.format);
+  model.setScheduleType(filters.scheduleType);
+  model.setEntryPeriod(filters.entryPeriod);
+  model.setSelectedId("");
+}
+
 function EnrollmentFooter({ model }: { model: EnrollmentModel }): ReactJSX.Element {
   return (
     <DialogFooter
-      className="max-sm:data-[step=address]:grid max-sm:data-[step=address]:grid-cols-[auto_1fr] max-sm:data-[step=address]:[&>button:last-child]:justify-self-end mt-4 items-center border-t border-border pt-4 max-sm:data-[step=pedagogy]:grid max-sm:data-[step=pedagogy]:grid-cols-[auto_minmax(0,1fr)] max-sm:data-[step=pedagogy]:gap-x-2 max-sm:data-[step=pedagogy]:gap-y-2 max-sm:data-[step=pedagogy]:[&>p]:col-span-2 max-sm:data-[step=pedagogy]:[&>p]:row-start-1 max-sm:data-[step=pedagogy]:[&>button]:row-start-2 max-sm:data-[step=pedagogy]:[&>button:last-child]:justify-self-end"
+      className="max-sm:data-[step=address]:grid max-sm:data-[step=address]:grid-cols-[auto_1fr] max-sm:data-[step=address]:[&>button:last-child]:justify-self-end mt-4 items-center border-t border-border pt-4 data-[step=pedagogy]:mt-3 data-[step=pedagogy]:border-t-0 data-[step=pedagogy]:pt-1 max-sm:data-[step=pedagogy]:grid max-sm:data-[step=pedagogy]:grid-cols-[auto_minmax(0,1fr)] max-sm:data-[step=pedagogy]:gap-x-2 max-sm:data-[step=pedagogy]:gap-y-2 max-sm:data-[step=pedagogy]:[&>p]:col-span-2 max-sm:data-[step=pedagogy]:[&>p]:row-start-1 max-sm:data-[step=pedagogy]:[&>button]:row-start-2 max-sm:data-[step=pedagogy]:[&>button:last-child]:justify-self-end"
       data-step={model.step}
     >
       <EnrollmentBackButton model={model} />
@@ -424,10 +478,11 @@ function EnrollmentBackButton({ model }: { model: EnrollmentModel }): ReactJSX.E
   return (
     <Button
       variant="ghost"
+      size={step === "pedagogy" ? "sm" : "md"}
       disabled={pending}
       onClick={() => {
         if (step === "student") close();
-        else setStep(previousStep(step));
+        else setStep(previousStep(model));
       }}
     >
       {step === "student" ? <X /> : <ArrowLeft />}
@@ -441,9 +496,15 @@ function EnrollmentSubmitButtons({ model }: { model: EnrollmentModel }): ReactJS
   return (
     <>
       <EnrollmentSecondarySubmitButtons model={model} />
-      <Button type="submit" form="intake-enroll" loading={pending} disabled={submitDisabled(model)}>
+      <Button
+        type="submit"
+        form="intake-enroll"
+        size={step === "pedagogy" ? "sm" : "md"}
+        loading={pending}
+        disabled={submitDisabled(model)}
+      >
         {submitCompletes(step, existingContract) ? <Check /> : <ArrowRight />}
-        {step === "pedagogy" && existingContract ? "Concluir cadastro" : submitLabel(step)}
+        {step === "pedagogy" && existingContract ? "Concluir cadastro" : submitLabel(model)}
       </Button>
     </>
   );
@@ -548,13 +609,14 @@ function EnrollmentConfirmation({ model }: { model: EnrollmentModel }): ReactJSX
     <PendingRegistrationDialog
       entity="aluno"
       pendingItems={confirmation.items.map((item) => {
-        if (item.startsWith("Concluir o contrato")) return "Contrato · rascunho não será salvo";
-        if (item.startsWith("Concluir o nivelamento")) return "Nivelamento e turma";
-        return "Turma";
+        if (item.kind === "documents") return item.label;
+        if (item.kind === "contract") return "Contrato · rascunho não será salvo";
+        if (item.label.startsWith("Concluir o nivelamento")) return "Nivelamento e turma";
+        return model.entryPeriod === "NEXT" ? "Turma do próximo período" : "Turma deste período";
       })}
       onReviewPending={(index) => {
-        const needsClass = !model.selected && !model.existingEnrollment;
-        const step = index === 0 && needsClass ? "pedagogy" : "contract";
+        const kind = confirmation.items[index]?.kind;
+        const step = pendingReviewStep(kind);
         model.setConfirmation(null);
         model.setError("");
         model.setStep(step);

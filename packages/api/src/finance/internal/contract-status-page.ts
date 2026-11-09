@@ -36,7 +36,13 @@ const STATUS_FACTS = Prisma.sql`
       WHERE a.installment_id = i.id AND a.deleted_at IS NULL
     ) adjustment ON true
     LEFT JOIN LATERAL (
-      SELECT COALESCE(SUM(a.amount_cents), 0) AS amount
+      SELECT COALESCE(SUM(a.amount_cents - COALESCE((
+        SELECT SUM(ra.amount_cents)
+        FROM payment_reversal_allocations ra
+        JOIN payment_reversals reversal ON reversal.id = ra.payment_reversal_id
+        WHERE ra.payment_allocation_id = a.id
+          AND ra.deleted_at IS NULL AND reversal.deleted_at IS NULL
+      ), 0)), 0) AS amount
       FROM "PaymentAllocation" a
       JOIN "PaymentEntry" p ON p.id = a.payment_entry_id AND p.deleted_at IS NULL
       WHERE a.installment_id = i.id AND a.deleted_at IS NULL

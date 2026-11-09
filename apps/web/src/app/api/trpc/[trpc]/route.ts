@@ -28,12 +28,31 @@ function handleTRPCRequest(request: Request): Promise<Response> {
         headers: request.headers,
         requestId,
       }),
-    onError: ({ path, error }) => {
-      if (error.code === "INTERNAL_SERVER_ERROR")
+    onError: ({ path, error, type, ctx }) => {
+      if (error.code === "INTERNAL_SERVER_ERROR") {
+        const cause = safeError(error.cause);
+        const failure = safeError(error);
         requestLogger.error(
-          { procedure: path, error_code: error.code, ...safeError(error) },
-          "tRPC request failed",
+          {
+            procedure: path,
+            procedure_type: type,
+            operation: request.method,
+            user_id: ctx?.staffUser?.id,
+            error_code: error.code,
+            error_cause_name: cause.error_name,
+            ...(cause.error_code ? { error_cause_code: cause.error_code } : {}),
+            error_name: failure.error_name,
+            error_stack: cause.error_stack ?? failure.error_stack,
+            diagnostic_state: {
+              procedure: path,
+              procedure_type: type,
+              operation: request.method,
+              authenticated: Boolean(ctx?.staffUser),
+            },
+          },
+          "Internal failure while processing operation",
         );
+      }
     },
   });
 }

@@ -1,6 +1,7 @@
 import { z } from "@lazuli/validators";
 import { router, staffProcedure } from "../trpc/init.js";
 import { enqueueAssessmentFile } from "@lazuli/integrations/hatchet";
+import { createServiceLogger, logDevelopmentProcess, safeError } from "@lazuli/logging";
 import { authorizedFile, filesForProgress, fileView } from "./data.js";
 import { badRequest } from "../trpc/errors.js";
 import { loadAppointment } from "../appointments/data.js";
@@ -8,6 +9,7 @@ import { loadAppointment } from "../appointments/data.js";
 const MIN_REMOVAL_REASON_LENGTH = 3;
 const MAX_REMOVAL_REASON_LENGTH = 500;
 const byId = z.object({ id: z.string().uuid() }).strict();
+const processLogger = createServiceLogger("web");
 export const assessmentFilesRouter = router({
   list: staffProcedure
     .input(z.object({ progressId: z.string().uuid() }).strict())
@@ -63,7 +65,30 @@ export const assessmentFilesRouter = router({
       where: { id: row.id, status: "FAILED" },
       data: { status: "RECEIVED", failureCode: null },
     });
-    await enqueueAssessmentFile({ fileId: row.id }).catch((): undefined => {});
+    const enqueueStarted = performance.now();
+    try {
+      await enqueueAssessmentFile({ fileId: row.id });
+      logDevelopmentProcess(processLogger, {
+        requestId: ctx.requestId,
+        userId: ctx.staffUser.id,
+        resource: "assessmentFiles.retry",
+        operation: "API",
+        step: "Assessment file reprocessing queued",
+        durationMs: Math.round(performance.now() - enqueueStarted),
+      });
+    } catch (error) {
+      processLogger.warn(
+        {
+          request_id: ctx.requestId,
+          user_id: ctx.staffUser.id,
+          resource: "assessmentFiles.retry",
+          operation: "API",
+          duration_ms: Math.round(performance.now() - enqueueStarted),
+          ...safeError(error),
+        },
+        "Assessment file marked for retry, but queue submission failed",
+      );
+    }
     return { id: row.id };
   }),
   remove: staffProcedure
