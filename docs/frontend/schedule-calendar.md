@@ -114,6 +114,13 @@ that omit `through` keep the Monday–Sunday interpretation of `week`.
 
 ## Selection is not availability
 
+`backgroundIntervals` supplies read-only annotations behind events, independently of selection.
+Each interval has `id`, `date`, `startTime`, `endTime`, `label`, and optional `tone` (`neutral`
+or `warning`). A full-day academic suspension uses `00:00`–`24:00` with `warning`; existing
+records remain visible and interactive above it. An annotation does not enable range selection,
+block a mutation, or change displayed hours. Server scheduling rules still own availability.
+See the **AcademicSuspension** story; its background data is editable through Controls.
+
 An event's `disabled` flag prevents activation; `disabledReason` explains why in its accessible
 label. It does not decide whether a new interval can be created at that time.
 

@@ -2,7 +2,7 @@
 
 Generated from DESIGN_BRIEF.md and INFORMATION_ARCHITECTURE.md, 2026-11-12.
 User requested continuation of the flow; token reuse was already accepted.
-Only the explicitly requested event foundation is implemented so far.
+Implementation is in progress; checked items represent implemented slices, not epic completion.
 
 ## Foundation and Visual Direction
 
@@ -17,11 +17,11 @@ Only the explicitly requested event foundation is implemented so far.
 
 ## Core UI and Behavior
 
-- [ ] **Live annual/month/day consultation**: Add `visao=academico` to existing Agenda;
+- [x] **Live annual/month/day consultation**: Add `visao=academico` to existing Agenda;
       query periods/closed dates/events by year, derive known vacations, preserve unknown
       coverage, and reuse ScheduleCalendar for daily detail. Includes loading/error/empty
       states and accessible legends. Depends on accepted workshop direction.
-- [ ] **Basic event creation/edit/removal**: Add validated admin API and compact form
+- [x] **Basic event creation/edit/removal**: Add validated admin API and compact form
       with title, optional description and start/end; display timed events in daily detail.
       Server validates dates, deletion and authorization. Reuses AcademicEvent and forms.
 - [ ] **Semester configuration with impact**: Reuse Period forms/data; preview edits,

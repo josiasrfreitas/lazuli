@@ -60,6 +60,12 @@ function backgroundEvents(props: SurfaceProps): WeeklyBlock[] {
   if (props.status && props.status !== "ready") return [];
   const selected = props.rangeSelection?.value;
   const events = (props.rangeSelection?.blocked ?? []).map((range) => backgroundBlock(range));
+  events.push(
+    ...(props.backgroundIntervals ?? []).map((range) => ({
+      ...backgroundBlock(range),
+      backgroundTone: range.tone ?? "neutral",
+    })),
+  );
   if (selected)
     events.push(
       backgroundBlock({
@@ -85,6 +91,8 @@ function slotError(
 }
 function blockClass(event: WeeklyBlock, activeId: string | null): string {
   if (event.id === "calendar-selected-range") return "lz-calendar-selected-range";
+  if (event.backgroundTone === "warning") return "lz-calendar-background-warning";
+  if (event.backgroundTone === "neutral") return "lz-calendar-background-neutral";
   if (event.lessons.length === 0) return "lz-calendar-blocked-range";
   return event.id === activeId ? "lz-calendar-expanded-block" : "lz-calendar-block";
 }

@@ -258,6 +258,7 @@ export type {
   CalendarEvent,
   CalendarInterval,
   CalendarBlockedInterval,
+  CalendarBackgroundInterval,
   CalendarRangeSelection,
   CalendarEventRenderContext,
 } from "./components/schedule-calendar";

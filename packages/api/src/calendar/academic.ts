@@ -1,16 +1,22 @@
 import { z } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 import { adminProcedure, router } from "../trpc/init.js";
+import { activityTransaction } from "../activity/record.js";
 
 const eventInput = z
   .object({
     id: z.string().uuid().optional(),
+    expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
     title: z.string().trim().min(1).max(160),
     description: z.string().trim().max(2000).nullable(),
     startsAt: z.string().datetime({ offset: true }),
     endsAt: z.string().datetime({ offset: true }),
   })
   .strict()
+  .refine((value) => Boolean(value.id) === Boolean(value.expectedUpdatedAt), {
+    message: "Reabra o evento para carregar a versão atual.",
+    path: ["expectedUpdatedAt"],
+  })
   .refine((value) => new Date(value.endsAt) > new Date(value.startsAt), {
     message: "O fim deve ser posterior ao início.",
     path: ["endsAt"],
@@ -41,7 +47,14 @@ export const academicCalendarRouter = router({
         }),
         ctx.db.academicEvent.findMany({
           where: { deletedAt: null, startsAt: { lt: through }, endsAt: { gt: from } },
-          select: { id: true, title: true, description: true, startsAt: true, endsAt: true },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            startsAt: true,
+            endsAt: true,
+            updatedAt: true,
+          },
           orderBy: { startsAt: "asc" },
         }),
       ]);
@@ -54,24 +67,56 @@ export const academicCalendarRouter = router({
       startsAt: new Date(input.startsAt),
       endsAt: new Date(input.endsAt),
     };
-    if (!input.id) return ctx.db.academicEvent.create({ data, select: { id: true } });
-    const result = await ctx.db.academicEvent.updateMany({
-      where: { id: input.id, deletedAt: null },
-      data,
+    return activityTransaction(ctx, {
+      action: "calendar.academic.saveEvent",
+      work: async (database) => {
+        if (!input.id) return database.academicEvent.create({ data, select: { id: true } });
+        const result = await database.academicEvent.updateMany({
+          where: { id: input.id, deletedAt: null, updatedAt: new Date(input.expectedUpdatedAt!) },
+          data,
+        });
+        if (!result.count)
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Este evento foi alterado ou removido. Reabra-o para carregar a versão atual.",
+          });
+        return { id: input.id };
+      },
+      describe: (result) => ({
+        subject: { type: "school", id: result.id, name: input.title },
+        description: input.id
+          ? "Evento do calendário atualizado."
+          : "Evento adicionado ao calendário.",
+      }),
     });
-    if (!result.count)
-      throw new TRPCError({ code: "NOT_FOUND", message: "Evento não encontrado." });
-    return { id: input.id };
   }),
   removeEvent: adminProcedure
-    .input(z.object({ id: z.string().uuid() }).strict())
-    .mutation(async ({ ctx, input }) => {
-      const result = await ctx.db.academicEvent.updateMany({
-        where: { id: input.id, deletedAt: null },
-        data: { deletedAt: ctx.now ?? new Date() },
-      });
-      if (!result.count)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Evento não encontrado." });
-      return { id: input.id };
-    }),
+    .input(
+      z
+        .object({ id: z.string().uuid(), expectedUpdatedAt: z.string().datetime({ offset: true }) })
+        .strict(),
+    )
+    .mutation(({ ctx, input }) =>
+      activityTransaction(ctx, {
+        action: "calendar.academic.removeEvent",
+        work: async (database) => {
+          const event = await database.academicEvent.findFirst({
+            where: { id: input.id, deletedAt: null },
+            select: { title: true },
+          });
+          const result = await database.academicEvent.updateMany({
+            where: { id: input.id, deletedAt: null, updatedAt: new Date(input.expectedUpdatedAt) },
+            data: { deletedAt: ctx.now ?? new Date() },
+          });
+          if (!result.count || !event)
+            throw new TRPCError({
+              code: "CONFLICT",
+              message:
+                "Este evento foi alterado ou removido. Reabra-o para carregar a versão atual.",
+            });
+          return { id: input.id, title: event.title };
+        },
+        describe: (result) => ({ subject: { type: "school", id: result.id, name: result.title } }),
+      }),
+    ),
 });

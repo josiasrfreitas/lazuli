@@ -23,6 +23,7 @@ export type CalendarEvent = CalendarInterval & {
   disabledReason?: string;
 };
 export type CalendarBlockedInterval = CalendarInterval & { id: string; label: string };
+export type CalendarBackgroundInterval = CalendarBlockedInterval & { tone?: "neutral" | "warning" };
 export type CalendarEventRenderContext = {
   view: CalendarView;
   expanded: boolean;
@@ -51,6 +52,8 @@ export type CalendarRangeSelection = {
 export type ScheduleCalendarProps<Event extends CalendarEvent = CalendarEvent> =
   CalendarDateWindow & {
     events: readonly Event[];
+    /** Read-only context behind events. Does not enable selection or enforce availability. */
+    backgroundIntervals?: readonly CalendarBackgroundInterval[];
     onDateChange: (date: string) => void;
     onViewChange: (view: CalendarView) => void;
     /** Presentation and clock only: input civil dates/times are not converted. */

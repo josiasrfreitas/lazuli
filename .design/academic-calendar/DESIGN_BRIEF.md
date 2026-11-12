@@ -2,9 +2,9 @@
 
 ## Status
 
-Phase 2 of design-flow. Scope decisions confirmed in conversation on 2026-11-12;
+Phase 2 complete. Scope decisions confirmed in conversation on 2026-11-12;
 brief approved by the user before information architecture. Reuse existing tokens.
-No product implementation or browser validation is claimed by this document.
+Phase 6 is active; TASKS.md and WORKSHOP.md track implementation and browser evidence.
 
 ## Problem
 
@@ -64,8 +64,9 @@ it does not replace that module or execute its workflows.
 - **Reference points:** current Agenda, Class Organization calendar, shared dense forms.
 - **Anti-references:** a second visual system, oversized metric cards, wide empty
   forms, equally emphasized action clusters, or decorative animation that delays work.
-- Composition is not selected yet. Explore three structurally different directions
-  during the UI workshop, with the same scenarios, before accepting one.
+- Accepted composition: twelve months grouped into two semester blocks, with month/day
+  drill-down, a compact single-row header and contextual date markers/legend. The user
+  explicitly requested continuation without repeating the workshop.
 
 ## Existing Patterns
 

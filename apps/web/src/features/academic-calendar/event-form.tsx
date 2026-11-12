@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
-import { Button, Field, Input, Label, Textarea } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
+import { AcademicEventFields, eventDraftSchema, type EventDraft } from "./event-fields";
+import { formatDateOnlyBR } from "~/lib/format";
+import { parseDateBR } from "~/lib/masks";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import type { AcademicYear } from "./model";
 import { trpc } from "~/lib/trpc";
@@ -9,16 +12,20 @@ const localInput = (value: Date) =>
   new Date(value.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 16);
 export function AcademicEventForm({
   onClose,
-  item,
+  item: initialItem,
 }: {
   onClose: () => void;
   item?: AcademicYear["events"][number] | undefined;
 }) {
-  const [title, setTitle] = useState(item?.title ?? "");
-  const [description, setDescription] = useState(item?.description ?? "");
-  const [start, setStart] = useState(item ? localInput(item.startsAt) : "");
-  const [end, setEnd] = useState(item ? localInput(item.endsAt) : "");
-  const [error, setError] = useState<string>();
+  const [item] = useState(initialItem);
+  const [values, setValues] = useState<EventDraft>(() => ({
+    title: item?.title ?? "",
+    description: item?.description ?? "",
+    startDate: item ? formatDateOnlyBR(localInput(item.startsAt).slice(0, 10)) : "",
+    startTime: item ? localInput(item.startsAt).slice(11, 16) : "",
+    endDate: item ? formatDateOnlyBR(localInput(item.endsAt).slice(0, 10)) : "",
+    endTime: item ? localInput(item.endsAt).slice(11, 16) : "",
+  }));
   const validation = useValidation();
   const utils = trpc.useUtils();
   const save = trpc.calendar.academic.saveEvent.useMutation({
@@ -39,95 +46,68 @@ export function AcademicEventForm({
       compactHeader
       actionSize="sm"
       title={item ? "Editar evento" : "Novo evento"}
-      description="Horários de São Paulo. O evento não suspende as aulas."
+      description="O evento aparece no calendário e não suspende as aulas."
       formId="academic-event"
       firstField="event-title"
       submitLabel="Salvar evento"
       onClose={onClose}
       pending={save.isPending || remove.isPending}
-      error={error ?? save.error?.message ?? remove.error?.message}
+      error={save.error?.message ?? remove.error?.message}
       bodyRef={validation.body}
     >
-      <form
-        id="academic-event"
-        className="grid gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (save.isPending) return;
-          const startsAt = `${start}:00-03:00`;
-          const endsAt = `${end}:00-03:00`;
-          if (!start || !end || new Date(endsAt) <= new Date(startsAt)) {
-            setError("Informe um fim posterior ao início.");
-            return;
-          }
-          setError(undefined);
-          save.mutate({ ...(item ? { id: item.id } : {}), title, description, startsAt, endsAt });
+      <AcademicEventFields
+        values={values}
+        errors={validation.errors}
+        pending={save.isPending || remove.isPending}
+        change={(name, value) => {
+          setValues((current) => ({ ...current, [name]: value }));
+          validation.clear(name);
         }}
-      >
-        <Field>
-          <Label htmlFor="event-title">Título</Label>
-          <Input
-            id="event-title"
-            required
-            maxLength={160}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field>
-            <Label htmlFor="event-start">Início</Label>
-            <Input
-              id="event-start"
-              type="datetime-local"
-              required
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="event-end">Fim</Label>
-            <Input
-              id="event-end"
-              type="datetime-local"
-              required
-              value={end}
-              min={start}
-              onChange={(e) => setEnd(e.target.value)}
-            />
-          </Field>
-        </div>
-        <Field>
-          <Label htmlFor="event-description">Descrição (opcional)</Label>
-          <Textarea
-            id="event-description"
-            maxLength={2000}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </Field>
-        {item && (
-          <div>
-            {confirmRemoval ? (
-              <>
-                <p>Remover este evento do calendário?</p>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={remove.isPending}
-                  onClick={() => remove.mutate({ id: item.id })}
-                >
-                  Confirmar remoção
-                </Button>
-              </>
-            ) : (
-              <Button type="button" variant="ghost" onClick={() => setConfirmRemoval(true)}>
-                Remover evento
+        submit={(event) => {
+          event.preventDefault();
+          if (save.isPending || remove.isPending) return;
+          const parsed = validation.validate(eventDraftSchema, values);
+          if (!parsed) return;
+          save.mutate({
+            ...(item ? { id: item.id, expectedUpdatedAt: item.updatedAt.toISOString() } : {}),
+            title: parsed.title,
+            description: parsed.description,
+            startsAt: `${parseDateBR(parsed.startDate)}T${parsed.startTime}:00-03:00`,
+            endsAt: `${parseDateBR(parsed.endDate)}T${parsed.endTime}:00-03:00`,
+          });
+        }}
+      />
+      {item && (
+        <div>
+          {confirmRemoval ? (
+            <>
+              <p>Remover este evento do calendário?</p>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={remove.isPending || save.isPending}
+                onClick={() =>
+                  remove.mutate({ id: item.id, expectedUpdatedAt: item.updatedAt.toISOString() })
+                }
+              >
+                Confirmar remoção
               </Button>
-            )}
-          </div>
-        )}
-      </form>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={remove.isPending || save.isPending}
+                onClick={() => setConfirmRemoval(false)}
+              >
+                Manter evento
+              </Button>
+            </>
+          ) : (
+            <Button type="button" variant="ghost" onClick={() => setConfirmRemoval(true)}>
+              Remover evento
+            </Button>
+          )}
+        </div>
+      )}
     </TaskDialog>
   );
 }

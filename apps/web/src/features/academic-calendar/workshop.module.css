@@ -271,6 +271,32 @@ button.day:hover {
 .dayView > button {
   justify-self: start;
 }
+.agendaGrid {
+  height: min(38rem, 75dvh);
+  min-width: 0;
+}
+.academicEvent {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem;
+  overflow: hidden;
+  text-align: left;
+  background: var(--info-muted);
+  color: var(--info);
+  border: 1px solid var(--info);
+  border-radius: var(--lz-radius-sm);
+  cursor: pointer;
+}
+.academicEvent:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.academicEvent:hover {
+  filter: brightness(0.95);
+}
 .holidayGrid {
   position: relative;
   border: 1px solid var(--border);

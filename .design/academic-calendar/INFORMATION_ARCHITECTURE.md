@@ -2,7 +2,7 @@
 
 ## Status and Decisions
 
-Phase 3, pending confirmation. The brief was approved on 2026-11-12. Subsequent
+Phase 3 complete. The brief was approved on 2026-11-12. Subsequent
 user decisions supersede its provisional interval terminology:
 
 - Annual calendar with clickable months, primarily day-level information.

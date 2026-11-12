@@ -27,6 +27,7 @@ export type {
   CalendarEvent,
   CalendarInterval,
   CalendarBlockedInterval,
+  CalendarBackgroundInterval,
   CalendarRangeSelection,
   CalendarEventRenderContext,
   ScheduleCalendarProps,
