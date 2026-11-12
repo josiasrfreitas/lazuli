@@ -18,6 +18,29 @@ const HEADERS = {
   "X-Content-Type-Options": "nosniff",
 };
 export const teacherUploadsRouter = router({
+  renew: adminProcedure.input(sessionIdSchema).mutation(async ({ ctx, input }) => {
+    const token = randomBytes(32).toString("base64url");
+    const session = await ctx.db.$transaction(async (tx) => {
+      await lockSession(tx, input.id);
+      const current = await tx.teacherUploadSession.findFirst({
+        where: {
+          id: input.id,
+          createdById: ctx.staffUser.id,
+          deletedAt: null,
+          closedAt: null,
+        },
+      });
+      if (!current)
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Esta sessão já foi encerrada." });
+      if (current.teacherId) await readTeacher(tx, current.teacherId);
+      return tx.teacherUploadSession.update({
+        where: { id: current.id },
+        data: { tokenHash: hash(token), expiresAt: new Date(Date.now() + SESSION_MS) },
+        select: { id: true, expiresAt: true },
+      });
+    });
+    return { ...session, token };
+  }),
   create: adminProcedure
     .input(z.object({ teacherId: z.string().uuid().optional() }).strict())
     .mutation(async ({ ctx, input }) => {

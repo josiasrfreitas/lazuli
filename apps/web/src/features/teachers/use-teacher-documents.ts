@@ -10,6 +10,7 @@ export function useTeacherDocuments(teacherId?: string) {
   const creating = useRef<Promise<Session> | null>(null);
   const utils = trpc.useUtils();
   const create = trpc.teachers.uploads.create.useMutation();
+  const renew = trpc.teachers.uploads.renew.useMutation();
   const close = trpc.teachers.uploads.close.useMutation();
   const closeRef = useRef(close.mutate);
   closeRef.current = close.mutate;
@@ -21,14 +22,18 @@ export function useTeacherDocuments(teacherId?: string) {
     { id: teacherId ?? "00000000-0000-0000-0000-000000000000" },
     { enabled: Boolean(teacherId) },
   );
+  const sessionId = session?.id;
   useEffect(() => {
-    if (session) return () => closeRef.current({ id: session.id });
-  }, [session]);
+    if (sessionId) return () => closeRef.current({ id: sessionId });
+  }, [sessionId]);
   async function ensureSession(): Promise<Session> {
     if (session && !query.data?.closed && session.expiresAt > new Date()) return session;
     if (creating.current) return creating.current;
-    creating.current = create
-      .mutateAsync(teacherId ? { teacherId } : {})
+    creating.current = (
+      session
+        ? renew.mutateAsync({ id: session.id })
+        : create.mutateAsync(teacherId ? { teacherId } : {})
+    )
       .then((value) => {
         setSession(value);
         return value;
@@ -55,7 +60,7 @@ export function useTeacherDocuments(teacherId?: string) {
       if (session) await query.refetch();
       else await existing.refetch();
     },
-    error: create.error?.message,
+    error: renew.error?.message ?? create.error?.message,
     files: query.data?.files ?? existing.data ?? [],
   };
 }

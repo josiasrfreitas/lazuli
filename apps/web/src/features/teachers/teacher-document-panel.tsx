@@ -87,6 +87,10 @@ export function TeacherDocumentPanel({
           </p>
           {preparing ? (
             <p role="status">Preparando QR code…</p>
+          ) : documents.query.data?.closed ? (
+            <Button variant="secondary" onClick={() => void openQr()}>
+              Renovar QR code
+            </Button>
           ) : documents.session ? (
             <MobileUploadLink
               url={`${location.origin}/documentos/professor#${documents.session.token}`}
