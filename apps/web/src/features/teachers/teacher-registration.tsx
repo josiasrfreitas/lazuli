@@ -4,6 +4,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { Pencil, UserRound, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import layout from "../students/profile/student-overview.module.css";
+import registration from "./teacher-registration.module.css";
 import styles from "../students/profile/student-registration.module.css";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
@@ -18,7 +19,7 @@ export function TeacherRegistration({
   const documents = useTeacherDocuments(teacher.id);
   const profile = teacher.teacherProfile;
   return (
-    <div className={layout.registration}>
+    <div className={registration.layout}>
       <section className={layout.registrationFacts} aria-label="Informações de cadastro">
         <section className={styles.section}>
           <div className={styles.sectionHeading}>
@@ -34,7 +35,10 @@ export function TeacherRegistration({
               <Pencil />
             </Button>
           </div>
-          <dl className={styles.facts}>
+          <p className={styles.supporting}>
+            Mantenha os dados de identificação e contato atualizados.
+          </p>
+          <dl className={registration.facts}>
             <div className={styles.fact}>
               <dt>Nome completo</dt>
               <dd>{teacher.name}</dd>
@@ -48,7 +52,11 @@ export function TeacherRegistration({
                 ) ?? "Não informado"}
               </dd>
             </div>
-            <div className={styles.fact} data-wide>
+            <div className={styles.fact}>
+              <dt>Telefone</dt>
+              <dd>{profile?.phone || "Não informado"}</dd>
+            </div>
+            <div className={styles.fact}>
               <dt>E-mail</dt>
               <dd>{teacher.email}</dd>
             </div>
@@ -63,7 +71,7 @@ export function TeacherRegistration({
               <Pencil />
             </Button>
           </div>
-          <dl className={styles.facts}>
+          <dl className={registration.facts}>
             <div className={styles.fact}>
               <dt>Tipo de vínculo</dt>
               <dd>
@@ -97,8 +105,8 @@ export function TeacherRegistration({
           </dl>
         </section>
       </section>
-      <div className={layout.registrationDocuments}>
-        <TeacherDocumentPanel documents={documents} />
+      <div className={registration.documents}>
+        <TeacherDocumentPanel documents={documents} showGuidance />
       </div>
     </div>
   );

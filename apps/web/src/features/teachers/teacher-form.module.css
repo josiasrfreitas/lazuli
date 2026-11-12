@@ -5,7 +5,7 @@
   min-height: 0;
 }
 .layout[data-documents="true"] {
-  grid-template-columns: minmax(0, 1fr) 24rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
 }
 .documents {
   display: flex;
@@ -106,5 +106,28 @@
 @media (min-width: 901px) {
   .dialog {
     max-height: calc(100dvh - 2rem);
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1150px) {
+  .contractRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+@media (max-width: 600px) {
+  .header {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-right: 1rem;
+  }
+  .header > button:last-child {
+    grid-column: 2;
+    justify-self: start;
   }
 }

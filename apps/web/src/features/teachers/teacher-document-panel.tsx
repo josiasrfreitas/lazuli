@@ -17,9 +17,11 @@ import { TEACHER_UPLOAD_CATEGORIES } from "./upload-categories";
 export function TeacherDocumentPanel({
   documents,
   onClose,
+  showGuidance = false,
 }: {
   documents: TeacherDocuments;
   onClose?: () => void;
+  showGuidance?: boolean;
 }): ReactElement {
   const [qr, setQr] = useState(false);
   const [extras, setExtras] = useState<UploadCategory[]>([]);
@@ -80,6 +82,12 @@ export function TeacherDocumentPanel({
         </>
       ) : (
         <>
+          {showGuidance && (
+            <p className="text-caption text-muted-foreground">
+              Envie os arquivos abaixo ou use o QR code para enviar pelo celular. Para outros
+              documentos, escolha “Adicionar anexo”.
+            </p>
+          )}
           <TeacherAttachmentList
             extras={extras}
             setExtras={setExtras}

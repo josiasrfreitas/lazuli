@@ -34,7 +34,7 @@ import { TeacherEmploymentFields } from "./teacher-employment-fields";
 import type { TeacherDraft } from "./teacher-form";
 import { useTeacherForm } from "./teacher-form";
 
-import { Camera, Paperclip, UserRound, KeyRound } from "lucide-react";
+import { Camera, Paperclip, KeyRound } from "lucide-react";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
 import styles from "./teacher-form.module.css";
@@ -78,10 +78,10 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={`enrollment-dialog-motion ${styles.dialog} ${panelVisible ? "md:max-w-6xl" : "md:max-w-2xl"}`}
+          className={`enrollment-dialog-motion ${styles.dialog} ${panelVisible ? "md:max-w-7xl" : "md:max-w-2xl"}`}
           data-resizing={resizing}
         >
-          <div className="flex items-center gap-3">
+          <div className={styles.header}>
             <Button
               variant="secondary"
               size="icon"
@@ -257,14 +257,7 @@ type TeacherIdentityFieldsProps = {
 };
 function TeacherIdentityFields(props: TeacherIdentityFieldsProps): ReactElement {
   return (
-    <FormSection
-      title={
-        <span className="flex items-center gap-2">
-          <UserRound className="size-4" aria-hidden="true" />
-          Dados do professor
-        </span>
-      }
-    >
+    <div className="grid gap-2">
       <div className={styles.personalRow}>
         <Field>
           <Label htmlFor="teacher-name">Nome completo</Label>
@@ -292,7 +285,7 @@ function TeacherIdentityFields(props: TeacherIdentityFieldsProps): ReactElement 
       <div className={styles.personalRow}>
         <TeacherContactFields draft={props.draft} errors={props.errors} change={props.change} />
       </div>
-    </FormSection>
+    </div>
   );
 }
 
