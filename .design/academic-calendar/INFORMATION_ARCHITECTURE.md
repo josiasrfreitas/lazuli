@@ -254,3 +254,8 @@ No required semester relationship: events can occur during academic vacations. N
 attendees, recurrence, venue, capacity or automatic suspension. PostgreSQL constraints
 reject blank titles and end <= start. Schema and migration are implemented; API,
 forms and calendar rendering remain future build tasks.
+
+## Accepted Composition
+
+User selected the entire year separated into two semester groups, with month/day
+drill-down. No further workshop. The three alternatives are retired.

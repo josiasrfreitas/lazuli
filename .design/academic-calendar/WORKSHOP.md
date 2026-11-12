@@ -13,8 +13,9 @@ All dates and the cultural event are illustrative; this route performs no writes
 - C (recommended): four-column annual overview and dedicated focused-month screen.
   Gives the year more space and separates overview from day-level detail.
 
-The user was sent the concrete alternatives for selection. Acceptance is pending;
-no visual direction is treated as approved yet.
+Accepted: the user chose the full year separated by semester, retaining month/day
+drill-down. No further workshop requested. Removed the alternatives selector and
+fixed the composition to semester groups. Sample data remains clearly labeled.
 
 ## Browser Evidence
 

@@ -9,11 +9,11 @@ Only the explicitly requested event foundation is implemented so far.
 - [x] **Basic event persistence**: AcademicEvent with title, description, start/end,
       standard lifecycle fields and database constraints. Migration applied locally.
 - [x] **Reuse tokens**: Record current system contract in DESIGN_TOKENS.md.
-- [ ] **Interactive annual workshop**: Compare three annual compositions using the
+- [x] **Interactive annual workshop**: Compare three annual compositions using the
       existing operational visual system and shared controls. Each supports year → month
       → day, holiday grid, timed event and return. Clearly label sample data and keep
       prototypes development-only. Implemented and inspected desktop/narrow in Orca;
-      user selection pending. See WORKSHOP.md.
+      user selected the whole year grouped by semester. See WORKSHOP.md.
 
 ## Core UI and Behavior
 

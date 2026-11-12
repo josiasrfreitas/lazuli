@@ -2,34 +2,11 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  Alert,
-  Button,
-  ScheduleCalendar,
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@lazuli/ui";
+import { Alert, Button, ScheduleCalendar } from "@lazuli/ui";
 import { MONTHS, WEEKDAYS, dayInfo, isoDay } from "./workshop-data";
 import styles from "./workshop.module.css";
 
-type Direction = "atlas" | "semesters" | "focus";
-const DIRECTIONS = {
-  atlas: {
-    title: "Ano completo",
-    description: "Doze meses juntos; os detalhes aparecem ao lado do mês escolhido.",
-  },
-  semesters: {
-    title: "Por semestre",
-    description: "O ano dividido em dois grupos; férias e limites ficam em evidência.",
-  },
-  focus: {
-    title: "Ano → mês",
-    description: "A visão anual ocupa a página; selecionar um mês abre um espaço dedicado.",
-  },
-};
-
 export function AcademicCalendarWorkshop() {
-  const [direction, setDirection] = useState<Direction>("focus");
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState<number | null>(null);
   const [date, setDate] = useState<string | null>(null);
@@ -37,7 +14,7 @@ export function AcademicCalendarWorkshop() {
   const pageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     pageRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
-  }, [month, daily, direction]);
+  }, [month, daily]);
   function openMonth(value: number) {
     setMonth(value);
     setDate(null);
@@ -53,27 +30,14 @@ export function AcademicCalendarWorkshop() {
     <div ref={pageRef} className={styles.page}>
       <div className={styles.workshop}>
         <span>Estudo de layout · dados ilustrativos, sem alterações na escola</span>
-        <SegmentedControl
-          wrap
-          aria-label="Alternativa de layout"
-          value={direction}
-          onValueChange={(value) => {
-            if (value && value in DIRECTIONS) {
-              setDirection(value as Direction);
-              reset();
-            }
-          }}
-        >
-          <SegmentedControlItem value="atlas">A · Ano completo</SegmentedControlItem>
-          <SegmentedControlItem value="semesters">B · Semestres</SegmentedControlItem>
-          <SegmentedControlItem value="focus">C · Ano → mês</SegmentedControlItem>
-        </SegmentedControl>
       </div>
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Agenda</p>
           <h1>Calendário acadêmico</h1>
-          <p className={styles.muted}>{DIRECTIONS[direction].description}</p>
+          <p className={styles.muted}>
+            Ano completo, organizado por semestre. Selecione um mês para consultar os dias.
+          </p>
         </div>
         <div className={styles.year}>
           <Button
@@ -114,11 +78,11 @@ export function AcademicCalendarWorkshop() {
       </div>
       <Legend />
       {month === null ? (
-        <div className={styles.overview} data-direction={direction}>
-          <div className={styles.months} data-direction={direction}>
+        <div className={styles.overview} data-direction="semesters">
+          <div className={styles.months} data-direction="semesters">
             {MONTHS.map((name, index) => (
               <Fragment key={name}>
-                {direction === "semesters" && index % 6 === 0 && (
+                {index % 6 === 0 && (
                   <h2 className={styles.groupTitle}>
                     {index === 0 ? "Primeiro semestre" : "Segundo semestre"}
                   </h2>
@@ -129,19 +93,6 @@ export function AcademicCalendarWorkshop() {
               </Fragment>
             ))}
           </div>
-          {direction === "atlas" && (
-            <aside className={styles.aside}>
-              <CalendarDays />
-              <h2>O ano em perspectiva</h2>
-              <p>Selecione um mês para consultar seus dias e abrir a agenda.</p>
-              <h3>Datas em destaque</h3>
-              <p>07 set · Independência do Brasil</p>
-              <p>18 set · Encontro cultural</p>
-              <p className={styles.muted}>
-                As datas de semestre e o evento são apenas exemplos para este estudo.
-              </p>
-            </aside>
-          )}
         </div>
       ) : (
         <section className={styles.detail}>
@@ -177,7 +128,7 @@ export function AcademicCalendarWorkshop() {
           {daily && displayed ? (
             <DayView date={displayed} onDateChange={setDate} onBack={() => setDaily(false)} />
           ) : (
-            <div className={styles.monthDetail} data-direction={direction}>
+            <div className={styles.monthDetail} data-direction="semesters">
               <MonthGrid year={year} month={month} selected={date} onDay={setDate} />
               <aside className={styles.aside}>
                 {date ? (
