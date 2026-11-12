@@ -71,7 +71,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={`${styles.dialog} ${panelVisible ? "md:max-w-7xl" : "md:max-w-2xl"}`}
+          className={`${styles.dialog} ${panelVisible ? "md:max-w-7xl" : "md:max-w-3xl"}`}
         >
           <div className={styles.header}>
             <Button

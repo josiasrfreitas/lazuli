@@ -59,8 +59,6 @@ export function TeacherEmploymentFields({
           </SegmentedControl>
           {errors.employmentType && <FieldError match>{errors.employmentType}</FieldError>}
         </Field>
-      </div>
-      <div className={styles.workloadRow}>
         <Field>
           <Label htmlFor="teacher-class-count">Quantidade de turmas</Label>
           <Input
