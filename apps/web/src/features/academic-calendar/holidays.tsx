@@ -1,4 +1,5 @@
 "use client";
+import { RotateCcw } from "lucide-react";
 import styles from "./configuration.module.css";
 import { useEffect, useState } from "react";
 import { Button, Checkbox, InlineSkeleton } from "@lazuli/ui";
@@ -141,7 +142,7 @@ export function CalendarHolidays({
           )}
           {query.error && (
             <Button type="button" variant="secondary" onClick={() => void query.refetch()}>
-              Tentar novamente
+              <RotateCcw aria-hidden="true" /> Tentar novamente
             </Button>
           )}
           {query.data && (

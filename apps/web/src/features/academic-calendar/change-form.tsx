@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { RouterInputs } from "@lazuli/api";
+import { Trash2 } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { CalendarChangeFields, draftSchema } from "./change-fields";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
@@ -136,7 +137,7 @@ export function CalendarChangeForm({
             })
           }
         >
-          Remover recesso…
+          <Trash2 aria-hidden="true" /> Remover recesso…
         </Button>
       )}
     </TaskDialog>

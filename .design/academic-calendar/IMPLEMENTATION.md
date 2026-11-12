@@ -163,3 +163,19 @@ timed out, so the final loading-to-data transition was not revalidated in that r
 No further persistent calendar changes were made during these visual checks.
 Automated checks were not run, per user instruction. Reviewed scoped diff and
 ran git diff --check.
+
+## Follow-up: motion, icons and reduced calendar surface
+
+Added missing action icons and a 280ms interruptible WAAPI resize on the configuration
+surface, using the existing duration/easing tokens. Only the background scales; expansion
+reveals content with clip-path. Keyboard interaction and reduced-motion preference skip
+resizing. Observers and animations are disposed with the dialog.
+
+Removed the day-detail panel and embedded daily agenda from the academic calendar.
+Monthly events remain editable below the month. Replaced the large skeleton with a compact
+loading status and heading after direct user rejection of the skeleton design.
+
+Final browser validation is blocked: the previous Orca tab disappeared and a fresh pinned
+tab rendered blank. The local academic-calendar URL returned HTTP 404 from Caddy on
+November 12 at 21:20 UTC. The final animation and loader are not visually accepted or
+claimed validated. Scoped diff reviewed; git diff --check passed. No automated gates run.

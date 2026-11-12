@@ -1,9 +1,10 @@
 "use client";
+import { useDialogExpansion } from "./use-dialog-expansion";
 import { useState } from "react";
 import { CalendarChangeForm } from "./change-form";
 import { CalendarHolidays } from "./holidays";
 import styles from "./configuration.module.css";
-import { CalendarDays, Plus } from "lucide-react";
+import { CalendarDays, Plus, Pencil } from "lucide-react";
 import {
   Button,
   Tabs,
@@ -33,6 +34,7 @@ export function CalendarManagement({
   year: number;
   onClose: () => void;
 }) {
+  const { dialogRef, surfaceRef } = useDialogExpansion();
   const [editor, onEdit] = useState<CalendarEditor | null>(null);
   const [pending, setPending] = useState(false);
   const [section, setSection] = useState("periods");
@@ -57,10 +59,12 @@ export function CalendarManagement({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className="top-8 w-[calc(100vw-2rem)] translate-y-0 max-h-[calc(100dvh-4rem)] md:max-w-6xl"
+          ref={dialogRef}
+          className={`${styles.dialog} top-8 w-[calc(100vw-2rem)] translate-y-0 max-h-[calc(100dvh-4rem)] md:max-w-6xl`}
           motion="subtle"
           showCloseButton={!pending}
         >
+          <span ref={surfaceRef} className={styles.dialogSurface} aria-hidden="true" />
           {editor ? (
             editor.kind === "holidays" ? (
               <CalendarHolidays
@@ -123,7 +127,7 @@ export function CalendarManagement({
                               variant="ghost"
                               onClick={() => onEdit({ kind: "period", id: row.id })}
                             >
-                              Editar
+                              <Pencil aria-hidden="true" /> Editar
                             </Button>
                           </li>
                         ))}
@@ -167,7 +171,7 @@ export function CalendarManagement({
                               variant="ghost"
                               onClick={() => onEdit({ kind: "interruption", id: row.id })}
                             >
-                              Editar
+                              <Pencil aria-hidden="true" /> Editar
                             </Button>
                           </li>
                         ))}

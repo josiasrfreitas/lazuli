@@ -4,6 +4,7 @@ import { AcademicCalendarLoading } from "./loading";
 import { CalendarProcessing } from "./processing";
 import { useState } from "react";
 import { AcademicEventForm } from "./event-form";
+import { Settings2, Plus, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { Alert, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -31,7 +32,9 @@ export function AcademicCalendar() {
     return (
       <div className="p-4">
         <Alert>Não foi possível carregar o calendário.</Alert>
-        <Button onClick={() => void query.refetch()}>Tentar novamente</Button>
+        <Button onClick={() => void query.refetch()}>
+          <RotateCcw aria-hidden="true" /> Tentar novamente
+        </Button>
       </div>
     );
   return (
@@ -68,10 +71,10 @@ export function AcademicCalendar() {
         actions={
           <>
             <Button size="sm" variant="secondary" onClick={() => setManaging(true)}>
-              Configurar
+              <Settings2 aria-hidden="true" /> Configurar
             </Button>
             <Button size="sm" onClick={() => setCreating(true)}>
-              Novo evento
+              <Plus aria-hidden="true" /> Novo evento
             </Button>
             <Link href="/aulas" className="text-caption text-interactive">
               Agenda

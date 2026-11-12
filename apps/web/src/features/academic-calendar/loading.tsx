@@ -1,41 +1,19 @@
-import { InlineSkeleton } from "@lazuli/ui";
-import { MONTHS } from "./workshop-data";
-import styles from "./workshop.module.css";
+import { LoaderCircle } from "lucide-react";
 
 export function AcademicCalendarLoading() {
   return (
-    <div
-      className={styles.page}
-      role="status"
-      aria-label="Carregando calendário acadêmico"
-      aria-busy="true"
-    >
-      <div className={styles.header}>
-        <h1>Calendário acadêmico</h1>
-        <InlineSkeleton className="h-8 w-48" shape="block" />
+    <section className="grid gap-4 p-4 md:px-8 md:py-6" aria-busy="true">
+      <h1 className="font-display text-h3 text-heading">Calendário acadêmico</h1>
+      <div
+        className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"
+        role="status"
+      >
+        <LoaderCircle
+          className="size-5 animate-spin motion-reduce:animate-none"
+          aria-hidden="true"
+        />
+        <span className="text-caption">Carregando calendário…</span>
       </div>
-      <div className={styles.legend}>
-        <InlineSkeleton className="w-64" />
-      </div>
-      {[0, 1].map((semester) => (
-        <section key={semester} className="grid gap-4">
-          <h2>{semester + 1}º semestre</h2>
-          <div className={styles.months} data-direction="semesters">
-            {MONTHS.slice(semester * 6, semester * 6 + 6).map((month) => (
-              <div key={month} className={styles.month}>
-                <div className={styles.monthHeading}>
-                  <h3>{month}</h3>
-                </div>
-                <div className="grid gap-2" aria-hidden="true">
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <InlineSkeleton key={i} className="h-6 w-full" shape="block" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
+    </section>
   );
 }

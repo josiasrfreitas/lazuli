@@ -102,3 +102,21 @@
     grid-column: 1 / -1;
   }
 }
+
+.dialog {
+  isolation: isolate;
+  overflow: visible;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.dialogSurface {
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid var(--border-strong);
+  border-radius: inherit;
+  background: var(--popover);
+  transform-origin: top center;
+}

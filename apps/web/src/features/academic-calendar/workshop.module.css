@@ -202,14 +202,11 @@ button.month:hover {
   outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
-button.day {
+div.day {
   min-height: 3rem;
-  cursor: pointer;
   border: 1px solid var(--border-subtle);
 }
-button.day:hover {
-  border-color: var(--interactive);
-}
+
 .day small {
   display: none;
   font-family: var(--lz-font-body);
@@ -346,7 +343,7 @@ button.day:hover {
   .months {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  button.day {
+  div.day {
     min-height: 5rem;
   }
   .day small {

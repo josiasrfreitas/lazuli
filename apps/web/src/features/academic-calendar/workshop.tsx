@@ -1,13 +1,11 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { Alert, Button, ScheduleCalendar } from "@lazuli/ui";
+import { ArrowLeft, ArrowRight, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@lazuli/ui";
 import { MONTHS, WEEKDAYS, dayInfo as sampleDayInfo, isoDay } from "./workshop-data";
 import { calendarDay, type AcademicYear, type DayInfo } from "./model";
 import type { ReactNode } from "react";
-import { AcademicDayAgenda } from "./day-agenda";
-import { CalendarInterruptionDetails } from "./interruption-details";
 import styles from "./workshop.module.css";
 import type { AcademicCalendarLocation } from "./navigation";
 
@@ -39,30 +37,18 @@ export function AcademicCalendarWorkshop({
     date: null,
     daily: false,
   });
-  const { month, date, daily } = location ?? sampleLocation;
+  const { month } = location ?? sampleLocation;
   const setLocation = onLocationChange ?? setSampleLocation;
-  function setDate(value: string) {
-    if (!onLocationChange) setYear(Number(value.slice(0, 4)));
-    setLocation({ month: Number(value.slice(5, 7)) - 1, date: value, daily });
-  }
-  function setDaily(value: boolean) {
-    setLocation({
-      month,
-      date: date ?? (month === null ? null : isoDay(year, month, 1)),
-      daily: value,
-    });
-  }
   const pageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     pageRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
-  }, [month, daily]);
+  }, [month]);
   function openMonth(value: number) {
     setLocation({ month: value, date: null, daily: false });
   }
   function reset() {
     setLocation({ month: null, date: null, daily: false });
   }
-  const displayed = month === null ? null : (date ?? isoDay(year, month, 1));
   return (
     <div ref={pageRef} className={styles.page}>
       <header className={styles.header}>
@@ -161,116 +147,59 @@ export function AcademicCalendarWorkshop({
         </div>
       ) : (
         <section className={styles.detail}>
-          {!daily && (
-            <div className={styles.detailToolbar}>
-              <Button variant="ghost" onClick={reset}>
-                <ArrowLeft />
-                Voltar ao ano
+          <div className={styles.detailToolbar}>
+            <Button variant="ghost" onClick={reset}>
+              <ArrowLeft />
+              Voltar ao ano
+            </Button>
+            <div className={styles.monthNav}>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Mês anterior"
+                disabled={month === 0}
+                onClick={() => openMonth(month - 1)}
+              >
+                <ChevronLeft />
               </Button>
-              <div className={styles.monthNav}>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Mês anterior"
-                  disabled={month === 0}
-                  onClick={() => openMonth(month - 1)}
-                >
-                  <ChevronLeft />
-                </Button>
-                <h2>
-                  {MONTHS[month]} {year}
-                </h2>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Próximo mês"
-                  disabled={month === 11}
-                  onClick={() => openMonth(month + 1)}
-                >
-                  <ChevronRight />
+              <h2>
+                {MONTHS[month]} {year}
+              </h2>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Próximo mês"
+                disabled={month === 11}
+                onClick={() => openMonth(month + 1)}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+          </div>
+          <MonthGrid dayInfo={dayInfo} year={year} month={month} />
+          {data?.events
+            .filter(
+              (item) =>
+                item.startsAt <
+                  new Date(
+                    `${new Date(Date.UTC(year, month + 1, 1)).toISOString().slice(0, 10)}T00:00:00-03:00`,
+                  ) && item.endsAt >= new Date(`${isoDay(year, month, 1)}T00:00:00-03:00`),
+            )
+            .map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-4">
+                <div>
+                  <h3>{item.title}</h3>
+                  <p className="text-caption text-muted-foreground">
+                    {item.startsAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                    {" — "}
+                    {item.endsAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                  </p>
+                </div>
+                <Button variant="ghost" onClick={() => onEditEvent?.(item.id)}>
+                  <Pencil aria-hidden="true" /> Editar evento
                 </Button>
               </div>
-            </div>
-          )}
-          {daily && displayed ? (
-            <DayView
-              onEditEvent={onEditEvent}
-              dayInfo={dayInfo}
-              data={data}
-              date={displayed}
-              onDateChange={setDate}
-              onBack={() => setDaily(false)}
-            />
-          ) : (
-            <div className={styles.monthDetail} data-direction="semesters">
-              <MonthGrid
-                dayInfo={dayInfo}
-                year={year}
-                month={month}
-                selected={date}
-                onDay={setDate}
-              />
-              <aside className={styles.aside}>
-                {date ? (
-                  <>
-                    <p className={styles.eyebrow}>
-                      {new Intl.DateTimeFormat("pt-BR", {
-                        dateStyle: "full",
-                        timeZone: "UTC",
-                      }).format(new Date(`${date}T12:00:00Z`))}
-                    </p>
-                    <h2>{dayInfo(date).label}</h2>
-                    <p>{dayInfo(date).detail}</p>
-                    {data && <CalendarInterruptionDetails data={data} date={date} />}
-                    <Button onClick={() => setDaily(true)}>
-                      Ver agenda do dia
-                      <ArrowRight />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <h2>Selecione um dia</h2>
-                    <p>
-                      Consulte o período, os recessos e os eventos. Abra a agenda para ver os
-                      horários.
-                    </p>
-                  </>
-                )}
-                {data &&
-                  date &&
-                  data.events
-                    .filter(
-                      (item) =>
-                        item.startsAt < new Date(`${date}T23:59:59-03:00`) &&
-                        item.endsAt > new Date(`${date}T00:00:00-03:00`),
-                    )
-                    .map((item) => (
-                      <div key={item.id}>
-                        <h3>{item.title}</h3>
-                        <p>
-                          {item.startsAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}{" "}
-                          — {item.endsAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                        </p>
-                        <p>{item.description}</p>
-                        <Button variant="ghost" onClick={() => onEditEvent?.(item.id)}>
-                          Editar evento
-                        </Button>
-                      </div>
-                    ))}
-                {!data && month === 8 && (
-                  <div className={styles.dates}>
-                    <h3>Neste mês</h3>
-                    <Button variant="ghost" onClick={() => setDate(isoDay(year, 8, 7))}>
-                      07 · Independência do Brasil
-                    </Button>
-                    <Button variant="ghost" onClick={() => setDate(isoDay(year, 8, 18))}>
-                      18 · Encontro cultural · 18h–20h
-                    </Button>
-                  </div>
-                )}
-              </aside>
-            </div>
-          )}
+            ))}
         </section>
       )}
     </div>
@@ -303,17 +232,13 @@ function MonthGrid({
   year,
   month,
   compact = false,
-  selected,
   onMonth,
-  onDay,
 }: {
   dayInfo: (date: string) => DayInfo;
   year: number;
   month: number;
   compact?: boolean;
-  selected?: string | null;
   onMonth?: () => void;
-  onDay?: (date: string) => void;
 }) {
   const offset = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const count = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -352,18 +277,15 @@ function MonthGrid({
               )}
             </span>
           ) : (
-            <button
-              type="button"
+            <div
               key={date}
               className={styles.day}
               data-kind={info.kind}
-              aria-pressed={date === selected}
               aria-label={`${i + 1} de ${MONTHS[month]}, ${info.label}`}
-              onClick={() => onDay?.(date)}
             >
               <span>{i + 1}</span>
               {(info.kind !== "academic" || !!info.markers?.length) && <small>{info.label}</small>}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -381,108 +303,5 @@ function MonthGrid({
     </button>
   ) : (
     <div className={styles.month}>{content}</div>
-  );
-}
-
-function DayView({
-  onEditEvent,
-  dayInfo,
-  data,
-  date,
-  onDateChange,
-  onBack,
-}: {
-  onEditEvent?: ((id: string) => void) | undefined;
-  dayInfo: (date: string) => DayInfo;
-  data?: AcademicYear | undefined;
-  date: string;
-  onDateChange: (date: string) => void;
-  onBack: () => void;
-}) {
-  const info = dayInfo(date);
-  const holiday = info.kind === "holiday";
-  if (data)
-    return (
-      <div className={styles.dayView}>
-        <CalendarInterruptionDetails data={data} date={date} />
-        {(info.kind === "vacation" || info.kind === "unknown") && (
-          <Alert>
-            {info.kind === "vacation"
-              ? "Férias acadêmicas."
-              : "Esta data não pertence a um semestre configurado."}{" "}
-            Atendimentos extras exigem confirmação antes de agendar.
-          </Alert>
-        )}
-        <AcademicDayAgenda
-          date={date}
-          data={data}
-          onDateChange={onDateChange}
-          onBack={onBack}
-          suspension={
-            holiday
-              ? data.closedDays
-                  .filter((item) => item.date.toISOString().slice(0, 10) === date)
-                  .map((item) => item.reason)
-                  .join(" · ")
-              : undefined
-          }
-          {...(onEditEvent ? { onEditEvent } : {})}
-        />
-      </div>
-    );
-  return (
-    <div className={styles.dayView}>
-      <Button variant="ghost" onClick={onBack}>
-        <ArrowLeft />
-        Voltar ao mês
-      </Button>
-      {holiday ? (
-        <div className={styles.holidayGrid}>
-          <div className={styles.holidayTitle}>
-            <CalendarDays />
-            <h2>{info.label}</h2>
-            <p>Dia inteiro · sem atividades acadêmicas</p>
-          </div>
-          {Array.from({ length: 15 }, (_, i) => (
-            <div className={styles.hour} key={i}>
-              <span>{String(i + 7).padStart(2, "0")}:00</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          {info.kind === "vacation" && (
-            <Alert>
-              Férias acadêmicas. Atendimentos extras exigem confirmação antes de agendar.
-            </Alert>
-          )}
-          <ScheduleCalendar
-            date={date}
-            view="day"
-            onDateChange={onDateChange}
-            onViewChange={() => undefined}
-            hours={{ start: "07:00", end: "22:00" }}
-            events={
-              info.kind === "event"
-                ? [
-                    {
-                      id: "workshop-cultural",
-                      date,
-                      startTime: "18:00",
-                      endTime: "20:00",
-                      title: "Encontro cultural",
-                      subtitle: "Evento ilustrativo",
-                      tone: "info",
-                    },
-                  ]
-                : []
-            }
-            widthBehavior="fit"
-            emptyDisplay="grid"
-            label="Agenda do dia — estudo de calendário"
-          />
-        </>
-      )}
-    </div>
   );
 }
