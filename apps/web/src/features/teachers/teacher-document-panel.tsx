@@ -59,20 +59,22 @@ export function TeacherDocumentPanel({
           <p className="text-caption text-muted-foreground">
             Escaneie o código e mantenha este cadastro aberto. O link fica disponível por uma hora.
           </p>
-          {preparing ? (
-            <p role="status">Preparando QR code…</p>
-          ) : documents.query.data?.closed ? (
+          {documents.query.data?.closed && !preparing ? (
             <Button variant="secondary" onClick={() => void openQr()}>
               Renovar QR code
             </Button>
-          ) : documents.session ? (
-            <MobileUploadLink
-              url={`${location.origin}/documentos/professor#${documents.session.token}`}
-            />
-          ) : (
+          ) : error && !preparing ? (
             <Button variant="secondary" onClick={() => void openQr()}>
               Tentar novamente
             </Button>
+          ) : (
+            <MobileUploadLink
+              url={
+                !preparing && documents.session
+                  ? `${location.origin}/documentos/professor#${documents.session.token}`
+                  : undefined
+              }
+            />
           )}
           <p className="text-caption text-muted-foreground" role="status">
             {documents.files.length

@@ -83,10 +83,6 @@
 .dialog {
   overflow: hidden;
 }
-.dialog[data-resizing="true"] .layout,
-.dialog[data-resizing="true"] .layout > * {
-  overflow: hidden;
-}
 .layout > * {
   min-width: 0;
 }
@@ -129,5 +125,32 @@
   .header > button:last-child {
     grid-column: 2;
     justify-self: start;
+  }
+}
+
+.panelMotion {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 160ms var(--lz-ease-standard),
+    transform 160ms var(--lz-ease-standard);
+}
+.panelMotion[data-open="false"] {
+  opacity: 0;
+  transform: translateX(0.5rem);
+  pointer-events: none;
+}
+@starting-style {
+  .panelMotion[data-open="true"] {
+    opacity: 0;
+    transform: translateX(0.5rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panelMotion,
+  .panelMotion[data-open="true"],
+  .panelMotion[data-open="false"] {
+    transform: none;
+    transition-property: opacity;
   }
 }

@@ -38,7 +38,6 @@ import { Camera, Paperclip, KeyRound } from "lucide-react";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
 import styles from "./teacher-form.module.css";
-import documentStyles from "~/features/student-documents/documents.module.css";
 type Teacher = RouterOutputs["teachers"]["byId"];
 export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactElement {
   const documents = useTeacherDocuments(teacher?.id);
@@ -47,7 +46,6 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
   const photo = documents.files.find((file) => file.kind === "PHOTO");
   const [attachments, setAttachments] = useState(false);
   const [panelPresent, setPanelPresent] = useState(false);
-  const [resizing, setResizing] = useState(false);
   useEffect(() => {
     if (attachments) setPanelPresent(true);
     else {
@@ -55,11 +53,6 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
       return () => clearTimeout(timer);
     }
   }, [attachments]);
-  useEffect(() => {
-    setResizing(true);
-    const timer = setTimeout(() => setResizing(false), 240);
-    return () => clearTimeout(timer);
-  }, [attachments, panelPresent]);
   const panelVisible = attachments || panelPresent;
 
   const { departed, draft, errors, failure, body, first, pending, change, submit } = useTeacherForm(
@@ -78,8 +71,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={`enrollment-dialog-motion ${styles.dialog} ${panelVisible ? "md:max-w-7xl" : "md:max-w-2xl"}`}
-          data-resizing={resizing}
+          className={`${styles.dialog} ${panelVisible ? "md:max-w-7xl" : "md:max-w-2xl"}`}
         >
           <div className={styles.header}>
             <Button
@@ -154,11 +146,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
               failure={failure}
             />
             {panelVisible && (
-              <div
-                className={`${documentStyles.sidePanel} ${styles.panelMotion}`}
-                data-open={attachments}
-                inert={!attachments}
-              >
+              <div className={`${styles.panelMotion}`} data-open={attachments} inert={!attachments}>
                 <TeacherDocumentPanel documents={documents} onClose={() => setAttachments(false)} />
               </div>
             )}
