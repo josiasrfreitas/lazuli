@@ -53,7 +53,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={attachments ? "md:max-w-7xl" : "md:max-w-4xl"}
+          className={attachments ? "md:max-w-6xl" : "md:max-w-3xl"}
         >
           <div className="flex items-center gap-3">
             <Button
