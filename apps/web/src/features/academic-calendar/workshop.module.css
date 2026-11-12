@@ -99,6 +99,7 @@
   min-width: 0;
 }
 .monthBlock {
+  display: flex;
   min-width: 0;
 }
 .month {
@@ -225,6 +226,7 @@ button.day:hover {
   line-height: var(--lz-leading-body);
 }
 .groupTitle {
+  grid-column: 1 / -1;
   font-size: var(--lz-text-h2);
   margin: 0.5rem 0 1rem;
 }
@@ -309,9 +311,6 @@ button.day:hover {
   .months {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .months[data-direction="semesters"] .monthBlock:nth-child(6n + 1) {
-    grid-column: 1 / -1;
-  }
   button.day {
     min-height: 5rem;
   }
@@ -333,13 +332,6 @@ button.day:hover {
   .months[data-direction="semesters"] {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .months[data-direction="semesters"] .monthBlock:nth-child(6n + 1) {
-    grid-column: auto;
-  }
-  .months[data-direction="semesters"] .monthBlock:nth-child(6n + 2),
-  .months[data-direction="semesters"] .monthBlock:nth-child(6n + 3) {
-    padding-top: 3.25rem;
-  }
   .monthDetail {
     grid-template-columns: minmax(0, 1fr) 18rem;
   }
@@ -356,4 +348,14 @@ button.day:hover {
   button.month {
     transition: none;
   }
+}
+
+.month[data-compact="true"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.month[data-compact="true"] .monthHeading,
+.month[data-compact="true"] .days {
+  width: 100%;
 }

@@ -12,7 +12,8 @@ Only the explicitly requested event foundation is implemented so far.
 - [ ] **Interactive annual workshop**: Compare three annual compositions using the
       existing operational visual system and shared controls. Each supports year → month
       → day, holiday grid, timed event and return. Clearly label sample data and keep
-      prototypes development-only. Inspect desktop/narrow in Orca, then obtain direction.
+      prototypes development-only. Implemented and inspected desktop/narrow in Orca;
+      user selection pending. See WORKSHOP.md.
 
 ## Core UI and Behavior
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Alert,
@@ -34,6 +34,10 @@ export function AcademicCalendarWorkshop() {
   const [month, setMonth] = useState<number | null>(null);
   const [date, setDate] = useState<string | null>(null);
   const [daily, setDaily] = useState(false);
+  const pageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    pageRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [month, daily, direction]);
   function openMonth(value: number) {
     setMonth(value);
     setDate(null);
@@ -46,7 +50,7 @@ export function AcademicCalendarWorkshop() {
   }
   const displayed = month === null ? null : (date ?? isoDay(year, month, 1));
   return (
-    <div className={styles.page}>
+    <div ref={pageRef} className={styles.page}>
       <div className={styles.workshop}>
         <span>Estudo de layout · dados ilustrativos, sem alterações na escola</span>
         <SegmentedControl
@@ -113,14 +117,16 @@ export function AcademicCalendarWorkshop() {
         <div className={styles.overview} data-direction={direction}>
           <div className={styles.months} data-direction={direction}>
             {MONTHS.map((name, index) => (
-              <div key={name} className={styles.monthBlock}>
+              <Fragment key={name}>
                 {direction === "semesters" && index % 6 === 0 && (
                   <h2 className={styles.groupTitle}>
                     {index === 0 ? "Primeiro semestre" : "Segundo semestre"}
                   </h2>
                 )}
-                <MonthGrid year={year} month={index} compact onMonth={() => openMonth(index)} />
-              </div>
+                <div className={styles.monthBlock}>
+                  <MonthGrid year={year} month={index} compact onMonth={() => openMonth(index)} />
+                </div>
+              </Fragment>
             ))}
           </div>
           {direction === "atlas" && (
