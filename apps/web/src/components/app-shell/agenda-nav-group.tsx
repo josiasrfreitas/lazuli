@@ -52,7 +52,8 @@ export function AgendaNavGroup({
               active && academic === child.href.includes("visao=academico") ? "page" : undefined
             }
           >
-            {child.label}
+            <child.icon aria-hidden="true" />
+            <span>{child.label}</span>
           </Link>
         ))}
       </div>

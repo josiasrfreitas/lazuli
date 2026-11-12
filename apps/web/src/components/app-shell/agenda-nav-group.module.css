@@ -38,10 +38,18 @@
   border-left: 1px solid var(--navigation-border);
 }
 .children a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
   padding: 0.5rem;
   border-radius: var(--radius-sm);
   font-size: var(--lz-text-caption);
+}
+.children a svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
 }
 .children a:hover,
 .children a[aria-current="page"] {
