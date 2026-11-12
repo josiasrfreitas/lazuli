@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent, type RefObject, type ReactElement } from "react";
+import { useRef, useState, type FormEvent, type RefObject, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
   ToastAlert,
@@ -16,7 +16,6 @@ import {
   DialogTitle,
   Field,
   FieldError,
-  FormRow,
   FormSection,
   Input,
   Label,
@@ -27,13 +26,16 @@ import { TeacherEmploymentFields } from "./teacher-employment-fields";
 import type { TeacherDraft } from "./teacher-form";
 import { useTeacherForm } from "./teacher-form";
 
-import { Paperclip } from "lucide-react";
+import { Camera, Paperclip } from "lucide-react";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
 import styles from "./teacher-form.module.css";
 type Teacher = RouterOutputs["teachers"]["byId"];
 export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactElement {
   const documents = useTeacherDocuments(teacher?.id);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState("");
+  const photo = documents.files.find((file) => file.kind === "PHOTO");
   const [attachments, setAttachments] = useState(false);
   const { departed, draft, errors, failure, body, first, pending, change, submit } = useTeacherForm(
     teacher,
@@ -51,15 +53,55 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={attachments ? "md:max-w-6xl" : "md:max-w-3xl"}
+          className={attachments ? "md:max-w-7xl" : "md:max-w-4xl"}
         >
-          <DialogHeader>
-            <DialogTitle>{teacher ? "Editar professor" : "Novo professor"}</DialogTitle>
-            <DialogDescription>
-              Cadastre a pessoa para organizar suas turmas e horários.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-end">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="size-14 shrink-0 rounded-full"
+              aria-label="Enviar foto do professor"
+              disabled={pending || documents.busy}
+              onClick={() => photoInput.current?.click()}
+            >
+              {photo ? (
+                <img
+                  className={styles.photo}
+                  src={`/api/teacher-files/${photo.id}`}
+                  alt="Foto do professor"
+                />
+              ) : (
+                <Camera />
+              )}
+            </Button>
+            <input
+              ref={photoInput}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                documents.setBusy(true);
+                setPhotoError("");
+                try {
+                  await documents.send({ kind: "PHOTO", label: "Foto do professor", file });
+                } catch (error) {
+                  setPhotoError(
+                    error instanceof Error ? error.message : "Não foi possível enviar a foto.",
+                  );
+                } finally {
+                  documents.setBusy(false);
+                  event.target.value = "";
+                }
+              }}
+            />
+            <DialogHeader className="min-w-0 flex-1">
+              <DialogTitle>{teacher ? "Editar professor" : "Novo professor"}</DialogTitle>
+              <DialogDescription>
+                Cadastre a pessoa para organizar suas turmas e horários.
+              </DialogDescription>
+            </DialogHeader>
             <Button
               variant="ghost"
               size="sm"
@@ -69,6 +111,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
               <Paperclip /> Anexos{documents.files.length ? ` (${documents.files.length})` : ""}
             </Button>
           </div>
+          {photoError && <ToastAlert variant="destructive">{photoError}</ToastAlert>}
           <div className={styles.layout} data-documents={attachments}>
             <TeacherFormBody
               body={body}
@@ -139,7 +182,7 @@ type TeacherContactFieldsProps = {
 };
 function TeacherContactFields(props: TeacherContactFieldsProps): ReactElement {
   return (
-    <FormRow columns={3}>
+    <>
       <PersonDocumentField
         requiredCpf
         name="cpf"
@@ -147,7 +190,7 @@ function TeacherContactFields(props: TeacherContactFieldsProps): ReactElement {
         error={props.errors.cpf}
         onChange={(document) => props.change("cpf", document.documentNumber)}
       />
-      <Field className="sm:col-span-2">
+      <Field>
         <Label htmlFor="teacher-email">E-mail</Label>
         <Input
           id="teacher-email"
@@ -162,7 +205,7 @@ function TeacherContactFields(props: TeacherContactFieldsProps): ReactElement {
         />
         {props.errors.email && <FieldError match>{props.errors.email}</FieldError>}
       </Field>
-    </FormRow>
+    </>
   );
 }
 
@@ -175,22 +218,24 @@ type TeacherIdentityFieldsProps = {
 function TeacherIdentityFields(props: TeacherIdentityFieldsProps): ReactElement {
   return (
     <FormSection title="Dados do professor">
-      <Field>
-        <Label htmlFor="teacher-name">Nome completo</Label>
-        <Input
-          ref={props.first}
-          id="teacher-name"
-          name="name"
-          placeholder="Nome completo do professor"
-          autoComplete="off"
-          size="compact-responsive"
-          value={props.draft.name}
-          invalid={Boolean(props.errors.name)}
-          onChange={(event) => props.change("name", event.target.value)}
-        />
-        {props.errors.name && <FieldError match>{props.errors.name}</FieldError>}
-      </Field>
-      <TeacherContactFields draft={props.draft} errors={props.errors} change={props.change} />
+      <div className={styles.personalRow}>
+        <Field>
+          <Label htmlFor="teacher-name">Nome completo</Label>
+          <Input
+            ref={props.first}
+            id="teacher-name"
+            name="name"
+            placeholder="Nome completo do professor"
+            autoComplete="off"
+            size="compact-responsive"
+            value={props.draft.name}
+            invalid={Boolean(props.errors.name)}
+            onChange={(event) => props.change("name", event.target.value)}
+          />
+          {props.errors.name && <FieldError match>{props.errors.name}</FieldError>}
+        </Field>
+        <TeacherContactFields draft={props.draft} errors={props.errors} change={props.change} />
+      </div>
     </FormSection>
   );
 }
