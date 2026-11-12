@@ -13,19 +13,33 @@ import { teacherCreateInputSchema } from "@lazuli/validators";
 import { useScrollToError } from "~/lib/scroll-to-error";
 import { trpc, type ClientError } from "~/lib/trpc";
 
+import { parseDateBR } from "~/lib/masks";
 const ISO_DATE_LENGTH = 10;
+export type TeacherDraft = {
+  name: string;
+  email: string;
+  cpf: string;
+  isEnabled: boolean;
+  employmentType: "CLT" | "PJ" | "AUTONOMOUS" | "OTHER" | null;
+  weeklyHours: string;
+  notes: string;
+  vacationStart: string;
+  vacationEnd: string;
+};
+export type TeacherFieldProps = {
+  draft: TeacherDraft;
+  errors: Record<string, string>;
+  change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
+};
 type UseTeacherFormResult = {
   departed: boolean;
-  draft: { name: string; email: string; cpf: string; isEnabled: boolean };
+  draft: TeacherDraft;
   errors: Record<string, string>;
   failure: string | null;
   body: RefObject<HTMLDivElement | null>;
   first: RefObject<HTMLInputElement | null>;
   pending: boolean;
-  change: <Key extends "email" | "name" | "isEnabled" | "cpf">(
-    key: Key,
-    value: { name: string; email: string; cpf: string; isEnabled: boolean }[Key],
-  ) => void;
+  change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
   submit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -33,6 +47,7 @@ type Teacher = RouterOutputs["teachers"]["byId"];
 export function useTeacherForm(
   teacher: Teacher | undefined,
   onClose: () => void,
+  documentSessionId?: string,
 ): UseTeacherFormResult {
   const departed = teacherDeparted(teacher);
   const [draft, setDraft] = useState(teacherDraft(teacher));
@@ -57,13 +72,20 @@ export function useTeacherForm(
   const update = trpc.teachers.update.useMutation({ onSuccess, onError });
   const pending = create.isPending || update.isPending;
   function change<Key extends keyof typeof draft>(key: Key, value: (typeof draft)[Key]): void {
-    setDraft((previous) => ({ ...previous, [key]: value }));
+    setDraft((previous) => ({
+      ...previous,
+      [key]: value,
+      ...(key === "employmentType" && value !== "CLT"
+        ? { vacationStart: "", vacationEnd: "" }
+        : {}),
+    }));
     setErrors((previous) => ({ ...previous, [key]: "" }));
     setFailure(null);
   }
   const submit = (event: FormEvent<HTMLFormElement>): void =>
     submitTeacherForm(event, {
       pending,
+      documentSessionId,
       draft,
       setErrors,
       setRevision,
@@ -75,8 +97,9 @@ export function useTeacherForm(
 }
 
 type SubmitTeacherFormContext = {
+  documentSessionId: string | undefined;
   pending: boolean;
-  draft: { name: string; email: string; cpf: string; isEnabled: boolean };
+  draft: TeacherDraft;
   setErrors: Dispatch<SetStateAction<Record<string, string>>>;
   setRevision: Dispatch<SetStateAction<number>>;
   teacher: Teacher | undefined;
@@ -85,11 +108,27 @@ type SubmitTeacherFormContext = {
 };
 function submitTeacherForm(
   event: FormEvent<HTMLFormElement>,
-  { pending, draft, setErrors, setRevision, teacher, update, create }: SubmitTeacherFormContext,
+  {
+    pending,
+    draft,
+    setErrors,
+    setRevision,
+    teacher,
+    update,
+    create,
+    documentSessionId,
+  }: SubmitTeacherFormContext,
 ): void {
   event.preventDefault();
   if (pending) return;
-  const parsed = teacherCreateInputSchema.safeParse(draft);
+  const parsed = teacherCreateInputSchema.safeParse({
+    ...draft,
+    ...(documentSessionId ? { documentSessionId } : {}),
+    weeklyHours: draft.weeklyHours.trim() ? Number(draft.weeklyHours.replace(",", ".")) : null,
+    notes: draft.notes.trim() || null,
+    vacationStart: draft.vacationStart ? (parseDateBR(draft.vacationStart) ?? "invalid") : null,
+    vacationEnd: draft.vacationEnd ? (parseDateBR(draft.vacationEnd) ?? "invalid") : null,
+  });
   if (!parsed.success) {
     setErrors(
       Object.fromEntries(
@@ -109,6 +148,12 @@ function teacherDraft(teacher: Teacher | undefined): UseTeacherFormResult["draft
     email: teacher?.email ?? "",
     cpf: teacher?.teacherProfile?.cpf ?? "",
     isEnabled: teacher?.isEnabled ?? false,
+    employmentType:
+      (teacher?.teacherProfile?.employmentType as TeacherDraft["employmentType"]) ?? null,
+    weeklyHours: teacher?.teacherProfile?.weeklyHours?.toString().replace(".", ",") ?? "",
+    notes: teacher?.teacherProfile?.notes ?? "",
+    vacationStart: displayDate(teacher?.teacherProfile?.vacationStart),
+    vacationEnd: displayDate(teacher?.teacherProfile?.vacationEnd),
   };
 }
 function teacherDeparted(teacher: Teacher | undefined): boolean {
@@ -124,4 +169,8 @@ function teacherFieldErrors(error: ClientError): Record<string, string> {
       values?.[0] ?? "",
     ]),
   );
+}
+
+function displayDate(value: Date | null | undefined): string {
+  return value?.toISOString().slice(0, ISO_DATE_LENGTH).split("-").reverse().join("/") ?? "";
 }

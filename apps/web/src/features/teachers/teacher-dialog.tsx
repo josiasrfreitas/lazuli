@@ -1,5 +1,5 @@
 "use client";
-import type { FormEvent, RefObject, ReactElement } from "react";
+import { useState, type FormEvent, type RefObject, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
   ToastAlert,
@@ -23,42 +23,76 @@ import {
   Switch,
 } from "@lazuli/ui";
 import { PersonDocumentField } from "~/components/person-document-field";
+import { TeacherEmploymentFields } from "./teacher-employment-fields";
+import type { TeacherDraft } from "./teacher-form";
 import { useTeacherForm } from "./teacher-form";
 
+import { Paperclip } from "lucide-react";
+import { useTeacherDocuments } from "./use-teacher-documents";
+import { TeacherDocumentPanel } from "./teacher-document-panel";
+import styles from "./teacher-form.module.css";
 type Teacher = RouterOutputs["teachers"]["byId"];
 export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactElement {
+  const documents = useTeacherDocuments(teacher?.id);
+  const [attachments, setAttachments] = useState(false);
   const { departed, draft, errors, failure, body, first, pending, change, submit } = useTeacherForm(
     teacher,
     onClose,
+    documents.session?.id,
   );
   return (
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open && !pending) onClose();
+        if (!open && !pending && !documents.busy) onClose();
       }}
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent initialFocus={first}>
+        <DialogContent
+          initialFocus={first}
+          className={attachments ? "md:max-w-6xl" : "md:max-w-3xl"}
+        >
           <DialogHeader>
             <DialogTitle>{teacher ? "Editar professor" : "Novo professor"}</DialogTitle>
             <DialogDescription>
               Cadastre a pessoa para organizar suas turmas e horários.
             </DialogDescription>
           </DialogHeader>
-          <TeacherFormBody
-            body={body}
-            submit={submit}
-            first={first}
-            draft={draft}
-            errors={errors}
-            change={change}
-            departed={departed}
-            pending={pending}
-            failure={failure}
+          <div className="flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={pending || documents.busy}
+              onClick={() => setAttachments(!attachments)}
+            >
+              <Paperclip /> Anexos{documents.files.length ? ` (${documents.files.length})` : ""}
+            </Button>
+          </div>
+          <div className={styles.layout} data-documents={attachments}>
+            <TeacherFormBody
+              body={body}
+              submit={(event) => {
+                if (documents.busy) event.preventDefault();
+                else submit(event);
+              }}
+              first={first}
+              draft={draft}
+              errors={errors}
+              change={change}
+              departed={departed}
+              pending={pending || documents.busy}
+              failure={failure}
+            />
+            {attachments && (
+              <TeacherDocumentPanel documents={documents} onClose={() => setAttachments(false)} />
+            )}
+          </div>
+          <TeacherFormFooter
+            pending={pending || documents.busy}
+            onClose={onClose}
+            teacher={teacher}
           />
-          <TeacherFormFooter pending={pending} onClose={onClose} teacher={teacher} />
         </DialogContent>
       </DialogPortal>
     </Dialog>
@@ -99,12 +133,9 @@ function TeacherFormFooter(props: TeacherFormFooterProps): ReactElement {
 }
 
 type TeacherContactFieldsProps = {
-  draft: { name: string; email: string; cpf: string; isEnabled: boolean };
+  draft: TeacherDraft;
   errors: Record<string, string>;
-  change: <Key extends "email" | "name" | "isEnabled" | "cpf">(
-    key: Key,
-    value: { name: string; email: string; cpf: string; isEnabled: boolean }[Key],
-  ) => void;
+  change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
 };
 function TeacherContactFields(props: TeacherContactFieldsProps): ReactElement {
   return (
@@ -137,12 +168,9 @@ function TeacherContactFields(props: TeacherContactFieldsProps): ReactElement {
 
 type TeacherIdentityFieldsProps = {
   first: RefObject<HTMLInputElement | null>;
-  draft: { name: string; email: string; cpf: string; isEnabled: boolean };
+  draft: TeacherDraft;
   errors: Record<string, string>;
-  change: <Key extends "email" | "name" | "isEnabled" | "cpf">(
-    key: Key,
-    value: { name: string; email: string; cpf: string; isEnabled: boolean }[Key],
-  ) => void;
+  change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
 };
 function TeacherIdentityFields(props: TeacherIdentityFieldsProps): ReactElement {
   return (
@@ -171,26 +199,24 @@ type TeacherFormBodyProps = {
   body: RefObject<HTMLDivElement | null>;
   submit: (event: FormEvent<HTMLFormElement>) => void;
   first: RefObject<HTMLInputElement | null>;
-  draft: { name: string; email: string; cpf: string; isEnabled: boolean };
+  draft: TeacherDraft;
   errors: Record<string, string>;
-  change: <Key extends "email" | "name" | "isEnabled" | "cpf">(
-    key: Key,
-    value: { name: string; email: string; cpf: string; isEnabled: boolean }[Key],
-  ) => void;
+  change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
   departed: boolean;
   pending: boolean;
   failure: string | null;
 };
 function TeacherFormBody(props: TeacherFormBodyProps): ReactElement {
   return (
-    <DialogBody ref={props.body} className="my-5">
-      <form id="teacher-form" noValidate onSubmit={props.submit} className="grid gap-5">
+    <DialogBody ref={props.body} className="my-3">
+      <form id="teacher-form" noValidate onSubmit={props.submit} className="grid gap-4">
         <TeacherIdentityFields
           first={props.first}
           draft={props.draft}
           errors={props.errors}
           change={props.change}
         />
+        <TeacherEmploymentFields draft={props.draft} errors={props.errors} change={props.change} />
         <FormSection
           title="Acesso ao sistema"
           description="O professor pode receber turmas e substituições mesmo sem acesso."
