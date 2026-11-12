@@ -80,8 +80,11 @@ not usage analytics.
 
 1. Month grid and adjacent-month navigation.
 2. Selected day's academic status and explanations.
-3. Important dates and interruption descriptions in chronological order.
-4. Contextual edit actions and a link to the daily Agenda when actual sessions matter.
+3. Events with start/end times and interruption descriptions in chronological order.
+4. Reuse the existing daily Agenda grid when session-level detail is useful. A holiday
+   fills the entire visible day grid with its reason, rather than a small event card;
+   the semantic suspension covers the whole date, including hours outside the viewport.
+   Contextual edit actions remain available without implying free appointment slots.
 
 The calendar communicates eligibility for academic activities, not a promise that
 all classes meet each day. Do not mark every Saturday as non-academic: actual class
@@ -159,8 +162,11 @@ within the semester, but cannot establish an independent academic boundary.
 
 ### Add an important date
 
-1. Add date, short title and optional description.
-2. Save a non-blocking calendar annotation with a distinct marker.
+1. Add a short title, optional description, and start/end date-times. End must be
+   later than start; display/edit in America/Sao_Paulo and persist instants.
+2. Save an AcademicEvent with a distinct annual/monthly marker and a timed entry
+   in daily detail. Multi-day events mark every date overlapped by [start, end); an
+   event ending at midnight does not occupy the following day.
 3. To suspend activities, use the separate interruption flow and its impact preview.
    No guests, venues, ticketing, invitations or event lifecycle in this slice.
 
@@ -239,3 +245,12 @@ Browser validation through Orca is required for implementation, not claimed here
   and trial scheduling before implementing claims about impossible states.
 - Preserve late-start meaning until its usage is assessed. Removing the field from
   storage is not required to establish semester-owned boundaries.
+
+## Initial Event Entity — Explicit Implementation Request
+
+The user requested the basic entity during IA. AcademicEvent now has title, optional
+description, startsAt, endsAt and standard UUID/createdAt/updatedAt/deletedAt fields.
+No required semester relationship: events can occur during academic vacations. No
+attendees, recurrence, venue, capacity or automatic suspension. PostgreSQL constraints
+reject blank titles and end <= start. Schema and migration are implemented; API,
+forms and calendar rendering remain future build tasks.

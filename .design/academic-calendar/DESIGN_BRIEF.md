@@ -191,3 +191,11 @@ within their assigned semester; independent appointments outside academic period
 require an explicit exceptional-use confirmation. Registered suspensions remain
 distinct from vacations. Include lightweight important-date annotations, not a full
 events module. See INFORMATION_ARCHITECTURE.md for these superseding details.
+
+## Day Detail and Initial Events
+
+User refinement: day detail may reuse the current daily Agenda. A holiday fills the
+entire day grid with its academic-suspension state and reason. Events have required
+start/end date-times, title and optional description; introduce the minimal
+AcademicEvent entity now. This supersedes date-only annotations, while the complete
+events module remains out of scope.

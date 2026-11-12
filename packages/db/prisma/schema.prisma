@@ -370,6 +370,20 @@ model Period {
   @@map("Semester")
 }
 
+/// A school calendar event. Scheduling suspensions are managed separately.
+model AcademicEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+  title       String
+  description String?
+  startsAt    DateTime  @map("starts_at") @db.Timestamptz
+  endsAt      DateTime  @map("ends_at") @db.Timestamptz
+
+  @@index([startsAt, endsAt])
+}
+
 model SchoolClosedDay {
   id          String    @id @default(uuid()) @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
