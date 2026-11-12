@@ -1,4 +1,3 @@
-import { HOME_CHART_RESIZE_DELAY_MS } from "./chart-resize";
 import type { ReactElement } from "react";
 import {
   Bar,
@@ -60,12 +59,7 @@ export function EnrollmentChart({
   const animate = useChartEntrance();
   return (
     <div className={styles.enrollmentChart}>
-      <ResponsiveContainer
-        debounce={HOME_CHART_RESIZE_DELAY_MS}
-        width="100%"
-        height="100%"
-        minWidth={0}
-      >
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart
           data={series}
           accessibilityLayer
@@ -153,12 +147,7 @@ function ReceiptsPlot({
 }): ReactElement {
   return (
     <div className={styles.linePlot}>
-      <ResponsiveContainer
-        debounce={HOME_CHART_RESIZE_DELAY_MS}
-        width="100%"
-        height="100%"
-        minWidth={0}
-      >
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <ComposedChart
           data={series}
           accessibilityLayer

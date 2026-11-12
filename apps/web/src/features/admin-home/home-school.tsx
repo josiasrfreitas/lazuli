@@ -1,4 +1,3 @@
-import { HOME_CHART_RESIZE_DELAY_MS } from "./chart-resize";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -68,12 +67,7 @@ function SchoolBarChart({ rows }: { rows: ChartRow[] }): ReactElement {
       role="img"
       aria-label="Novos alunos e matrículas por mês; números disponíveis em Ver valores."
     >
-      <ResponsiveContainer
-        debounce={HOME_CHART_RESIZE_DELAY_MS}
-        width="100%"
-        height={220}
-        minWidth={0}
-      >
+      <ResponsiveContainer width="100%" height={220} minWidth={0}>
         <BarChart data={rows} accessibilityLayer margin={{ top: 12, right: 0, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5" />
           <XAxis
