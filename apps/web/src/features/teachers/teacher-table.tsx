@@ -88,7 +88,7 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
     {
       id: "appointmentHours",
       header: (
-        <span className="text-caption">
+        <span className="block whitespace-normal leading-tight">
           Horas de atendimento · {today.slice(5, 7)}/{today.slice(0, 4)}
         </span>
       ),
@@ -102,15 +102,6 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
             {hoursLabel(row.appointmentHours.completedMinutes)} /{" "}
             {hoursLabel(row.appointmentHours.plannedMinutes)} h
           </span>
-          <progress
-            className="h-1 w-full accent-primary"
-            aria-label="Progresso das horas de atendimentos no mês"
-            max={row.appointmentHours.plannedMinutes || 1}
-            value={Math.min(
-              row.appointmentHours.completedMinutes,
-              row.appointmentHours.plannedMinutes,
-            )}
-          />
         </div>
       ),
     },
