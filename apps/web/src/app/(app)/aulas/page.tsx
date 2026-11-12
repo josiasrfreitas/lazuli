@@ -1,3 +1,4 @@
+import { AcademicCalendar } from "~/features/academic-calendar/calendar";
 import type { JSX as ReactJSX } from "react";
 import type { Metadata } from "next";
 import { ClassAgenda, type InitialAgendaData } from "~/features/class-records/agenda";
@@ -14,6 +15,7 @@ export default async function Page({
   const identity = await requireRole(["ADMIN", "SYSTEM_ADMIN", "TEACHER"]);
   const teacherView = identity.role === "TEACHER";
   const admin = identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN";
+  if (admin && (await searchParams).visao === "academico") return <AcademicCalendar />;
   if (Object.keys(await searchParams).length > 0)
     return <ClassAgenda teacherView={teacherView} admin={admin} />;
 

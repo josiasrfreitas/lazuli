@@ -359,3 +359,85 @@ button.day:hover {
 .month[data-compact="true"] .days {
   width: 100%;
 }
+
+/* The calendar owns the viewport; its toolbar is a single compact row. */
+.header {
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+}
+.header h1 {
+  font-size: var(--lz-text-h3);
+  white-space: nowrap;
+}
+.sample {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+  margin-left: auto;
+}
+.year {
+  gap: 0.25rem;
+  font-size: var(--lz-text-h3);
+  flex-shrink: 0;
+}
+.groupTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0.5rem 0 0;
+  font-size: var(--lz-text-h3);
+}
+.groupTitle small {
+  font-size: var(--lz-text-caption);
+  font-weight: normal;
+  color: var(--muted-foreground);
+}
+.page {
+  gap: 0.75rem;
+}
+@media (max-width: 639px) {
+  .header {
+    gap: 0.25rem;
+  }
+  .header h1 {
+    font-size: var(--lz-text-body);
+  }
+  .sample {
+    display: none;
+  }
+  .year {
+    margin-left: auto;
+    font-size: var(--lz-text-body);
+  }
+}
+.markers {
+  position: absolute;
+  bottom: 0.125rem;
+  display: flex;
+  gap: 0.125rem;
+}
+.markers i {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: var(--interactive);
+}
+.markers i[data-kind="holiday"] {
+  background: var(--warning);
+}
+.markers i[data-kind="event"] {
+  background: var(--info);
+}
+.day[data-kind="unknown"] {
+  color: var(--muted-foreground);
+}
+.titleShort {
+  display: none;
+}
+@media (max-width: 639px) {
+  .titleFull {
+    display: none;
+  }
+  .titleShort {
+    display: inline;
+  }
+}

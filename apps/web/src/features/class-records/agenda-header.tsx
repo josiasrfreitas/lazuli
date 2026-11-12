@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import type { ReactElement } from "react";
 import { Button } from "@lazuli/ui";
@@ -30,6 +31,9 @@ export function AgendaHeader({
     <header className={styles.pageHeader}>
       <div className={styles.pageIdentity}>
         <h1 className={styles.agendaTitle}>{title}</h1>
+        <Link href="/aulas?visao=academico" className="text-caption text-interactive">
+          Calendário acadêmico
+        </Link>
         <span className={styles.dateSubtitle}>
           {view === "semana" ? "Visão semanal" : "Visão diária"} · horários de São Paulo
         </span>

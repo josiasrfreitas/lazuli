@@ -3,11 +3,26 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Alert, Button, ScheduleCalendar } from "@lazuli/ui";
-import { MONTHS, WEEKDAYS, dayInfo, isoDay } from "./workshop-data";
+import { MONTHS, WEEKDAYS, dayInfo as sampleDayInfo, isoDay } from "./workshop-data";
+import { calendarDay, type AcademicYear, type DayInfo } from "./model";
+import type { ReactNode } from "react";
 import styles from "./workshop.module.css";
 
-export function AcademicCalendarWorkshop() {
-  const [year, setYear] = useState(2026);
+export function AcademicCalendarWorkshop({
+  data,
+  activeYear,
+  onYearChange,
+  actions,
+}: {
+  data?: AcademicYear;
+  activeYear?: number;
+  onYearChange?: (year: number) => void;
+  actions?: ReactNode;
+}) {
+  const [sampleYear, setSampleYear] = useState(2026);
+  const year = activeYear ?? sampleYear;
+  const setYear = onYearChange ?? setSampleYear;
+  const dayInfo = (date: string): DayInfo => (data ? calendarDay(date, data) : sampleDayInfo(date));
   const [month, setMonth] = useState<number | null>(null);
   const [date, setDate] = useState<string | null>(null);
   const [daily, setDaily] = useState(false);
@@ -28,17 +43,13 @@ export function AcademicCalendarWorkshop() {
   const displayed = month === null ? null : (date ?? isoDay(year, month, 1));
   return (
     <div ref={pageRef} className={styles.page}>
-      <div className={styles.workshop}>
-        <span>Estudo de layout · dados ilustrativos, sem alterações na escola</span>
-      </div>
       <header className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>Agenda</p>
-          <h1>Calendário acadêmico</h1>
-          <p className={styles.muted}>
-            Ano completo, organizado por semestre. Selecione um mês para consultar os dias.
-          </p>
-        </div>
+        <h1>
+          <span className={styles.titleFull}>Calendário acadêmico</span>
+          <span className={styles.titleShort}>Calendário</span>
+        </h1>
+        {!data && <span className={styles.sample}>Prévia · dados ilustrativos</span>}
+        {actions}
         <div className={styles.year}>
           <Button
             size="icon"
@@ -65,18 +76,21 @@ export function AcademicCalendarWorkshop() {
           </Button>
         </div>
       </header>
-      <div className={styles.periods}>
-        <span>
-          <strong>1º semestre</strong> 02 fev — 30 jun
-        </span>
-        <span>
-          <strong>Férias acadêmicas</strong> 01 jul — 02 ago
-        </span>
-        <span>
-          <strong>2º semestre</strong> 03 ago — 18 dez
-        </span>
-      </div>
-      <Legend />
+      {month === null && (
+        <Legend
+          kinds={
+            data
+              ? new Set(
+                  Array.from({ length: 366 }, (_, i) => {
+                    const date = new Date(Date.UTC(year, 0, i + 1)).toISOString().slice(0, 10);
+                    const info = dayInfo(date);
+                    return [info.kind, ...(info.markers ?? [])];
+                  }).flat(),
+                )
+              : undefined
+          }
+        />
+      )}
       {month === null ? (
         <div className={styles.overview} data-direction="semesters">
           <div className={styles.months} data-direction="semesters">
@@ -84,11 +98,34 @@ export function AcademicCalendarWorkshop() {
               <Fragment key={name}>
                 {index % 6 === 0 && (
                   <h2 className={styles.groupTitle}>
-                    {index === 0 ? "Primeiro semestre" : "Segundo semestre"}
+                    {index === 0 ? "1º semestre" : "2º semestre"}
+                    <small>
+                      {data
+                        ? data.periods
+                            .filter(
+                              (p) =>
+                                p.startDate.getUTCFullYear() === year &&
+                                (p.startDate.getUTCMonth() < 6 ? 0 : 6) === index,
+                            )
+                            .map(
+                              (p) =>
+                                `${p.startDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })} — ${p.endDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}`,
+                            )
+                            .join(" · ")
+                        : index === 0
+                          ? "02 fev — 30 jun"
+                          : "03 ago — 18 dez"}
+                    </small>
                   </h2>
                 )}
                 <div className={styles.monthBlock}>
-                  <MonthGrid year={year} month={index} compact onMonth={() => openMonth(index)} />
+                  <MonthGrid
+                    dayInfo={dayInfo}
+                    year={year}
+                    month={index}
+                    compact
+                    onMonth={() => openMonth(index)}
+                  />
                 </div>
               </Fragment>
             ))}
@@ -126,10 +163,22 @@ export function AcademicCalendarWorkshop() {
             </div>
           </div>
           {daily && displayed ? (
-            <DayView date={displayed} onDateChange={setDate} onBack={() => setDaily(false)} />
+            <DayView
+              dayInfo={dayInfo}
+              data={data}
+              date={displayed}
+              onDateChange={setDate}
+              onBack={() => setDaily(false)}
+            />
           ) : (
             <div className={styles.monthDetail} data-direction="semesters">
-              <MonthGrid year={year} month={month} selected={date} onDay={setDate} />
+              <MonthGrid
+                dayInfo={dayInfo}
+                year={year}
+                month={month}
+                selected={date}
+                onDay={setDate}
+              />
               <aside className={styles.aside}>
                 {date ? (
                   <>
@@ -155,7 +204,7 @@ export function AcademicCalendarWorkshop() {
                     </p>
                   </>
                 )}
-                {month === 8 && (
+                {!data && month === 8 && (
                   <div className={styles.dates}>
                     <h3>Neste mês</h3>
                     <Button variant="ghost" onClick={() => setDate(isoDay(year, 8, 7))}>
@@ -175,26 +224,28 @@ export function AcademicCalendarWorkshop() {
   );
 }
 
-function Legend() {
+function Legend({ kinds }: { kinds?: Set<string> }) {
   return (
     <div className={styles.legend} aria-label="Legenda do calendário">
       {[
-        ["academic", "Período acadêmico"],
         ["vacation", "Férias acadêmicas"],
         ["holiday", "Feriado / recesso"],
         ["boundary", "Início / fim do semestre"],
         ["event", "Evento"],
-      ].map(([kind, label]) => (
-        <span key={kind}>
-          <i data-kind={kind} aria-hidden="true" />
-          {label}
-        </span>
-      ))}
+      ]
+        .filter(([kind]) => !kinds || kinds.has(kind!))
+        .map(([kind, label]) => (
+          <span key={kind}>
+            <i data-kind={kind} aria-hidden="true" />
+            {label}
+          </span>
+        ))}
     </div>
   );
 }
 
 function MonthGrid({
+  dayInfo,
   year,
   month,
   compact = false,
@@ -202,6 +253,7 @@ function MonthGrid({
   onMonth,
   onDay,
 }: {
+  dayInfo: (date: string) => DayInfo;
   year: number;
   month: number;
   compact?: boolean;
@@ -230,8 +282,20 @@ function MonthGrid({
           const date = isoDay(year, month, i + 1);
           const info = dayInfo(date);
           return compact ? (
-            <span key={date} className={styles.day} data-kind={info.kind}>
+            <span
+              key={date}
+              className={styles.day}
+              data-kind={info.kind}
+              title={`${i + 1} de ${MONTHS[month]} · ${info.label}`}
+            >
               {i + 1}
+              {!!info.markers?.length && (
+                <span className={styles.markers} aria-hidden="true">
+                  {info.markers.map((kind) => (
+                    <i key={kind} data-kind={kind} />
+                  ))}
+                </span>
+              )}
             </span>
           ) : (
             <button
@@ -267,10 +331,14 @@ function MonthGrid({
 }
 
 function DayView({
+  dayInfo,
+  data,
   date,
   onDateChange,
   onBack,
 }: {
+  dayInfo: (date: string) => DayInfo;
+  data?: AcademicYear | undefined;
   date: string;
   onDateChange: (date: string) => void;
   onBack: () => void;
@@ -308,21 +376,50 @@ function DayView({
             view="day"
             onDateChange={onDateChange}
             onViewChange={() => undefined}
-            hours={{ start: "07:00", end: "22:00" }}
+            hours={data ? { start: "00:00", end: "24:00" } : { start: "07:00", end: "22:00" }}
             events={
-              info.kind === "event"
-                ? [
-                    {
-                      id: "workshop-cultural",
+              data
+                ? data.events
+                    .filter(
+                      (e) =>
+                        e.startsAt < new Date(`${date}T23:59:59-03:00`) &&
+                        e.endsAt > new Date(`${date}T00:00:00-03:00`),
+                    )
+                    .map((e) => ({
+                      id: e.id,
                       date,
-                      startTime: "18:00",
-                      endTime: "20:00",
-                      title: "Encontro cultural",
-                      subtitle: "Evento ilustrativo",
-                      tone: "info",
-                    },
-                  ]
-                : []
+                      title: e.title,
+                      startTime:
+                        e.startsAt < new Date(`${date}T00:00:00-03:00`)
+                          ? "00:00"
+                          : e.startsAt.toLocaleTimeString("pt-BR", {
+                              timeZone: "America/Sao_Paulo",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }),
+                      endTime:
+                        e.endsAt >= new Date(`${date}T23:59:59-03:00`)
+                          ? "24:00"
+                          : e.endsAt.toLocaleTimeString("pt-BR", {
+                              timeZone: "America/Sao_Paulo",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }),
+                      tone: "info" as const,
+                    }))
+                : info.kind === "event"
+                  ? [
+                      {
+                        id: "workshop-cultural",
+                        date,
+                        startTime: "18:00",
+                        endTime: "20:00",
+                        title: "Encontro cultural",
+                        subtitle: "Evento ilustrativo",
+                        tone: "info",
+                      },
+                    ]
+                  : []
             }
             widthBehavior="fit"
             emptyDisplay="grid"

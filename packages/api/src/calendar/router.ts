@@ -1,3 +1,4 @@
+import { academicCalendarRouter } from "./academic.js";
 import { recordActivity } from "../activity/record.js";
 import {
   addClosedDayInputSchema,
@@ -19,6 +20,7 @@ import {
 } from "./data.js";
 
 export const calendarRouter = router({
+  academic: academicCalendarRouter,
   createSemester: adminProcedure
     .input(createSemesterInputSchema)
     .mutation(async ({ ctx, input }) => {
