@@ -3,7 +3,7 @@
 ## Status
 
 Phase 2 of design-flow. Scope decisions confirmed in conversation on 2026-11-12;
-this brief awaits review before information architecture. Reuse existing tokens.
+brief approved by the user before information architecture. Reuse existing tokens.
 No product implementation or browser validation is claimed by this document.
 
 ## Problem
@@ -182,3 +182,12 @@ The interface never implies that academic recess determines administrative openi
 After brief confirmation: information architecture, including entry points, visual
 alternatives, period versus interruption states, impact preview, and edit/removal
 semantics. Then record reuse of tokens, derive tasks, and build in approved slices.
+
+## Phase 3 User Refinements
+
+The user selected an annual month-grid calendar with clickable month detail.
+Between-semester dates are labeled “Férias acadêmicas”. Regular lessons must stay
+within their assigned semester; independent appointments outside academic periods
+require an explicit exceptional-use confirmation. Registered suspensions remain
+distinct from vacations. Include lightweight important-date annotations, not a full
+events module. See INFORMATION_ARCHITECTURE.md for these superseding details.
