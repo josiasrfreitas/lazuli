@@ -1,3 +1,4 @@
+import { HOME_CHART_RESIZE_DELAY_MS } from "./chart-resize";
 import type { ReactElement } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { ArrowRight } from "lucide-react";
@@ -28,7 +29,12 @@ export function StudentAgeChart({
     <div className={styles.ages}>
       <div className={styles.donut}>
         <div className={styles.donutPlot} aria-hidden="true">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <ResponsiveContainer
+            debounce={HOME_CHART_RESIZE_DELAY_MS}
+            width="100%"
+            height="100%"
+            minWidth={0}
+          >
             <PieChart>
               <Pie
                 data={slices}
