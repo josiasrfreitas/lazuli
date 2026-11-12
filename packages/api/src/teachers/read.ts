@@ -66,6 +66,7 @@ export const teacherSelect = {
       cpf: true,
       departureDate: true,
       employmentType: true,
+      phone: true,
       weeklyHours: true,
       notes: true,
       vacationStart: true,

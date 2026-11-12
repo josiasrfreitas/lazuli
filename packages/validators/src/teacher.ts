@@ -27,6 +27,12 @@ const teacherFields = z
       .transform((value) => value.toLowerCase()),
     isEnabled: z.boolean().default(false),
     documentSessionId: id.optional(),
+    phone: z
+      .string()
+      .trim()
+      .transform((value) => value.replace(/\D/g, ""))
+      .refine((value) => !value || /^\d{10,11}$/.test(value), "Informe o telefone com DDD.")
+      .nullish(),
     employmentType: z.enum(["CLT", "PJ", "AUTONOMOUS", "OTHER"]).nullish(),
     weeklyHours: z
       .number()

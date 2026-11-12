@@ -589,6 +589,7 @@ model TeacherProfile {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   userId        String    @id @map("user_id") @db.Uuid
   cpf           String?   @unique @db.VarChar(11)
+  phone String?
   employmentType String? @map("employment_type") @db.VarChar(20)
   weeklyHours Float? @map("weekly_hours")
   notes String?

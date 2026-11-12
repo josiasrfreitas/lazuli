@@ -347,10 +347,11 @@ async function substitutionMeeting(input: SubstituteMeetingInput): Promise<Teach
 
 type ProfileData = Pick<
   Prisma.TeacherProfileUncheckedCreateInput,
-  "cpf" | "employmentType" | "weeklyHours" | "notes" | "vacationStart" | "vacationEnd"
+  "phone" | "cpf" | "employmentType" | "weeklyHours" | "notes" | "vacationStart" | "vacationEnd"
 >;
 function profileData(values: z.infer<typeof teacherCreateInputSchema>): ProfileData {
   const data: ProfileData = { cpf: values.cpf };
+  if (values.phone !== undefined) data.phone = values.phone || null;
   if (values.employmentType !== undefined) data.employmentType = values.employmentType;
   if (values.weeklyHours !== undefined) data.weeklyHours = values.weeklyHours;
   if (values.notes !== undefined) data.notes = values.notes;

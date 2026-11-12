@@ -18,6 +18,7 @@ const ISO_DATE_LENGTH = 10;
 export type TeacherDraft = {
   name: string;
   email: string;
+  phone: string;
   cpf: string;
   isEnabled: boolean;
   employmentType: "CLT" | "PJ" | "AUTONOMOUS" | "OTHER" | null;
@@ -146,10 +147,12 @@ function teacherDraft(teacher: Teacher | undefined): UseTeacherFormResult["draft
   return {
     name: teacher?.name ?? "",
     email: teacher?.email ?? "",
+    phone: teacher?.teacherProfile?.phone ?? "",
     cpf: teacher?.teacherProfile?.cpf ?? "",
     isEnabled: teacher?.isEnabled ?? false,
     employmentType:
-      (teacher?.teacherProfile?.employmentType as TeacherDraft["employmentType"]) ?? null,
+      (teacher?.teacherProfile?.employmentType as TeacherDraft["employmentType"]) ??
+      (teacher ? null : "CLT"),
     weeklyHours: teacher?.teacherProfile?.weeklyHours?.toString().replace(".", ",") ?? "",
     notes: teacher?.teacherProfile?.notes ?? "",
     vacationStart: displayDate(teacher?.teacherProfile?.vacationStart),

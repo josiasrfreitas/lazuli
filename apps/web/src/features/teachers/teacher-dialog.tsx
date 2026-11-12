@@ -28,6 +28,7 @@ import {
   Label,
   Switch,
 } from "@lazuli/ui";
+import { maskPhoneBR } from "~/lib/masks";
 import { PersonDocumentField } from "~/components/person-document-field";
 import { TeacherEmploymentFields } from "./teacher-employment-fields";
 import type { TeacherDraft } from "./teacher-form";
@@ -77,7 +78,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={`enrollment-dialog-motion ${styles.dialog} ${panelVisible ? "md:max-w-6xl" : "md:max-w-3xl"}`}
+          className={`enrollment-dialog-motion ${styles.dialog} ${panelVisible ? "md:max-w-6xl" : "md:max-w-2xl"}`}
           data-resizing={resizing}
         >
           <div className="flex items-center gap-3">
@@ -214,13 +215,21 @@ type TeacherContactFieldsProps = {
 function TeacherContactFields(props: TeacherContactFieldsProps): ReactElement {
   return (
     <>
-      <PersonDocumentField
-        requiredCpf
-        name="cpf"
-        value={props.draft.cpf}
-        error={props.errors.cpf}
-        onChange={(document) => props.change("cpf", document.documentNumber)}
-      />
+      <Field>
+        <Label htmlFor="teacher-phone">Telefone</Label>
+        <Input
+          id="teacher-phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          placeholder="(00) 00000-0000"
+          size="compact-responsive"
+          value={props.draft.phone}
+          invalid={Boolean(props.errors.phone)}
+          onChange={(event) => props.change("phone", maskPhoneBR(event.target.value))}
+        />
+        {props.errors.phone && <FieldError match>{props.errors.phone}</FieldError>}
+      </Field>
       <Field>
         <Label htmlFor="teacher-email">E-mail</Label>
         <Input
@@ -265,6 +274,15 @@ function TeacherIdentityFields(props: TeacherIdentityFieldsProps): ReactElement 
           />
           {props.errors.name && <FieldError match>{props.errors.name}</FieldError>}
         </Field>
+        <PersonDocumentField
+          requiredCpf
+          name="cpf"
+          value={props.draft.cpf}
+          error={props.errors.cpf}
+          onChange={(document) => props.change("cpf", document.documentNumber)}
+        />
+      </div>
+      <div className={styles.personalRow}>
         <TeacherContactFields draft={props.draft} errors={props.errors} change={props.change} />
       </div>
     </FormSection>
