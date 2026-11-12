@@ -1,3 +1,4 @@
+import { academicDayPolicy } from "../calendar/academic-day.js";
 import { requireCurrentEnrollment } from "../enrollment/require-current.js";
 import type { Prisma } from "@lazuli/db";
 import { intervalsOverlap, sessionEndInstant } from "@lazuli/domain";
@@ -52,6 +53,26 @@ export async function resolveAppointmentMeeting(
     startTime: timeOnly(values.startTime),
     endTime: timeOnly(values.endTime),
   };
+  if (input.meeting.kind === "INDEPENDENT") {
+    const policy = await academicDayPolicy(database, date);
+    if (policy.suspension)
+      throw badRequest(`Sem atividades acadêmicas nesta data: ${policy.suspension}.`);
+    if (policy.outsidePeriod && input.meeting.academicExceptionDate !== date)
+      throw badRequest(
+        "Atendimento fora do período acadêmico. Confirme o atendimento extra para esta data.",
+      );
+  } else if (session) {
+    const period = await database.period.findFirst({
+      where: {
+        deletedAt: null,
+        classes: { some: { id: session.classId } },
+        startDate: { lte: session.date },
+        endDate: { gte: session.date },
+      },
+      select: { id: true },
+    });
+    if (!period) throw badRequest("A aula de destino está fora do semestre da turma.");
+  }
   await assertAppointmentSlot(context, {
     values: { ...values, teacherId: values.teacherId },
     session,
@@ -120,7 +141,7 @@ async function assertAppointmentSlot(
   const closed = await database.schoolClosedDay.findFirst({
     where: { date: values.date, deletedAt: null },
   });
-  if (closed) throw badRequest(`A escola está fechada nesta data: ${closed.reason}.`);
+  if (closed) throw badRequest(`Sem atividades acadêmicas nesta data: ${closed.reason}.`);
   await assertTeacherEligible({ database, teacherId: values.teacherId, date });
   await assertNoTeacherConflict({
     database,

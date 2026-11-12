@@ -1,5 +1,6 @@
 "use client";
 
+import { AcademicExceptionDialog } from "~/features/appointments/academic-exception-dialog";
 import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarCheck } from "lucide-react";
 import { ToastAlert, Button } from "@lazuli/ui";
@@ -45,26 +46,29 @@ export function StudentAgendaScheduling({
     <ScheduleSidebar model={model} fields={fields} onClose={finish} />
   );
   return (
-    <form
-      id="student-agenda-schedule"
-      className={styles.scheduleForm}
-      data-presentation="sidebar"
-      data-closing={closing || undefined}
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        model.submission.submit();
-      }}
-    >
-      {meeting ? (
-        <ScheduleMeetingStep model={model} actions={null} renderSidebar={sidebar} />
-      ) : (
-        <div className={styles.workspace}>
-          <div className={styles.browseCalendar}>{calendar}</div>
-          {sidebar()}
-        </div>
-      )}
-    </form>
+    <>
+      <AcademicExceptionDialog model={model} />
+      <form
+        id="student-agenda-schedule"
+        className={styles.scheduleForm}
+        data-presentation="sidebar"
+        data-closing={closing || undefined}
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          model.submission.submit();
+        }}
+      >
+        {meeting ? (
+          <ScheduleMeetingStep model={model} actions={null} renderSidebar={sidebar} />
+        ) : (
+          <div className={styles.workspace}>
+            <div className={styles.browseCalendar}>{calendar}</div>
+            {sidebar()}
+          </div>
+        )}
+      </form>
+    </>
   );
 }
 
