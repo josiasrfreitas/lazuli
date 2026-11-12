@@ -91,9 +91,11 @@
   min-width: 0;
 }
 
-.panelMotion {
+.panelMotion.panelMotion {
   width: auto;
   min-height: 0;
   padding: 0;
+  border: 0;
+  background: transparent;
   overflow: auto;
 }
