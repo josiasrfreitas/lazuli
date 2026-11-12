@@ -132,6 +132,7 @@ function CaptureBody({
         <CapturePreviews pages={state.pages} document={document} />
       )}
       <CaptureFilePicker state={state} document={document} camera={camera} />
+      {state.error && <p role="alert">{state.error}</p>}
       <CaptureActions state={state} document={document} />
     </>
   );

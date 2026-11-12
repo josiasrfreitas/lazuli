@@ -1,3 +1,4 @@
+import { BriefcaseBusiness, CalendarDays } from "lucide-react";
 import type { ReactElement } from "react";
 import {
   Field,
@@ -26,7 +27,14 @@ export function TeacherEmploymentFields({
   change,
 }: TeacherFieldProps): ReactElement {
   return (
-    <FormSection title="Contratação">
+    <FormSection
+      title={
+        <span className="flex items-center gap-2">
+          <BriefcaseBusiness className="size-4" aria-hidden="true" />
+          Contratação
+        </span>
+      }
+    >
       <div className={styles.contractRow}>
         <Field>
           <Label id="teacher-employment-label">Tipo de vínculo</Label>
@@ -66,7 +74,12 @@ export function TeacherEmploymentFields({
       </div>
       {draft.employmentType === "CLT" && (
         <FormSection
-          title="Previsão de férias"
+          title={
+            <span className="flex items-center gap-2">
+              <CalendarDays className="size-4" aria-hidden="true" />
+              Previsão de férias
+            </span>
+          }
           description="Opcional. O período informado não altera a agenda de aulas."
         >
           <FormRow columns={2}>

@@ -99,3 +99,12 @@
   background: transparent;
   overflow: auto;
 }
+
+.dialog :global([data-slot="form-section"]) {
+  gap: 0.5rem;
+}
+@media (min-width: 901px) {
+  .dialog {
+    max-height: calc(100dvh - 2rem);
+  }
+}

@@ -34,7 +34,7 @@ import { TeacherEmploymentFields } from "./teacher-employment-fields";
 import type { TeacherDraft } from "./teacher-form";
 import { useTeacherForm } from "./teacher-form";
 
-import { Camera, Paperclip } from "lucide-react";
+import { Camera, Paperclip, UserRound, KeyRound } from "lucide-react";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
 import styles from "./teacher-form.module.css";
@@ -257,7 +257,14 @@ type TeacherIdentityFieldsProps = {
 };
 function TeacherIdentityFields(props: TeacherIdentityFieldsProps): ReactElement {
   return (
-    <FormSection title="Dados do professor">
+    <FormSection
+      title={
+        <span className="flex items-center gap-2">
+          <UserRound className="size-4" aria-hidden="true" />
+          Dados do professor
+        </span>
+      }
+    >
       <div className={styles.personalRow}>
         <Field>
           <Label htmlFor="teacher-name">Nome completo</Label>
@@ -302,8 +309,8 @@ type TeacherFormBodyProps = {
 };
 function TeacherFormBody(props: TeacherFormBodyProps): ReactElement {
   return (
-    <DialogBody ref={props.body} className="my-3">
-      <form id="teacher-form" noValidate onSubmit={props.submit} className="grid gap-4">
+    <DialogBody ref={props.body} className="my-2">
+      <form id="teacher-form" noValidate onSubmit={props.submit} className="grid gap-3">
         <TeacherIdentityFields
           first={props.first}
           draft={props.draft}
@@ -312,7 +319,12 @@ function TeacherFormBody(props: TeacherFormBodyProps): ReactElement {
         />
         <TeacherEmploymentFields draft={props.draft} errors={props.errors} change={props.change} />
         <FormSection
-          title="Acesso ao sistema"
+          title={
+            <span className="flex items-center gap-2">
+              <KeyRound className="size-4" aria-hidden="true" />
+              Acesso ao sistema
+            </span>
+          }
           description="O professor pode receber turmas e substituições mesmo sem acesso."
         >
           <Field className="flex items-center gap-3">

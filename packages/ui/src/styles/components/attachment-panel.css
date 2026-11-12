@@ -77,3 +77,17 @@
     display: none;
   }
 }
+
+.attachment-panel {
+  container-type: inline-size;
+}
+@container (max-width: 360px) {
+  .attachment-panel__row:has(.attachment-panel__actions > :nth-child(2)) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .attachment-panel__row:has(.attachment-panel__actions > :nth-child(2))
+    > .attachment-panel__actions {
+    justify-content: flex-end;
+  }
+}
