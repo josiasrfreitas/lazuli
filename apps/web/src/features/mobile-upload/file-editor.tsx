@@ -1,8 +1,14 @@
 "use client";
 import { useRef, useState, type FormEvent, type ReactElement } from "react";
 import { Button, Field, FieldError, FileUpload, Input, Label, ToastAlert } from "@lazuli/ui";
-export type MobileFileInput = { kind: string; label: string; file: File };
-export type UploadCategory = { id: string; label: string; photo?: boolean; customLabel?: boolean };
+export type MobileFileInput = { kind: string; label: string; subtitle?: string; file: File };
+export type UploadCategory = {
+  id: string;
+  label: string;
+  subtitle?: string;
+  photo?: boolean;
+  customLabel?: boolean;
+};
 export function MobileFileEditor({
   category,
   onSend,
@@ -38,7 +44,12 @@ export function MobileFileEditor({
     onBusyChange?.(true);
     setError("");
     try {
-      await onSend({ kind: category.id, label: label.trim(), file });
+      await onSend({
+        kind: category.id,
+        label: label.trim(),
+        ...(category.subtitle ? { subtitle: category.subtitle } : {}),
+        file,
+      });
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "Não foi possível enviar. Tente novamente.",

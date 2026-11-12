@@ -22,7 +22,15 @@ export const studentDocumentsRouter = router({
           deletedAt: null,
           session: { studentId: input.studentId, student: { deletedAt: null } },
         },
-        select: { id: true, kind: true, status: true, updatedAt: true, key: true },
+        select: {
+          id: true,
+          kind: true,
+          title: true,
+          subtitle: true,
+          status: true,
+          updatedAt: true,
+          key: true,
+        },
         orderBy: { updatedAt: "desc" },
       });
       return files.map(({ key, ...file }) => ({ ...file, format: documentFormat(key) }));
@@ -107,6 +115,8 @@ export const studentDocumentsRouter = router({
           id: true,
           sessionId: true,
           kind: true,
+          title: true,
+          subtitle: true,
           status: true,
           extraction: true,
           updatedAt: true,

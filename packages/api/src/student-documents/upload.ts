@@ -39,6 +39,8 @@ export async function storeDocument(
     sessionId: string;
     tokenHash: string;
     kind: string;
+    title?: string;
+    subtitle?: string;
     bytes: Uint8Array;
     contentType?: typeof JPEG | typeof PDF;
   },
@@ -62,7 +64,11 @@ export async function storeDocument(
       const previous = await transaction.studentDocumentFile.findUnique({ where });
       if (previous && !previous.deletedAt && ["RECEIVED", "PROCESSING"].includes(previous.status))
         throw new Error("BUSY");
-      const data = documentData(reference, { ...input, contentType });
+      const data = {
+        ...documentData(reference, { ...input, contentType }),
+        ...(input.title ? { title: input.title } : {}),
+        ...(input.subtitle !== undefined ? { subtitle: input.subtitle } : {}),
+      };
       const file = await transaction.studentDocumentFile.upsert({
         where,
         create: { ...data, sessionId: input.sessionId, kind: input.kind },

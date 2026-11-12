@@ -2253,6 +2253,8 @@ model StudentDocumentSession {
 }
 
 model StudentDocumentFile {
+  title String? @db.VarChar(100)
+  subtitle String? @db.VarChar(240)
   deletedAt DateTime? @db.Timestamptz
   id String @id @default(uuid()) @db.Uuid
   sessionId String @db.Uuid
@@ -2284,6 +2286,7 @@ model StudentHealthPending {
 }
 
 model TeacherFile {
+  subtitle String? @db.VarChar(240)
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz

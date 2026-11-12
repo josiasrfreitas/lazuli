@@ -1,3 +1,4 @@
+import { z } from "@lazuli/validators";
 import { getStorage } from "@lazuli/storage";
 import { enqueueStudentDocument } from "@lazuli/integrations/hatchet";
 import type { Context } from "../trpc/context.js";
@@ -35,7 +36,8 @@ export async function studentDocumentCapture(
   const session = await captureSession(ctx, request);
   if (!session) return json({ code: "EXPIRED" }, HTTP.gone);
   if (request.method === "GET" && !kind) return readCaptureStatus(ctx, session.id);
-  if (!kind || !KINDS.has(kind)) return json({ code: "NOT_FOUND" }, HTTP.notFound);
+  if (!kind || (!KINDS.has(kind) && !/^custom_[0-9a-f-]{36}$/.test(kind)))
+    return json({ code: "NOT_FOUND" }, HTTP.notFound);
   switch (request.method) {
     case "DELETE": {
       return deleteCapture(ctx, { sessionId: session.id, kind });
@@ -108,7 +110,18 @@ async function uploadCapture(
     return json({ code: "INVALID_IMAGE" }, HTTP.badRequest);
   }
   try {
+    const metadata = z
+      .object({ title: z.string().trim().min(1).max(100), subtitle: z.string().trim().max(240) })
+      .parse(
+        JSON.parse(
+          decodeURIComponent(
+            request.headers.get("x-document-metadata") ??
+              "%7B%22title%22%3A%22Documento%22%2C%22subtitle%22%3A%22%22%7D",
+          ),
+        ),
+      );
     const file = await storeDocument(ctx.db, {
+      ...metadata,
       sessionId: session.id,
       tokenHash: session.tokenHash,
       kind,

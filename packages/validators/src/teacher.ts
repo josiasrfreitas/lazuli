@@ -75,6 +75,7 @@ export const teacherFileUploadSchema = z
   .object({
     teacherId: id,
     kind: z.enum(["PHOTO", "ID", "CONTRACT", "OTHER"]),
+    subtitle: z.string().trim().max(240).optional(),
     label: z.string().trim().min(1, "Informe o nome do documento.").max(100),
     fileName: z.string().trim().min(1).max(255),
     contentType: z.enum(["application/pdf", "image/jpeg", "image/png"]),

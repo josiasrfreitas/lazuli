@@ -1,12 +1,19 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { ArrowLeft, FileText, Plus, QrCode, X } from "lucide-react";
-import { Button, ToastAlert } from "@lazuli/ui";
+import { ExternalLink, X } from "lucide-react";
+import {
+  AttachmentPanel,
+  AttachmentRow,
+  AttachmentUploadRow,
+  AttachmentAdd,
+  Button,
+  ToastAlert,
+} from "@lazuli/ui";
 import { MobileUploadLink } from "~/features/mobile-upload/session-link";
-import { MobileFileEditor, type UploadCategory } from "~/features/mobile-upload/file-editor";
+import { type UploadCategory } from "~/features/mobile-upload/file-editor";
 import type { TeacherDocuments } from "./use-teacher-documents";
 import { TEACHER_UPLOAD_CATEGORIES } from "./upload-categories";
-import styles from "./teacher-form.module.css";
+
 export function TeacherDocumentPanel({
   documents,
   onClose,
@@ -14,8 +21,8 @@ export function TeacherDocumentPanel({
   documents: TeacherDocuments;
   onClose?: () => void;
 }): ReactElement {
-  const [selection, setSelection] = useState<UploadCategory | null>(null);
   const [qr, setQr] = useState(false);
+  const [extras, setExtras] = useState<UploadCategory[]>([]);
   const [error, setError] = useState("");
   const [removing, setRemoving] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -32,54 +39,19 @@ export function TeacherDocumentPanel({
     }
   }
   return (
-    <aside className={styles.documents} aria-label="Anexos do professor">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-h3">{selection?.label ?? (qr ? "Enviar pelo celular" : "Anexos")}</h2>
-        <div className="flex gap-1">
-          {!qr && !selection && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Enviar pelo celular"
-              disabled={documents.busy}
-              onClick={() => void openQr()}
-            >
-              <QrCode />
-            </Button>
-          )}
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Fechar anexos"
-              disabled={documents.busy}
-              onClick={onClose}
-            >
-              <X />
-            </Button>
-          )}
-        </div>
-      </div>
-      {!qr && !selection && documents.files.some((file) => file.kind === "PHOTO") && (
-        <img
-          className={styles.photo}
-          src={`/api/teacher-files/${documents.files.find((file) => file.kind === "PHOTO")?.id}`}
-          alt="Foto do professor"
-        />
-      )}
-      {(qr || selection) && (
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={documents.busy}
-          onClick={() => {
-            setQr(false);
-            setSelection(null);
-          }}
-        >
-          <ArrowLeft /> Voltar aos anexos
-        </Button>
-      )}
+    <AttachmentPanel
+      title={qr ? "Enviar pelo celular" : "Anexos do professor"}
+      busy={documents.busy}
+      onClose={onClose}
+      onBack={
+        qr
+          ? () => {
+              setQr(false);
+            }
+          : undefined
+      }
+      onMobile={() => void openQr()}
+    >
       {qr ? (
         <>
           <p className="text-caption text-muted-foreground">
@@ -106,70 +78,14 @@ export function TeacherDocumentPanel({
               : "Aguardando os arquivos…"}
           </p>
         </>
-      ) : selection ? (
-        <MobileFileEditor
-          key={selection.id}
-          category={selection}
-          onBack={() => setSelection(null)}
-          onBusyChange={documents.setBusy}
-          onSend={async (input) => {
-            await documents.send(input);
-            setSelection(null);
-          }}
-        />
       ) : (
         <>
-          <p className="text-caption text-muted-foreground">
-            Envie pelo computador ou use a câmera do celular.
-          </p>
-          <ul className="divide-y">
-            {TEACHER_UPLOAD_CATEGORIES.map((category) => (
-              <li className={styles.documentRow} key={category.id}>
-                <div>
-                  <strong className="text-control">{category.label}</strong>
-                  <small className="block text-caption text-muted-foreground">
-                    {documents.files.filter((file) => file.kind === category.id).length
-                      ? "Arquivo recebido"
-                      : category.customLabel
-                        ? "Nome livre para novos anexos"
-                        : "Opcional"}
-                  </small>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="icon-sm"
-                  aria-label={`Anexar ${category.label}`}
-                  onClick={() => setSelection(category)}
-                >
-                  <Plus />
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {documents.files.length > 0 && (
-            <ul className="divide-y">
-              {documents.files.map((file) => (
-                <li className={styles.documentRow} key={file.id}>
-                  <a
-                    className="min-w-0 break-words text-caption underline"
-                    href={`/api/teacher-files/${file.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <FileText className="inline size-3" /> {file.label}
-                  </a>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Remover ${file.label}`}
-                    onClick={() => setRemoving(file.id)}
-                  >
-                    <X />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <TeacherAttachmentList
+            extras={extras}
+            setExtras={setExtras}
+            documents={documents}
+            onRemove={setRemoving}
+          />
         </>
       )}
       {removing && (
@@ -214,6 +130,105 @@ export function TeacherDocumentPanel({
       {(error || documents.error) && (
         <ToastAlert variant="destructive">{error || documents.error}</ToastAlert>
       )}
-    </aside>
+    </AttachmentPanel>
+  );
+}
+
+function TeacherAttachmentList({
+  documents,
+  onRemove,
+  extras,
+  setExtras,
+}: {
+  extras: UploadCategory[];
+  setExtras: import("react").Dispatch<import("react").SetStateAction<UploadCategory[]>>;
+  documents: TeacherDocuments;
+  onRemove: (id: string) => void;
+}) {
+  const [error, setError] = useState("");
+  const categories = TEACHER_UPLOAD_CATEGORIES.filter((category) => category.id !== "OTHER");
+  async function send(category: UploadCategory, file: File) {
+    documents.setBusy(true);
+    setError("");
+    try {
+      await documents.send({
+        kind: category.id,
+        label: category.label,
+        ...(category.subtitle ? { subtitle: category.subtitle } : {}),
+        file,
+      });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Não foi possível enviar.");
+    } finally {
+      documents.setBusy(false);
+    }
+  }
+  const row = (category: UploadCategory, key: string) => (
+    <AttachmentUploadRow
+      key={key}
+      title={category.label}
+      subtitle={category.subtitle}
+      disabled={documents.busy}
+      accept={category.photo ? "image/jpeg,image/png" : "image/jpeg,image/png,application/pdf"}
+      acceptLabel={category.photo ? "JPG ou PNG" : "JPG, PNG ou PDF"}
+      maxSize={5242880}
+      onFile={(file) => void send(category, file)}
+    />
+  );
+  return (
+    <>
+      <ul>
+        {categories.map((category) =>
+          row(
+            {
+              ...category,
+              subtitle: category.photo
+                ? "Uma foto de rosto, nítida e bem iluminada"
+                : category.id === "ID"
+                  ? "RG ou CIN · frente e verso"
+                  : "Documento do vínculo com a escola",
+            },
+            category.id,
+          ),
+        )}
+        {documents.files.map((file) => (
+          <AttachmentRow key={file.id} title={file.label} subtitle={file.subtitle ?? file.fileName}>
+            <a
+              href={`/api/teacher-files/${file.id}`}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Abrir ${file.label}`}
+            >
+              <ExternalLink className="size-4" />
+            </a>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Remover ${file.label}`}
+              onClick={() => onRemove(file.id)}
+            >
+              <X />
+            </Button>
+          </AttachmentRow>
+        ))}
+        {extras
+          .filter(
+            (item) =>
+              !documents.files.some(
+                (file) =>
+                  file.label === item.label && (file.subtitle ?? "") === (item.subtitle ?? ""),
+              ),
+          )
+          .map((item, index) => row(item, `extra-${index}`))}
+      </ul>
+      <AttachmentAdd
+        disabled={documents.busy}
+        onAdd={({ title, subtitle }) =>
+          setExtras((previous) => [...previous, { id: "OTHER", label: title, subtitle }])
+        }
+      />
+      {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
+    </>
   );
 }

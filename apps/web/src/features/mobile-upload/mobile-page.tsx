@@ -36,6 +36,7 @@ export async function sendCapture(
         JSON.stringify({
           kind: input.kind,
           label: input.label,
+          subtitle: input.subtitle,
           fileName: input.file.name,
           contentType: input.file.type,
           byteLength: input.file.size,

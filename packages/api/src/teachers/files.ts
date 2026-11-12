@@ -7,7 +7,14 @@ import { proofBytes, requireSameOrigin } from "../finance/payment-proof-transpor
 import { readTeacher } from "./read.js";
 
 const HEADERS = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
-const fileSelect = { id: true, kind: true, label: true, fileName: true, createdAt: true } as const;
+const fileSelect = {
+  id: true,
+  kind: true,
+  label: true,
+  subtitle: true,
+  fileName: true,
+  createdAt: true,
+} as const;
 function requireAdmin(ctx: Context): void {
   if (!ctx.staffUser || !["ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
     throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito à administração." });

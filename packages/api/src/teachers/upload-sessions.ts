@@ -11,7 +11,14 @@ import { readTeacher } from "./read.js";
 const SESSION_MS = 60 * 60 * 1000;
 const hash = (token: string): string => createHash("sha256").update(token).digest("hex");
 const sessionIdSchema = z.object({ id: z.string().uuid() }).strict();
-const fileSelect = { id: true, kind: true, label: true, fileName: true, createdAt: true } as const;
+const fileSelect = {
+  id: true,
+  kind: true,
+  label: true,
+  subtitle: true,
+  fileName: true,
+  createdAt: true,
+} as const;
 const HEADERS = {
   "Cache-Control": "private, no-store",
   "Referrer-Policy": "no-referrer",

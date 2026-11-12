@@ -90,3 +90,16 @@ teacher files are visible only to administration, not to a phone session created
 
 Teacher registration lives under `secao=cadastro`. Its document panel is also available in the
 create/edit dialog. The overview remains the agenda and linked classes.
+
+## Registration attachment panels
+
+`AttachmentPanel`, `AttachmentUploadRow`, `AttachmentRow`, and `AttachmentAdd` are exported
+by `@lazuli/ui`, with the interactive `Components/AttachmentPanel` Storybook example.
+Student intake and teacher registration use the same dark surface, compact header navigation,
+vertical document list, and inline title/subtitle entry. The back action stays beside the heading.
+Each upload row is a dashed drop target built on `FileUpload`: dropping and clicking use identical
+format, size, disabled, and error behavior. Consumers supply upload adapters and review content;
+the design system has no knowledge of storage, OCR, sessions, or authentication.
+Custom student attachments have independent identifiers and persisted title/subtitle metadata.
+Only the standard identity categories trigger extraction. Teacher attachments retain their
+existing categories and persist the subtitle alongside the label.
