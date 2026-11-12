@@ -79,3 +79,21 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.dialog {
+  overflow: hidden;
+}
+.dialog[data-resizing="true"] .layout,
+.dialog[data-resizing="true"] .layout > * {
+  overflow: hidden;
+}
+.layout > * {
+  min-width: 0;
+}
+
+.panelMotion {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  overflow: auto;
+}

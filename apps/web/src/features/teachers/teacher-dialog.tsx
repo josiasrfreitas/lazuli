@@ -1,5 +1,12 @@
 "use client";
-import { useRef, useState, type FormEvent, type RefObject, type ReactElement } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type RefObject,
+  type ReactElement,
+} from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
   ToastAlert,
@@ -30,6 +37,7 @@ import { Camera, Paperclip } from "lucide-react";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
 import styles from "./teacher-form.module.css";
+import documentStyles from "~/features/student-documents/documents.module.css";
 type Teacher = RouterOutputs["teachers"]["byId"];
 export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactElement {
   const documents = useTeacherDocuments(teacher?.id);
@@ -37,6 +45,22 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
   const [photoError, setPhotoError] = useState("");
   const photo = documents.files.find((file) => file.kind === "PHOTO");
   const [attachments, setAttachments] = useState(false);
+  const [panelPresent, setPanelPresent] = useState(false);
+  const [resizing, setResizing] = useState(false);
+  useEffect(() => {
+    if (attachments) setPanelPresent(true);
+    else {
+      const timer = setTimeout(() => setPanelPresent(false), 160);
+      return () => clearTimeout(timer);
+    }
+  }, [attachments]);
+  useEffect(() => {
+    setResizing(true);
+    const timer = setTimeout(() => setResizing(false), 240);
+    return () => clearTimeout(timer);
+  }, [attachments, panelPresent]);
+  const panelVisible = attachments || panelPresent;
+
   const { departed, draft, errors, failure, body, first, pending, change, submit } = useTeacherForm(
     teacher,
     onClose,
@@ -53,7 +77,8 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={attachments ? "md:max-w-6xl" : "md:max-w-3xl"}
+          className={`enrollment-dialog-motion ${styles.dialog} ${panelVisible ? "md:max-w-6xl" : "md:max-w-3xl"}`}
+          data-resizing={resizing}
         >
           <div className="flex items-center gap-3">
             <Button
@@ -112,7 +137,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
             </Button>
           </div>
           {photoError && <ToastAlert variant="destructive">{photoError}</ToastAlert>}
-          <div className={styles.layout} data-documents={attachments}>
+          <div className={styles.layout} data-documents={panelVisible}>
             <TeacherFormBody
               body={body}
               submit={(event) => {
@@ -127,8 +152,14 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
               pending={pending || documents.busy}
               failure={failure}
             />
-            {attachments && (
-              <TeacherDocumentPanel documents={documents} onClose={() => setAttachments(false)} />
+            {panelVisible && (
+              <div
+                className={`${documentStyles.sidePanel} ${styles.panelMotion}`}
+                data-open={attachments}
+                inert={!attachments}
+              >
+                <TeacherDocumentPanel documents={documents} onClose={() => setAttachments(false)} />
+              </div>
             )}
           </div>
           <TeacherFormFooter
