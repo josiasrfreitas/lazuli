@@ -1,3 +1,6 @@
+import { calendarPlanWarnings } from "./follow-up.js";
+import { holidaySuggestions } from "./holidays.js";
+import { calendarChangesRouter } from "./changes.js";
 import { z } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 import { adminProcedure, router } from "../trpc/init.js";
@@ -23,15 +26,24 @@ const eventInput = z
   });
 
 export const academicCalendarRouter = router({
+  changes: calendarChangesRouter,
+  holidays: adminProcedure
+    .input(
+      z.object({
+        year: z.number().int().min(2000).max(2100),
+        state: z.string().regex(/^$|^[A-Z]{2}$/),
+      }),
+    )
+    .query(({ input }) => holidaySuggestions(input.year, input.state)),
   year: adminProcedure
     .input(z.object({ year: z.number().int().min(2000).max(2100) }))
     .query(async ({ ctx, input }) => {
       const from = new Date(`${input.year}-01-01T00:00:00-03:00`);
       const through = new Date(`${input.year + 1}-01-01T00:00:00-03:00`);
-      const [periods, closedDays, events] = await Promise.all([
+      const [periods, closedDays, events, interruptions, requests] = await Promise.all([
         ctx.db.period.findMany({
           where: { deletedAt: null },
-          select: { id: true, name: true, startDate: true, endDate: true },
+          select: { id: true, name: true, startDate: true, endDate: true, updatedAt: true },
           orderBy: { startDate: "asc" },
         }),
         ctx.db.schoolClosedDay.findMany({
@@ -57,8 +69,47 @@ export const academicCalendarRouter = router({
           },
           orderBy: { startsAt: "asc" },
         }),
+        ctx.db.academicInterruption.findMany({
+          where: {
+            deletedAt: null,
+            fromDate: { lt: through },
+            throughDate: { gte: new Date(`${input.year}-01-01T00:00:00Z`) },
+          },
+          orderBy: { fromDate: "asc" },
+        }),
+        ctx.db.calendarReconciliationRequest.findMany({
+          where: {
+            deletedAt: null,
+            fromDate: { lt: through },
+            throughDate: { gte: new Date(`${input.year}-01-01T00:00:00Z`) },
+            OR: [
+              { status: { not: "SUCCEEDED" } },
+              { completedAt: { gte: new Date((ctx.now ?? new Date()).getTime() - 600000) } },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            reason: true,
+            startedAt: true,
+            createdAt: true,
+            completedAt: true,
+            cancelledSessions: true,
+            cancelledAppointments: true,
+            cancelledVisits: true,
+            generatedSessions: true,
+          },
+        }),
       ]);
-      return { periods, closedDays, events };
+      return {
+        periods,
+        closedDays,
+        events,
+        interruptions,
+        requests,
+        planWarnings: await calendarPlanWarnings(ctx.db, input.year),
+      };
     }),
   saveEvent: adminProcedure.input(eventInput).mutation(async ({ ctx, input }) => {
     const data = {

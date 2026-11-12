@@ -159,6 +159,8 @@ model User {
   substitutionsRecorded         ClassSubstitution[] @relation("ClassSubstitutionRecorder")
   substitutionsRevoked          ClassSubstitution[] @relation("ClassSubstitutionRevoker")
   closedDays                    SchoolClosedDay[]       @relation("SchoolClosedDayCreator")
+  academicInterruptions AcademicInterruption[]
+  calendarReconciliationRequests CalendarReconciliationRequest[]
   attendanceConfirmedSessions   ClassSession[]          @relation("ClassSessionAttendanceConfirmer")
   cancelledClassSessions        ClassSession[]          @relation("ClassSessionCanceller")
   attendanceRecords             Attendance[]            @relation("AttendanceRecorder")
@@ -364,6 +366,7 @@ model Period {
   endDate   DateTime  @map("end_date") @db.Date
   classes Class[]
   sessionGenerationRequests SessionGenerationRequest[]
+  calendarReconciliationRequests CalendarReconciliationRequest[]
   classPlans SemesterClassPlan[]
   placements SemesterPlacement[]
 
@@ -391,11 +394,70 @@ model SchoolClosedDay {
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
   date        DateTime  @unique @db.Date
   reason      String
+  calendarManaged Boolean @default(false) @map("calendar_managed")
   createdById String?   @map("created_by_id") @db.Uuid
 
   createdBy User? @relation("SchoolClosedDayCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([createdById])
+}
+
+enum AcademicInterruptionKind {
+  HOLIDAY
+  RECESS
+  MAINTENANCE
+  OTHER
+}
+
+/// School-wide suspension of academic activities, independent of administrative opening hours.
+model AcademicInterruption {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  fromDate DateTime @map("from_date") @db.Date
+  throughDate DateTime @map("through_date") @db.Date
+  kind AcademicInterruptionKind
+  title String
+  description String?
+  sourceKey String? @unique @map("source_key")
+  createdById String? @map("created_by_id") @db.Uuid
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  @@index([fromDate, throughDate])
+  @@index([createdById])
+}
+
+enum CalendarReconciliationStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+/// Durable work request. Calendar writes take effect immediately; the worker reconciles future records.
+model CalendarReconciliationRequest {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  fromDate DateTime @map("from_date") @db.Date
+  throughDate DateTime @map("through_date") @db.Date
+  semesterId String? @map("semester_id") @db.Uuid
+  reason String
+  confirmationFingerprint String? @map("confirmation_fingerprint") @db.VarChar(64)
+  semester Period? @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  requestedById String @map("requested_by_id") @db.Uuid
+  requestedBy User @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+  status CalendarReconciliationStatus @default(PENDING)
+  startedAt DateTime? @map("started_at") @db.Timestamptz
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  failureCode String? @map("failure_code")
+  cancelledSessions Int @default(0) @map("cancelled_sessions")
+  cancelledAppointments Int @default(0) @map("cancelled_appointments")
+  cancelledVisits Int @default(0) @map("cancelled_visits")
+  generatedSessions Int @default(0) @map("generated_sessions")
+  @@index([status, createdAt])
+  @@index([requestedById])
 }
 
 model ProductLine {

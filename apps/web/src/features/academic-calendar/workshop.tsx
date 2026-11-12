@@ -15,6 +15,7 @@ export function AcademicCalendarWorkshop({
   activeYear,
   onYearChange,
   actions,
+  notice,
   onEditEvent,
   location,
   onLocationChange,
@@ -23,6 +24,7 @@ export function AcademicCalendarWorkshop({
   activeYear?: number;
   onYearChange?: (year: number) => void;
   actions?: ReactNode;
+  notice?: ReactNode;
   onEditEvent?: (id: string) => void;
   location?: AcademicCalendarLocation;
   onLocationChange?: (location: AcademicCalendarLocation) => void;
@@ -68,7 +70,7 @@ export function AcademicCalendarWorkshop({
           <span className={styles.titleShort}>Calendário</span>
         </h1>
         {!data && <span className={styles.sample}>Prévia · dados ilustrativos</span>}
-        {actions}
+        {actions && <div className={styles.headerActions}>{actions}</div>}
         <div className={styles.year}>
           <Button
             size="icon"
@@ -115,6 +117,7 @@ export function AcademicCalendarWorkshop({
           }
         />
       )}
+      {notice}
       {month === null ? (
         <div className={styles.overview} data-direction="semesters">
           <div className={styles.months} data-direction="semesters">

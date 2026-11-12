@@ -161,7 +161,18 @@ async function assertVisitAllowed(
   const closed = await database.schoolClosedDay.findFirst({
     where: { date: new Date(values.date), deletedAt: null },
   });
-  if (closed) throw badRequest("A escola está fechada nesta data.");
+  if (closed) throw badRequest("Não há atividades acadêmicas nesta data.");
+  const period = await database.period.findFirst({
+    where: {
+      deletedAt: null,
+      startDate: { lte: new Date(values.date) },
+      endDate: { gte: new Date(values.date) },
+    },
+  });
+  if (!period)
+    throw badRequest(
+      "Agende esta atividade dentro de um semestre configurado. A exceção fora do período acadêmico é exclusiva dos atendimentos.",
+    );
   const other = await database.entryVisit.findMany({
     where: {
       candidateId: candidate.id,

@@ -60,9 +60,15 @@
   gap: 0.5rem;
 }
 .legend {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1.25rem;
+  padding-block: 0.5rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
   font-size: var(--lz-text-caption);
   color: var(--muted-foreground);
 }
@@ -79,7 +85,8 @@
   background: var(--background);
 }
 .legend i[data-kind="vacation"] {
-  background: var(--muted);
+  background: var(--muted-foreground);
+  border-color: var(--muted-foreground);
 }
 .legend i[data-kind="holiday"] {
   background: var(--warning);
@@ -165,8 +172,9 @@ button.month:hover {
   font-size: var(--lz-text-control);
 }
 .day[data-kind="vacation"] {
-  background: var(--muted);
-  color: var(--muted-foreground);
+  background: var(--muted-foreground);
+  color: var(--card);
+  font-weight: 600;
 }
 .day[data-kind="holiday"] {
   background: var(--warning-muted);
@@ -472,4 +480,27 @@ button.day:hover {
 }
 .header h1 {
   margin-right: auto;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.page {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 639px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .headerActions {
+    order: 2;
+    flex-basis: 100%;
+  }
+  .groupTitle {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+  }
 }

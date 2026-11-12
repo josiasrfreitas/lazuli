@@ -4,7 +4,7 @@
 
 Phase 2 complete. Scope decisions confirmed in conversation on 2026-11-12;
 brief approved by the user before information architecture. Reuse existing tokens.
-Phase 6 is active; TASKS.md and WORKSHOP.md track implementation and browser evidence.
+Phase 6 is implemented; TASKS.md and IMPLEMENTATION.md record delivery and browser evidence.
 
 ## Problem
 

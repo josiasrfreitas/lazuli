@@ -103,6 +103,8 @@ export const ACTIVITY_ACTIONS = {
   "teachers.substitute": ["SCHOOL", "Substituição de professor registrada"],
   "teachers.assignClass": ["SCHOOL", "Professor atribuído à turma"],
   "calendar.createSemester": ["SCHOOL", "Semestre criado"],
+  "calendar.academic.confirmChange": ["SCHOOL", "Calendário acadêmico atualizado"],
+  "calendar.academic.retry": ["SCHOOL", "Atualização do calendário reenviada"],
   "calendar.academic.saveEvent": ["SCHOOL", "Evento do calendário salvo"],
   "calendar.academic.removeEvent": ["SCHOOL", "Evento do calendário removido"],
   "calendar.addClosedDay": ["SCHOOL", "Dia sem aula registrado"],

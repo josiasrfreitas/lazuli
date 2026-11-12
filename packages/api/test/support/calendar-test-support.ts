@@ -58,6 +58,12 @@ export async function ensureCalendarUsers(): Promise<void> {
 }
 
 export async function cleanCalendarDatabase(): Promise<void> {
+  await db.calendarReconciliationRequest.deleteMany({
+    where: { requestedById: { in: [ADMIN.id, TEACHER.id] } },
+  });
+  await db.academicInterruption.deleteMany({
+    where: { createdById: { in: [ADMIN.id, TEACHER.id] } },
+  });
   await db.period.deleteMany({
     where: { name: { startsWith: TEST_PREFIX } },
   });

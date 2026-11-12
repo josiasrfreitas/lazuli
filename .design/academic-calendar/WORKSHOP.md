@@ -99,3 +99,10 @@ Still incomplete: period/recess management with preview/reconciliation, import,
 capacity warnings, and the final scheduling-boundary audit. The design-flow and overall
 epic remain active. No lint, test, typecheck or build commands run; only scoped formatting,
 browser exercises, diff inspection and whitespace validation.
+
+## Live management delivered
+
+The previous incomplete management items are implemented. See [IMPLEMENTATION.md](IMPLEMENTATION.md)
+for current behavior, migrations, browser acceptance, temporary-data cleanup and deferred checks.
+The final narrow toolbar uses two compact rows; desktop remains one line. The earlier references
+to missing management and unconfirmed exceptional scheduling above are historical progress notes.

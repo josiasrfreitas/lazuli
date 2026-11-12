@@ -193,3 +193,4 @@ export {
   HEALTH_RECOVERY_MS,
   nextHealthPendingState,
 } from "./student-health-pending.js";
+export { academicActivityCanBeCancelled } from "./academic-calendar.js";

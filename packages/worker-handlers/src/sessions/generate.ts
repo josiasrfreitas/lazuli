@@ -1,5 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import { resolveSemesterForDate, type SemesterWindow } from "@lazuli/domain";
+import { resolveSemesterForDate, sessionEndInstant, type SemesterWindow } from "@lazuli/domain";
 import { sessionsGeneratePayloadSchema, type SessionsGeneratePayload } from "@lazuli/job-contracts";
 
 const DATE_ONLY_LENGTH = 10;
@@ -50,12 +50,20 @@ export type SessionGenerationResult = {
 export async function generateClassSessions(input: {
   database: SessionGenerationDatabase;
   payload: SessionsGeneratePayload;
+  notBefore?: Date;
+  dateWindow?: { from: Date; through: Date };
 }): Promise<SessionGenerationResult> {
   const payload = sessionsGeneratePayloadSchema.parse(input.payload);
   const classes = await loadSessionGenerationClasses({ database: input.database, payload });
   const semesters = await loadSemesterWindows(input.database);
   const closedDates = await loadClosedDates({ database: input.database, classes });
-  const rows = planClassSessionRows({ classes, closedDates, semesters });
+  const rows = planClassSessionRows({ classes, closedDates, semesters }).filter(
+    (row) =>
+      (!input.notBefore ||
+        sessionEndInstant({ date: row.date, endTime: row.startTime }) > input.notBefore) &&
+      (!input.dateWindow ||
+        (row.date >= input.dateWindow.from && row.date <= input.dateWindow.through)),
+  );
 
   if (rows.length === 0) {
     return { classesMatched: classes.length, sessionsCreated: 0, sessionsPlanned: 0 };
@@ -182,7 +190,12 @@ function planRowsForClass(input: {
   const rows: SessionRow[] = [];
 
   for (const date of dateRange(
-    input.classRow.startDate ?? input.classRow.semester.startDate,
+    new Date(
+      Math.max(
+        input.classRow.startDate?.getTime() ?? 0,
+        input.classRow.semester.startDate.getTime(),
+      ),
+    ),
     input.classRow.semester.endDate,
   )) {
     resolveSemesterForDate(date, input.semesters);
