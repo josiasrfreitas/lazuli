@@ -78,25 +78,33 @@ export function ScheduleCalendar<Event extends CalendarEvent>(
     if (!error) selection.onSelect(range);
   }
   const feedback = selectionFeedback(message, selected);
+  const emptyMessageOnly =
+    props.emptyDisplay === "message" &&
+    !props.rangeSelection &&
+    status === "ready" &&
+    !props.events.some((event) => event.date >= range.from && event.date <= range.through);
   return (
     <div
       className={cn("lz-schedule-calendar", props.className)}
       data-density={props.density ?? "comfortable"}
+      data-empty-display={emptyMessageOnly ? "message" : undefined}
     >
       {props.toolbar !== false && <CalendarToolbar {...surface} />}
-      <div className="lz-calendar-frame">
-        <CalendarSurface
-          key={`${props.view}:${range.from}:${range.through}`}
-          {...surface}
-          onSelectRange={select}
-          onRejected={setMessage}
-        />
-        {status === "loading" && (
-          <div className="lz-calendar-loading">
-            <PencilLoader label="Carregando agenda" />
-          </div>
-        )}
-      </div>
+      {!emptyMessageOnly && (
+        <div className="lz-calendar-frame">
+          <CalendarSurface
+            key={`${props.view}:${range.from}:${range.through}`}
+            {...surface}
+            onSelectRange={select}
+            onRejected={setMessage}
+          />
+          {status === "loading" && (
+            <div className="lz-calendar-loading">
+              <PencilLoader label="Carregando agenda" />
+            </div>
+          )}
+        </div>
+      )}
       <CalendarFooter props={surface} message={feedback} onSelect={select} />
     </div>
   );

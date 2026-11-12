@@ -1,23 +1,10 @@
 "use client";
-
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { Plus, Upload, UserRound } from "lucide-react";
-import {
-  Button,
-  Dialog,
-  DialogBackdrop,
-  DialogContent,
-  DialogDescription,
-  DialogPortal,
-  DialogTitle,
-  FileUpload,
-  toastManager,
-} from "@lazuli/ui";
+import { toastManager } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { RegistrationDocumentLoading } from "~/features/students/profile/registration-document-preview";
 import { combinePages, loadImage } from "./images";
 import { captureRequest } from "./model";
-import styles from "./documents.module.css";
+import { ProfilePhotoView } from "./profile-photo-view";
 
 const MAX_PHOTO_BYTES = 26_214_400;
 const PHOTO_REFRESH_MS = 3000;
@@ -67,7 +54,9 @@ export function StudentPhoto({ studentId, name }: StudentPhotoProps): ReactEleme
 
   const loading = busy || waitingForPhoto || Boolean(photoUrl && !loaded);
   return (
-    <StudentPhotoView
+    <ProfilePhotoView
+      subjectLabel="aluno"
+      maxSize={MAX_PHOTO_BYTES}
       name={name}
       photoUrl={photoUrl}
       loaded={loaded}
@@ -154,144 +143,4 @@ async function uploadPhoto(input: PhotoUploadInput): Promise<void> {
     if (session) input.closeSession(session.id);
     input.setBusy(false);
   }
-}
-
-type PhotoViewProps = {
-  name: string;
-  photoUrl: string | undefined;
-  loaded: boolean;
-  busy: boolean;
-  waitingForPhoto: boolean;
-  loading: boolean;
-  open: boolean;
-  setLoaded: (loaded: boolean) => void;
-  setOpen: (open: boolean) => void;
-  onUpload: (file: File) => Promise<void>;
-};
-
-function StudentPhotoView(props: PhotoViewProps): ReactElement {
-  return (
-    <>
-      <PhotoTrigger {...props} />
-      <PhotoDialog {...props} />
-    </>
-  );
-}
-
-function PhotoTrigger({ name, photoUrl, setLoaded, setOpen }: PhotoViewProps): ReactElement {
-  return (
-    <button
-      type="button"
-      className={styles.profilePhotoTrigger}
-      data-has-photo={Boolean(photoUrl)}
-      aria-label={photoUrl ? `Ver foto de ${name}` : `Adicionar foto de ${name}`}
-      title={photoUrl ? "Ver foto do aluno" : "Adicionar foto do aluno"}
-      onClick={() => {
-        setLoaded(false);
-        setOpen(true);
-      }}
-    >
-      <span className={styles.profilePhotoThumb}>
-        {photoUrl ? (
-          <img src={photoUrl} alt="" />
-        ) : (
-          <>
-            <UserRound aria-hidden="true" />
-            <span className={styles.profilePhotoAdd}>
-              <Plus aria-hidden="true" />
-            </span>
-          </>
-        )}
-      </span>
-    </button>
-  );
-}
-
-function photoLoadingLabel(busy: boolean, waitingForPhoto: boolean): string {
-  if (busy) return "Enviando foto…";
-  return waitingForPhoto ? "Processando foto…" : "Carregando foto…";
-}
-
-function PhotoDialog(props: PhotoViewProps): ReactElement {
-  const { name, photoUrl, loaded, busy, waitingForPhoto, loading, open, setLoaded, setOpen } =
-    props;
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(value) => {
-        if (!value && !busy) setOpen(false);
-      }}
-    >
-      <DialogPortal>
-        <DialogBackdrop />
-        <DialogContent
-          showCloseButton={false}
-          className="student-photo-viewer"
-          data-empty={!photoUrl}
-        >
-          <DialogTitle className="sr-only">Foto do aluno</DialogTitle>
-          <DialogDescription className="sr-only">{name}</DialogDescription>
-          {photoUrl ? (
-            <img
-              className={styles.profilePhotoLarge}
-              data-loaded={loaded && !busy && !waitingForPhoto}
-              src={photoUrl}
-              alt={`Foto de ${name}`}
-              onLoad={() => setLoaded(true)}
-            />
-          ) : (
-            <span className={styles.profilePhotoEmpty}>
-              <UserRound aria-hidden="true" />
-            </span>
-          )}
-          {loading && (
-            <div className={styles.profilePhotoUploadLoading}>
-              <RegistrationDocumentLoading label={photoLoadingLabel(busy, waitingForPhoto)} />
-            </div>
-          )}
-          <PhotoFileUpload {...props} />
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
-  );
-}
-
-function PhotoFileUpload({
-  photoUrl,
-  busy,
-  waitingForPhoto,
-  onUpload,
-}: PhotoViewProps): ReactElement {
-  return (
-    <FileUpload
-      compact
-      className="student-photo-file-upload"
-      value={[]}
-      accept="image/jpeg,image/png"
-      acceptLabel="JPG ou PNG"
-      maxSize={MAX_PHOTO_BYTES}
-      disabled={busy || waitingForPhoto}
-      onValidationError={(message) => toastManager.add({ title: message, type: "error" })}
-      onValueChange={(files) => {
-        const file = files[0];
-        if (file) void onUpload(file);
-      }}
-      renderTrigger={(picker) =>
-        !busy && !waitingForPhoto ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon-sm"
-            className="student-photo-upload-button"
-            disabled={picker.disabled}
-            aria-label={photoUrl ? "Atualizar foto" : "Enviar foto"}
-            title={photoUrl ? "Atualizar foto" : "Enviar foto"}
-            onClick={picker.open}
-          >
-            <Upload aria-hidden="true" />
-          </Button>
-        ) : null
-      }
-    />
-  );
 }

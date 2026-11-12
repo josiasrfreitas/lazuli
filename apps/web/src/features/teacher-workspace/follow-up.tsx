@@ -164,7 +164,7 @@ function OccurrenceRows({
         <TeacherLinkRow
           key={row.id}
           title={row.student.fullName}
-          subtitle={row.classSession.class.portalClassName}
+          subtitle={row.classSession?.class.portalClassName ?? "Fora de Aula"}
           href={`/professor/alunos/${row.studentId}?registro=occurrence:${row.id}#acompanhamento`}
         />
       ))}

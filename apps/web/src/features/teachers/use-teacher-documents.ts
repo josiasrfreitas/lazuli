@@ -20,8 +20,12 @@ export function useTeacherDocuments(teacherId?: string) {
   );
   const existing = trpc.teachers.files.useQuery(
     { id: teacherId ?? "00000000-0000-0000-0000-000000000000" },
-    { enabled: Boolean(teacherId) },
+    { enabled: Boolean(teacherId), staleTime: 60_000 },
   );
+  const uploadedPhotoId = query.data?.files.find((file) => file.kind === "PHOTO")?.id;
+  useEffect(() => {
+    if (teacherId && uploadedPhotoId) void utils.teachers.files.invalidate({ id: teacherId });
+  }, [teacherId, uploadedPhotoId, utils]);
   const sessionId = session?.id;
   useEffect(() => {
     if (sessionId) return () => closeRef.current({ id: sessionId });
@@ -58,8 +62,10 @@ export function useTeacherDocuments(teacherId?: string) {
     query,
     refresh: async () => {
       if (session) await query.refetch();
-      else await existing.refetch();
+      if (teacherId) await existing.refetch();
     },
+    loading: Boolean(teacherId) && existing.isPending && !query.data,
+    loadError: existing.isError || (Boolean(session) && query.isError),
     error: renew.error?.message ?? create.error?.message,
     files: query.data?.files ?? existing.data ?? [],
   };

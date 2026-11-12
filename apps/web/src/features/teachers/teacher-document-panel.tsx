@@ -13,15 +13,18 @@ import { MobileUploadLink } from "~/features/mobile-upload/session-link";
 import { type UploadCategory } from "~/features/mobile-upload/file-editor";
 import type { TeacherDocuments } from "./use-teacher-documents";
 import { TEACHER_UPLOAD_CATEGORIES } from "./upload-categories";
+import { TeacherAttachmentsLoading } from "./teacher-section-loading";
 
 export function TeacherDocumentPanel({
   documents,
   onClose,
   showGuidance = false,
+  hidePhoto = false,
 }: {
   documents: TeacherDocuments;
   onClose?: () => void;
   showGuidance?: boolean;
+  hidePhoto?: boolean;
 }): ReactElement {
   const [qr, setQr] = useState(false);
   const [extras, setExtras] = useState<UploadCategory[]>([]);
@@ -40,6 +43,7 @@ export function TeacherDocumentPanel({
       setPreparing(false);
     }
   }
+  if (documents.loading) return <TeacherAttachmentsLoading />;
   return (
     <AttachmentPanel
       title={qr ? "Enviar pelo celular" : "Anexos do professor"}
@@ -77,8 +81,8 @@ export function TeacherDocumentPanel({
             />
           )}
           <p className="text-caption text-muted-foreground" role="status">
-            {documents.files.length
-              ? `${documents.files.length} arquivo(s) no cadastro`
+            {documents.files.filter((file) => !hidePhoto || file.kind !== "PHOTO").length
+              ? `${documents.files.filter((file) => !hidePhoto || file.kind !== "PHOTO").length} arquivo(s) no cadastro`
               : "Aguardando os arquivos…"}
           </p>
         </>
@@ -91,6 +95,7 @@ export function TeacherDocumentPanel({
             </p>
           )}
           <TeacherAttachmentList
+            hidePhoto={hidePhoto}
             extras={extras}
             setExtras={setExtras}
             documents={documents}
@@ -145,18 +150,22 @@ export function TeacherDocumentPanel({
 }
 
 function TeacherAttachmentList({
+  hidePhoto,
   documents,
   onRemove,
   extras,
   setExtras,
 }: {
+  hidePhoto: boolean;
   extras: UploadCategory[];
   setExtras: import("react").Dispatch<import("react").SetStateAction<UploadCategory[]>>;
   documents: TeacherDocuments;
   onRemove: (id: string) => void;
 }) {
   const [error, setError] = useState("");
-  const categories = TEACHER_UPLOAD_CATEGORIES.filter((category) => category.id !== "OTHER");
+  const categories = TEACHER_UPLOAD_CATEGORIES.filter(
+    (category) => category.id !== "OTHER" && (!hidePhoto || category.id !== "PHOTO"),
+  );
   async function send(category: UploadCategory, file: File) {
     documents.setBusy(true);
     setError("");
@@ -201,27 +210,33 @@ function TeacherAttachmentList({
             category.id,
           ),
         )}
-        {documents.files.map((file) => (
-          <AttachmentRow key={file.id} title={file.label} subtitle={file.subtitle ?? file.fileName}>
-            <a
-              href={`/api/teacher-files/${file.id}`}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Abrir ${file.label}`}
+        {documents.files
+          .filter((file) => !hidePhoto || file.kind !== "PHOTO")
+          .map((file) => (
+            <AttachmentRow
+              key={file.id}
+              title={file.label}
+              subtitle={file.subtitle ?? file.fileName}
             >
-              <ExternalLink className="size-4" />
-            </a>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="ghost"
-              aria-label={`Remover ${file.label}`}
-              onClick={() => onRemove(file.id)}
-            >
-              <X />
-            </Button>
-          </AttachmentRow>
-        ))}
+              <a
+                href={`/api/teacher-files/${file.id}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Abrir ${file.label}`}
+              >
+                <ExternalLink className="size-4" />
+              </a>
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                aria-label={`Remover ${file.label}`}
+                onClick={() => onRemove(file.id)}
+              >
+                <X />
+              </Button>
+            </AttachmentRow>
+          ))}
         {extras
           .filter(
             (item) =>

@@ -1,3 +1,4 @@
+import { teacherMetrics } from "./metrics.js";
 import { teacherUploadsRouter } from "./upload-sessions.js";
 import { listTeacherFiles } from "./files.js";
 import { TRPCError } from "@trpc/server";
@@ -73,6 +74,11 @@ async function command<T>(
 }
 
 export const teachersRouter = router({
+  metrics: adminProcedure
+    .input(teacherIdInputSchema)
+    .query(({ ctx, input }) =>
+      teacherMetrics(ctx.db, { teacherId: input.id, now: ctx.now ?? new Date() }),
+    ),
   uploads: teacherUploadsRouter,
   files: adminProcedure
     .input(teacherIdInputSchema)

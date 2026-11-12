@@ -86,7 +86,9 @@ function OccurrenceHeading({
       <div className={styles.recordToolbar}>
         <div className={styles.recordMeta}>
           <p>
-            Aula de {dateLabel(row.classSession.date)} · {row.classSession.class.portalClassName}
+            {row.classSession ? "Aula de " : "Evento em "}
+            {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)}{" "}
+            {row.occurredTime} · {row.classSession?.class.portalClassName ?? "Fora de Aula"}
           </p>
           <span aria-hidden="true">·</span>
           <span className={styles.recordType}>Ocorrência</span>
@@ -178,7 +180,9 @@ function OccurrenceRelations({
               className={styles.related}
               onClick={() => select({ kind: "occurrence", id: item.id })}
             >
-              <small>{dateLabel(item.classSession.date)}</small>
+              <small>
+                {dateLabel(item.classSession?.date ?? item.occurredOn ?? item.createdAt)}
+              </small>
               <strong>{item.title}</strong>
             </button>
           ))}

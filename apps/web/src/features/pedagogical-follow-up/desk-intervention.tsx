@@ -152,7 +152,8 @@ function InterventionSources({
           onClick={() => select({ kind: "occurrence", id: item.id })}
         >
           <small>
-            {dateLabel(item.classSession.date)} · {item.classSession.class.portalClassName}
+            {dateLabel(item.classSession?.date ?? item.occurredOn ?? item.createdAt)} ·{" "}
+            {item.classSession?.class.portalClassName ?? "Fora de Aula"}
           </small>
           <strong>{item.title}</strong>
         </button>

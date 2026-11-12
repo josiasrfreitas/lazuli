@@ -12,12 +12,13 @@ import {
   DialogPortal,
   DialogTitle,
   Field,
-  FormRow,
+  FieldError,
   Input,
   Label,
   SegmentedControl,
   SegmentedControlItem,
 } from "@lazuli/ui";
+import styles from "./close-dialog.module.css";
 import { trpc } from "~/lib/trpc";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 
@@ -31,6 +32,9 @@ type CloseInput = {
 type CloseState = {
   reason: CloseReason;
   setReason: (value: CloseReason) => void;
+  confirmation: string;
+  setConfirmation: (value: string) => void;
+  confirmed: boolean;
   date: string;
   setDate: (value: string) => void;
   error: string | null;
@@ -41,6 +45,10 @@ type CloseState = {
 function useCloseState(input: CloseInput): CloseState {
   const [reason, setReason] = useState<CloseReason>("SUSPENDED");
   const [date, saveDate] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const normalize = (value: string): string =>
+    value.normalize("NFC").trim().replace(/\s+/gu, " ").toLocaleLowerCase("pt-BR");
+  const confirmed = normalize(confirmation) === normalize(input.studentName);
   const [error, setError] = useState<string | null>(null);
   const popup = useRef<HTMLDivElement>(null);
   const utils = trpc.useUtils();
@@ -58,6 +66,7 @@ function useCloseState(input: CloseInput): CloseState {
   });
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (close.isPending || !confirmed) return;
     const iso = parseDateBR(date);
     if (!iso) {
       setError("Informe uma data válida.");
@@ -68,6 +77,9 @@ function useCloseState(input: CloseInput): CloseState {
   return {
     reason,
     setReason,
+    confirmation,
+    setConfirmation,
+    confirmed,
     date,
     setDate: (value) => {
       saveDate(maskDateBR(value));
@@ -81,12 +93,13 @@ function useCloseState(input: CloseInput): CloseState {
 }
 function CloseFields({ state }: { state: CloseState }): ReactElement {
   return (
-    <FormRow columns={2}>
+    <div className={styles.fields}>
       <Field>
         <Label>Ação</Label>
         <SegmentedControl
           aria-label="Ação do vínculo"
           size="sm"
+          disabled={state.pending}
           value={state.reason}
           onValueChange={(value) => {
             if (value === "SUSPENDED" || value === "DROPPED") state.setReason(value);
@@ -96,7 +109,7 @@ function CloseFields({ state }: { state: CloseState }): ReactElement {
           <SegmentedControlItem value="DROPPED">Encerrar</SegmentedControlItem>
         </SegmentedControl>
       </Field>
-      <Field>
+      <Field className={styles.date}>
         <Label htmlFor="effectiveDate">Data efetiva</Label>
         <Input
           id="effectiveDate"
@@ -106,16 +119,22 @@ function CloseFields({ state }: { state: CloseState }): ReactElement {
           placeholder="dd/mm/aaaa"
           size="sm"
           value={state.date}
+          disabled={state.pending}
+          aria-describedby="membership-effective-help"
+          invalid={Boolean(state.error)}
           onChange={(event) => state.setDate(event.target.value)}
         />
+        {state.error && <FieldError match>{state.error}</FieldError>}
       </Field>
-    </FormRow>
+    </div>
   );
 }
 function CloseForm(input: CloseInput): ReactElement {
   const state = useCloseState(input);
   return (
     <DialogContent
+      className="md:max-w-md"
+      motion="subtle"
       initialFocus={() =>
         state.popup.current?.querySelector<HTMLInputElement>('input[name="effectiveDate"]') ?? true
       }
@@ -125,27 +144,54 @@ function CloseForm(input: CloseInput): ReactElement {
         <DialogTitle>
           {state.reason === "SUSPENDED" ? "Pausar vínculo" : "Encerrar vínculo"}
         </DialogTitle>
-        <DialogDescription>
-          {input.studentName} · a ocupação muda na data efetiva. Nenhuma nota, plano ou cobrança é
-          alterada.
-        </DialogDescription>
+        <DialogDescription>{input.studentName}</DialogDescription>
       </DialogHeader>
       <DialogBody className="mt-4">
         <form id="close-enrollment-form" noValidate onSubmit={state.submit}>
           <CloseFields state={state} />
+          <p id="membership-effective-help" className={styles.help}>
+            {state.reason === "SUSPENDED"
+              ? "O aluno sai da lista ativa nessa data e poderá retomar o vínculo depois."
+              : "O vínculo com esta turma termina nessa data."}
+          </p>
+          <p className={styles.note}>Notas, plano e cobranças permanecem como estão.</p>
+          <Field className={styles.confirmation}>
+            <Label htmlFor="confirm-student">Digite o nome completo do aluno para confirmar</Label>
+            <Input
+              id="confirm-student"
+              name="confirmStudent"
+              autoComplete="off"
+              placeholder={input.studentName}
+              size="sm"
+              value={state.confirmation}
+              disabled={state.pending}
+              onChange={(event) => state.setConfirmation(event.target.value)}
+            />
+          </Field>
         </form>
       </DialogBody>
-      {state.error && (
-        <p role="alert" className="text-caption text-destructive">
-          {state.error}
-        </p>
-      )}
       <DialogFooter>
-        <Button type="button" variant="secondary" disabled={state.pending} onClick={input.onDone}>
+        <Button
+          size="sm"
+          type="button"
+          variant="secondary"
+          disabled={state.pending}
+          onClick={input.onDone}
+        >
           Cancelar
         </Button>
-        <Button type="submit" form="close-enrollment-form" disabled={state.pending}>
-          {state.pending ? "Salvando…" : "Confirmar"}
+        <Button
+          size="sm"
+          variant="destructive"
+          type="submit"
+          form="close-enrollment-form"
+          disabled={state.pending || !state.confirmed}
+        >
+          {state.pending
+            ? "Salvando…"
+            : state.reason === "SUSPENDED"
+              ? "Pausar vínculo"
+              : "Encerrar vínculo"}
         </Button>
       </DialogFooter>
     </DialogContent>

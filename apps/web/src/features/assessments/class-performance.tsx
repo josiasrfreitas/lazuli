@@ -1,5 +1,5 @@
 "use client";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ChartNoAxesCombined } from "lucide-react";
 import { useState, type ReactElement, type ReactNode } from "react";
 import { ToastAlert, Button, Field, Label, SearchSelect } from "@lazuli/ui";
 import { normalizeSearch } from "@lazuli/domain";
@@ -28,6 +28,17 @@ export function ClassPerformance({ classId }: { classId: string }): ReactElement
           Tentar novamente
         </Button>
       </ToastAlert>
+    );
+  if (!query.data.some((row) => row.grades.length > 0))
+    return (
+      <section className={`dark ${styles.workspace}`} aria-label="Desempenho da turma">
+        <h2 className={styles.heading}>Desempenho da turma</h2>
+        <div className={styles.empty} role="status">
+          <ChartNoAxesCombined aria-hidden="true" />
+          <h3>Os gráficos ainda estão no recreio</h3>
+          <p>Assim que as primeiras notas forem lançadas, o desempenho da turma aparece aqui.</p>
+        </div>
+      </section>
     );
   return <PerformanceWorkspace key={classId} rows={query.data} />;
 }

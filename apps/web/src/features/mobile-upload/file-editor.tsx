@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type FormEvent, type ReactElement } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
 import { Button, Field, FieldError, FileUpload, Input, Label, ToastAlert } from "@lazuli/ui";
 export type MobileFileInput = { kind: string; label: string; subtitle?: string; file: File };
 export type UploadCategory = {
@@ -14,8 +14,10 @@ export function MobileFileEditor({
   onSend,
   onBack,
   onBusyChange,
+  compact = false,
 }: {
   category: UploadCategory;
+  compact?: boolean;
   onSend: (input: MobileFileInput) => Promise<void>;
   onBack: () => void;
   onBusyChange?: (busy: boolean) => void;
@@ -27,6 +29,9 @@ export function MobileFileEditor({
   const [labelError, setLabelError] = useState("");
   const [busy, setBusy] = useState(false);
   const first = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    first.current?.focus({ preventScroll: true });
+  }, []);
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
     if (busy || invalidFile) return;
@@ -60,7 +65,11 @@ export function MobileFileEditor({
     }
   }
   return (
-    <form noValidate onSubmit={(event) => void submit(event)} className="grid gap-4">
+    <form
+      noValidate
+      onSubmit={(event) => void submit(event)}
+      className={compact ? "grid gap-3" : "grid gap-4"}
+    >
       <Field>
         <Label htmlFor="upload-label">
           {category.photo ? "Descrição da foto" : "Nome do documento"}
@@ -84,7 +93,7 @@ export function MobileFileEditor({
         {labelError && <FieldError match>{labelError}</FieldError>}
       </Field>
       <FileUpload
-        compact
+        compact={!compact}
         camera
         value={files}
         onValueChange={(value) => {
@@ -102,7 +111,7 @@ export function MobileFileEditor({
       {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
       <div className="flex flex-wrap justify-end gap-2">
         <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onBack}>
-          Voltar
+          {compact ? "Cancelar" : "Voltar"}
         </Button>
         <Button type="submit" size="sm" disabled={busy}>
           {busy ? "Enviando…" : "Enviar arquivo"}

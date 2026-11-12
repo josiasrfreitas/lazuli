@@ -1,13 +1,17 @@
 "use client";
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { hoursLabel } from "./format";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, DataTable, type DataTableColumn, type DataTableState } from "@lazuli/ui";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
+import { hoursLabel } from "./format";
+import styles from "./teacher-table.module.css";
 import { TeacherStatus } from "./teacher-status";
 
 const ISO_DATE_LENGTH = 10;
+const MONTH_START = 5;
+const MONTH_END = 7;
+const YEAR_END = 4;
 
 export function TeacherTable({
   data,
@@ -91,6 +95,32 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
         >
           {row.classCount}
         </span>
+      ),
+    },
+    {
+      id: "monthlyHours",
+      header: (
+        <span className={styles.hoursHeader}>
+          Horas · {today.slice(MONTH_START, MONTH_END)}/{today.slice(0, YEAR_END)}
+        </span>
+      ),
+      width: "standard",
+      cell: (row) => (
+        <div
+          className={styles.hours}
+          title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
+        >
+          <span className="font-numeric tabular-nums">
+            {hoursLabel(row.monthlyHours.completedMinutes)} /{" "}
+            {hoursLabel(row.monthlyHours.plannedMinutes)} h
+          </span>
+          <progress
+            className={styles.progress}
+            aria-label="Progresso das horas realizadas no mês"
+            max={row.monthlyHours.plannedMinutes || 1}
+            value={Math.min(row.monthlyHours.completedMinutes, row.monthlyHours.plannedMinutes)}
+          />
+        </div>
       ),
     },
     {

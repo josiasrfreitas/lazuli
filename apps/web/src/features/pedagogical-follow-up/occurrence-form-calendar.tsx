@@ -4,6 +4,7 @@ import { shiftDate } from "~/features/class-records/calendar-model";
 import { OccurrenceLessonCard, type OccurrenceCalendarEvent } from "./occurrence-calendar-event";
 import type { OccurrenceFormModel } from "./occurrence-form-model";
 import { OccurrenceLessonList } from "./occurrence-lesson-list";
+import { OccurrenceViewControl, OutsideOccurrenceFields } from "./occurrence-outside-fields";
 import styles from "./occurrence-form.module.css";
 
 const WEEK_END_OFFSET = 6;
@@ -12,9 +13,11 @@ const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
 
 export function OccurrenceCalendar({ model }: { model: OccurrenceFormModel }): ReactElement {
+  if (model.outside) return <OutsideOccurrenceFields model={model} />;
   const error = model.validation.errors.classSessionId;
   return (
     <div className={styles.schedule} data-mobile-list={model.mobileList}>
+      {model.mobileList && model.student && <OccurrenceViewControl model={model} />}
       <Field
         name="classSessionId"
         className="flex min-h-0 flex-1 flex-col gap-3"
@@ -62,6 +65,7 @@ function OccurrenceSchedule({ model }: { model: OccurrenceFormModel }): ReactEle
   } = model;
   return (
     <ScheduleCalendar
+      viewControl={model.student ? <OccurrenceViewControl model={model} /> : undefined}
       date={date}
       view={view}
       density="compact"

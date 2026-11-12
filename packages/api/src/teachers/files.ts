@@ -13,6 +13,7 @@ const fileSelect = {
   label: true,
   subtitle: true,
   fileName: true,
+  contentType: true,
   createdAt: true,
 } as const;
 function requireAdmin(ctx: Context): void {

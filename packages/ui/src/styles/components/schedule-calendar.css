@@ -49,6 +49,17 @@
   scrollbar-color: var(--border-strong) var(--card);
   overscroll-behavior: contain;
 }
+.lz-calendar-viewport[data-scroll-chaining="true"] {
+  overscroll-behavior-y: auto;
+}
+.lz-schedule-calendar[data-empty-display="message"] .lz-calendar-empty {
+  display: grid;
+  place-content: center;
+  flex: 1;
+  min-height: 8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
 .lz-calendar-viewport:has(.lz-week-calendar[aria-busy="true"]),
 .lz-week-calendar[aria-busy="true"] .rbc-time-content {
   overflow: hidden;

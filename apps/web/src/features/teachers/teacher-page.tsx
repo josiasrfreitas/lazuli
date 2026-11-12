@@ -7,10 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { ToastAlert, Button } from "@lazuli/ui";
 import { TeacherDialog } from "./teacher-dialog";
 import { DepartureDialog } from "./departure-dialog";
-import { TeacherClasses } from "./teacher-classes";
-import { TeacherHeaderLoading } from "./teacher-loading";
-import { TeacherHeader } from "./teacher-header";
-import { TeacherWeek } from "./teacher-week";
 
 export function TeacherPage({ id }: TeacherPageInput): ReactElement {
   const params = useSearchParams();
@@ -20,14 +16,14 @@ export function TeacherPage({ id }: TeacherPageInput): ReactElement {
   const detail = teacher.data;
   const back = `/professores/${id}?${params.toString()}`;
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-5 overflow-y-auto p-4 sm:p-6">
-      {teacher.isError && (
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-5 p-4 sm:p-6">
+      {teacher.isError && !detail && (
         <TeacherLoadError
           teacherError={teacher.error}
           teacherRefetch={() => void teacher.refetch()}
         />
       )}
-      {!teacher.isError && (
+      {(!teacher.isError || detail) && (
         <TeacherDetails
           detail={detail}
           setEditing={setEditing}
@@ -75,21 +71,13 @@ type TeacherDetailsProps = {
 function TeacherDetails(props: TeacherDetailsProps): ReactElement {
   return (
     <>
-      {props.detail ? (
-        <TeacherHeader
-          teacher={props.detail}
-          onEdit={() => props.setEditing(true)}
-          onDepart={() => props.setDeparting(true)}
-        />
-      ) : (
-        <TeacherHeaderLoading />
-      )}
-      {props.detail && (
-        <TeacherSections teacher={props.detail} onEdit={() => props.setEditing(true)}>
-          <TeacherWeek id={props.id} back={props.back} studentCount={props.detail.studentCount} />
-          <TeacherClasses teacherId={props.id} back={props.back} />
-        </TeacherSections>
-      )}
+      <TeacherSections
+        id={props.id}
+        teacher={props.detail}
+        onEdit={() => props.setEditing(true)}
+        onDepart={() => props.setDeparting(true)}
+        back={props.back}
+      />
       {props.editing && props.detail && (
         <TeacherDialog teacher={props.detail} onClose={() => props.setEditing(false)} />
       )}

@@ -6,6 +6,7 @@ import type {
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { requireCurrentEnrollment } from "../enrollment/require-current.js";
 import { recordActivity } from "../activity/record.js";
+import { workspaceStudents } from "../teacher-workspace/read.js";
 import { occurrenceRoster } from "./sessions.js";
 import {
   assertEligibleResponsible,
@@ -21,13 +22,15 @@ export async function createOccurrence(
   context: FollowUpContext,
   input: OccurrenceCreate,
 ): Promise<{ id: string }> {
-  const roster = await occurrenceRoster(context, input.classSessionId);
-  const student = roster.find((row) => row.id === input.studentId);
-  if (!student) invalid("O aluno não pertencia à turma nesta data.");
+  const { classSessionId, occurredOn, occurredTime, ...values } = input;
+  const student = await occurrenceStudent(context, input);
   await requireCurrentEnrollment(context, input.studentId);
   const row = await context.database.pedagogicalOccurrence.create({
     data: {
-      ...input,
+      ...values,
+      classSessionId: classSessionId ?? null,
+      occurredOn: occurredOn ? new Date(occurredOn) : null,
+      occurredTime: occurredTime ?? null,
       initialResponse: input.initialResponse || null,
       recordedById: context.staffUser.id,
       createdAt: context.now,
@@ -42,6 +45,28 @@ export async function createOccurrence(
     },
   });
   return { id: row.id };
+}
+async function occurrenceStudent(
+  context: FollowUpContext,
+  input: OccurrenceCreate,
+): Promise<{ id: string; fullName: string }> {
+  if (input.classSessionId) {
+    const roster = await occurrenceRoster(context, input.classSessionId);
+    const student = roster.find((row) => row.id === input.studentId);
+    if (!student) invalid("O aluno não pertencia à turma nesta data.");
+    return student;
+  }
+  const student = await context.database.student.findFirst({
+    where: { id: input.studentId, deletedAt: null },
+    select: { id: true, fullName: true },
+  });
+  if (!student) invalid("Aluno indisponível para este registro.");
+  if (context.staffUser.role === "TEACHER") {
+    const accessible = await workspaceStudents(context);
+    if (!accessible.some((row) => row.id === input.studentId))
+      invalid("Aluno não encontrado entre suas atribuições.");
+  }
+  return student;
 }
 export async function linkOccurrences(
   context: FollowUpContext,

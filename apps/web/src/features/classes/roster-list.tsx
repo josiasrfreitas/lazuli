@@ -120,7 +120,7 @@ function rosterActionsColumn(props: Props, today: string): DataTableColumn<Roste
   return {
     id: "actions",
     header: <span className="sr-only">Ações</span>,
-    width: "selection",
+    width: "actions",
     cell: (row) => (
       <StudentActions
         row={row}

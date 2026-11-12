@@ -119,7 +119,14 @@ function PlanHeaderActions({ data, onEdit }: { data: Planning; onEdit: () => voi
   );
 }
 
-function PlanToolbar({ data, model }: { data: Planning; model: PlanContentModel }): ReactElement {
+function PlanToolbar({
+  data,
+  model,
+}: {
+  data: Planning;
+  model: PlanContentModel;
+}): ReactElement | null {
+  if (!data.plan && data.records.length === 0) return null;
   return (
     <div className={styles.toolbar}>
       <PlanToolbarHeading data={data} model={model} />
@@ -136,6 +143,7 @@ function PlanToolbarHeading({
   model: PlanContentModel;
 }): ReactElement {
   const { history, view, changeView, setHistory } = model;
+  const hasContent = Boolean(data.plan?.items.length || data.records.length);
   return (
     <div className={styles.heading}>
       {history && (
@@ -150,7 +158,7 @@ function PlanToolbarHeading({
       )}
       {history ? (
         <h3>Versões do plano</h3>
-      ) : (
+      ) : hasContent ? (
         <div className={styles.viewSwitch} role="group" aria-label="Visão do planejamento">
           <Button
             size="sm"
@@ -171,7 +179,7 @@ function PlanToolbarHeading({
             Aulas registradas · {data.records.length}
           </Button>
         </div>
-      )}
+      ) : null}
       {data.plan && history && <span>{`Versão atual ${data.plan.version}`}</span>}
     </div>
   );

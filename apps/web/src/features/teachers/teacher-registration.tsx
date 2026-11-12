@@ -1,5 +1,5 @@
 "use client";
-import type { ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Pencil, UserRound, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@lazuli/ui";
@@ -12,11 +12,16 @@ import { EMPLOYMENT_LABELS } from "./teacher-employment-fields";
 export function TeacherRegistration({
   teacher,
   onEdit,
+  onBusyChange,
 }: {
   teacher: RouterOutputs["teachers"]["byId"];
   onEdit: () => void;
+  onBusyChange: (busy: boolean) => void;
 }): ReactElement {
   const documents = useTeacherDocuments(teacher.id);
+  useEffect(() => {
+    onBusyChange(documents.busy);
+  }, [documents.busy, onBusyChange]);
   const profile = teacher.teacherProfile;
   return (
     <div className={registration.layout}>
@@ -98,7 +103,7 @@ export function TeacherRegistration({
         </section>
       </section>
       <div className={registration.documents}>
-        <TeacherDocumentPanel documents={documents} showGuidance />
+        <TeacherDocumentPanel documents={documents} showGuidance hidePhoto />
       </div>
     </div>
   );

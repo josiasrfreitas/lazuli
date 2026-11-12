@@ -184,7 +184,8 @@ function ViewSwitch({
   data: Planning;
   view: View;
   changeView: (view: View) => void;
-}): ReactElement {
+}): ReactElement | null {
+  if (!data.plan?.items.length && data.records.length === 0) return null;
   return (
     <div className={styles.viewSwitch} role="group" aria-label="Visão do planejamento">
       <Button

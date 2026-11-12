@@ -1,7 +1,7 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: start;
+  align-items: stretch;
   gap: 1.5rem;
   width: 100%;
   max-width: 72rem;
@@ -14,7 +14,12 @@
   gap: 1rem;
 }
 .documents {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+}
+.documents > :global(.attachment-panel) {
+  flex: 1;
 }
 @media (max-width: 1000px) {
   .layout {

@@ -1633,7 +1633,9 @@ model PedagogicalOccurrence {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   studentId String @map("student_id") @db.Uuid
-  classSessionId String @map("class_session_id") @db.Uuid
+  classSessionId String? @map("class_session_id") @db.Uuid
+  occurredOn DateTime? @map("occurred_on") @db.Date
+  occurredTime String? @map("occurred_time") @db.VarChar(5)
   status OccurrenceStatus @default(OPEN)
   statusVersion Int @default(0) @map("status_version")
   statusChanges OccurrenceStatusChange[]
@@ -1643,7 +1645,7 @@ model PedagogicalOccurrence {
   initialResponse String? @map("initial_response")
   recordedById String @map("recorded_by_id") @db.Uuid
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  classSession ClassSession? @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
   recordedBy User @relation("OccurrenceAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
   relationsFrom OccurrenceRelation[] @relation("OccurrenceFrom")
   relationsTo OccurrenceRelation[] @relation("OccurrenceTo")

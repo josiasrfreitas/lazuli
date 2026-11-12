@@ -1,0 +1,820 @@
+.sectionContent {
+  padding-block: 0.75rem;
+  min-width: 0;
+}
+.overview {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.overviewGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+.overviewGrid[data-loading] {
+  isolation: isolate;
+  overflow: hidden;
+}
+.overviewGrid[data-loading]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, currentColor 8%, transparent) 50%,
+    transparent 75%
+  );
+  transform: translateX(-100%);
+  animation: metric-loading-sweep 1.8s ease-in-out infinite;
+}
+.overviewGrid:not([data-loading]) > .metricCard > :not(.cardHeading) {
+  animation: metric-data-arrive var(--lz-duration-base) var(--lz-ease-standard);
+}
+.reportLoading {
+  display: grid;
+  align-content: start;
+  flex: 1;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow: hidden;
+}
+.loadingLines {
+  display: grid;
+  gap: 0.5rem;
+}
+.loadingAccess {
+  display: inline-flex;
+  width: 7rem;
+  flex-shrink: 0;
+}
+@media (min-width: 901px) and (max-width: 1200px) {
+  .loadingAccess {
+    width: 2rem;
+  }
+}
+.overviewGrid[data-loading] .occurrenceFooter {
+  min-height: 2.5625rem;
+}
+.overviewGrid[data-loading] .healthFocus {
+  min-height: 3.5rem;
+}
+@keyframes metric-loading-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes metric-data-arrive {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overviewGrid[data-loading]::after {
+    display: none;
+    animation: none;
+  }
+  .overviewGrid:not([data-loading]) > .metricCard > :not(.cardHeading) {
+    animation: none;
+  }
+}
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+.metricCard[data-health] {
+  background: var(--accent);
+}
+.metricCard h2,
+.agenda h2,
+.details h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--heading);
+  font-family: var(--lz-font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.metricCard h2 svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--brand-link);
+}
+.metricCard p,
+.explanation,
+.details > p {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  line-height: 1.5;
+}
+.reading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  min-height: 2.5rem;
+}
+.reading > strong {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-family: var(--lz-font-numeric);
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--heading);
+}
+.reading small {
+  font-size: var(--lz-text-body);
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.reading > span {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+  max-width: 20ch;
+}
+.cardAction {
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+.healthBands {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-block: 0.375rem;
+}
+.healthDistribution {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 0.1875rem;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  overflow: hidden;
+}
+.healthDistribution [data-level="HEALTHY"] {
+  fill: var(--success);
+}
+.healthDistribution [data-level="ATTENTION"] {
+  fill: var(--warning);
+}
+.healthDistribution [data-level="PRIORITY"] {
+  fill: var(--destructive);
+}
+.healthDistribution [data-level="INSUFFICIENT_DATA"] {
+  fill: var(--muted-foreground);
+}
+.healthBands > div {
+  display: grid;
+  gap: 0.25rem;
+}
+.healthBands strong {
+  font-family: var(--lz-font-numeric);
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+.healthBands span {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.facts {
+  display: grid;
+  gap: 0.625rem;
+  padding-block: 0.5rem;
+  font-size: var(--lz-text-caption);
+}
+.facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.facts dt {
+  color: var(--muted-foreground);
+}
+.facts dd {
+  font-family: var(--lz-font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+.previewRows {
+  display: grid;
+  gap: 0.5rem;
+  min-height: 3rem;
+  font-size: var(--lz-text-caption);
+}
+.previewRows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.previewRows > span {
+  color: var(--muted-foreground);
+}
+.previewRows strong {
+  font-family: var(--lz-font-numeric);
+}
+.details {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding-block: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.details header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.details h2:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 0.25rem;
+}
+.detailLink {
+  color: var(--interactive);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  color: var(--destructive);
+}
+.agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 36rem;
+  min-width: 0;
+}
+.calendarSkeleton {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+}
+.registrationSkeleton {
+  display: grid;
+  align-content: start;
+  gap: 2.25rem;
+  min-height: 28rem;
+  padding-block: 1.25rem;
+}
+.documentSkeleton {
+  min-height: 26rem;
+  margin-top: 1rem;
+  background: var(--muted);
+  border-radius: var(--radius-md);
+}
+@media (min-width: 901px) {
+  .overviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.navigation {
+  margin-left: auto;
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.teacherHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  padding-bottom: 0.5rem;
+}
+.teacherIdentity {
+  display: flex;
+  flex-shrink: 0;
+  max-width: 35%;
+  align-items: center;
+  gap: 1.25rem;
+  padding-inline-end: 0.5rem;
+  min-width: 0;
+}
+.teacherIdentity h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--lz-font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--heading);
+}
+.teacherActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.125rem;
+}
+.email {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.email > svg {
+  display: none;
+}
+@media (min-width: 901px) and (max-width: 1200px) {
+  .teacherHeader {
+    gap: 0.375rem;
+  }
+  .email > svg {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+  }
+  .email > span,
+  .accessLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .teacherIdentity h1 {
+    font-size: 1.125rem;
+  }
+}
+@media (max-width: 900px) {
+  .teacherHeader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .teacherIdentity {
+    max-width: none;
+  }
+  .teacherHeader > .navigation {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+.access {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.access svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.metricCard[data-health] .reading > strong {
+  font-size: 3rem;
+}
+.metricCard[data-health] .reading > span {
+  color: var(--foreground);
+}
+.metricCard[data-health] .healthBands {
+  margin-top: 0.375rem;
+  padding-top: 0.75rem;
+}
+.healthBands [data-level="HEALTHY"] strong {
+  color: var(--success);
+}
+.healthBands [data-level="ATTENTION"] strong {
+  color: var(--warning);
+}
+.healthBands [data-level="PRIORITY"] strong {
+  color: var(--destructive);
+}
+.metricCard[data-attention] {
+  background: color-mix(in srgb, var(--warning-muted) 18%, var(--card));
+}
+.cardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2rem;
+  gap: 0.5rem;
+}
+.healthBands strong {
+  line-height: 1;
+}
+.healthBands {
+  padding-block: 0.25rem;
+}
+.metricCard[data-health] .healthBands {
+  margin-top: 0;
+  padding-top: 0.5rem;
+}
+@media (min-width: 901px) and (max-height: 800px) {
+  .metricCard {
+    padding: 0.75rem 1rem;
+    gap: 0.25rem;
+  }
+  .overviewGrid {
+    gap: 0.75rem;
+  }
+  .metricCard[data-health] .reading > strong {
+    font-size: 2.5rem;
+  }
+  .facts {
+    padding-block: 0.25rem;
+    gap: 0.375rem;
+  }
+  .healthBands strong {
+    font-size: 1.25rem;
+  }
+}
+
+.previewRows > div > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.occurrenceTotals {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.occurrenceTotals strong {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.occurrenceTotals strong[data-attention] {
+  color: var(--warning);
+}
+.occurrenceCard {
+  background: var(--academic-panel-surface);
+  container-type: inline-size;
+}
+.metricCard.occurrenceCard[data-attention] {
+  background: var(--academic-panel-surface);
+}
+.occurrenceSlide {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  min-width: 0;
+  min-height: 0;
+  animation: occurrence-arrive 240ms ease-out;
+}
+.occurrenceStudent {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+.occurrenceStudent > div {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+.occurrenceStudent a {
+  font-weight: 600;
+  color: var(--heading);
+  font-size: var(--lz-text-caption);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.occurrenceStudent a:hover {
+  text-decoration: underline;
+}
+.occurrenceStudent > div > span {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-micro);
+}
+.occurrenceReport {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--border);
+}
+.occurrenceReport .occurrenceCategory {
+  color: var(--brand-link);
+}
+.occurrenceColumns {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  gap: 0.75rem;
+}
+.occurrenceColumns > div {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.occurrenceColumns h3 {
+  color: var(--heading);
+  font-family: var(--lz-font-display);
+  font-weight: 500;
+  font-size: 1.125rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.occurrenceExcerpt {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.occurrenceReport .occurrenceAuthor {
+  font-size: var(--lz-text-micro);
+}
+.occurrenceResponse {
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+@container (min-width: 22rem) {
+  .occurrenceColumns[data-response="true"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .occurrenceResponse {
+    border-top: 0;
+    padding-top: 0;
+    border-left: 1px solid var(--border);
+    padding-left: 0.75rem;
+  }
+}
+@keyframes occurrence-arrive {
+  from {
+    opacity: 0;
+    transform: translateX(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .occurrenceSlide {
+    animation: none;
+  }
+}
+.occurrenceFooter {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+.occurrenceFooter > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--interactive);
+  font-size: var(--lz-text-caption);
+}
+.occurrenceFooter > a:hover {
+  text-decoration: underline;
+}
+.occurrenceFooter > a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 0.25rem;
+}
+.occurrenceFooter > a svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.occurrenceControls {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+.occurrenceControls > span {
+  font-size: var(--lz-text-micro);
+  color: var(--muted-foreground);
+  margin-right: 0.25rem;
+}
+.occurrenceEmpty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 1rem;
+  text-align: center;
+}
+.occurrenceEmpty > svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--brand-link);
+}
+.occurrenceEmpty > h3 {
+  color: var(--heading);
+  font-weight: 500;
+}
+.occurrenceEmpty > p {
+  max-width: 34ch;
+}
+
+.healthContext {
+  display: grid;
+  gap: 0.375rem;
+}
+.healthFocusHeading {
+  font-size: var(--lz-text-caption);
+  font-weight: 500;
+  color: var(--heading);
+}
+.healthFocusList {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.5rem;
+}
+.healthFocusList > li {
+  min-width: 0;
+}
+.healthFocus {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.25rem 0.375rem;
+  padding: 0.5rem;
+  height: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.healthFocus strong {
+  grid-column: 1 / -1;
+  align-self: start;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--lz-text-caption);
+  line-height: 1.25;
+  color: var(--heading);
+  font-weight: 500;
+}
+.healthFocusName {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.healthFocus small {
+  font-size: var(--lz-text-micro);
+  color: var(--muted-foreground);
+}
+.healthFocus > b {
+  justify-self: end;
+  font-family: var(--lz-font-numeric);
+  font-size: 1.125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--warning);
+}
+.healthFocus[data-level="PRIORITY"] > b {
+  color: var(--destructive);
+}
+.healthFocusList[data-single] .healthFocus {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto;
+  gap: 0.625rem;
+}
+.healthFocusList[data-single] .healthFocus > b {
+  grid-column: 3;
+  grid-row: 1;
+}
+.healthFocusList[data-single] .healthFocus strong {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+.healthFocus:hover {
+  border-color: var(--brand-rule);
+}
+.healthFocus:focus-visible,
+.occurrenceExcerpt:focus-visible,
+.occurrenceStudent a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.healthClear {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.healthClear > svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--success);
+  flex-shrink: 0;
+}
+.metricCard .healthCoverage {
+  font-size: var(--lz-text-micro);
+}
+@media (max-width: 600px) {
+  .healthFocusList {
+    grid-auto-flow: row;
+  }
+  .healthFocus {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+  }
+  .healthFocus > b {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .healthFocus strong,
+  .healthFocusName {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+@media (min-width: 901px) and (min-height: 700px) {
+  .metricCard[data-compact] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .metricCard[data-compact] > * {
+    grid-column: 1 / -1;
+  }
+  .metricCard[data-compact] > .cardHeading {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .metricCard[data-compact] > .reading {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .metricCard[data-compact] .reading {
+    gap: 0.375rem;
+  }
+  .metricCard[data-compact] .reading > strong {
+    font-size: 1.75rem;
+  }
+  .metricCard[data-compact] .reading > span {
+    max-width: 16ch;
+    font-size: var(--lz-text-micro);
+  }
+  .sectionContent[data-overview] {
+    height: 100%;
+  }
+  .overview:not([data-expanded]) {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .overviewGrid {
+    grid-template-rows: minmax(18rem, 1fr) max-content;
+    min-height: 0;
+  }
+  .overview[data-expanded] .overviewGrid {
+    grid-template-rows: 22rem auto;
+  }
+}
+@media (max-width: 900px), (max-height: 699px) {
+  .occurrenceExcerpt {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+  }
+  .occurrenceCard {
+    min-height: 22rem;
+  }
+}

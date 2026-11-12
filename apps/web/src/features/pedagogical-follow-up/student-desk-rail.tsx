@@ -185,9 +185,12 @@ function OccurrenceList({
           >
             <strong title={row.title}>{row.title}</strong>
             <span className={styles.recordMeta}>
-              <Badge variant="neutral">{row.classSession.class.portalClassName}</Badge>
+              <Badge variant="neutral">
+                {row.classSession?.class.portalClassName ?? "Fora de Aula"}
+              </Badge>
               <small>
-                {dateLabel(row.classSession.date)} · {row.recordedBy.name}
+                {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)} ·{" "}
+                {row.recordedBy.name}
               </small>
             </span>
           </button>

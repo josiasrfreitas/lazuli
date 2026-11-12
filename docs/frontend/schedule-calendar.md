@@ -224,3 +224,5 @@ overlap lanes remain unchanged.
 
 Import the normal `@lazuli/ui/styles.css` stylesheet. Consumers never import react-big-calendar
 or use its event/slot types; that dependency and its geometry remain implementation details.
+
+Personal read-only agendas can set `scrollChaining` to let vertical gestures continue into the page at the grid limits. The default retains containment for dialogs. Set `emptyDisplay="message"` to retain navigation but omit an empty time grid (ignored with range selection). Use `hours` based on the visible events to trim unused hours at either edge of the day.

@@ -38,10 +38,12 @@ export function ClassRecentOccurrences({ classId }: { classId: string }): ReactE
     content = <OccurrenceCarousel rows={rows} />;
   } else {
     content = (
-      <div className={styles.state}>
+      <div className={`${styles.state} ${styles.empty}`} role="status">
         <MessageSquareText aria-hidden="true" />
-        <h3>Nenhuma ocorrência</h3>
-        <p>Os relatos das aulas desta turma aparecerão aqui, junto ao aluno.</p>
+        <h3>Tudo tranquilo por aqui</h3>
+        <p>
+          Nenhuma ocorrência registrada. Por enquanto, só o verbo <em>to be</em> dando trabalho.
+        </p>
       </div>
     );
   }
@@ -126,7 +128,7 @@ function OccurrenceStudent({ row }: { row: Occurrence }): ReactElement {
       <Avatar name={row.student.fullName} colorKey={row.student.id} size="md" />
       <div>
         <Link href={`/alunos/${row.student.id}`}>{row.student.fullName}</Link>
-        <span>Aula de {dateLabel(row.classSession.date)}</span>
+        <span>Aula de {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)}</span>
       </div>
     </div>
   );
