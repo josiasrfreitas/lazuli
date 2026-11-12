@@ -13,11 +13,13 @@ export function AcademicCalendarWorkshop({
   activeYear,
   onYearChange,
   actions,
+  onEditEvent,
 }: {
   data?: AcademicYear;
   activeYear?: number;
   onYearChange?: (year: number) => void;
   actions?: ReactNode;
+  onEditEvent?: (id: string) => void;
 }) {
   const [sampleYear, setSampleYear] = useState(2026);
   const year = activeYear ?? sampleYear;
@@ -204,6 +206,27 @@ export function AcademicCalendarWorkshop({
                     </p>
                   </>
                 )}
+                {data &&
+                  date &&
+                  data.events
+                    .filter(
+                      (item) =>
+                        item.startsAt < new Date(`${date}T23:59:59-03:00`) &&
+                        item.endsAt > new Date(`${date}T00:00:00-03:00`),
+                    )
+                    .map((item) => (
+                      <div key={item.id}>
+                        <h3>{item.title}</h3>
+                        <p>
+                          {item.startsAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}{" "}
+                          — {item.endsAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                        </p>
+                        <p>{item.description}</p>
+                        <Button variant="ghost" onClick={() => onEditEvent?.(item.id)}>
+                          Editar evento
+                        </Button>
+                      </div>
+                    ))}
                 {!data && month === 8 && (
                   <div className={styles.dates}>
                     <h3>Neste mês</h3>

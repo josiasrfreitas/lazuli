@@ -1,14 +1,23 @@
 "use client";
 import { useState } from "react";
-import { Field, Input, Label, Textarea } from "@lazuli/ui";
+import { Button, Field, Input, Label, Textarea } from "@lazuli/ui";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
+import type { AcademicYear } from "./model";
 import { trpc } from "~/lib/trpc";
 
-export function AcademicEventForm({ onClose }: { onClose: () => void }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+const localInput = (value: Date) =>
+  new Date(value.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 16);
+export function AcademicEventForm({
+  onClose,
+  item,
+}: {
+  onClose: () => void;
+  item?: AcademicYear["events"][number] | undefined;
+}) {
+  const [title, setTitle] = useState(item?.title ?? "");
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [start, setStart] = useState(item ? localInput(item.startsAt) : "");
+  const [end, setEnd] = useState(item ? localInput(item.endsAt) : "");
   const [error, setError] = useState<string>();
   const validation = useValidation();
   const utils = trpc.useUtils();
@@ -18,18 +27,25 @@ export function AcademicEventForm({ onClose }: { onClose: () => void }) {
       onClose();
     },
   });
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
+  const remove = trpc.calendar.academic.removeEvent.useMutation({
+    onSuccess: async () => {
+      await utils.calendar.academic.invalidate();
+      onClose();
+    },
+  });
   return (
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title="Novo evento"
+      title={item ? "Editar evento" : "Novo evento"}
       description="Horários de São Paulo. O evento não suspende as aulas."
       formId="academic-event"
       firstField="event-title"
       submitLabel="Salvar evento"
       onClose={onClose}
-      pending={save.isPending}
-      error={error ?? save.error?.message}
+      pending={save.isPending || remove.isPending}
+      error={error ?? save.error?.message ?? remove.error?.message}
       bodyRef={validation.body}
     >
       <form
@@ -45,7 +61,7 @@ export function AcademicEventForm({ onClose }: { onClose: () => void }) {
             return;
           }
           setError(undefined);
-          save.mutate({ title, description, startsAt, endsAt });
+          save.mutate({ ...(item ? { id: item.id } : {}), title, description, startsAt, endsAt });
         }}
       >
         <Field>
@@ -90,6 +106,27 @@ export function AcademicEventForm({ onClose }: { onClose: () => void }) {
             onChange={(e) => setDescription(e.target.value)}
           />
         </Field>
+        {item && (
+          <div>
+            {confirmRemoval ? (
+              <>
+                <p>Remover este evento do calendário?</p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={remove.isPending}
+                  onClick={() => remove.mutate({ id: item.id })}
+                >
+                  Confirmar remoção
+                </Button>
+              </>
+            ) : (
+              <Button type="button" variant="ghost" onClick={() => setConfirmRemoval(true)}>
+                Remover evento
+              </Button>
+            )}
+          </div>
+        )}
       </form>
     </TaskDialog>
   );

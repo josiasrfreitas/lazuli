@@ -9,6 +9,7 @@ import { schoolToday } from "~/features/class-records/calendar-model";
 import { AcademicCalendarWorkshop } from "./workshop";
 
 export function AcademicCalendar() {
+  const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [year, setYear] = useQueryState(
     "ano",
@@ -31,9 +32,16 @@ export function AcademicCalendar() {
     );
   return (
     <>
+      {editing && (
+        <AcademicEventForm
+          item={query.data?.events.find((item) => item.id === editing)}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {creating && <AcademicEventForm onClose={() => setCreating(false)} />}
       <AcademicCalendarWorkshop
         data={query.data}
+        onEditEvent={setEditing}
         activeYear={validYear}
         onYearChange={(value) => void setYear(Math.min(2100, Math.max(2000, value)))}
         actions={
