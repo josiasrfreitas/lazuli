@@ -58,9 +58,13 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
     {
       id: "name",
       header: "Professor",
-      width: "wide",
+      width: "medium",
       cell: (row) => (
-        <Link href={href(row.id)} className="font-medium underline-offset-4 hover:underline">
+        <Link
+          href={href(row.id)}
+          title={row.name}
+          className="block truncate font-medium underline-offset-4 hover:underline"
+        >
           {row.name}
         </Link>
       ),
@@ -69,12 +73,16 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
       id: "email",
       header: "E-mail",
       width: "wide",
-      cell: (row) => <span className="break-all text-muted-foreground">{row.email}</span>,
+      cell: (row) => (
+        <span title={row.email} className="block truncate text-muted-foreground">
+          {row.email}
+        </span>
+      ),
     },
     {
       id: "classes",
       header: "Turmas",
-      width: "standard",
+      width: "narrow",
       numeric: true,
       cell: (row) => (
         <span
@@ -87,12 +95,8 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
     },
     {
       id: "appointmentHours",
-      header: (
-        <span className="block whitespace-normal leading-tight">
-          Horas de atendimento · {today.slice(5, 7)}/{today.slice(0, 4)}
-        </span>
-      ),
-      width: "standard",
+      header: <span className="whitespace-nowrap">Horas de atendimento</span>,
+      width: "wide",
       cell: (row) => (
         <div
           className="grid gap-1"
@@ -108,13 +112,13 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
     {
       id: "activity",
       header: "Atuação",
-      width: "wide",
+      width: "narrow",
       cell: (row) => <TeacherStatus departure={row.teacherProfile?.departureDate} today={today} />,
     },
     {
       id: "access",
       header: "Acesso ao sistema",
-      width: "standard",
+      width: "medium",
       cell: (row) => <TeacherAccess row={row} today={today} />,
     },
   ];
