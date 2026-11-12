@@ -1,6 +1,7 @@
 "use client";
 import type { ReactElement } from "react";
 import Link from "next/link";
+import { hoursLabel } from "./format";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, DataTable, type DataTableColumn, type DataTableState } from "@lazuli/ui";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
@@ -82,6 +83,35 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
         >
           {row.classCount}
         </span>
+      ),
+    },
+    {
+      id: "appointmentHours",
+      header: (
+        <span className="text-caption">
+          Horas de atendimento · {today.slice(5, 7)}/{today.slice(0, 4)}
+        </span>
+      ),
+      width: "standard",
+      cell: (row) => (
+        <div
+          className="grid gap-1"
+          title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
+        >
+          <span className="font-numeric tabular-nums">
+            {hoursLabel(row.appointmentHours.completedMinutes)} /{" "}
+            {hoursLabel(row.appointmentHours.plannedMinutes)} h
+          </span>
+          <progress
+            className="h-1 w-full accent-primary"
+            aria-label="Progresso das horas de atendimentos no mês"
+            max={row.appointmentHours.plannedMinutes || 1}
+            value={Math.min(
+              row.appointmentHours.completedMinutes,
+              row.appointmentHours.plannedMinutes,
+            )}
+          />
+        </div>
       ),
     },
     {

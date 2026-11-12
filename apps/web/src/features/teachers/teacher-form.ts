@@ -22,7 +22,6 @@ export type TeacherDraft = {
   cpf: string;
   isEnabled: boolean;
   employmentType: "CLT" | "PJ" | "AUTONOMOUS" | "OTHER" | null;
-  weeklyHours: string;
   notes: string;
   vacationStart: string;
   vacationEnd: string;
@@ -125,7 +124,6 @@ function submitTeacherForm(
   const parsed = teacherCreateInputSchema.safeParse({
     ...draft,
     ...(documentSessionId ? { documentSessionId } : {}),
-    weeklyHours: draft.weeklyHours.trim() ? Number(draft.weeklyHours.replace(",", ".")) : null,
     notes: draft.notes.trim() || null,
     vacationStart: draft.vacationStart ? (parseDateBR(draft.vacationStart) ?? "invalid") : null,
     vacationEnd: draft.vacationEnd ? (parseDateBR(draft.vacationEnd) ?? "invalid") : null,
@@ -153,7 +151,6 @@ function teacherDraft(teacher: Teacher | undefined): UseTeacherFormResult["draft
     employmentType:
       (teacher?.teacherProfile?.employmentType as TeacherDraft["employmentType"]) ??
       (teacher ? null : "CLT"),
-    weeklyHours: teacher?.teacherProfile?.weeklyHours?.toString().replace(".", ",") ?? "",
     notes: teacher?.teacherProfile?.notes ?? "",
     vacationStart: displayDate(teacher?.teacherProfile?.vacationStart),
     vacationEnd: displayDate(teacher?.teacherProfile?.vacationEnd),

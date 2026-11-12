@@ -1,3 +1,4 @@
+import { teacherAppointmentHours } from "./appointment-hours.js";
 import { searchIds } from "../search.js";
 import { teacherIdentityWhere } from "./identity.js";
 import type { Prisma } from "@lazuli/db";
@@ -14,7 +15,12 @@ import {
 const ISO_DATE_LENGTH = 10;
 type ReadTeacherResult = Prisma.UserGetPayload<{ select: typeof teacherSelect }>;
 type ListTeachersResult = {
-  rows: Array<ReadTeacherResult & { classCount: number }>;
+  rows: Array<
+    ReadTeacherResult & {
+      classCount: number;
+      appointmentHours: { plannedMinutes: number; completedMinutes: number };
+    }
+  >;
   page: number;
   pageSize: number;
   pageCount: number;
@@ -107,8 +113,16 @@ export async function listTeachers({
     teacherIds: rows.map((row) => row.id),
     today,
   });
+  const appointmentHours = await teacherAppointmentHours(database, {
+    teacherIds: rows.map((row) => row.id),
+    now,
+  });
   return {
-    rows: rows.map((row) => ({ ...row, classCount: classCounts.get(row.id) ?? 0 })),
+    rows: rows.map((row) => ({
+      ...row,
+      classCount: classCounts.get(row.id) ?? 0,
+      appointmentHours: appointmentHours.get(row.id) ?? { plannedMinutes: 0, completedMinutes: 0 },
+    })),
     page,
     pageSize: input.pageSize,
     pageCount,

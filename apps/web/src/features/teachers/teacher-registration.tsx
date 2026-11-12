@@ -80,14 +80,6 @@ export function TeacherRegistration({
                   : "Não informado"}
               </dd>
             </div>
-            <div className={styles.fact}>
-              <dt>Carga semanal</dt>
-              <dd>
-                {profile?.weeklyHours == null
-                  ? "Não informada"
-                  : `${profile.weeklyHours.toLocaleString("pt-BR")} horas-aula`}
-              </dd>
-            </div>
             {profile?.employmentType === "CLT" && (
               <div className={styles.fact} data-wide>
                 <dt>Previsão de férias</dt>
