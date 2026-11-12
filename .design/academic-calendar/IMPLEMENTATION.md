@@ -144,3 +144,22 @@ The normal local worker remains running. No temporary validation script remains.
 
 Final diff and whitespace were inspected. Automated delivery gates remain deferred to
 PR/CI by the user's explicit instruction; this does not claim passing automated checks.
+
+## Configuration flow polish — November 12
+
+Configuration now keeps one dialog mounted through list, form, holiday import and
+impact preview. Tabs separate semesters from interruptions; desktop holiday selection
+uses a three-column grid. Short date fields share a row with the title. Loading uses
+structural skeletons and action-specific pending labels; background failures retain
+previously loaded calendar data. The sticky legend has padding and a complete border.
+
+Orca validation confirmed the same dialog node through editing and impact preview,
+with focus on the title then confirmation action. Desktop import measured 992px wide
+with no horizontal or vertical overflow. At the narrow viewport the dialog measured
+341px wide with no horizontal overflow; vertical scrolling stayed in the body with
+footer actions available. Screenshots: configuration-tabs-desktop.png and
+holiday-import-mobile.png. A final repeat after hot reload remained in loading and
+timed out, so the final loading-to-data transition was not revalidated in that repeat.
+No further persistent calendar changes were made during these visual checks.
+Automated checks were not run, per user instruction. Reviewed scoped diff and
+ran git diff --check.

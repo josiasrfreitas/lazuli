@@ -1,0 +1,104 @@
+.sections {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 1.25rem;
+}
+.section {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.entries,
+.holidays {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  min-width: 0;
+}
+.entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.entry > button {
+  flex-shrink: 0;
+}
+.filters {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 14rem);
+  gap: 1rem;
+  padding-top: 1.25rem;
+}
+.holiday {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  min-width: 0;
+  height: 100%;
+  padding: 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--lz-radius-md);
+  cursor: pointer;
+}
+.holiday:hover {
+  background: var(--accent);
+}
+.holiday[data-registered="true"] {
+  cursor: default;
+  color: var(--muted-foreground);
+}
+@media (max-width: 899px) {
+  .entries,
+  .holidays {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 539px) {
+  .entries,
+  .holidays {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.periods {
+  display: grid;
+  gap: 0.5rem;
+}
+.periods .entry > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 2rem;
+}
+
+.dateFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, 8.5rem);
+  gap: 1rem;
+}
+@media (max-width: 639px) {
+  .dateFields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dateFields > :first-child {
+    grid-column: 1 / -1;
+  }
+}

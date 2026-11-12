@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RouterInputs } from "@lazuli/api";
 import { Button } from "@lazuli/ui";
 import { CalendarChangeFields, draftSchema } from "./change-fields";
@@ -18,7 +18,13 @@ export function CalendarChangeForm({
   item: initialItem,
   onClose,
   onSaved,
+  embedded = false,
+  onPendingChange,
+  onBack,
 }: {
+  embedded?: boolean;
+  onPendingChange?: ((pending: boolean) => void) | undefined;
+  onBack?: (() => void) | undefined;
   mode: "period" | "interruption";
   item?: Period | Interruption | undefined;
   onClose: () => void;
@@ -43,6 +49,10 @@ export function CalendarChangeForm({
   const [change, setChange] = useState<CalendarChange | null>(null);
   const validation = useValidation();
   const preview = trpc.calendar.academic.changes.preview.useMutation();
+  useEffect(() => {
+    onPendingChange?.(preview.isPending);
+    return () => onPendingChange?.(false);
+  }, [preview.isPending, onPendingChange]);
   function update(key: keyof typeof draft, value: string) {
     setDraft((current) => ({ ...current, [key]: value }));
     validation.clear(key);
@@ -54,6 +64,8 @@ export function CalendarChangeForm({
   if (change && preview.data)
     return (
       <CalendarImpact
+        embedded={embedded}
+        onPendingChange={onPendingChange}
         change={change}
         preview={preview.data}
         onBack={() => {
@@ -66,17 +78,16 @@ export function CalendarChangeForm({
     );
   return (
     <TaskDialog
+      embedded={embedded}
+      hideCancel={embedded}
+      onBack={onBack}
       compactHeader
       actionSize="sm"
       title={`${item ? "Editar" : "Novo"} ${mode === "period" ? "semestre" : "recesso"}`}
-      description={
-        mode === "period"
-          ? "As turmas regulares seguem os limites deste semestre."
-          : "Suspende as atividades acadêmicas de toda a escola."
-      }
       formId="calendar-change"
       firstField="calendar-title"
       submitLabel="Conferir impactos"
+      pendingLabel="Conferindo impactos…"
       pending={preview.isPending}
       error={preview.error?.message}
       bodyRef={validation.body}

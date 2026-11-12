@@ -1,9 +1,9 @@
+import styles from "./configuration.module.css";
 import type { FormEvent } from "react";
 import { z } from "@lazuli/validators";
 import {
   Field,
   FieldError,
-  FormRow,
   Input,
   Label,
   SegmentedControl,
@@ -83,9 +83,13 @@ export function CalendarChangeFields({
     );
   }
   return (
-    <form id="calendar-change" noValidate className="grid gap-4" onSubmit={submit}>
+    <form id="calendar-change" noValidate className="grid gap-4 pt-5" onSubmit={submit}>
       <fieldset disabled={pending} className="grid min-w-0 gap-4">
-        {field("title", mode === "period" ? "Nome do semestre" : "Título")}
+        <div className={styles.dateFields}>
+          {field("title", mode === "period" ? "Nome do semestre" : "Título")}
+          {field("from", "Início")}
+          {field("through", "Fim (inclusive)")}
+        </div>
         {mode === "interruption" && (
           <Field>
             <Label>Motivo</Label>
@@ -106,10 +110,6 @@ export function CalendarChangeFields({
             </SegmentedControl>
           </Field>
         )}
-        <FormRow columns={2}>
-          {field("from", "Início")}
-          {field("through", "Fim (inclusive)")}
-        </FormRow>
         {mode === "interruption" && (
           <Field>
             <Label htmlFor="calendar-description">Descrição (opcional)</Label>

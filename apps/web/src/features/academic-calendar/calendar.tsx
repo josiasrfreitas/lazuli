@@ -1,7 +1,6 @@
 "use client";
-import { CalendarManagement, type CalendarEditor } from "./management";
-import { CalendarChangeForm } from "./change-form";
-import { CalendarHolidays } from "./holidays";
+import { CalendarManagement } from "./management";
+import { AcademicCalendarLoading } from "./loading";
 import { CalendarProcessing } from "./processing";
 import { useState } from "react";
 import { AcademicEventForm } from "./event-form";
@@ -13,7 +12,6 @@ import { useAcademicCalendarNavigation } from "./navigation";
 
 export function AcademicCalendar() {
   const [managing, setManaging] = useState(false);
-  const [editor, setEditor] = useState<CalendarEditor | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const navigation = useAcademicCalendarNavigation();
@@ -28,13 +26,8 @@ export function AcademicCalendar() {
           : false,
     },
   );
-  if (query.isPending)
-    return (
-      <p className="p-4" role="status">
-        Carregando calendário acadêmico…
-      </p>
-    );
-  if (query.error)
+  if (query.isPending) return <AcademicCalendarLoading />;
+  if (query.error && !query.data)
     return (
       <div className="p-4">
         <Alert>Não foi possível carregar o calendário.</Alert>
@@ -48,28 +41,6 @@ export function AcademicCalendar() {
           data={query.data}
           year={navigation.year}
           onClose={() => setManaging(false)}
-          onEdit={(value) => {
-            setManaging(false);
-            setEditor(value);
-          }}
-        />
-      )}
-      {editor && editor.kind !== "holidays" && (
-        <CalendarChangeForm
-          mode={editor.kind}
-          item={
-            editor.kind === "period"
-              ? query.data?.periods.find((row) => row.id === editor.id)
-              : query.data?.interruptions.find((row) => row.id === editor.id)
-          }
-          onClose={() => setEditor(null)}
-        />
-      )}
-      {editor?.kind === "holidays" && query.data && (
-        <CalendarHolidays
-          year={navigation.year}
-          data={query.data}
-          onClose={() => setEditor(null)}
         />
       )}
       {editing && (

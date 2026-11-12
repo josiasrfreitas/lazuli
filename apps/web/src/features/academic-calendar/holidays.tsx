@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { Button, Checkbox, FormRow } from "@lazuli/ui";
+import styles from "./configuration.module.css";
+import { useEffect, useState } from "react";
+import { Button, Checkbox, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { TaskDialog } from "~/features/shared/task-form";
 import { SelectControl } from "~/features/classes/form-controls";
@@ -14,7 +15,13 @@ export function CalendarHolidays({
   year: initialYear,
   data,
   onClose,
+  embedded = false,
+  onPendingChange,
+  onBack,
 }: {
+  embedded?: boolean;
+  onPendingChange?: ((pending: boolean) => void) | undefined;
+  onBack?: (() => void) | undefined;
   year: number;
   data: AcademicYear;
   onClose: () => void;
@@ -28,6 +35,10 @@ export function CalendarHolidays({
     { retry: false, staleTime: 3600000 },
   );
   const preview = trpc.calendar.academic.changes.preview.useMutation();
+  useEffect(() => {
+    onPendingChange?.(preview.isPending);
+    return () => onPendingChange?.(false);
+  }, [preview.isPending, onPendingChange]);
   const exists = (key: string, date: string) =>
     data.interruptions.some((row) => row.sourceKey === key) ||
     data.closedDays.some((row) => row.date.toISOString().slice(0, 10) === date);
@@ -37,6 +48,8 @@ export function CalendarHolidays({
   if (change && preview.data)
     return (
       <CalendarImpact
+        embedded={embedded}
+        onPendingChange={onPendingChange}
         change={change}
         preview={preview.data}
         onClose={onClose}
@@ -48,14 +61,26 @@ export function CalendarHolidays({
     );
   return (
     <TaskDialog
+      embedded={embedded}
+      hideCancel={embedded}
+      onBack={onBack}
+      size="extra-wide"
       compactHeader
       actionSize="sm"
       title="Buscar feriados"
-      description="Confira as sugestões e escolha os dias sem atividades."
       formId="calendar-holidays"
       firstField="holiday-year"
-      submitLabel={`Conferir ${selected.length} datas`}
+      submitLabel={
+        query.isPending
+          ? "Buscando feriados…"
+          : selected.length
+            ? `Conferir ${selected.length} datas`
+            : query.data?.days.every((row) => exists(row.sourceKey, row.date))
+              ? "Todos cadastrados"
+              : "Selecione as datas"
+      }
       submitDisabled={!selected.length || query.isPending}
+      pendingLabel="Conferindo impactos…"
       pending={preview.isPending}
       onClose={onClose}
       error={preview.error?.message ?? query.error?.message}
@@ -72,7 +97,7 @@ export function CalendarHolidays({
         }}
       >
         <fieldset disabled={preview.isPending} className="grid min-w-0 gap-4">
-          <FormRow columns={2}>
+          <div className={styles.filters}>
             <SelectControl
               name="holiday-year"
               label="Ano"
@@ -100,8 +125,20 @@ export function CalendarHolidays({
                 ...states.map((value) => ({ value, label: value })),
               ]}
             />
-          </FormRow>
-          {query.isPending && <p role="status">Buscando feriados…</p>}
+          </div>
+          {query.isPending && (
+            <div role="status" aria-label="Buscando feriados" className={styles.holidays}>
+              {Array.from({ length: 15 }, (_, index) => (
+                <div key={index} className={styles.holiday}>
+                  <InlineSkeleton shape="block" />
+                  <div className="grid gap-2">
+                    <InlineSkeleton className="w-36" />
+                    <InlineSkeleton className="w-20" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {query.error && (
             <Button type="button" variant="secondary" onClick={() => void query.refetch()}>
               Tentar novamente
@@ -109,16 +146,12 @@ export function CalendarHolidays({
           )}
           {query.data && (
             <>
-              <p className="text-caption text-muted-foreground">
-                {query.data.source}. Confira também os pontos facultativos e as regras da sua
-                escola.
-              </p>
-              <ul className="divide-y divide-border">
+              <ul className={styles.holidays}>
                 {query.data.days.map((row) => {
                   const registered = exists(row.sourceKey, row.date);
                   return (
                     <li key={row.sourceKey}>
-                      <label className="flex cursor-pointer items-center gap-3 py-2">
+                      <label className={styles.holiday} data-registered={registered}>
                         <Checkbox
                           size="sm"
                           disabled={registered}
@@ -132,7 +165,7 @@ export function CalendarHolidays({
                           }
                         />
                         <span className="min-w-0">
-                          <span className="block">{row.title}</span>
+                          <span className="block break-words">{row.title}</span>
                           <span className="text-caption text-muted-foreground">
                             {formatDateOnlyBR(row.date)}
                             {registered ? " · já cadastrado" : ""}
@@ -164,8 +197,8 @@ export function CalendarHolidays({
                 </p>
               )}
               <p className="text-caption text-muted-foreground">
-                Feriados municipais e datas próprias da escola podem ser cadastrados em Novo
-                recesso.
+                Fonte: {query.data.source}. Revise os pontos facultativos. Datas municipais e da
+                escola: Novo recesso.
               </p>
             </>
           )}

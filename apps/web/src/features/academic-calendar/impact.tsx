@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
 import { Alert } from "@lazuli/ui";
@@ -17,7 +17,11 @@ export function CalendarImpact({
   onBack,
   onClose,
   onSaved,
+  embedded = false,
+  onPendingChange,
 }: {
+  embedded?: boolean;
+  onPendingChange?: ((pending: boolean) => void) | undefined;
   change: CalendarChange;
   preview: Preview;
   onBack: () => void;
@@ -33,9 +37,14 @@ export function CalendarImpact({
       onClose();
     },
   });
+  useEffect(() => {
+    onPendingChange?.(confirm.isPending);
+    return () => onPendingChange?.(false);
+  }, [confirm.isPending, onPendingChange]);
   const total = preview.sessions.length + preview.appointments.length + preview.visits.length;
   return (
     <TaskDialog
+      embedded={embedded}
       compactHeader
       size="medium"
       actionSize="sm"

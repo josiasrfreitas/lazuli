@@ -124,16 +124,18 @@ export function NarrativeField({
 }
 type TaskDialogProps = {
   title: string;
-  description: string;
+  description?: string;
   onClose: () => void;
   pending: boolean;
   formId: string;
   firstField: string;
   submitLabel: string;
+  pendingLabel?: string;
   children: ReactNode | ((actions: ReactNode) => ReactNode);
   size?: "default" | "medium" | "wide" | "extra-wide";
   onBack?: (() => void) | undefined;
   submitDisabled?: boolean;
+  hideCancel?: boolean;
   actionSize?: "sm" | "md";
   submitIcon?: ReactNode;
   cancelIcon?: ReactNode;
@@ -227,7 +229,7 @@ function TaskBody({
         }
       >
         <DialogTitle>{props.title}</DialogTitle>
-        <DialogDescription>{props.description}</DialogDescription>
+        {props.description && <DialogDescription>{props.description}</DialogDescription>}
         {props.headerAction && (
           <div className="-translate-y-2 ml-auto shrink-0">{props.headerAction}</div>
         )}
@@ -259,15 +261,17 @@ function TaskActions(props: TaskDialogProps): ReactElement {
           {props.backIcon ?? <ArrowLeft aria-hidden="true" />} Voltar
         </Button>
       )}
-      <Button
-        type="button"
-        size={size}
-        variant="secondary"
-        disabled={props.pending}
-        onClick={props.onClose}
-      >
-        {props.cancelIcon ?? <X aria-hidden="true" />} Cancelar
-      </Button>
+      {!props.hideCancel && (
+        <Button
+          type="button"
+          size={size}
+          variant="secondary"
+          disabled={props.pending}
+          onClick={props.onClose}
+        >
+          {props.cancelIcon ?? <X aria-hidden="true" />} Cancelar
+        </Button>
+      )}
       <Button
         id={`${props.formId}-submit`}
         type="submit"
@@ -277,7 +281,7 @@ function TaskActions(props: TaskDialogProps): ReactElement {
         variant={props.submitVariant ?? "primary"}
       >
         {props.submitIcon ?? <Check aria-hidden="true" />}
-        {props.pending ? "Salvando…" : props.submitLabel}
+        {props.pending ? (props.pendingLabel ?? "Salvando…") : props.submitLabel}
       </Button>
     </>
   );
