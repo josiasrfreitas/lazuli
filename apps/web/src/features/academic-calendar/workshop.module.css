@@ -441,3 +441,9 @@ button.day:hover {
     display: inline;
   }
 }
+.header {
+  justify-content: flex-start;
+}
+.header h1 {
+  margin-right: auto;
+}

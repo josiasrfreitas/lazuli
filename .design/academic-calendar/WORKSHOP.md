@@ -43,3 +43,27 @@ acceptance. TASKS.md tracks these separately.
 
 No lint, test, typecheck or build commands run. Commit hooks format and check staged
 whitespace. This workshop is not the optional final design-review phase.
+
+## Live Integration Progress
+
+The accepted calendar is now available at `/aulas?visao=academico` through Agenda.
+It queries real Period, SchoolClosedDay and AcademicEvent records. Header is a
+single row; semester dates moved into group headings; annual legend filters itself
+by categories present; expanded month uses date descriptions. Multiple category
+markers can coexist on a date. Unknown coverage is explicitly labeled.
+
+Browser evidence on 2026-11-12: created a temporary event through the form for
+20 November 18:00–20:00, observed its annual marker, opened November/day and its
+edit form with the same title/times, then removed it through explicit confirmation.
+Confirmed form closed and temporary title disappeared. No validation event remains
+active. Save-after-edit itself still requires browser acceptance.
+
+Inspected real-data calendar at desktop and 375px: header stays one row, no stacked
+subtitle/summary, month grids readable. Refined desktop controls into a right-side
+cluster afterward. API initially hit a stale Prisma singleton; restarting the dev
+server loaded AcademicEvent and the creation/removal flow succeeded.
+
+Still incomplete: period/recess management with preview/reconciliation, import,
+appointment exception, capacity warnings, real ordinary sessions in day detail,
+URL month/day persistence, audit logging and conflict handling for event edits.
+The design-flow and overall epic remain active, not complete.

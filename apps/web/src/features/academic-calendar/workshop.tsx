@@ -252,6 +252,7 @@ function Legend({ kinds }: { kinds?: Set<string> }) {
     <div className={styles.legend} aria-label="Legenda do calendário">
       {[
         ["vacation", "Férias acadêmicas"],
+        ["unknown", "Período não configurado"],
         ["holiday", "Feriado / recesso"],
         ["boundary", "Início / fim do semestre"],
         ["event", "Evento"],
@@ -331,7 +332,7 @@ function MonthGrid({
               onClick={() => onDay?.(date)}
             >
               <span>{i + 1}</span>
-              {info.kind !== "academic" && <small>{info.label}</small>}
+              {(info.kind !== "academic" || !!info.markers?.length) && <small>{info.label}</small>}
             </button>
           );
         })}
