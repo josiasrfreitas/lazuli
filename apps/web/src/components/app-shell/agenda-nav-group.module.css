@@ -1,0 +1,102 @@
+.group {
+  color: var(--navigation-muted);
+  font-size: var(--lz-text-control);
+}
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.4375rem;
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+}
+.trigger > svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--navigation-icon);
+}
+.trigger span {
+  flex: 1;
+}
+.trigger .chevron {
+  transition: transform var(--lz-duration-fast);
+}
+.trigger[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+.trigger:hover,
+.trigger[data-active="true"] {
+  background: var(--navigation-active);
+  color: var(--navigation-foreground);
+}
+.children {
+  margin: 0.25rem 0 0.25rem 0.875rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--navigation-border);
+}
+.children a {
+  display: block;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--lz-text-caption);
+}
+.children a:hover,
+.children a[aria-current="page"] {
+  background: var(--navigation-active);
+  color: var(--navigation-foreground);
+}
+.children a[aria-current="page"] {
+  font-weight: 600;
+}
+.trigger:focus-visible,
+.children a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.group[data-mobile="true"] {
+  color: var(--muted-foreground);
+}
+.group[data-mobile="true"] .trigger {
+  min-height: 2.75rem;
+  padding-inline: 0.625rem;
+}
+.group[data-mobile="true"] .trigger svg {
+  color: inherit;
+}
+.group[data-mobile="true"] .children a {
+  min-height: 2.75rem;
+}
+.group[data-mobile="true"] .trigger:hover,
+.group[data-mobile="true"] .trigger[data-active="true"],
+.group[data-mobile="true"] .children a:hover,
+.group[data-mobile="true"] .children a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+@media (min-width: 640px) {
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .children {
+    display: none;
+  }
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .trigger
+    span,
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .chevron {
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trigger .chevron {
+    transition: none;
+  }
+}
