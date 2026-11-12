@@ -26,7 +26,7 @@
 }
 .contractRow {
   display: grid;
-  grid-template-columns: max-content 10rem;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -152,5 +152,17 @@
   .panelMotion[data-open="false"] {
     transform: none;
     transition-property: opacity;
+  }
+}
+
+.workloadRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  max-width: 26rem;
+}
+@media (max-width: 380px) {
+  .workloadRow {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

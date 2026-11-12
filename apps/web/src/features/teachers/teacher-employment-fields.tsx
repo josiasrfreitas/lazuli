@@ -1,5 +1,6 @@
 import { BriefcaseBusiness, CalendarDays } from "lucide-react";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
+import { DEFAULT_TEACHING_MODALITY, TEACHING_HOUR_MINUTES } from "@lazuli/domain";
 import {
   Field,
   FieldError,
@@ -26,6 +27,8 @@ export function TeacherEmploymentFields({
   errors,
   change,
 }: TeacherFieldProps): ReactElement {
+  const [classCount, setClassCount] = useState("");
+  const hoursPerClass = DEFAULT_TEACHING_MODALITY.weeklyMinutes / TEACHING_HOUR_MINUTES;
   return (
     <FormSection
       title={
@@ -56,6 +59,26 @@ export function TeacherEmploymentFields({
           </SegmentedControl>
           {errors.employmentType && <FieldError match>{errors.employmentType}</FieldError>}
         </Field>
+      </div>
+      <div className={styles.workloadRow}>
+        <Field>
+          <Label htmlFor="teacher-class-count">Quantidade de turmas</Label>
+          <Input
+            id="teacher-class-count"
+            size="compact-responsive"
+            autoComplete="off"
+            placeholder="Ex.: 3"
+            inputMode="numeric"
+            value={classCount}
+            aria-describedby="teacher-workload-hint"
+            onChange={(event) => {
+              const value = event.target.value;
+              if (!/^\d*$/.test(value)) return;
+              setClassCount(value);
+              if (value) change("weeklyHours", String(Number(value) * hoursPerClass));
+            }}
+          />
+        </Field>
         <Field>
           <Label htmlFor="teacher-weekly-hours">Horas-aula por semana</Label>
           <Input
@@ -67,11 +90,18 @@ export function TeacherEmploymentFields({
             inputMode="decimal"
             value={draft.weeklyHours}
             invalid={Boolean(errors.weeklyHours)}
-            onChange={(event) => change("weeklyHours", event.target.value)}
+            onChange={(event) => {
+              setClassCount("");
+              change("weeklyHours", event.target.value);
+            }}
           />
           {errors.weeklyHours && <FieldError match>{errors.weeklyHours}</FieldError>}
         </Field>
       </div>
+      <p id="teacher-workload-hint" className="text-caption text-muted-foreground">
+        Cada turma equivale a {hoursPerClass} horas-aula por semana. Use para calcular ou ajuste as
+        horas diretamente.
+      </p>
       {draft.employmentType === "CLT" && (
         <FormSection
           title={
