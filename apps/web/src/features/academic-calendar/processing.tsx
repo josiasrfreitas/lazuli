@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import Link from "next/link";
 import { formatDateOnlyBR } from "~/lib/format";
 import { Alert, Button } from "@lazuli/ui";
@@ -9,6 +10,28 @@ export function CalendarProcessing({
   planWarnings,
 }: Pick<AcademicYear, "requests" | "planWarnings">) {
   const utils = trpc.useUtils();
+  const completionKey = requests
+    .filter((row) => row.status === "SUCCEEDED")
+    .map((row) => row.id)
+    .sort()
+    .join(",");
+  useEffect(() => {
+    if (!completionKey) return;
+    void Promise.all([
+      utils.classRecords.invalidate(),
+      utils.appointments.invalidate(),
+      utils.admissions.invalidate(),
+      utils.planning.invalidate(),
+      utils.sessionGeneration.invalidate(),
+      utils.classes.invalidate(),
+      utils.teachers.invalidate(),
+      utils.teacherWorkspace.invalidate(),
+      utils.students.invalidate(),
+      utils.attendance.invalidate(),
+      utils.dashboard.invalidate(),
+      utils.activity.invalidate(),
+    ]);
+  }, [completionKey, utils]);
   const retry = trpc.calendar.academic.changes.retry.useMutation({
     onSuccess: () => utils.calendar.academic.invalidate(),
   });

@@ -7,6 +7,7 @@ import { MONTHS, WEEKDAYS, dayInfo as sampleDayInfo, isoDay } from "./workshop-d
 import { calendarDay, type AcademicYear, type DayInfo } from "./model";
 import type { ReactNode } from "react";
 import { AcademicDayAgenda } from "./day-agenda";
+import { CalendarInterruptionDetails } from "./interruption-details";
 import styles from "./workshop.module.css";
 import type { AcademicCalendarLocation } from "./navigation";
 
@@ -220,6 +221,7 @@ export function AcademicCalendarWorkshop({
                     </p>
                     <h2>{dayInfo(date).label}</h2>
                     <p>{dayInfo(date).detail}</p>
+                    {data && <CalendarInterruptionDetails data={data} date={date} />}
                     <Button onClick={() => setDaily(true)}>
                       Ver agenda do dia
                       <ArrowRight />
@@ -402,6 +404,7 @@ function DayView({
   if (data)
     return (
       <div className={styles.dayView}>
+        <CalendarInterruptionDetails data={data} date={date} />
         {(info.kind === "vacation" || info.kind === "unknown") && (
           <Alert>
             {info.kind === "vacation"

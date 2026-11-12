@@ -82,10 +82,10 @@ validation data where indicated.
 ## Runtime and delivery
 
 Three new migrations were applied locally; Prisma/Kysely clients were regenerated.
-The full local worker could not start because its Hatchet token was empty. For browser
-acceptance, the real `startCalendarReconciliation` worker poller ran directly in a separate
-local process with the workspace environment. The normal worker entrypoint also starts
-this poller. No cancellation work runs in the web request.
+Initial browser acceptance exercised the reconciliation handler in a separate local
+process because the workspace's Hatchet token was empty. Final acceptance also exercised
+the normal worker entrypoint and Hatchet delivery, as recorded below. No cancellation
+work runs in the web request.
 
 Integration/transport coverage was updated for preview confirmation, stale edits,
 idempotency, overlapping recesses, preserved manual dates and authorization; form contract
@@ -93,3 +93,54 @@ coverage was added, together with generation-window and assigned-semester regres
 These suites were **not executed**, following the user's instruction.
 Lint, typecheck, build and full test gates remain deferred to PR/CI. Scoped formatting and
 `git diff --check` were run. This is browser/manual evidence, not a passing CI claim.
+
+## Follow-up: detail and completed-work refresh
+
+Interruption descriptions now appear in the selected date's month panel and daily Agenda,
+preserving line breaks. The annual overview remains compact. Successful reconciliation
+invalidates affected activity, planning and metric queries, so an already open day reflects
+the worker result without a reload.
+
+Orca validation created a temporary one-day recess on November 22, with a two-line
+description. Preview and final worker counts were zero for every activity type. Network
+evidence showed a fresh `classRecords.list,classRecords.experimentalSessions,appointments.list`
+request after the completed calendar query. Inspected the description in the daily view
+and narrow month panel; main client/scroll widths both measured 375px. Evidence is in
+`live-recess-description-day.png` and `live-recess-description-mobile.png`. Removed the
+temporary interruption, projected day, request and audit records after verification.
+No automated suites were run.
+
+## Final calendar acceptance
+
+Delivery covers the academic calendar described in the brief. Class continuity,
+organization, renewals and other requirements of issue #235 remain outside this slice.
+
+| Requirement | Current implementation and acceptance evidence |
+| --- | --- |
+| Configurable semester boundaries | Period forms, change preview and assigned-semester generation guards; temporary period creation and shortened-period preview exercised above. |
+| Annual view, semester groups, month/day navigation | Live Agenda route and URL navigation; current desktop/narrow views inspected with twelve months and the actual 2026.2 dates. Main client/scroll width both 375px. |
+| Sticky legend and contrasting vacations | Semantic calendar CSS and contextual markers; light/dark sticky-vacation captures and computed positions recorded above. |
+| Holidays and ad hoc interruptions | BrasilAPI suggestions, SE 2026 source, state selector and manual entry; live import dialog rechecked. Operator confirms before applying. |
+| Reason and description | Stored interruption fields, month/day descriptions and full-day schedule background; desktop/narrow evidence saved. |
+| Consequences and reconciliation | Fingerprinted preview, durable requests and worker preservation rules; cancellation, overlap, stale-preview and retry scenarios recorded above. |
+| Capacity warnings | Actual durations versus known plan requirements; missing targets remain unknown and deficits permit confirmation. |
+| Ordinary lessons and exceptional appointments | Assigned-semester bounds plus date-bound appointment acknowledgment; successful scheduling/rescheduling and rejection cases recorded above. |
+| Basic timed events | AcademicEvent persistence, validated CRUD and daily rendering; create/edit/remove and stale-edit acceptance in WORKSHOP.md. |
+
+The local Hatchet service was healthy on the existing Colima context. Configured a local
+token in ignored `.env`, stopped the temporary direct poller and started the normal worker
+with `pnpm exec dotenv -e .env -- pnpm -F @lazuli/worker start`. The current worker registers
+calendar reconciliation as a recurring Hatchet task. This runtime registration is part of
+the separate worker refactor; its files are not included in this follow-up commit.
+
+Confirmed a temporary November 22 interruption through the browser API after a preview
+with zero affected activities and plan items. Request
+`d43b9f80-87d3-47fd-9d97-823c35a52593` reached SUCCEEDED through Hatchet at
+2026-11-12T20:15:10.380Z, with zero cancellations and zero generated sessions. Inspected
+the completion state, multiline description and full-day background in the live daily
+Agenda (`screenshots/live-hatchet-reconciliation.png`). Removed the temporary interruption,
+projected date, request and associated audit records after verifying those counts.
+The normal local worker remains running. No temporary validation script remains.
+
+Final diff and whitespace were inspected. Automated delivery gates remain deferred to
+PR/CI by the user's explicit instruction; this does not claim passing automated checks.
