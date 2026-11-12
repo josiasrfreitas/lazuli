@@ -1,3 +1,5 @@
+import { teacherUploadsRouter } from "./upload-sessions.js";
+import { listTeacherFiles } from "./files.js";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
@@ -71,6 +73,10 @@ async function command<T>(
 }
 
 export const teachersRouter = router({
+  uploads: teacherUploadsRouter,
+  files: adminProcedure
+    .input(teacherIdInputSchema)
+    .query(({ ctx, input }) => listTeacherFiles(ctx, input.id)),
   classes: adminProcedure
     .input(
       z.object({
@@ -106,7 +112,13 @@ export const teachersRouter = router({
   create: adminProcedure.input(teacherCreateInputSchema).mutation(({ ctx, input }) =>
     command(ctx, {
       action: "teachers.create",
-      work: (database) => createTeacher({ database, values: input, actorRole: ctx.staffUser.role }),
+      work: (database) =>
+        createTeacher({
+          database,
+          values: input,
+          actorRole: ctx.staffUser.role,
+          actorId: ctx.staffUser.id,
+        }),
       describe: async (result, database) => ({
         subject: await teacherSubject(database, result.id),
         deduplicationKey: `teachers.create:${result.id}`,
@@ -116,7 +128,13 @@ export const teachersRouter = router({
   update: adminProcedure.input(teacherUpdateInputSchema).mutation(({ ctx, input }) =>
     command(ctx, {
       action: "teachers.update",
-      work: (database) => updateTeacher({ database, values: input, actorRole: ctx.staffUser.role }),
+      work: (database) =>
+        updateTeacher({
+          database,
+          values: input,
+          actorRole: ctx.staffUser.role,
+          actorId: ctx.staffUser.id,
+        }),
       describe: async (_result, database) => ({
         subject: await teacherSubject(database, input.id),
         description: input.isEnabled

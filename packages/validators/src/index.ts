@@ -173,6 +173,7 @@ export {
 } from "./payment-operation.js";
 export {
   teacherCreateInputSchema,
+  teacherFileUploadSchema,
   teacherUpdateInputSchema,
   teacherIdInputSchema,
   teacherListInputSchema,

@@ -61,7 +61,17 @@ export const teacherSelect = {
   name: true,
   email: true,
   isEnabled: true,
-  teacherProfile: { select: { cpf: true, departureDate: true } },
+  teacherProfile: {
+    select: {
+      cpf: true,
+      departureDate: true,
+      employmentType: true,
+      weeklyHours: true,
+      notes: true,
+      vacationStart: true,
+      vacationEnd: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 export async function readTeacher(database: Database, id: string): Promise<ReadTeacherResult> {
