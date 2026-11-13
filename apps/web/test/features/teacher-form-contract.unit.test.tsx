@@ -14,7 +14,7 @@ const draft = {
   vacationStart: "",
   vacationEnd: "",
 };
-void test("employment fields expose masked vacation dates, weekly workload and inline errors", () => {
+void test("employment fields expose vacation dates and notes while workload is derived from classes", () => {
   const html = renderToStaticMarkup(
     <TeacherEmploymentFields
       draft={draft}
@@ -22,13 +22,13 @@ void test("employment fields expose masked vacation dates, weekly workload and i
       change={() => {}}
     />,
   );
-  for (const name of ["weeklyHours", "vacationStart", "vacationEnd", "notes"])
+  for (const name of ["vacationStart", "vacationEnd", "notes"])
     assert.match(html, new RegExp(`name="${name}"`));
-  assert.equal((html.match(/autoComplete="off"/gi) ?? []).length, 4);
-  assert.equal((html.match(/placeholder="[^"]+"/g) ?? []).length, 4);
+  assert.equal((html.match(/autoComplete="off"/gi) ?? []).length, 3);
+  assert.equal((html.match(/placeholder="[^"]+"/g) ?? []).length, 3);
   assert.doesNotMatch(html, /type="date"|role="combobox"/);
   assert.match(html, /Informe o fim das férias/);
-  assert.match(html, /Horas-aula por semana/);
+  assert.doesNotMatch(html, /name="weeklyHours"/);
 });
 void test("non CLT registration omits vacation controls", () => {
   const html = renderToStaticMarkup(
