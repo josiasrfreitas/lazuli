@@ -1,16 +1,23 @@
 "use client";
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useState, type ReactElement, type RefObject } from "react";
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
-import { X } from "lucide-react";
 import {
-  Button,
+  Dialog,
+  DialogPortal,
+  DialogBackdrop,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
   DataTable,
   SegmentedControl,
   SegmentedControlItem,
   type DataTableColumn,
 } from "@lazuli/ui";
 import styles from "./teacher-overview.module.css";
+import { formatClassSchedule } from "~/features/classes/labels";
 export type MetricDetail = "health" | "learning" | "attendance" | "followup";
 type Metrics = RouterOutputs["teachers"]["metrics"];
 type Row = {
@@ -35,23 +42,15 @@ export function TeacherMetricDetails({
   data,
   detail,
   onClose,
+  returnFocus,
 }: {
   data: Metrics;
   detail: MetricDetail;
   onClose: () => void;
+  returnFocus: RefObject<HTMLButtonElement | null>;
 }): ReactElement {
-  const [group, setGroup] = useState(detail === "learning" ? "books" : "classes");
+  const [group, setGroup] = useState("classes");
   const [page, setPage] = useState(1);
-  const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    heading.current?.focus({ preventScroll: true });
-    heading.current?.scrollIntoView({
-      block: "nearest",
-      behavior: globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
-    });
-  }, []);
   const rows = metricRows(data, detail, group);
   const columns: DataTableColumn<Row>[] = [
     {
@@ -100,77 +99,87 @@ export function TeacherMetricDetails({
     { id: "context", header: "Contexto", width: "wide", cell: (row) => row.description },
   ];
   return (
-    <section className={styles.details} aria-label={`Detalhes de ${TITLES[detail]}`}>
-      <header>
-        <h2 ref={heading} tabIndex={-1}>
-          {TITLES[detail]}
-        </h2>
-        <Button variant="ghost" size="icon-sm" aria-label="Fechar detalhamento" onClick={onClose}>
-          <X />
-        </Button>
-      </header>
-      <p>
-        {detail === "health"
-          ? "Média dos scores dos alunos atuais. Cada aluno conta uma vez; dados ausentes não viram zero. O score individual inclui frequência (35), notas (30), ocorrências (20) e acompanhamento (15), redistribuindo pesos quando faltam dados."
-          : detail === "learning"
-            ? "Notas dentro do semestre, matrícula e período de atuação. A média dá o mesmo peso a cada aluno; notas de vínculos ambíguos ficam de fora."
-            : detail === "attendance"
-              ? "Percentuais calculados pelos minutos das aulas com chamada confirmada, sem descontar reposições. Aulas futuras e canceladas não entram."
-              : "Ocorrências dos alunos atuais neste semestre. Uma intervenção vinculada não significa que a ocorrência foi encerrada nem que o professor foi seu autor."}
-      </p>
-      {detail === "learning" && data.ambiguousGrades > 0 && (
-        <p>
-          {data.ambiguousGrades} notas sem vínculo inequívoco com uma turma não foram incluídas.
-        </p>
-      )}
-      {detail === "attendance" && data.attendance.missingRows > 0 && (
-        <p>
-          {data.attendance.missingRows} registros individuais ausentes em chamadas confirmadas foram
-          excluídos do percentual.
-        </p>
-      )}
-      {detail !== "followup" && (
-        <SegmentedControl
-          size="sm"
-          value={group}
-          aria-label="Agrupar indicadores"
-          onValueChange={(value) => {
-            if (value) {
-              setGroup(value);
-              setPage(1);
-            }
-          }}
-        >
-          {detail === "learning" && (
-            <SegmentedControlItem value="books">Por livro</SegmentedControlItem>
-          )}
-          <SegmentedControlItem value="students">Por aluno</SegmentedControlItem>
-          <SegmentedControlItem value="classes">Por turma</SegmentedControlItem>
-        </SegmentedControl>
-      )}
-      <DataTable
-        label={`Detalhamento de ${TITLES[detail]}`}
-        columns={columns}
-        state={
-          rows.length
-            ? { kind: "data", rows: rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) }
-            : { kind: "empty" }
-        }
-        pagination={{
-          page,
-          pageSize: PAGE_SIZE,
-          totalItems: rows.length,
-          pageCount: Math.max(1, Math.ceil(rows.length / PAGE_SIZE)),
-          onPageChange: setPage,
-        }}
-        onRetry={() => {}}
-        empty={{
-          title: "Sem dados neste recorte",
-          description: "Os indicadores aparecerão conforme os registros forem concluídos.",
-        }}
-        errorTitle="Não foi possível carregar os detalhes"
-      />
-    </section>
+    <Dialog
+      open
+      onOpenChange={(value) => {
+        if (!value) onClose();
+      }}
+    >
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogContent className="md:max-w-4xl" finalFocus={returnFocus}>
+          <DialogHeader>
+            <DialogTitle>{TITLES[detail]} por turma e aluno</DialogTitle>
+            <DialogDescription>
+              {detail === "health"
+                ? "Média dos scores dos alunos atuais. Cada aluno conta uma vez; dados ausentes não viram zero. O score individual inclui frequência (35), notas (30), ocorrências (20) e acompanhamento (15), redistribuindo pesos quando faltam dados."
+                : detail === "learning"
+                  ? "Notas dentro do semestre, matrícula e período de atuação. A média dá o mesmo peso a cada aluno; notas de vínculos ambíguos ficam de fora."
+                  : detail === "attendance"
+                    ? "Percentuais calculados pelos minutos das aulas com chamada confirmada, sem descontar reposições. Aulas futuras e canceladas não entram."
+                    : "Ocorrências dos alunos atuais neste semestre. Uma intervenção vinculada não significa que a ocorrência foi encerrada nem que o professor foi seu autor."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className={styles.metricDetailsBody}>
+              {detail === "learning" && data.ambiguousGrades > 0 && (
+                <p>
+                  {data.ambiguousGrades} notas sem vínculo inequívoco com uma turma não foram
+                  incluídas.
+                </p>
+              )}
+              {detail === "attendance" && data.attendance.missingRows > 0 && (
+                <p>
+                  {data.attendance.missingRows} registros individuais ausentes em chamadas
+                  confirmadas foram excluídos do percentual.
+                </p>
+              )}
+              {detail !== "followup" && (
+                <SegmentedControl
+                  size="sm"
+                  value={group}
+                  aria-label="Agrupar indicadores"
+                  onValueChange={(value) => {
+                    if (value) {
+                      setGroup(value);
+                      setPage(1);
+                    }
+                  }}
+                >
+                  {detail === "learning" && (
+                    <SegmentedControlItem value="books">Por livro</SegmentedControlItem>
+                  )}
+                  <SegmentedControlItem value="students">Por aluno</SegmentedControlItem>
+                  <SegmentedControlItem value="classes">Por turma</SegmentedControlItem>
+                </SegmentedControl>
+              )}
+              <DataTable
+                label={`Detalhamento de ${TITLES[detail]}`}
+                columns={columns}
+                state={
+                  rows.length
+                    ? { kind: "data", rows: rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) }
+                    : { kind: "empty" }
+                }
+                pagination={{
+                  page,
+                  pageSize: PAGE_SIZE,
+                  totalItems: rows.length,
+                  pageCount: Math.max(1, Math.ceil(rows.length / PAGE_SIZE)),
+                  onPageChange: setPage,
+                }}
+                onRetry={() => {}}
+                empty={{
+                  title: "Sem dados neste recorte",
+                  description: "Os indicadores aparecerão conforme os registros forem concluídos.",
+                }}
+                errorTitle="Não foi possível carregar os detalhes"
+              />
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 function metricRows(data: Metrics, detail: MetricDetail, group: string): Row[] {
@@ -191,12 +200,12 @@ function metricRows(data: Metrics, detail: MetricDetail, group: string): Row[] {
   if (group === "classes")
     return data.classes.map((row) => ({
       id: row.id,
-      name: row.name,
+      name: [row.name, row.stages.join(", ")].filter(Boolean).join(" · "),
       href: `/turmas/${row.id}`,
       score: row.score,
       grades: row.grades,
       absence: row.attendance.percent,
-      description: `${row.studentCount} alunos · ${row.calls.confirmed} de ${row.calls.due} chamadas confirmadas`,
+      description: `${formatClassSchedule(row.schedule)} · ${row.studentCount} alunos · ${row.calls.confirmed} de ${row.calls.due} chamadas confirmadas`,
     }));
   return data.students
     .toSorted((a, b) => (a.score ?? Infinity) - (b.score ?? Infinity))

@@ -1,7 +1,7 @@
+import { StudentAvatar } from "~/components/student-avatar";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import {
-  Avatar,
   Badge,
   DataTable,
   type DataTableColumn,
@@ -189,7 +189,7 @@ function StudentIdentity({
   const status = rosterStatus(row, today) as keyof typeof TONES;
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <Avatar name={row.student.fullName} colorKey={row.studentId} size="md" />
+      <StudentAvatar name={row.student.fullName} colorKey={row.studentId} size="md" />
       <div className="grid min-w-0 gap-1">
         <Link
           className="truncate font-medium text-interactive hover:underline"

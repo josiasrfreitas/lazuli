@@ -1,10 +1,10 @@
 "use client";
+import { StudentAvatar } from "~/components/student-avatar";
 import { useState, type ReactElement, type RefObject } from "react";
 import Link from "next/link";
 import { ArrowUpRight, MessageSquareText, Zap } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Avatar,
   Badge,
   Dialog,
   DialogBackdrop,
@@ -120,7 +120,7 @@ function OccurrenceItem({ row }: { row: Occurrence }): ReactElement {
   return (
     <li className={styles.item}>
       <header className={styles.identity}>
-        <Avatar name={row.name} colorKey={row.studentId} size="md" />
+        <StudentAvatar name={row.name} colorKey={row.studentId} size="md" />
         <div>
           <Link href={`/alunos/${row.studentId}?secao=pedagogico`}>{row.name}</Link>
           <p>

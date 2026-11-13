@@ -1,4 +1,5 @@
 "use client";
+import { StudentAvatar } from "~/components/student-avatar";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import {
@@ -10,7 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Avatar, Badge, Button, EmptyState, Input } from "@lazuli/ui";
+import { Badge, Button, EmptyState, Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { metricNumber } from "./teacher-metric-details";
 import { TeacherStudentsLoading } from "./teacher-students-loading";
@@ -142,7 +143,7 @@ function StudentItem({ student }: { student: Student }): ReactElement {
         aria-label={`Abrir perfil de ${student.name}`}
       >
         <div className={styles.identity}>
-          <Avatar name={student.name} colorKey={student.id} size="lg" />
+          <StudentAvatar name={student.name} colorKey={student.id} size="lg" />
           <div>
             <strong className={styles.studentName}>
               {student.name}

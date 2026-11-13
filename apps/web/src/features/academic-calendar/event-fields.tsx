@@ -89,11 +89,11 @@ export function AcademicEventFields({
       <fieldset disabled={pending} className="grid min-w-0 gap-4">
         {field("title", "Título", "Ex.: Encontro cultural")}
         <FormSection title="Horários de São Paulo">
-          <FormRow columns={2}>
+          <FormRow columns={2} className="grid-cols-2">
             {field("startDate", "Data de início", "dd/mm/aaaa", "date")}
             {field("startTime", "Hora de início", "hh:mm", "time")}
           </FormRow>
-          <FormRow columns={2}>
+          <FormRow columns={2} className="grid-cols-2">
             {field("endDate", "Data de fim", "dd/mm/aaaa", "date")}
             {field("endTime", "Hora de fim", "hh:mm", "time")}
           </FormRow>
@@ -103,6 +103,8 @@ export function AcademicEventFields({
           <Textarea
             id="event-description"
             name="description"
+            rows={2}
+            size="sm"
             autoComplete="off"
             placeholder="Informações úteis sobre o evento"
             value={values.description}

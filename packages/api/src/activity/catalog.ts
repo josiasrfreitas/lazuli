@@ -48,6 +48,7 @@ export const ACTIVITY_ACTIONS = {
   "students.updateNotes": ["PEDAGOGICAL", "Observações do aluno atualizadas"],
   "students.setStatus": ["PEDAGOGICAL", "Situação do aluno alterada"],
   "classes.create": ["PEDAGOGICAL", "Turma criada"],
+  "classes.updateCapacity": ["PEDAGOGICAL", "Capacidade da turma atualizada"],
   "classes.archive": ["PEDAGOGICAL", "Turma arquivada"],
   "classes.cloneForNextPeriod": ["PEDAGOGICAL", "Turma preparada para o próximo semestre"],
   "enrollment.create": ["PEDAGOGICAL", "Matrícula registrada"],

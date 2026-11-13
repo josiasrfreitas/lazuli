@@ -1,4 +1,5 @@
 "use client";
+import { recordedActivities } from "@lazuli/domain";
 
 import type { JSX as ReactJSX } from "react";
 import {
@@ -147,12 +148,16 @@ function PerformedContent({
           ? ""
           : ` · Pág. ${content.pageFrom}${content.pageTo !== null && content.pageTo !== content.pageFrom ? `–${content.pageTo}` : ""}`}
       </p>
-      {content.planItemId && (
-        <p className="text-caption">
-          {content.planItemTitle ?? "Etapa do planejamento"} ·{" "}
-          {content.planItemStatus === "COMPLETED" ? "Concluída" : "Em andamento"}
+      {recordedActivities(content).map((item) => (
+        <p key={item.id} className="text-caption">
+          {item.title ?? "Conteúdo do planejamento"} ·{" "}
+          {item.status === "COMPLETED"
+            ? "Concluído"
+            : item.status === "PARTIAL"
+              ? "Em andamento"
+              : "Sem conclusão informada"}
         </p>
-      )}
+      ))}
       <p className="whitespace-pre-wrap text-sm">{content.account}</p>
     </div>
   );

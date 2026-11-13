@@ -194,3 +194,6 @@ export {
   nextHealthPendingState,
 } from "./student-health-pending.js";
 export { academicActivityCanBeCancelled } from "./academic-calendar.js";
+export { scheduleProgram } from "./program-schedule.js";
+export { programActivityLabels } from "./program-labels.js";
+export { recordedActivities } from "./recorded-activities.js";

@@ -115,17 +115,17 @@ No automated suites were run.
 Delivery covers the academic calendar described in the brief. Class continuity,
 organization, renewals and other requirements of issue #235 remain outside this slice.
 
-| Requirement | Current implementation and acceptance evidence |
-| --- | --- |
-| Configurable semester boundaries | Period forms, change preview and assigned-semester generation guards; temporary period creation and shortened-period preview exercised above. |
+| Requirement                                        | Current implementation and acceptance evidence                                                                                                                    |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Configurable semester boundaries                   | Period forms, change preview and assigned-semester generation guards; temporary period creation and shortened-period preview exercised above.                     |
 | Annual view, semester groups, month/day navigation | Live Agenda route and URL navigation; current desktop/narrow views inspected with twelve months and the actual 2026.2 dates. Main client/scroll width both 375px. |
-| Sticky legend and contrasting vacations | Semantic calendar CSS and contextual markers; light/dark sticky-vacation captures and computed positions recorded above. |
-| Holidays and ad hoc interruptions | BrasilAPI suggestions, SE 2026 source, state selector and manual entry; live import dialog rechecked. Operator confirms before applying. |
-| Reason and description | Stored interruption fields, month/day descriptions and full-day schedule background; desktop/narrow evidence saved. |
-| Consequences and reconciliation | Fingerprinted preview, durable requests and worker preservation rules; cancellation, overlap, stale-preview and retry scenarios recorded above. |
-| Capacity warnings | Actual durations versus known plan requirements; missing targets remain unknown and deficits permit confirmation. |
-| Ordinary lessons and exceptional appointments | Assigned-semester bounds plus date-bound appointment acknowledgment; successful scheduling/rescheduling and rejection cases recorded above. |
-| Basic timed events | AcademicEvent persistence, validated CRUD and daily rendering; create/edit/remove and stale-edit acceptance in WORKSHOP.md. |
+| Sticky legend and contrasting vacations            | Semantic calendar CSS and contextual markers; light/dark sticky-vacation captures and computed positions recorded above.                                          |
+| Holidays and ad hoc interruptions                  | BrasilAPI suggestions, SE 2026 source, state selector and manual entry; live import dialog rechecked. Operator confirms before applying.                          |
+| Reason and description                             | Stored interruption fields, month/day descriptions and full-day schedule background; desktop/narrow evidence saved.                                               |
+| Consequences and reconciliation                    | Fingerprinted preview, durable requests and worker preservation rules; cancellation, overlap, stale-preview and retry scenarios recorded above.                   |
+| Capacity warnings                                  | Actual durations versus known plan requirements; missing targets remain unknown and deficits permit confirmation.                                                 |
+| Ordinary lessons and exceptional appointments      | Assigned-semester bounds plus date-bound appointment acknowledgment; successful scheduling/rescheduling and rejection cases recorded above.                       |
+| Basic timed events                                 | AcademicEvent persistence, validated CRUD and daily rendering; create/edit/remove and stale-edit acceptance in WORKSHOP.md.                                       |
 
 The local Hatchet service was healthy on the existing Colima context. Configured a local
 token in ignored `.env`, stopped the temporary direct poller and started the normal worker

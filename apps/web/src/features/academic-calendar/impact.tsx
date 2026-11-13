@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
 import { Alert } from "@lazuli/ui";
+import { CalendarX2, ShieldCheck, CalendarCheck2 } from "lucide-react";
 import { TaskDialog } from "~/features/shared/task-form";
 import { formatDateOnlyBR } from "~/lib/format";
 import { trpc } from "~/lib/trpc";
 import type { CalendarChange } from "./change-form";
+import styles from "./impact.module.css";
 
 type Preview = RouterOutputs["calendar"]["academic"]["changes"]["preview"];
 const hours = (minutes: number) =>
@@ -48,11 +50,12 @@ export function CalendarImpact({
       compactHeader
       size="medium"
       actionSize="sm"
-      title="Conferir alteração"
+      title="Confira o efeito nas aulas"
       description={`${preview.subject} · ${formatDateOnlyBR("from" in change ? change.from : preview.from)} a ${formatDateOnlyBR("through" in change ? change.through : preview.through)}`}
       formId="calendar-confirm"
       firstField="calendar-confirm-submit"
       submitLabel="Confirmar e aplicar"
+      pendingLabel="Aplicando calendário…"
       pending={confirm.isPending}
       onBack={onBack}
       onClose={onClose}
@@ -67,13 +70,23 @@ export function CalendarImpact({
             confirm.mutate({ change, fingerprint: preview.fingerprint, commandId });
         }}
       >
-        <p>
-          {total
-            ? `${total} atividades futuras serão canceladas. Confira os detalhes antes de aplicar.`
-            : "Nenhuma atividade futura precisa ser cancelada."}{" "}
-          {preview.preserved > 0 &&
-            `${preview.preserved} ${preview.preserved === 1 ? "registro passado, iniciado ou com informações registradas será preservado" : "registros passados, iniciados ou com informações registradas serão preservados"}.`}
-        </p>
+        <div className={styles.summary} data-affected={total > 0}>
+          {total > 0 ? <CalendarX2 aria-hidden="true" /> : <CalendarCheck2 aria-hidden="true" />}
+          <p>
+            {total
+              ? `${total} atividades futuras serão canceladas. Confira os detalhes antes de aplicar.`
+              : "Nenhuma atividade futura precisa ser cancelada."}{" "}
+          </p>
+        </div>
+        {preview.preserved > 0 && (
+          <p className={styles.preserved}>
+            <ShieldCheck aria-hidden="true" />
+            {preview.preserved}{" "}
+            {preview.preserved === 1
+              ? "registro passado, iniciado ou com informações registradas será preservado."
+              : "registros passados, iniciados ou com informações registradas serão preservados."}
+          </p>
+        )}
         {(
           [
             ["Aulas regulares", preview.sessions],
@@ -81,7 +94,7 @@ export function CalendarImpact({
             ["Aulas experimentais e visitas", preview.visits],
           ] as const
         ).map(([label, entries]) => (
-          <details key={label} className="border-b border-border pb-2">
+          <details key={label} open={entries.length > 0} className="border-b border-border pb-2">
             <summary className="cursor-pointer text-body font-medium">
               {label} · {entries.length}
             </summary>

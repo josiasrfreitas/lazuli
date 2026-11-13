@@ -9,7 +9,13 @@ import { staffProcedure, router } from "../trpc/init.js";
 import type { Context, StaffUser } from "../trpc/context.js";
 import type { PlanningContext } from "./data.js";
 import { planningContexts, readPlanning, planningHistory } from "./read.js";
-import { savePlanWindow, savePlanItem, removePlanItem } from "./write.js";
+import {
+  savePlanWindow,
+  savePlanItem,
+  removePlanItem,
+  prepareProgramPlan,
+  saveProgramStart,
+} from "./write.js";
 const context = (ctx: {
   db: Context["db"];
   staffUser: StaffUser;
@@ -20,6 +26,11 @@ const context = (ctx: {
   now: ctx.now ?? new Date(),
 });
 export const planningRouter = router({
+  prepare: staffProcedure.input(stagePlanTargetSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => prepareProgramPlan({ ...context(ctx), database }, input), {
+      timeout: 30000,
+    }),
+  ),
   contexts: staffProcedure.query(({ ctx }) => planningContexts(context(ctx))),
   detail: staffProcedure
     .input(stagePlanTargetSchema)
@@ -32,6 +43,11 @@ export const planningRouter = router({
       }),
     )
     .query(({ ctx, input }) => planningHistory(context(ctx), input)),
+  saveStart: staffProcedure.input(stagePlanWindowSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => saveProgramStart({ ...context(ctx), database }, input), {
+      timeout: 30000,
+    }),
+  ),
   saveWindow: staffProcedure
     .input(stagePlanWindowSchema)
     .mutation(({ ctx, input }) =>

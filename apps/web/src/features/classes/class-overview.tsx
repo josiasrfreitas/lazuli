@@ -6,10 +6,10 @@ import {
   MapPin,
   Monitor,
   UsersRound,
+  Pencil,
 } from "lucide-react";
 import { Badge, DetailHeader } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
-import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
 import {
   classOccupancyIndicator,
   formatFormat,
@@ -78,7 +78,13 @@ function ClassIdentityFacts({ detail }: { detail: Detail }): ReactElement {
   );
 }
 
-export function ClassOverview({ detail }: { detail: Detail }): ReactElement {
+export function ClassOverview({
+  detail,
+  editCapacity,
+}: {
+  detail: Detail;
+  editCapacity: () => void;
+}): ReactElement {
   return (
     <section className={styles.overview} aria-label="Visão geral da turma">
       <div className={styles.overviewGrid}>
@@ -93,7 +99,7 @@ export function ClassOverview({ detail }: { detail: Detail }): ReactElement {
           </div>
         </div>
         <div className={styles.overviewItem}>
-          <ClassOccupancy detail={detail} />
+          <ClassOccupancy detail={detail} editCapacity={editCapacity} />
         </div>
         <div className={styles.overviewItem}>
           <ClassGradeAverage classId={detail.id} />
@@ -109,8 +115,14 @@ export function ClassOverview({ detail }: { detail: Detail }): ReactElement {
   );
 }
 
-function ClassOccupancy({ detail }: { detail: Detail }): ReactElement {
-  const indicator = classOccupancyIndicator(detail.occupancy);
+function ClassOccupancy({
+  detail,
+  editCapacity,
+}: {
+  detail: Detail;
+  editCapacity: () => void;
+}): ReactElement {
+  const indicator = classOccupancyIndicator(detail.occupancy, detail.capacity);
   return (
     <div className={styles.occupancy}>
       <p className="flex items-center gap-2 text-caption text-muted-foreground">
@@ -120,8 +132,16 @@ function ClassOccupancy({ detail }: { detail: Detail }): ReactElement {
       <p className={styles.occupancyValue}>
         {detail.occupancy} <span>{detail.occupancy === 1 ? "aluno" : "alunos"}</span>
       </p>
-      <p className="text-caption text-muted-foreground">
-        Referência: {CLASS_REFERENCE_CAPACITY} alunos
+      <p className="flex items-center gap-1 text-caption text-muted-foreground">
+        <button
+          type="button"
+          className="inline-flex h-5 w-4 shrink-0 items-center justify-start rounded-sm p-0 text-interactive hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+          onClick={editCapacity}
+          aria-label="Editar capacidade máxima"
+        >
+          <Pencil aria-hidden="true" className="size-3" />
+        </button>
+        Capacidade máxima: {detail.capacity} alunos
       </p>
       {indicator.variant !== "success" && (
         <div>

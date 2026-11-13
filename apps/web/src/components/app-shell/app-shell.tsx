@@ -12,7 +12,6 @@ import { MobileNavigation } from "./mobile-navigation";
 import { Sidebar } from "./sidebar";
 import styles from "./app-shell.module.css";
 import { SessionSync } from "./session-sync";
-import { ThemeToggle } from "./theme-toggle";
 import { AccountMenu } from "./account-menu";
 import { TeacherNavigation } from "~/features/teacher-workspace/navigation";
 import { AssessmentUploadProvider } from "~/features/assessment-files/queue-provider";
@@ -77,7 +76,6 @@ function TopBar({ identity }: { identity: StaffIdentity }): ReactNode {
             {formatLongDateSaoPaulo(new Date())}
           </p>
         )}
-        <ThemeToggle />
         <AccountMenu identity={identity} />
       </div>
     </header>

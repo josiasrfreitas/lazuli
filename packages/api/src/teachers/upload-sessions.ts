@@ -205,6 +205,7 @@ export async function teacherMobileCapture(ctx: Context, request: Request): Prom
         return tx.teacherFile.create({
           data: {
             ...input,
+            subtitle: input.subtitle ?? null,
             teacherId: active.teacherId,
             uploadSessionId: session.id,
             ...reference,

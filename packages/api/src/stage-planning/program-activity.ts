@@ -39,7 +39,9 @@ export async function resolvePlannedProgramActivity(
   };
 }
 
-function programActivityKind(kind: string): "CONTENT" | "ASSESSMENT" | "REVIEW" | "ACTIVITY" {
+export function programActivityKind(
+  kind: string,
+): "CONTENT" | "ASSESSMENT" | "REVIEW" | "ACTIVITY" {
   switch (kind) {
     case "LESSON": {
       return "CONTENT";

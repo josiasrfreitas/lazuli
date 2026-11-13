@@ -153,7 +153,9 @@ function PhotoFileUpload({
       acceptLabel="JPG ou PNG"
       maxSize={maxSize}
       disabled={busy || waitingForPhoto}
-      onValidationError={(message) => toastManager.add({ title: message, type: "error" })}
+      onValidationError={(message) => {
+        if (message.trim()) toastManager.add({ title: message, type: "error" });
+      }}
       onValueChange={(files) => {
         const file = files[0];
         if (file) void onUpload(file);

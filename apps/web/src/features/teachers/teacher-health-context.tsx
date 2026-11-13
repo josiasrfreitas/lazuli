@@ -1,10 +1,8 @@
+import { TeacherHealthStudent } from "./teacher-health-student";
 import type { ReactElement } from "react";
-import Link from "next/link";
 import { Check } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Avatar } from "@lazuli/ui";
 import { TeacherHealthContextLoading } from "./teacher-metric-loading";
-import { metricNumber } from "./teacher-metric-details";
 import styles from "./teacher-overview.module.css";
 
 export function TeacherHealthContext({
@@ -17,40 +15,36 @@ export function TeacherHealthContext({
     .filter((student) => student.level === "ATTENTION" || student.level === "PRIORITY")
     .toSorted((a, b) => (a.score ?? 0) - (b.score ?? 0) || a.name.localeCompare(b.name, "pt-BR"))
     .slice(0, 3);
+  const highlightedIds = new Set(flagged.map((student) => student.id));
+  const highest = data.students
+    .filter((student) => student.score !== null && !highlightedIds.has(student.id))
+    .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.name.localeCompare(b.name, "pt-BR"))
+    .slice(0, 3);
   const partial = data.students.filter(
     (student) => student.score !== null && student.availableIndicators < 4,
   ).length;
   const missing = data.studentCount - data.coveredStudents;
   return (
     <div className={styles.healthContext}>
-      {flagged.length > 0 ? (
-        <>
-          <h3 className={styles.healthFocusHeading}>Para acompanhar de perto</h3>
-          <ul
-            className={styles.healthFocusList}
-            data-single={flagged.length === 1 || undefined}
-            aria-label="Alunos em atenção, por menor score"
-          >
-            {flagged.map((student) => (
-              <li key={student.id}>
-                <Link
-                  className={styles.healthFocus}
-                  href={`/alunos/${student.id}?secao=pedagogico`}
-                  data-level={student.level}
-                  aria-label={`${student.name}, ${metricNumber(student.score)} pontos, ${student.level === "PRIORITY" ? "prioridade" : "em atenção"}`}
-                  title={student.name}
-                >
-                  <Avatar name={student.name} colorKey={student.id} size="sm" />
-                  <b>
-                    {metricNumber(student.score)} <small>pts</small>
-                  </b>
-                  <strong>{student.name}</strong>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
+      {[
+        { title: "Para acompanhar de perto", students: flagged },
+        { title: "Maiores scores", students: highest },
+      ].map(({ title, students }) =>
+        students.length > 0 ? (
+          <section key={title} className={styles.healthContext} aria-label={title}>
+            <h3 className={styles.healthFocusHeading}>{title}</h3>
+            <ul className={styles.healthFocusList}>
+              {students.map((student) => (
+                <TeacherHealthStudent key={student.id} student={student} />
+              ))}
+              {Array.from({ length: 3 - students.length }, (_, index) => (
+                <li key={`empty-${index}`} className={styles.healthFocusEmpty} aria-hidden="true" />
+              ))}
+            </ul>
+          </section>
+        ) : null,
+      )}
+      {flagged.length === 0 && (
         <p className={styles.healthClear}>
           <Check aria-hidden="true" />
           {data.coveredStudents > 0

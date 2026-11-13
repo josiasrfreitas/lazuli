@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { AttachmentPanel, AttachmentUploadRow, AttachmentAdd } from "@lazuli/ui";
 const meta = {
@@ -8,7 +8,7 @@ const meta = {
 } satisfies Meta<typeof AttachmentPanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-function Example() {
+function Example(): ReactElement {
   const [rows, setRows] = useState([
     { title: "Identidade do aluno", subtitle: "RG ou CIN · frente e verso" },
     { title: "Comprovante de residência", subtitle: "Foto do comprovante completo" },
@@ -33,7 +33,7 @@ function Example() {
                   {...row}
                   accept="application/pdf,image/jpeg,image/png"
                   acceptLabel="PDF, JPG ou PNG"
-                  maxSize={5242880}
+                  maxSize={5_242_880}
                   uploaded={received.includes(row.title)}
                   onFile={() => setReceived((previous) => [...previous, row.title])}
                 />
@@ -46,4 +46,4 @@ function Example() {
     </div>
   );
 }
-export const Playground: Story = { render: () => <Example /> };
+export const Playground: Story = { args: { children: null }, render: () => <Example /> };

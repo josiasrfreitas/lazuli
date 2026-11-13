@@ -235,7 +235,7 @@ function StagePreview({ model }: { model: DocumentsModel }): ReactElement {
     return (
       <PdfPreview
         src={`/api/student-document-files/${file.id}?v=${file.updatedAt.getTime()}`}
-        title={definition?.title ?? slot.file?.title ?? "Documento"}
+        title={definition?.title ?? file.title ?? "Documento"}
         showOpenLink={false}
       />
     );
@@ -245,7 +245,7 @@ function StagePreview({ model }: { model: DocumentsModel }): ReactElement {
         key={`${file.id}-${file.updatedAt.getTime()}`}
         id={file.id}
         version={file.updatedAt.getTime()}
-        title={definition?.title ?? slot.file?.title ?? "Documento"}
+        title={definition?.title ?? file.title ?? "Documento"}
         photo={file.kind === "photo"}
       />
     );
@@ -254,7 +254,10 @@ function StagePreview({ model }: { model: DocumentsModel }): ReactElement {
 
 function EmptyDocumentPreview({ model }: { model: DocumentsModel }): ReactElement {
   const { definition, setUpload } = model;
-  const Icon = DOCUMENT_ICONS[definition?.id ?? "student"];
+  const Icon =
+    definition && definition.id in DOCUMENT_ICONS
+      ? DOCUMENT_ICONS[definition.id as keyof typeof DOCUMENT_ICONS]
+      : FileText;
   return (
     <div className={styles.preview} data-empty="true">
       <div className={styles.documentPlaceholder}>

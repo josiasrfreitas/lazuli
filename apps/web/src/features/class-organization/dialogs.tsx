@@ -3,7 +3,6 @@ import { type JSX as ReactJSX } from "react";
 import { ClassPlanForm, SemesterForm } from "~/features/class-organization/plan-form";
 import { PlacementForm } from "~/features/class-organization/placement-form";
 import { ReasonDialog, PlacementHistory } from "~/features/class-organization/action-dialogs";
-import { dateOnly } from "~/features/class-organization/shared";
 import type { OrganizationAction, OrganizationBoard } from "./model";
 import { ClosureForm, PeriodForm, HolidayForm } from "./calendar-forms";
 import { ContinuityDialog, PlanStatusDialog } from "./continuity";
@@ -111,12 +110,10 @@ function renderPlacementDialogs(props: Props): ReactJSX.Element | null {
 }
 
 function renderCalendarDialogs(props: Props): ReactJSX.Element | null {
-  const { action, board } = props;
+  const { action } = props;
   switch (action.kind) {
     case "closure": {
-      return (
-        <ClosureForm {...props} initialDate={action.date ?? dateOnly(board.semester.startDate)} />
-      );
+      return <ClosureForm {...props} />;
     }
     case "period": {
       return <PeriodForm {...props} />;

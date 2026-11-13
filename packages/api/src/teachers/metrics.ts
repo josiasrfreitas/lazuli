@@ -31,6 +31,12 @@ export async function teacherMetrics(
       id: true,
       portalClassName: true,
       scheduleType: true,
+      sharedStage: { select: { name: true } },
+      scheduleSlots: {
+        where: { deletedAt: null },
+        select: { weekday: true, startTime: true, endTime: true },
+        orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+      },
       semester: { select: { startDate: true, endDate: true, name: true } },
       enrollments: {
         where: {
@@ -256,6 +262,18 @@ export async function teacherMetrics(
         id: group.id,
         name: group.portalClassName,
         scheduleType: group.scheduleType,
+        stages: group.sharedStage
+          ? [group.sharedStage.name]
+          : [
+              ...new Set(
+                group.enrollments.flatMap((enrollment) =>
+                  enrollment.progressRecords
+                    .filter((progress) => progress.endDate === null || progress.endDate > today)
+                    .map((progress) => progress.stage.name),
+                ),
+              ),
+            ].sort(),
+        schedule: group.scheduleSlots,
         studentCount: rows.length,
         studentIds: [...ids],
         score: mean(rows.map((row) => row.score)),

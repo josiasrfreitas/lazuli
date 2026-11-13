@@ -8,6 +8,8 @@ const file: DocumentRow = {
   kind: "student",
   format: "image",
   status: "READY",
+  title: null,
+  subtitle: null,
   updatedAt: new Date("2026-10-26"),
   extraction: {
     fields: { name: "MARIA EXEMPLO", cpf: "529.982.247-25", rg: null, birthDate: "03/07/1988" },

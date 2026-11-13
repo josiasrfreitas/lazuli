@@ -1,7 +1,8 @@
 "use client";
 import { useRef, useState, type ReactElement, type ReactNode } from "react";
-import { ArrowDown, ArrowRight, BookOpen, HeartPulse, CalendarCheck } from "lucide-react";
+import { ArrowRight, HeartPulse } from "lucide-react";
 import { Button, InlineSkeleton } from "@lazuli/ui";
+import { TeacherClassIndicators } from "./teacher-class-indicators";
 import { TeacherOccurrencesDialog } from "./teacher-occurrences-dialog";
 import { TeacherOccurrencePreview } from "./teacher-occurrence-preview";
 import { TeacherHealthInfo } from "./teacher-health-info";
@@ -31,10 +32,7 @@ export function TeacherMetrics({
     setDetail(next);
   };
   return (
-    <div
-      className={styles.overview}
-      data-expanded={Boolean((detail && detail !== "followup") || query.isError) || undefined}
-    >
+    <div className={styles.overview} data-expanded={query.isError || undefined}>
       {query.isError && (
         <div role="alert" className={styles.error}>
           <p>Não foi possível atualizar os indicadores.</p>
@@ -53,7 +51,6 @@ export function TeacherMetrics({
           <MetricReading
             pending={pending}
             value={metricNumber(data?.score)}
-            suffix="pontos"
             label="score médio dos alunos"
           />
           <p>
@@ -63,7 +60,7 @@ export function TeacherMetrics({
           </p>
           <TeacherHealthDistribution data={data} pending={pending} />
           <TeacherHealthContext data={data} />
-          <MetricAction disabled={!data} onClick={onStudents} navigate>
+          <MetricAction disabled={!data} onClick={onStudents}>
             Ver alunos por turma
           </MetricAction>
         </MetricContainer>
@@ -72,64 +69,18 @@ export function TeacherMetrics({
           pending={pending}
           onDetails={(button) => open("followup", button)}
         />
-        <MetricContainer title="Aprendizagem" icon={<BookOpen />} compact>
-          <MetricReading
-            pending={pending}
-            value={metricNumber(data?.grades)}
-            suffix="/100"
-            label="média das notas por aluno"
-          />
-          <p>
-            {data
-              ? `${data.assessedStudents} de ${data.studentCount} alunos avaliados · ${data.gradeCount} notas`
-              : "Notas dos alunos nas turmas atuais"}
-          </p>
-          <div className={styles.previewRows}>
-            {pending ? (
-              <MetricLines />
-            ) : (
-              data?.books
-                .filter((row) => row.average !== null)
-                .slice(0, 2)
-                .map((row) => (
-                  <div key={row.id}>
-                    <span title={row.name}>{row.name}</span>
-                    <strong>{metricNumber(row.average)}</strong>
-                  </div>
-                ))
-            )}
-            {data && data.gradeCount === 0 && <span>Nenhuma nota no período de atuação.</span>}
-          </div>
-          <MetricAction disabled={!data} onClick={(button) => open("learning", button)}>
-            Ver notas por livro, turma e aluno
-          </MetricAction>
-        </MetricContainer>
-        <MetricContainer title="Frequência" icon={<CalendarCheck />} compact>
-          <MetricReading
-            pending={pending}
-            value={metricNumber(data?.attendance.percent)}
-            suffix="%"
-            label="de faltas dos alunos"
-          />
-          <p>Aulas realizadas no período de atuação, sem abatimento por reposições.</p>
-          <dl className={styles.facts}>
-            <div>
-              <dt>Chamadas das turmas</dt>
-              <dd>
-                {pending ? (
-                  <InlineSkeleton className="w-12" />
-                ) : data ? (
-                  `${data.calls.confirmed} de ${data.calls.due}`
-                ) : (
-                  "—"
-                )}
-              </dd>
-            </div>
-          </dl>
-          <MetricAction disabled={!data} onClick={(button) => open("attendance", button)}>
-            Ver frequência por turma e aluno
-          </MetricAction>
-        </MetricContainer>
+        <TeacherClassIndicators
+          kind="learning"
+          data={data}
+          pending={pending}
+          onDetails={(button) => open("learning", button)}
+        />
+        <TeacherClassIndicators
+          kind="attendance"
+          data={data}
+          pending={pending}
+          onDetails={(button) => open("attendance", button)}
+        />
       </div>
       {detail === "followup" && data && (
         <TeacherOccurrencesDialog
@@ -143,10 +94,8 @@ export function TeacherMetrics({
           key={detail}
           data={data}
           detail={detail}
-          onClose={() => {
-            setDetail(null);
-            trigger.current?.focus();
-          }}
+          onClose={() => setDetail(null)}
+          returnFocus={trigger}
         />
       )}
     </div>
@@ -209,22 +158,12 @@ function MetricReading({
     </div>
   );
 }
-function MetricLines(): ReactElement {
-  return (
-    <>
-      <InlineSkeleton className="w-full" />
-      <InlineSkeleton className="w-4/5" />
-    </>
-  );
-}
 function MetricAction({
   disabled,
   children,
   onClick,
-  navigate,
 }: {
   disabled: boolean;
-  navigate?: boolean;
   children: ReactNode;
   onClick: (button: HTMLButtonElement) => void;
 }): ReactElement {
@@ -237,7 +176,7 @@ function MetricAction({
         onClick={(event) => onClick(event.currentTarget)}
       >
         {children}
-        {navigate ? <ArrowRight aria-hidden="true" /> : <ArrowDown aria-hidden="true" />}
+        <ArrowRight aria-hidden="true" />
       </Button>
     </div>
   );

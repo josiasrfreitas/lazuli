@@ -63,6 +63,7 @@ export type {
 } from "./student-list.js";
 export {
   classArchiveInputSchema,
+  classCapacityInputSchema,
   classCloneForNextPeriodInputSchema,
   classCreateInputSchema,
   classGenerateSessionsInputSchema,

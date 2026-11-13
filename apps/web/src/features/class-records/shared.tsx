@@ -1,3 +1,4 @@
+import { recordedActivities } from "@lazuli/domain";
 import { RefreshCw } from "lucide-react";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
@@ -76,12 +77,16 @@ export function PerformedContent({ value }: { value: ClassRecordContent }): Reac
   return (
     <div className="grid gap-2">
       <Badge variant="neutral">{kindLabels[value.kind]}</Badge>
-      {value.planItemId && (
-        <p className="text-caption">
-          {value.planItemTitle ?? "Etapa do planejamento"} ·{" "}
-          {value.planItemStatus === "COMPLETED" ? "Concluída" : "Em andamento"}
+      {recordedActivities(value).map((item) => (
+        <p key={item.id} className="text-caption">
+          {item.title ?? "Conteúdo do planejamento"} ·{" "}
+          {item.status === "COMPLETED"
+            ? "Concluído"
+            : item.status === "PARTIAL"
+              ? "Em andamento"
+              : "Sem conclusão informada"}
         </p>
-      )}
+      ))}
       <p className="whitespace-pre-wrap text-sm leading-relaxed">{value.account}</p>
       {(value.reference || value.pageFrom !== null) && (
         <p className="text-caption text-muted-foreground">

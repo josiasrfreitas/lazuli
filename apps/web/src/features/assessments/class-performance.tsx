@@ -35,7 +35,7 @@ export function ClassPerformance({ classId }: { classId: string }): ReactElement
         <h2 className={styles.heading}>Desempenho da turma</h2>
         <div className={styles.empty} role="status">
           <ChartNoAxesCombined aria-hidden="true" />
-          <h3>Os gráficos ainda estão no recreio</h3>
+          <h3>Os gráficos ainda estão no intervalo</h3>
           <p>Assim que as primeiras notas forem lançadas, o desempenho da turma aparece aqui.</p>
         </div>
       </section>

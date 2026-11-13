@@ -1,4 +1,5 @@
 "use client";
+import { StudentAvatar } from "~/components/student-avatar";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import {
@@ -9,7 +10,7 @@ import {
   Pause,
   Play,
 } from "lucide-react";
-import { Avatar, Badge, Button } from "@lazuli/ui";
+import { Badge, Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { useOccurrenceRotation } from "~/features/classes/use-occurrence-rotation";
 import { CATEGORY, OCCURRENCE_STATUS, dateLabel } from "~/features/pedagogical-follow-up/shared";
@@ -72,7 +73,7 @@ export function TeacherOccurrencePreview({
             aria-live={rotation.automatic ? "off" : "polite"}
           >
             <div className={styles.occurrenceStudent}>
-              <Avatar name={row.name} colorKey={row.studentId} size="md" />
+              <StudentAvatar name={row.name} colorKey={row.studentId} size="md" />
               <div>
                 <Link href={`/alunos/${row.studentId}?secao=pedagogico`}>{row.name}</Link>
                 <span>

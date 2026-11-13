@@ -5,7 +5,8 @@ const MIN_TEXT_LENGTH = 3;
 const MAX_TEXT_LENGTH = 2000;
 const MAX_REFERENCE_LENGTH = 200;
 const MAX_PAGE = 10_000;
-const MAX_TITLE_LENGTH = 160;
+// Recorded labels include the canonical title and its lesson context.
+const MAX_TITLE_LENGTH = 500;
 const MAX_ROSTER_SIZE = 500;
 const MAX_REASON_LENGTH = 1000;
 const MAX_QUERY_DAYS = 31;
@@ -22,6 +23,22 @@ export const classRecordContentSchema = z
     reference: z.string().trim().max(MAX_REFERENCE_LENGTH).nullable(),
     pageFrom: z.number().int().min(1).max(MAX_PAGE).nullable(),
     pageTo: z.number().int().min(1).max(MAX_PAGE).nullable(),
+    planItems: z
+      .array(
+        z
+          .object({
+            id: z.string().uuid(),
+            status: z.enum(["PARTIAL", "COMPLETED"]),
+            title: z.string().max(MAX_TITLE_LENGTH).optional(),
+          })
+          .strict(),
+      )
+      .max(100)
+      .refine(
+        (items) => new Set(items.map((item) => item.id)).size === items.length,
+        "Não repita atividades no registro.",
+      )
+      .optional(),
     planItemId: z.string().uuid().nullable().optional(),
     planItemStatus: z.enum(["PARTIAL", "COMPLETED"]).optional(),
     planItemTitle: z.string().max(MAX_TITLE_LENGTH).optional(),

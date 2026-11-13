@@ -60,7 +60,10 @@ export async function receiveTeacherFile(ctx: Context, request: Request): Promis
             where: { teacherId: input.teacherId, kind: "PHOTO", deletedAt: null },
             data: { deletedAt: new Date() },
           });
-        return tx.teacherFile.create({ data: { ...input, ...reference }, select: fileSelect });
+        return tx.teacherFile.create({
+          data: { ...input, subtitle: input.subtitle ?? null, ...reference },
+          select: fileSelect,
+        });
       });
       return Response.json(file, { status: 201, headers: HEADERS });
     } catch (error) {

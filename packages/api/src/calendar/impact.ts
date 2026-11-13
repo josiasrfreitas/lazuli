@@ -78,12 +78,14 @@ export async function previewCalendarChange(
   const affectedAppointment = (row: (typeof appointments)[number]) =>
     state.closed.has(civil(row.date)) ||
     (change.action === "period" &&
-      row.targetClassSession?.class.semesterId === change.id &&
+      row.targetClassSession !== null &&
+      row.targetClassSession.class.semesterId === change.id &&
       outside(row.targetClassSession.class.semesterId, row.date));
   const affectedVisit = (row: (typeof visits)[number]) =>
     state.closed.has(civil(row.date)) ||
     (change.action === "period" &&
-      row.class?.semesterId === change.id &&
+      row.class !== null &&
+      row.class.semesterId === change.id &&
       outside(row.class.semesterId, row.date)) ||
     (change.action === "period" &&
       !row.class &&
@@ -122,7 +124,8 @@ export async function previewCalendarChange(
     (row) =>
       state.closed.has(civil(row.plannedOn)) ||
       (change.action === "period" &&
-        row.plan.class?.semesterId === change.id &&
+        row.plan.class !== null &&
+        row.plan.class.semesterId === change.id &&
         outside(row.plan.class.semesterId, row.plannedOn)),
   );
   const capacity = await calendarCapacity(database, state);

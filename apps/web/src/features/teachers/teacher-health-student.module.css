@@ -1,0 +1,102 @@
+.item {
+  position: relative;
+}
+.panel {
+  position: absolute;
+  z-index: 20;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: min(20rem, calc(100vw - 3rem));
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.97);
+  transform-origin: top left;
+  transition:
+    opacity var(--lz-duration-base) var(--lz-ease-standard),
+    transform var(--lz-duration-base) var(--lz-ease-standard),
+    visibility var(--lz-duration-base);
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--heading);
+}
+.name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: var(--lz-text-caption);
+}
+.openIcon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  color: var(--brand-link);
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+.facts dt,
+.evidence {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-micro);
+}
+.facts dd {
+  color: var(--heading);
+  font-family: var(--lz-font-numeric);
+  font-size: 1.125rem;
+}
+.trigger:focus-visible:not([data-dismissed]) .panel {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover:not([data-dismissed]) .panel {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transform: none;
+    transition:
+      opacity var(--lz-duration-fast) var(--lz-ease-standard),
+      visibility var(--lz-duration-fast);
+  }
+}
+
+.item:last-child:not(:first-child) .panel {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  transform-origin: top right;
+}
+.item:nth-child(2):not(:last-child) .panel {
+  inset-inline-start: 50%;
+  transform: translateX(-50%) scale(0.97);
+  transform-origin: top center;
+}
+.item:nth-child(2):not(:last-child) .trigger:focus-visible:not([data-dismissed]) .panel {
+  transform: translateX(-50%);
+}
+@media (hover: hover) and (pointer: fine) {
+  .item:nth-child(2):not(:last-child) .trigger:hover:not([data-dismissed]) .panel {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .item:nth-child(2):not(:last-child) .panel {
+    transform: translateX(-50%);
+  }
+}

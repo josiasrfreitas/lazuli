@@ -22,6 +22,7 @@ export function CalendarChangeForm({
   embedded = false,
   onPendingChange,
   onBack,
+  initialDate,
 }: {
   embedded?: boolean;
   onPendingChange?: ((pending: boolean) => void) | undefined;
@@ -30,6 +31,7 @@ export function CalendarChangeForm({
   item?: Period | Interruption | undefined;
   onClose: () => void;
   onSaved?: ((semesterId: string) => void) | undefined;
+  initialDate?: string | undefined;
 }) {
   const [item] = useState(initialItem);
   const [draft, setDraft] = useState(() => ({
@@ -38,12 +40,16 @@ export function CalendarChangeForm({
       ? formatDateOnlyBR(
           ("startDate" in item ? item.startDate : item.fromDate).toISOString().slice(0, 10),
         )
-      : "",
+      : initialDate
+        ? formatDateOnlyBR(initialDate)
+        : "",
     through: item
       ? formatDateOnlyBR(
           ("endDate" in item ? item.endDate : item.throughDate).toISOString().slice(0, 10),
         )
-      : "",
+      : initialDate
+        ? formatDateOnlyBR(initialDate)
+        : "",
     description: item && "description" in item ? (item.description ?? "") : "",
     kind: item && "kind" in item ? item.kind : ("RECESS" as Interruption["kind"]),
   }));
@@ -84,7 +90,18 @@ export function CalendarChangeForm({
       onBack={onBack}
       compactHeader
       actionSize="sm"
-      title={`${item ? "Editar" : "Novo"} ${mode === "period" ? "semestre" : "recesso"}`}
+      title={
+        mode === "period"
+          ? `${item ? "Editar" : "Novo"} semestre`
+          : item
+            ? "Editar feriado ou recesso"
+            : "Feriado ou recesso"
+      }
+      description={
+        mode === "period"
+          ? "Defina os limites das aulas regulares. Você confere os impactos antes de aplicar."
+          : "Este intervalo suspende as atividades acadêmicas de toda a escola."
+      }
       formId="calendar-change"
       firstField="calendar-title"
       submitLabel="Conferir impactos"
@@ -126,7 +143,7 @@ export function CalendarChangeForm({
       {item && mode === "interruption" && (
         <Button
           type="button"
-          variant="ghost"
+          variant="destructive-ghost"
           size="sm"
           disabled={preview.isPending}
           onClick={() =>
@@ -137,7 +154,7 @@ export function CalendarChangeForm({
             })
           }
         >
-          <Trash2 aria-hidden="true" /> Remover recesso…
+          <Trash2 aria-hidden="true" /> Remover intervalo…
         </Button>
       )}
     </TaskDialog>

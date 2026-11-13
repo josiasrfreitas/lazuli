@@ -45,6 +45,7 @@ export function StudentPhoto({ studentId, name }: StudentPhotoProps): ReactEleme
       refresh: () => {
         void Promise.allSettled([
           photo.refetch(),
+          utils.studentDocuments.photos.invalidate(),
           utils.studentDocuments.list.invalidate({ studentId }),
           utils.students.pendingActions.invalidate({ id: studentId }),
           utils.dashboard.invalidate(),
@@ -129,8 +130,8 @@ async function uploadPhoto(input: PhotoUploadInput): Promise<void> {
     input.setWaitingForPhoto(true);
     input.refresh();
     toastManager.add({
-      title: "Foto enviada",
-      description: "O processamento foi iniciado.",
+      title: "Foto atualizada",
+      description: "A nova foto foi salva no cadastro do aluno.",
       type: "success",
     });
   } catch {

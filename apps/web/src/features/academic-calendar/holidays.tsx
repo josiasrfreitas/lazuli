@@ -88,6 +88,7 @@ export function CalendarHolidays({
     >
       <form
         id="calendar-holidays"
+        noValidate
         className="grid gap-4"
         onSubmit={(event) => {
           event.preventDefault();
@@ -199,7 +200,7 @@ export function CalendarHolidays({
               )}
               <p className="text-caption text-muted-foreground">
                 Fonte: {query.data.source}. Revise os pontos facultativos. Datas municipais e da
-                escola: Novo recesso.
+                escola: Adicionar intervalo.
               </p>
             </>
           )}

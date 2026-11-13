@@ -116,6 +116,7 @@ export function CalendarChangeFields({
             <Textarea
               id="calendar-description"
               name="description"
+              autoComplete="off"
               rows={2}
               size="sm"
               value={draft.description}

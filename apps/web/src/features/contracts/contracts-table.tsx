@@ -1,10 +1,10 @@
 "use client";
 
+import { StudentAvatar } from "~/components/student-avatar";
 import type { CSSProperties, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import type { RouterOutputs } from "@lazuli/api";
 import {
-  Avatar,
   Badge,
   DataTable,
   type BadgeVariant,
@@ -119,7 +119,7 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
     width: COLUMN_WIDTHS.student,
     cell: (row) => (
       <div className="flex items-center gap-3">
-        <Avatar colorKey={row.student.id} name={row.student.fullName} size="sm" />
+        <StudentAvatar colorKey={row.student.id} name={row.student.fullName} size="sm" />
         <span className="min-w-0 font-medium break-words whitespace-normal">
           {row.student.fullName}
         </span>

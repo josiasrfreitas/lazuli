@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentAvatar } from "~/components/student-avatar";
 import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
@@ -12,7 +13,7 @@ import {
   UserRoundPlus,
   X,
 } from "lucide-react";
-import { Avatar, Button, Input } from "@lazuli/ui";
+import { Button, Input } from "@lazuli/ui";
 import type { ClassRecord } from "./shared";
 import {
   lessonParticipants,
@@ -261,7 +262,7 @@ function ParticipantContent({ person }: { person: LessonParticipant }): ReactJSX
   return (
     <>
       <span className={styles.person}>
-        <Avatar name={person.name} colorKey={person.colorKey} size="sm" />
+        <StudentAvatar name={person.name} colorKey={person.colorKey} size="sm" />
         <span className={styles.student}>
           <strong>{person.name}</strong>
           <span data-kind={person.kind}>{person.description}</span>

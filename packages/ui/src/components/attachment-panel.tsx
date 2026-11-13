@@ -21,7 +21,7 @@ export function AttachmentPanel({
   onMobile?: (() => void) | undefined;
   onClose?: (() => void) | undefined;
   busy?: boolean;
-  className?: string;
+  className?: string | undefined;
   id?: string;
   open?: boolean;
 }) {

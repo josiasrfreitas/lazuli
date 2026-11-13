@@ -60,58 +60,15 @@ export function TeacherHealthInfo({ data }: { data: Metrics | undefined }): Reac
         <DialogBackdrop />
         <DialogContent className="md:max-w-4xl">
           <DialogHeader>
-            <DialogTitle size="lg">Uma leitura da turma, aluno por aluno</DialogTitle>
+            <DialogTitle>O que forma o score de cada aluno</DialogTitle>
             <DialogDescription>
-              O score médio resume a saúde pedagógica dos alunos atuais. Cada aluno tem o mesmo
-              peso, mesmo quando participa de mais de uma turma.
+              Quatro indicadores ajudam a identificar quem precisa de um acompanhamento mais
+              próximo.
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
             <div className={styles.body}>
-              <section className={styles.calculation} aria-label="Cálculo do score médio atual">
-                <div>
-                  <strong>{metricNumber(sum)}</strong>
-                  <span>soma dos scores</span>
-                </div>
-                <span className={styles.operator} aria-label="dividida por">
-                  ÷
-                </span>
-                <div>
-                  <strong>{data?.coveredStudents ?? "—"}</strong>
-                  <span>alunos com dados</span>
-                </div>
-                <span className={styles.operator} aria-label="igual a">
-                  =
-                </span>
-                <div className={styles.result}>
-                  <strong>{metricNumber(data?.score)}</strong>
-                  <span>score médio · de 0 a 100</span>
-                </div>
-              </section>
-              <div className={styles.coverage}>
-                <span>
-                  {data
-                    ? `${data.coveredStudents} de ${data.studentCount} alunos entram na média`
-                    : "A média aparecerá quando os dados forem carregados"}
-                </span>
-                <span>Sem dados suficientes = fora da média</span>
-              </div>
-              <section className={styles.thresholds} aria-label="Faixas de saúde">
-                <div data-tone="success">
-                  <strong>80–100</strong>
-                  <span>Saudável</span>
-                </div>
-                <div data-tone="warning">
-                  <strong>60–79</strong>
-                  <span>Em atenção</span>
-                </div>
-                <div data-tone="danger">
-                  <strong>0–59</strong>
-                  <span>Prioridade</span>
-                </div>
-              </section>
               <section className={styles.indicators} aria-label="Composição do score individual">
-                <h3>O que forma o score de cada aluno</h3>
                 <p>Os pesos abaixo valem quando os quatro indicadores têm dados.</p>
                 <dl>
                   {INDICATORS.map(({ key, title, icon: Icon, description }) => (
@@ -126,7 +83,55 @@ export function TeacherHealthInfo({ data }: { data: Metrics | undefined }): Reac
                   ))}
                 </dl>
               </section>
+              <section className={styles.thresholds} aria-label="Faixas de saúde">
+                <div data-tone="success">
+                  <strong>80–100</strong>
+                  <span>Saudável</span>
+                </div>
+                <div data-tone="warning">
+                  <strong>60–79</strong>
+                  <span>Em atenção</span>
+                </div>
+                <div data-tone="danger">
+                  <strong>0–59</strong>
+                  <span>Prioridade</span>
+                </div>
+              </section>
               <div className={styles.methods}>
+                <details className={styles.method}>
+                  <summary>Como chegamos ao score médio dos alunos?</summary>
+                  <p>
+                    Cada aluno tem o mesmo peso e entra uma única vez, mesmo que participe de mais
+                    de uma turma. Alunos sem dados suficientes ficam fora da média.
+                  </p>
+                  <section className={styles.calculation} aria-label="Cálculo do score médio atual">
+                    <div>
+                      <strong>{metricNumber(sum)}</strong>
+                      <span>soma dos scores</span>
+                    </div>
+                    <span className={styles.operator} aria-label="dividida por">
+                      ÷
+                    </span>
+                    <div>
+                      <strong>{data?.coveredStudents ?? "—"}</strong>
+                      <span>alunos com dados</span>
+                    </div>
+                    <span className={styles.operator} aria-label="igual a">
+                      =
+                    </span>
+                    <div className={styles.result}>
+                      <strong>{metricNumber(data?.score)}</strong>
+                      <span>score médio · de 0 a 100</span>
+                    </div>
+                  </section>
+                  <div className={styles.coverage}>
+                    <span>
+                      {data
+                        ? `${data.coveredStudents} de ${data.studentCount} alunos entram na média`
+                        : "A média aparecerá quando os dados forem carregados"}
+                    </span>
+                  </div>
+                </details>
                 <details className={styles.method}>
                   <summary>E quando faltam notas ou não há ocorrências?</summary>
                   <p>
@@ -155,9 +160,8 @@ export function TeacherHealthInfo({ data }: { data: Metrics | undefined }): Reac
                 </details>
               </div>
               <p className={styles.interpretation}>
-                Uma média alta pode esconder um aluno em dificuldade. Consulte as faixas e os alunos
-                por turma: este indicador orienta o acompanhamento, sem medir sozinho a qualidade do
-                professor.
+                Uma média alta pode esconder dificuldades individuais. O score orienta o
+                acompanhamento; não é uma avaliação do professor.
               </p>
             </div>
           </DialogBody>

@@ -6,6 +6,7 @@ const draft = {
   name: "",
   email: "",
   cpf: "",
+  phone: "",
   isEnabled: false,
   employmentType: "CLT" as const,
   weeklyHours: "",

@@ -68,8 +68,13 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
       );
     } else if (result.error.code !== "INTERNAL_SERVER_ERROR")
       logger.warn(
-        { ...fields, status: "error", error_code: result.error.code },
-        `Failed: ${procedureOutcomeLabel(path)}`,
+        {
+          ...fields,
+          ...safeError(result.error.cause ?? result.error),
+          status: "error",
+          error_code: result.error.code,
+        },
+        "Operation rejected",
       );
     return result;
   } catch (error) {

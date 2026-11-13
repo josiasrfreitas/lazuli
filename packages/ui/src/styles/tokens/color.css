@@ -146,7 +146,7 @@
   --background: var(--lz-ref-neutral-950);
   --foreground: #e9edf6;
   --heading: var(--foreground);
-  --card: var(--lz-ref-neutral-900);
+  --card: var(--lz-ref-neutral-950);
   --card-foreground: var(--foreground);
   --popover: var(--lz-ref-neutral-850);
   --popover-foreground: var(--foreground);

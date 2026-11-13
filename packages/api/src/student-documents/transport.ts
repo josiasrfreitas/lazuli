@@ -1,3 +1,4 @@
+import { createServiceLogger, safeError } from "@lazuli/logging";
 import { z } from "@lazuli/validators";
 import { getStorage } from "@lazuli/storage";
 import { enqueueStudentDocument } from "@lazuli/integrations/hatchet";
@@ -5,6 +6,7 @@ import type { Context } from "../trpc/context.js";
 import { tokenHash } from "./router.js";
 import { JPEG, PDF, documentFormat, readDocumentImage, storeDocument } from "./upload.js";
 import { deleteStudentDocument } from "./delete.js";
+const logger = createServiceLogger("web");
 const HEADERS = {
   "Cache-Control": "private, no-store",
   "Referrer-Policy": "no-referrer",
@@ -130,7 +132,17 @@ async function uploadCapture(
     });
     // A dispatch outage must not undo a durable upload; the recovery loop claims it.
     if (file.status === "RECEIVED")
-      await enqueueStudentDocument({ fileId: file.id }).catch(() => {});
+      await enqueueStudentDocument({ fileId: file.id }).catch((error) => {
+        logger.error(
+          {
+            request_id: ctx.requestId,
+            resource: "studentDocuments.dispatch",
+            status: "error",
+            ...safeError(error),
+          },
+          "Document processing dispatch failed; durable upload retained for recovery",
+        );
+      });
     return json(
       {
         status: publicStatus(file.status),
@@ -139,8 +151,31 @@ async function uploadCapture(
       },
       HTTP.created,
     );
-  } catch {
-    return json({ code: "BUSY_OR_CLOSED" }, HTTP.conflict);
+  } catch (error) {
+    const conflict = error instanceof Error && ["BUSY", "CLOSED"].includes(error.message);
+    const invalid =
+      error instanceof z.ZodError || error instanceof SyntaxError || error instanceof URIError;
+    const fields = {
+      request_id: ctx.requestId,
+      resource: "studentDocuments.upload",
+      operation: "POST",
+      status: "error",
+      ...safeError(error),
+    };
+    if (conflict || invalid) {
+      logger.warn(
+        fields,
+        conflict
+          ? "Document upload rejected: session busy or closed"
+          : "Document upload rejected: invalid metadata",
+      );
+      return json(
+        { code: conflict ? "BUSY_OR_CLOSED" : "INVALID_METADATA" },
+        conflict ? HTTP.conflict : HTTP.badRequest,
+      );
+    }
+    logger.error(fields, "Document upload failed while storing file or metadata");
+    return json({ code: "UPLOAD_FAILED" }, 500);
   }
 }
 async function readCaptureStatus(ctx: Context, sessionId: string): Promise<Response> {

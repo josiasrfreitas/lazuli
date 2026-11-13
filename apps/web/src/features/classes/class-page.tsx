@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import {
   BookOpen,
   LayoutDashboard,
@@ -15,7 +15,7 @@ import { useSectionCarousel } from "~/lib/use-section-carousel";
 import { ClassRecentOccurrences } from "./class-recent-occurrences";
 import { ClassPageLoading } from "./class-page-loading";
 import { ClassIdentityHeader, ClassOverview } from "./class-overview";
-import { MembershipDialog } from "./membership-dialog";
+import { CapacityDialog } from "./capacity-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
 import { ClassPerformance } from "~/features/assessments/class-performance";
 import { ClassLessons } from "./class-lessons";
@@ -70,13 +70,13 @@ function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] 
     setArrivalReady(true);
     void setAction(open ? "professor" : null);
   };
-  const [membershipOpen, setMembershipOpen] = useState(false);
+  const [capacityOpen, setCapacityOpen] = useState(false);
   return (
     <>
       <ClassSections
         detail={detail}
         onAssign={() => setAssigning(true)}
-        enroll={() => setMembershipOpen(true)}
+        editCapacity={() => setCapacityOpen(true)}
       />
       {assigning && (
         <AssignmentDialog
@@ -85,28 +85,19 @@ function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] 
           onClose={() => setAssigning(false)}
         />
       )}
-      {membershipOpen && (
-        <MembershipDialog
-          mode="ENTRY"
-          classId={detail.id}
-          classLabel={`${detail.portalClassName}${detail.sharedStage ? ` · ${detail.sharedStage.name}` : ""}`}
-          scheduleType={detail.scheduleType}
-          open
-          onOpenChange={setMembershipOpen}
-        />
-      )}
+      {capacityOpen && <CapacityDialog detail={detail} onClose={() => setCapacityOpen(false)} />}
     </>
   );
 }
 
 function ClassSections({
   detail,
-  enroll,
+  editCapacity,
   onAssign,
 }: {
   onAssign: () => void;
   detail: RouterOutputs["classes"]["byId"];
-  enroll: () => void;
+  editCapacity: () => void;
 }): ReactElement {
   const [section, setSection] = useQueryState(
     "secao",
@@ -123,6 +114,21 @@ function ClassSections({
     section === "alunos" || (section === "planejamento" && detail.scheduleType !== "REGULAR")
       ? OVERVIEW_SECTION
       : section;
+  const navigation = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = navigation.current;
+    if (!element) return;
+    const revealSelection = (): void => {
+      element.querySelector('[role="tab"][aria-selected="true"]')?.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+      });
+    };
+    revealSelection();
+    const observer = new ResizeObserver(revealSelection);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [activeSection]);
   return (
     <div
       className={styles.sections}
@@ -136,7 +142,7 @@ function ClassSections({
             detail={detail}
             onAssign={onAssign}
             navigation={
-              <div className={styles.tabNavigation}>
+              <div ref={navigation} className={styles.tabNavigation}>
                 <ClassTabs
                   regular={detail.scheduleType === "REGULAR"}
                   pendingLessons={pendingLessons}
@@ -145,7 +151,7 @@ function ClassSections({
             }
           />
         </div>
-        <ClassSectionPanels detail={detail} enroll={enroll} />
+        <ClassSectionPanels detail={detail} editCapacity={editCapacity} />
       </Tabs>
     </div>
   );
@@ -153,22 +159,18 @@ function ClassSections({
 
 function ClassSectionPanels({
   detail,
-  enroll,
+  editCapacity,
 }: {
   detail: RouterOutputs["classes"]["byId"];
-  enroll: () => void;
+  editCapacity: () => void;
 }): ReactElement {
   return (
     <>
       <TabsPanel value={OVERVIEW_SECTION}>
-        <ClassOverview detail={detail} />
+        <ClassOverview detail={detail} editCapacity={editCapacity} />
         <div className={styles.overviewWorkspace}>
           <ClassRecentOccurrences classId={detail.id} />
-          <RosterSection
-            classId={detail.id}
-            showStage={detail.scheduleType === "PERSONALIZED"}
-            enroll={enroll}
-          />
+          <RosterSection classId={detail.id} showStage={detail.scheduleType === "PERSONALIZED"} />
         </div>
       </TabsPanel>
       <TabsPanel value="desempenho">

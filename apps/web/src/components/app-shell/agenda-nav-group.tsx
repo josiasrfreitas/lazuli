@@ -74,7 +74,7 @@ export function AgendaNavGroup({
               <Link
                 key={child.href}
                 href={child.href}
-                onClick={onNavigate}
+                onClick={() => onNavigate?.()}
                 aria-current={
                   active && academic === child.href.includes("visao=academico") ? "page" : undefined
                 }

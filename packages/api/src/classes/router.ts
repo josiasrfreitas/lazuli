@@ -2,6 +2,7 @@ import { recordActivity, activityTransaction } from "../activity/record.js";
 import { classSubject } from "../activity/subjects.js";
 import {
   classArchiveInputSchema,
+  classCapacityInputSchema,
   classCloneForNextPeriodInputSchema,
   classCreateInputSchema,
   classGenerateSessionsInputSchema,
@@ -97,6 +98,22 @@ export const classesRouter = router({
     });
     return result;
   }),
+  updateCapacity: adminProcedure.input(classCapacityInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "classes.updateCapacity",
+      work: async (database) => {
+        await readClass({ database, id: input.id, now: ctx.now ?? new Date() });
+        return database.class.update({
+          where: { id: input.id },
+          data: { capacity: input.capacity },
+        });
+      },
+      describe: async (_result, database) => ({
+        subject: await classSubject(database, input.id),
+        description: `Capacidade máxima: ${input.capacity} alunos.`,
+      }),
+    }),
+  ),
   archive: adminProcedure.input(classArchiveInputSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "classes.archive",

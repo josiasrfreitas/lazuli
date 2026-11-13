@@ -218,3 +218,11 @@ export function createLocalEmailOverdueD30Queue(): EmailOverdueD30Queue {
 function buildLocalJobId(workflowName: string, id: string): string {
   return `${workflowName}:${id}`;
 }
+
+/** UTC intervals; handlers calculate business dates in America/Sao_Paulo. */
+export const PERIODIC_WORKFLOWS = {
+  enrollment: { name: "enrollment-actions-process", cron: "0 * * * * *", timeout: "2m" },
+  recovery: { name: "files-recover", cron: "*/15 * * * * *", timeout: "10m" },
+  health: { name: "student-health-refresh", cron: "0 * * * * *", timeout: "10m" },
+  calendar: { name: "calendar-reconcile", cron: "*/5 * * * * *", timeout: "2m" },
+} as const;

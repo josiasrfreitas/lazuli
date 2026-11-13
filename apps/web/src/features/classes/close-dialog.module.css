@@ -1,6 +1,6 @@
 .fields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.875rem;
 }
 .date {
@@ -22,4 +22,10 @@
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
+}
+
+@media (max-width: 380px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

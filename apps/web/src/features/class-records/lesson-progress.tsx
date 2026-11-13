@@ -1,7 +1,8 @@
 "use client";
 import type { ReactElement } from "react";
 import { Button, Checkbox } from "@lazuli/ui";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
+import { recordedActivities } from "@lazuli/domain";
 import { trpc } from "~/lib/trpc";
 import { QueryLoading } from "~/components/query-loading";
 import { SelectControl } from "~/features/classes/form-controls";
@@ -48,24 +49,7 @@ export function LessonProgress(props: Props): ReactElement | null {
     );
   return <LessonSelection {...props} data={query.data} items={items} />;
 }
-function stepChoices(items: Step[], value: ContentDraft): { value: string; label: string }[] {
-  const retired = value.planItemId && !items.some((item) => item.id === value.planItemId);
-  return [
-    { value: "none", label: "Sem etapa vinculada" },
-    ...(retired
-      ? [
-          {
-            value: value.planItemId!,
-            label: value.planItemTitle ?? "Etapa registrada anteriormente",
-          },
-        ]
-      : []),
-    ...items.map((item) => ({
-      value: item.id,
-      label: `${formatDateOnlyBR(item.plannedOn)} · ${item.title}`,
-    })),
-  ];
-}
+
 function LessonSelection({
   scope,
   prefix,
@@ -74,20 +58,24 @@ function LessonSelection({
   data,
   items,
 }: Props & { data: Planning; items: Step[] }): ReactElement {
+  const selected = recordedActivities(value);
   const previous = data.records.find(
     (record) =>
       (record.date < scope.date || (record.date === scope.date && record.time < scope.startTime)) &&
-      record.content.planItemId,
+      recordedActivities(record.content).length,
   );
-  const select = (id: string): void => {
-    if (id === value.planItemId) return;
-    const item = items.find((row) => row.id === id);
+  const update = (next: typeof selected): void => {
+    const planItems = next.map((item) => ({
+      ...item,
+      status: item.status ?? ("PARTIAL" as const),
+    }));
+    const last = planItems.at(-1);
     change({
       ...value,
-      planItemId: item?.id ?? null,
-      planItemStatus: "PARTIAL",
-      planItemTitle: item?.title,
-      ...(item ? { kind: item.kind } : {}),
+      planItems,
+      planItemId: last?.id ?? null,
+      planItemStatus: last?.status ?? "PARTIAL",
+      planItemTitle: last?.title,
     });
   };
   return (
@@ -95,32 +83,59 @@ function LessonSelection({
       <PlanningBand
         items={items}
         date={scope.date}
-        actualId={value.planItemId ?? previous?.content.planItemId}
-        draft={Boolean(value.planItemId)}
+        actualId={selected.at(-1)?.id ?? previous?.content.planItemId}
+        draft={selected.length > 0}
       />
       <SelectControl
         name={`${prefix}-plan-step`}
-        label="Etapa trabalhada · opcional"
-        value={value.planItemId ?? "none"}
-        choices={stepChoices(items, value)}
-        onChange={select}
+        label="Adicionar conteúdo trabalhado · opcional"
+        value="none"
+        choices={[
+          { value: "none", label: "Selecione uma atividade…" },
+          ...items
+            .filter((item) => !selected.some((s) => s.id === item.id))
+            .map((item) => ({
+              value: item.id,
+              label: `${formatDateOnlyBR(item.plannedOn)} · ${item.title}`,
+            })),
+        ]}
+        onChange={(id) => {
+          const item = items.find((row) => row.id === id);
+          if (item) update([...selected, { id, status: "PARTIAL", title: item.title }]);
+        }}
       />
-      <StepCompletion value={value} change={change} />
+      {selected.length > 0 && (
+        <p className="text-caption text-muted-foreground">
+          Marque o que foi concluído. Os demais conteúdos ficam em andamento.
+        </p>
+      )}
+      {selected.map((item) => (
+        <div key={item.id} className="flex items-center justify-between gap-2">
+          <label className="flex items-center gap-2 text-caption">
+            <Checkbox
+              checked={item.status === "COMPLETED"}
+              onCheckedChange={(checked) =>
+                update(
+                  selected.map((s) =>
+                    s.id === item.id ? { ...s, status: checked ? "COMPLETED" : "PARTIAL" } : s,
+                  ),
+                )
+              }
+            />
+            {items.find((s) => s.id === item.id)?.title ??
+              item.title ??
+              "Conteúdo registrado anteriormente"}
+          </label>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={`Remover ${item.title ?? "conteúdo"} deste registro`}
+            onClick={() => update(selected.filter((s) => s.id !== item.id))}
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </div>
+      ))}
     </div>
-  );
-}
-
-function StepCompletion({ value, change }: Pick<Props, "value" | "change">): ReactElement | null {
-  if (!value.planItemId) return null;
-  return (
-    <label className="flex w-fit items-center gap-2 text-caption">
-      <Checkbox
-        checked={value.planItemStatus === "COMPLETED"}
-        onCheckedChange={(checked) =>
-          change({ ...value, planItemStatus: checked ? "COMPLETED" : "PARTIAL" })
-        }
-      />
-      Concluí esta etapa
-    </label>
   );
 }

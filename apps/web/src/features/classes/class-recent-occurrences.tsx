@@ -1,9 +1,10 @@
 "use client";
 
+import { StudentAvatar } from "~/components/student-avatar";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ChevronLeft, ChevronRight, MessageSquareText } from "lucide-react";
-import { Avatar, Button, InlineSkeleton, Switch } from "@lazuli/ui";
+import { Button, InlineSkeleton, Switch } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { CATEGORY, OCCURRENCE_STATUS, dateLabel } from "~/features/pedagogical-follow-up/shared";
@@ -125,7 +126,7 @@ function OccurrenceFooter({
 function OccurrenceStudent({ row }: { row: Occurrence }): ReactElement {
   return (
     <div className={styles.student}>
-      <Avatar name={row.student.fullName} colorKey={row.student.id} size="md" />
+      <StudentAvatar name={row.student.fullName} colorKey={row.student.id} size="md" />
       <div>
         <Link href={`/alunos/${row.student.id}`}>{row.student.fullName}</Link>
         <span>Aula de {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)}</span>

@@ -1,6 +1,7 @@
+import { StudentAvatar } from "~/components/student-avatar";
 import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
-import { Avatar, Badge, Button, Input } from "@lazuli/ui";
+import { Badge, Button, Input } from "@lazuli/ui";
 import { History } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { TeacherLinkRow } from "./shared";
@@ -98,7 +99,7 @@ export function TeacherStudentRow({
     <TeacherLinkRow
       href={`/professor/alunos/${student.id}`}
       title={student.name}
-      leading={<Avatar name={student.name} colorKey={student.id} />}
+      leading={<StudentAvatar name={student.name} colorKey={student.id} />}
       subtitle={stages.join(" · ")}
       trailing={!student.current && <Badge variant="neutral">Histórico</Badge>}
     />

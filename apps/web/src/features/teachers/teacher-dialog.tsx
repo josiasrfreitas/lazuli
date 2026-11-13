@@ -76,7 +76,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
           <div className={styles.header}>
             <Button
               variant="secondary"
-              size="icon"
+              size="icon-sm"
               className="size-14 shrink-0 rounded-full"
               aria-label="Enviar foto do professor"
               disabled={pending || documents.busy}

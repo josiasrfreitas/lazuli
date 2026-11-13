@@ -1,0 +1,38 @@
+.summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--lz-radius-md);
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.summary[data-affected="true"] {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+.summary > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+.summary p {
+  margin: 0;
+  line-height: 1.5;
+}
+.preserved {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  line-height: 1.5;
+}
+.preserved svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: var(--success);
+}

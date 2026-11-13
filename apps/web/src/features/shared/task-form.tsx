@@ -132,7 +132,7 @@ type TaskDialogProps = {
   submitLabel: string;
   pendingLabel?: string;
   children: ReactNode | ((actions: ReactNode) => ReactNode);
-  size?: "default" | "medium" | "wide" | "extra-wide";
+  size?: "compact" | "default" | "medium" | "wide" | "extra-wide";
   onBack?: (() => void) | undefined;
   submitDisabled?: boolean;
   hideCancel?: boolean;
@@ -184,7 +184,7 @@ function TaskContent(props: TaskDialogProps): ReactElement {
   if (props.embedded) return body;
   return (
     <DialogContent
-      className="data-[size=medium]:md:max-w-3xl data-[size=wide]:md:max-w-5xl data-[size=extra-wide]:md:max-w-6xl data-[layout=appointment]:max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))] data-[layout=appointment-calendar]:h-[85dvh] data-[layout=appointment-calendar]:max-h-[calc(100dvh-2rem)] data-[layout=appointment-calendar]:w-[calc(100vw-2rem)] data-[layout=appointment-calendar]:max-w-[1224px] data-[layout=occurrence]:w-[calc(100vw-48px)] data-[layout=occurrence]:max-w-[1280px] max-[959px]:data-[layout=occurrence]:w-[calc(100vw-24px)] data-[layout=termination]:md:w-[calc(100vw-3rem)] data-[layout=termination]:md:max-w-[1120px] data-[layout=termination]:[&>[data-slot=dialog-footer]]:mt-4 data-[schedule-frame=true]:transition-[opacity,scale,translate,width,max-width] motion-reduce:data-[schedule-frame=true]:transition-[opacity]"
+      className="data-[size=compact]:md:max-w-sm data-[size=medium]:md:max-w-3xl data-[size=wide]:md:max-w-5xl data-[size=extra-wide]:md:max-w-6xl data-[layout=appointment]:max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))] data-[layout=appointment-calendar]:h-[85dvh] data-[layout=appointment-calendar]:max-h-[calc(100dvh-2rem)] data-[layout=appointment-calendar]:w-[calc(100vw-2rem)] data-[layout=appointment-calendar]:max-w-[1224px] data-[layout=occurrence]:w-[calc(100vw-48px)] data-[layout=occurrence]:max-w-[1280px] max-[959px]:data-[layout=occurrence]:w-[calc(100vw-24px)] data-[layout=termination]:md:w-[calc(100vw-3rem)] data-[layout=termination]:md:max-w-[1120px] data-[layout=termination]:[&>[data-slot=dialog-footer]]:mt-4 data-[schedule-frame=true]:transition-[opacity,scale,translate,width,max-width] motion-reduce:data-[schedule-frame=true]:transition-[opacity]"
       data-size={props.size ?? "default"}
       data-layout={props.layout}
       data-schedule-frame={props.scheduleFrame || undefined}

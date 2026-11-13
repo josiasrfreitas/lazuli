@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Button, ScheduleCalendar, type CalendarEvent } from "@lazuli/ui";
-import { ArrowLeft } from "lucide-react";
+import { ScheduleCalendar, type CalendarEvent } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { agendaEvents, type CalendarLesson } from "~/features/class-records/calendar-model";
 import { CalendarDialogs } from "~/features/class-records/calendar-view";
@@ -39,14 +38,12 @@ export function AcademicDayAgenda({
   data,
   onDateChange,
   onEditEvent,
-  onBack,
   suspension,
 }: {
   date: string;
   data: AcademicYear;
   onDateChange: (date: string) => void;
   onEditEvent?: (id: string) => void;
-  onBack: () => void;
   suspension?: string | undefined;
 }) {
   const sessions = trpc.classRecords.list.useQuery({ from: date, to: date });
@@ -86,12 +83,7 @@ export function AcademicDayAgenda({
             month: "short",
             year: "numeric",
           })}
-          viewControl={
-            <Button variant="ghost" size="sm" onClick={onBack}>
-              <ArrowLeft />
-              Voltar ao mês
-            </Button>
-          }
+          viewControl={<></>}
           events={events}
           backgroundIntervals={
             suspension

@@ -60,7 +60,7 @@ export function AcademicCalendarWorkshop({
         {actions && <div className={styles.headerActions}>{actions}</div>}
         <div className={styles.year}>
           <Button
-            size="icon"
+            size="icon-sm"
             variant="ghost"
             aria-label="Ano anterior"
             disabled={year <= 2000}
@@ -73,7 +73,7 @@ export function AcademicCalendarWorkshop({
           </Button>
           <strong>{year}</strong>
           <Button
-            size="icon"
+            size="icon-sm"
             variant="ghost"
             aria-label="Próximo ano"
             disabled={year >= 2100}
@@ -154,7 +154,7 @@ export function AcademicCalendarWorkshop({
             </Button>
             <div className={styles.monthNav}>
               <Button
-                size="icon"
+                size="icon-sm"
                 variant="ghost"
                 aria-label="Mês anterior"
                 disabled={month === 0}
@@ -166,7 +166,7 @@ export function AcademicCalendarWorkshop({
                 {MONTHS[month]} {year}
               </h2>
               <Button
-                size="icon"
+                size="icon-sm"
                 variant="ghost"
                 aria-label="Próximo mês"
                 disabled={month === 11}
@@ -206,7 +206,7 @@ export function AcademicCalendarWorkshop({
   );
 }
 
-function Legend({ kinds }: { kinds?: Set<string> }) {
+function Legend({ kinds }: { kinds?: Set<string> | undefined }) {
   return (
     <div className={styles.legend} aria-label="Legenda do calendário">
       {[

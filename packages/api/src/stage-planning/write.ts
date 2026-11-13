@@ -1,3 +1,4 @@
+import { programSchedule, persistProgramSchedule } from "./program-schedule.js";
 import { resolvePlannedProgramActivity } from "./program-activity.js";
 import type { VersionedResult } from "../class-records/types.js";
 import type {
@@ -38,7 +39,12 @@ export async function savePlanWindow(
   input: StagePlanWindow,
 ): Promise<VersionedResult> {
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
-  assertWindowBounds(scope, { plan, input });
+  input = { ...input, plannedEndOn: scope.semester.endOn };
+  if (input.plannedStartOn < scope.semester.startOn || input.plannedStartOn > scope.semester.endOn)
+    throw badRequest("O início deve ficar dentro do semestre da turma.");
+  const canonical = !plan || plan.items.some((item) => item.programActivityId);
+  const rows = canonical ? await programSchedule(context, scope, input.plannedStartOn, plan) : null;
+  if (!rows) assertWindowBounds(scope, { plan, input });
   const data = {
     plannedStartOn: new Date(input.plannedStartOn),
     plannedEndOn: new Date(input.plannedEndOn),
@@ -47,6 +53,7 @@ export async function savePlanWindow(
   if (plan) {
     await bumpVersion(context, plan);
     await context.database.stagePlan.update({ where: { id: plan.id }, data });
+    if (rows) await persistProgramSchedule(context, plan.id, rows, plan);
     return recordRevision(context, { scope, planId: plan.id, reason: input.reason! });
   }
   const created = await context.database.stagePlan.create({
@@ -58,6 +65,7 @@ export async function savePlanWindow(
       createdById: context.staffUser.id,
     },
   });
+  if (rows) await persistProgramSchedule(context, created.id, rows, null);
   if (scope.progressId)
     await context.database.pedagogicalProgress.update({
       where: { id: scope.progressId },
@@ -223,4 +231,32 @@ function plannedText(
 ): { kind: StagePlanItemInput["kind"]; title: string; reference: string | null } {
   if (content) return content;
   return { kind: input.kind, title: input.title, reference: input.reference || null };
+}
+
+export async function prepareProgramPlan(
+  context: PlanningContext,
+  target: StagePlanTarget,
+): Promise<void> {
+  const scope = await loadPlanningScope(context, { ...target, lock: true });
+  if (scope.readOnly || (await loadPlan(context, scope))) return;
+  if (!(await programSchedule(context, scope, scope.progressStartOn ?? scope.classStartOn, null)))
+    throw badRequest("A programação deste estágio ainda não foi importada.");
+  await savePlanWindow(context, {
+    ...target,
+    version: 0,
+    plannedStartOn: scope.progressStartOn ?? scope.classStartOn,
+    plannedEndOn: scope.semester.endOn,
+    objective: null,
+  });
+}
+
+/** Product entry point: new schedules require an imported curriculum. */
+export async function saveProgramStart(
+  context: PlanningContext,
+  input: StagePlanWindow,
+): Promise<VersionedResult> {
+  const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
+  if (!plan && !(await programSchedule(context, scope, input.plannedStartOn, null)))
+    throw badRequest("A programação deste estágio ainda não foi importada.");
+  return savePlanWindow(context, input);
 }

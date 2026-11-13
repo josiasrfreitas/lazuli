@@ -1,9 +1,10 @@
 "use client";
 
+import { StudentAvatar } from "~/components/student-avatar";
 import type { JSX as ReactJSX } from "react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Check, ClipboardCheck } from "lucide-react";
-import { ToastAlert, Alert, Avatar, Button, Input, Switch } from "@lazuli/ui";
+import { ToastAlert, Alert, Button, Input, Switch } from "@lazuli/ui";
 import type { RouterInputs } from "@lazuli/api";
 import type { ClassRecord } from "~/features/class-records/shared";
 import type { AttendanceStatus } from "./staff-section";
@@ -336,7 +337,7 @@ function ReviewRowItem({
 }): ReactJSX.Element {
   return (
     <li className={styles.person}>
-      <Avatar name={row.name} colorKey={row.studentId} size="sm" />
+      <StudentAvatar name={row.name} colorKey={row.studentId} size="sm" />
       <div className={styles.identity}>
         <label htmlFor={`presence-${row.enrollmentId}`}>{row.name}</label>
         <span>{rowStatusLabel(row, confirmed)}</span>

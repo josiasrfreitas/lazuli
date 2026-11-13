@@ -1,6 +1,6 @@
 import { searchIds } from "../search.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
-import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
+import { saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
 import {
   assignedTeacherIdOn,
@@ -99,7 +99,6 @@ export async function listClasses(
   return {
     rows: rows.map(({ _count, ...row }) => ({
       ...row,
-      capacity: CLASS_REFERENCE_CAPACITY,
       currentTeacher: usualTeacherOn(row, today),
       occupancy: _count.enrollments,
     })),
@@ -135,7 +134,6 @@ export async function readClass(input: ReadClassInput): Promise<
   ]);
   return {
     ...row,
-    capacity: CLASS_REFERENCE_CAPACITY,
     currentTeacher: usualTeacherOn(row, today),
     occupancy,
     scheduledEntries,
