@@ -16,6 +16,7 @@ void it("counts only due eligible attendance, preserves absences and excludes an
     attendanceRows: [{ enrollmentId: "enrollment", status: "PRESENT", makeupCoverages: [] }],
   };
   const database = {
+    classSubstitution: { findMany: async () => [] },
     classSession: {
       findMany: async () => [
         base,
@@ -78,4 +79,66 @@ void it("counts only due eligible attendance, preserves absences and excludes an
       },
     ],
   );
+});
+
+void it("attributes recurring-slot attendance to the substitute only on its matching date and slot", async () => {
+  const day = new Date("2026-11-11");
+  const session = {
+    id: "session",
+    classId: "class",
+    scheduleSlotId: "slot",
+    date: day,
+    startTime: new Date("1970-01-01T14:00:00Z"),
+    endTime: new Date("1970-01-01T15:00:00Z"),
+    attendanceConfirmedAt: day,
+    classRecord: null,
+    attendanceRows: [{ enrollmentId: "enrollment", status: "ABSENT", makeupCoverages: [] }],
+  };
+  const database = {
+    classSubstitution: {
+      findMany: async () => [
+        {
+          classId: "class",
+          classSessionId: null,
+          scheduleSlotId: "slot",
+          date: day,
+          teacherId: "substitute",
+        },
+      ],
+    },
+    classSession: {
+      findMany: async () => [
+        session,
+        { ...session, id: "other-day", date: new Date("2026-11-10") },
+        { ...session, id: "other-slot", scheduleSlotId: "other-slot" },
+      ],
+    },
+  } as unknown as Prisma.TransactionClient;
+  const input = {
+    now: new Date("2026-11-12T20:00:00Z"),
+    classes: [
+      {
+        id: "class",
+        teacherId: "usual",
+        teacher: { id: "usual", name: "Teacher", teacherProfile: null },
+        teacherAssignments: [],
+        semester: { startDate: new Date("2026-08-01"), endDate: new Date("2026-12-20") },
+        enrollments: [
+          {
+            id: "enrollment",
+            studentId: "student",
+            entryDate: new Date("2026-09-01"),
+            exitDate: null,
+          },
+        ],
+      },
+    ],
+  };
+  const usual = await metricAttendance(database, { ...input, teacherId: "usual" });
+  const substitute = await metricAttendance(database, { ...input, teacherId: "substitute" });
+  assert.deepEqual(usual.classes, [{ classId: "class", due: 2, confirmed: 2 }]);
+  assert.deepEqual(substitute.classes, [{ classId: "class", due: 1, confirmed: 1 }]);
+  assert.equal(usual.students[0]?.heldMinutes, 120);
+  assert.equal(substitute.students[0]?.heldMinutes, 60);
+  assert.equal(substitute.students[0]?.absentMinutes, 60);
 });

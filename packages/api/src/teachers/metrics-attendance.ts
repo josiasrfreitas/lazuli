@@ -18,6 +18,39 @@ export async function metricAttendance(
   },
 ) {
   if (!input.classes.length) return { students: [], classes: [] };
+  const substitutions = await database.classSubstitution.findMany({
+    where: {
+      classId: { in: input.classes.map((group) => group.id) },
+      deletedAt: null,
+      revokedAt: null,
+      date: {
+        gte: new Date(
+          Math.min(...input.classes.map((group) => group.semester.startDate.getTime())),
+        ),
+        lte: new Date(saoPauloDateOnly(input.now)),
+      },
+    },
+    select: {
+      classId: true,
+      classSessionId: true,
+      scheduleSlotId: true,
+      date: true,
+      teacherId: true,
+    },
+  });
+  const bySession = new Map(
+    substitutions
+      .filter((row) => row.classSessionId !== null)
+      .map((row) => [row.classSessionId, row.teacherId]),
+  );
+  const bySlot = new Map(
+    substitutions
+      .filter((row) => row.classSessionId === null && row.scheduleSlotId !== null)
+      .map((row) => [
+        `${row.classId}:${row.date.toISOString().slice(0, 10)}:${row.scheduleSlotId}`,
+        row.teacherId,
+      ]),
+  );
   const sessions = await database.classSession.findMany({
     where: {
       deletedAt: null,
@@ -28,13 +61,14 @@ export async function metricAttendance(
       })),
     },
     select: {
+      id: true,
+      scheduleSlotId: true,
       classId: true,
       date: true,
       startTime: true,
       endTime: true,
       attendanceConfirmedAt: true,
       classRecord: { select: { deletedAt: true, teachingTeacherId: true } },
-      substitutions: { where: { revokedAt: null, deletedAt: null }, select: { teacherId: true } },
       attendanceRows: {
         where: { deletedAt: null },
         select: {
@@ -66,7 +100,9 @@ export async function metricAttendance(
       const actual = !session.classRecord?.deletedAt
         ? session.classRecord?.teachingTeacherId
         : null;
-      const substitute = session.substitutions[0]?.teacherId;
+      const substitute =
+        bySession.get(session.id) ??
+        bySlot.get(`${session.classId}:${date}:${session.scheduleSlotId}`);
       if (actual || substitute) return (actual ?? substitute) === input.teacherId;
       return periods.some((period) => inWindow(session.date, period));
     });
