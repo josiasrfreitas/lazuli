@@ -22,7 +22,7 @@
   flex: 1;
 }
 .trigger .chevron {
-  transition: transform var(--lz-duration-fast);
+  transition: transform var(--lz-duration-base) var(--lz-ease-standard);
 }
 .trigger[aria-expanded="true"] .chevron {
   transform: rotate(180deg);
@@ -33,9 +33,12 @@
   color: var(--navigation-foreground);
 }
 .children {
-  margin: 0.25rem 0 0.25rem 0.875rem;
-  padding-left: 0.5rem;
+  margin: 0.25rem 0 0.25rem calc(0.875rem * 0.85);
+  padding-left: 0.125rem;
   border-left: 1px solid var(--navigation-border);
+}
+.children:has(a[aria-current="page"]) {
+  border-left-color: var(--selection-indicator);
 }
 .children a {
   display: flex;
@@ -88,7 +91,7 @@
   :global(
       [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
     )
-    .children {
+    .panel {
     display: none;
   }
   :global(
@@ -107,4 +110,32 @@
   .trigger .chevron {
     transition: none;
   }
+}
+
+.panel {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    height var(--lz-duration-base) var(--lz-ease-standard),
+    opacity var(--lz-duration-base) var(--lz-ease-standard);
+}
+.panel[data-open="true"] {
+  opacity: 1;
+}
+.contents {
+  display: flow-root;
+}
+.group[data-instant="true"] .panel,
+.group[data-instant="true"] .chevron {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: opacity var(--lz-duration-fast) var(--lz-ease-standard);
+  }
+}
+
+.group .children a[aria-current="page"] {
+  color: var(--selection-indicator);
 }
