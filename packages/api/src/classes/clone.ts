@@ -1,4 +1,4 @@
-import { CLASS_REFERENCE_CAPACITY, findNextStageInTrack } from "@lazuli/domain";
+import { findNextStageInTrack } from "@lazuli/domain";
 import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
 import { classScheduleSlotsInputSchema } from "@lazuli/validators";
@@ -195,7 +195,7 @@ function buildSuccessorCreateData(
     semesterId: input.semesterId,
     startDate: input.startDate,
     year: input.year,
-    capacity: CLASS_REFERENCE_CAPACITY,
+    capacity: input.source.capacity,
     previousClassId: input.source.id,
     portalClassName: input.portalClassName,
     originalPortalClassName: input.portalClassName,

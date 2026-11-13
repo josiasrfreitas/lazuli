@@ -1,0 +1,34 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-block: 1rem 2rem;
+}
+.facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+.documents {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.documents > :global(.attachment-panel) {
+  flex: 1;
+}
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 42rem;
+  }
+}
+@media (max-width: 480px) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

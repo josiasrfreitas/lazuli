@@ -25,16 +25,26 @@ import { StudentDocumentDeleteButton } from "~/features/student-documents/delete
 
 const PROCESSING_POLL_MS = 3000;
 type DocumentFile = RouterOutputs["studentDocuments"]["list"][number];
-type DocumentSlot = { id: string; kind: DocumentKind; file: DocumentFile | undefined };
+type DocumentSlot = {
+  id: string;
+  kind: DocumentKind | `custom_${string}`;
+  file: DocumentFile | undefined;
+};
 
 function documentSlots(files: DocumentFile[]): DocumentSlot[] {
-  return DOCUMENTS.flatMap<DocumentSlot>((document) => {
+  const standard = DOCUMENTS.flatMap<DocumentSlot>((document) => {
     const matching = files.filter((file) => file.kind === document.id);
     if (matching.length > 0)
       return matching.map((file) => ({ id: file.id, kind: document.id, file }));
     if (document.id === "payment") return [];
     return [{ id: `empty-${document.id}`, kind: document.id, file: undefined }];
   });
+  return [
+    ...standard,
+    ...files
+      .filter((file) => file.kind.startsWith("custom_"))
+      .map((file) => ({ id: file.id, kind: file.kind as `custom_${string}`, file })),
+  ];
 }
 
 function selectedSlot(slots: DocumentSlot[], selectedId: string | null): DocumentSlot | undefined {
@@ -81,7 +91,16 @@ function useDocumentsModel(
   const files = documents.data ?? [];
   const slots = documentSlots(files);
   const selected = selectedSlot(slots, selectedId);
-  const definition = DOCUMENTS.find((document) => document.id === selected?.kind);
+  const definition: DocumentDefinition | undefined =
+    DOCUMENTS.find((document) => document.id === selected?.kind) ??
+    (selected?.file
+      ? {
+          id: selected.kind,
+          title: selected.file.title ?? "Documento",
+          detail: selected.file.subtitle ?? "",
+          extracts: false,
+        }
+      : undefined);
   const file = selected?.file;
   const processing = file?.status === "RECEIVED" || file?.status === "PROCESSING";
   async function refresh(): Promise<void> {
@@ -120,7 +139,8 @@ function DocumentSelector({ model }: { model: DocumentsModel }): ReactElement {
 }
 
 function choiceAriaLabel(slot: DocumentSlot, multiple: boolean): string {
-  const title = DOCUMENTS.find((item) => item.id === slot.kind)?.title ?? "Documento";
+  const title =
+    DOCUMENTS.find((item) => item.id === slot.kind)?.title ?? slot.file?.title ?? "Documento";
   if (!multiple || !slot.file) return title;
   return `${title} · ${slot.file.updatedAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
 }
@@ -142,7 +162,11 @@ function DocumentChoice({
       onClick={() => model.setSelectedId(slot.id)}
     >
       <DocumentChoicePreview slot={slot} />
-      <span className={styles.choiceLabel}>{DOCUMENT_LABELS[slot.kind]}</span>
+      <span className={styles.choiceLabel}>
+        {DOCUMENT_LABELS[slot.kind as keyof typeof DOCUMENT_LABELS] ??
+          slot.file?.title ??
+          "Documento"}
+      </span>
       <span className={styles.choiceStatus}>
         {slot.file ? (
           <>
@@ -176,7 +200,7 @@ function DocumentChoicePreview({ slot }: { slot: DocumentSlot }): ReactElement {
         src={`/api/student-document-files/${slot.file.id}?v=${slot.file.updatedAt.getTime()}`}
       />
     );
-  const Icon = DOCUMENT_ICONS[slot.kind];
+  const Icon = DOCUMENT_ICONS[slot.kind as keyof typeof DOCUMENT_ICONS] ?? FileText;
   return (
     <span className={styles.choicePlaceholder}>
       <Icon aria-hidden="true" />
@@ -211,7 +235,7 @@ function StagePreview({ model }: { model: DocumentsModel }): ReactElement {
     return (
       <PdfPreview
         src={`/api/student-document-files/${file.id}?v=${file.updatedAt.getTime()}`}
-        title={definition?.title ?? "Documento"}
+        title={definition?.title ?? file.title ?? "Documento"}
         showOpenLink={false}
       />
     );
@@ -221,7 +245,7 @@ function StagePreview({ model }: { model: DocumentsModel }): ReactElement {
         key={`${file.id}-${file.updatedAt.getTime()}`}
         id={file.id}
         version={file.updatedAt.getTime()}
-        title={definition?.title ?? "Documento"}
+        title={definition?.title ?? file.title ?? "Documento"}
         photo={file.kind === "photo"}
       />
     );
@@ -230,7 +254,10 @@ function StagePreview({ model }: { model: DocumentsModel }): ReactElement {
 
 function EmptyDocumentPreview({ model }: { model: DocumentsModel }): ReactElement {
   const { definition, setUpload } = model;
-  const Icon = DOCUMENT_ICONS[definition?.id ?? "student"];
+  const Icon =
+    definition && definition.id in DOCUMENT_ICONS
+      ? DOCUMENT_ICONS[definition.id as keyof typeof DOCUMENT_ICONS]
+      : FileText;
   return (
     <div className={styles.preview} data-empty="true">
       <div className={styles.documentPlaceholder}>

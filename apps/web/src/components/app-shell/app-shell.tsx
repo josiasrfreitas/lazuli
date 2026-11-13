@@ -10,8 +10,8 @@ import { AppBreadcrumb } from "./app-breadcrumb";
 import { AdminMobileNotice } from "./admin-mobile-notice";
 import { MobileNavigation } from "./mobile-navigation";
 import { Sidebar } from "./sidebar";
+import styles from "./app-shell.module.css";
 import { SessionSync } from "./session-sync";
-import { ThemeToggle } from "./theme-toggle";
 import { AccountMenu } from "./account-menu";
 import { TeacherNavigation } from "~/features/teacher-workspace/navigation";
 import { AssessmentUploadProvider } from "~/features/assessment-files/queue-provider";
@@ -31,7 +31,9 @@ export function AppShell({
   isMobileDevice: boolean;
 }): ReactNode {
   return (
-    <div className="flex h-svh bg-background text-foreground dark:bg-gradient-to-br dark:from-marquee dark:via-navigation-active dark:to-marquee">
+    <div
+      className={`${styles.shell} flex h-svh bg-background text-foreground dark:bg-gradient-to-br dark:from-marquee dark:via-navigation-active dark:to-marquee`}
+    >
       <SessionSync renderedEmail={identity.email} />
       {(identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") && (
         <AdminMobileNotice key={identity.id} userId={identity.id} isMobileDevice={isMobileDevice} />
@@ -74,7 +76,6 @@ function TopBar({ identity }: { identity: StaffIdentity }): ReactNode {
             {formatLongDateSaoPaulo(new Date())}
           </p>
         )}
-        <ThemeToggle />
         <AccountMenu identity={identity} />
       </div>
     </header>

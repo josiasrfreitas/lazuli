@@ -1,3 +1,4 @@
+import { programActivityLabels } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 
 type Database = Pick<Prisma.TransactionClient, "stage">;
@@ -121,6 +122,14 @@ function projectStageProgram(stage: StageRow): StageProgramView {
 }
 
 function projectProgram(program: ProgramRow): ProgramView {
+  const labels = programActivityLabels(program.teachingHours.flatMap((h) => h.activities));
+  program = {
+    ...program,
+    teachingHours: program.teachingHours.map((h) => ({
+      ...h,
+      activities: h.activities.map((a) => ({ ...a, title: labels.get(a.id) ?? a.title })),
+    })),
+  };
   return {
     id: program.id,
     scheduleType: program.scheduleType,

@@ -63,6 +63,7 @@ export type {
 } from "./student-list.js";
 export {
   classArchiveInputSchema,
+  classCapacityInputSchema,
   classCloneForNextPeriodInputSchema,
   classCreateInputSchema,
   classGenerateSessionsInputSchema,
@@ -173,6 +174,7 @@ export {
 } from "./payment-operation.js";
 export {
   teacherCreateInputSchema,
+  teacherFileUploadSchema,
   teacherUpdateInputSchema,
   teacherIdInputSchema,
   teacherListInputSchema,

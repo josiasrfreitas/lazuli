@@ -1,9 +1,10 @@
 "use client";
 
+import { StudentAvatar } from "~/components/student-avatar";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ChevronLeft, ChevronRight, MessageSquareText } from "lucide-react";
-import { Avatar, Button, InlineSkeleton, Switch } from "@lazuli/ui";
+import { Button, InlineSkeleton, Switch } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { CATEGORY, OCCURRENCE_STATUS, dateLabel } from "~/features/pedagogical-follow-up/shared";
@@ -38,10 +39,12 @@ export function ClassRecentOccurrences({ classId }: { classId: string }): ReactE
     content = <OccurrenceCarousel rows={rows} />;
   } else {
     content = (
-      <div className={styles.state}>
+      <div className={`${styles.state} ${styles.empty}`} role="status">
         <MessageSquareText aria-hidden="true" />
-        <h3>Nenhuma ocorrência</h3>
-        <p>Os relatos das aulas desta turma aparecerão aqui, junto ao aluno.</p>
+        <h3>Tudo tranquilo por aqui</h3>
+        <p>
+          Nenhuma ocorrência registrada. Por enquanto, só o verbo <em>to be</em> dando trabalho.
+        </p>
       </div>
     );
   }
@@ -123,10 +126,10 @@ function OccurrenceFooter({
 function OccurrenceStudent({ row }: { row: Occurrence }): ReactElement {
   return (
     <div className={styles.student}>
-      <Avatar name={row.student.fullName} colorKey={row.student.id} size="md" />
+      <StudentAvatar name={row.student.fullName} colorKey={row.student.id} size="md" />
       <div>
         <Link href={`/alunos/${row.student.id}`}>{row.student.fullName}</Link>
-        <span>Aula de {dateLabel(row.classSession.date)}</span>
+        <span>Aula de {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)}</span>
       </div>
     </div>
   );

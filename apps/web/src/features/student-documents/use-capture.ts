@@ -250,6 +250,9 @@ async function sendCapture(options: CaptureOptions, body: Blob): Promise<Capture
       method: "POST",
       headers: {
         "Content-Type": body.type === PDF_MIME ? PDF_MIME : "image/jpeg",
+        "X-Document-Metadata": encodeURIComponent(
+          JSON.stringify({ title: options.document.title, subtitle: options.document.detail }),
+        ),
       },
       body,
     },

@@ -6,17 +6,24 @@ type CarouselOptions = { order: readonly string[]; scope: "studentCarousel" | "c
 /** Snapshot the departing panel so only the selected section stays mounted. */
 export function useSectionCarousel({ order, scope }: CarouselOptions) {
   const transitionRef = useRef<ViewTransition | null>(null);
+  const generation = useRef(0);
 
   useEffect(
     () => () => {
+      generation.current += 1;
       transitionRef.current?.skipTransition();
     },
     [],
   );
 
   return (current: string, { next, update }: { next: string; update: () => void }) => {
-    if (current === next) return;
+    const request = ++generation.current;
     transitionRef.current?.skipTransition();
+    // A click back to the visible section must also supersede a pending snapshot update.
+    if (current === next) {
+      update();
+      return;
+    }
 
     if (
       !document.startViewTransition ||
@@ -31,9 +38,12 @@ export function useSectionCarousel({ order, scope }: CarouselOptions) {
       order.indexOf(next) > order.indexOf(current) ? "forward" : "backward",
     );
     const transition = document.startViewTransition(() => {
-      flushSync(update);
+      if (request === generation.current) flushSync(update);
     });
     transitionRef.current = transition;
+    // Skipping a snapshot rejects ready independently of finished. Observe both promises.
+    void transition.ready.catch(() => {});
+    void transition.updateCallbackDone.catch(() => {});
     void transition.finished
       .catch(() => {})
       .finally(() => {

@@ -67,3 +67,39 @@ Written and Listening accept proofs; Oral and Participation do not reserve uploa
 New uploads identify the phase and competence without asking for an appointment. Legacy
 unclassified files remain visible for explicit identification. Existing authorization, file limits,
 storage and processing rules remain owned by their respective APIs.
+
+## Mobile upload UI
+
+`apps/web/src/features/mobile-upload` holds the reusable browser UI:
+
+- `MobileUploadLink` renders the QR code, copy and open actions. Student document capture and
+  teacher registration share it. In local development the authenticated origin endpoint supplies
+  a private LAN address so a phone on the same network can reach the web server; production uses
+  the page origin. Native camera capture is selected through `FileUpload`.
+- `MobileFileEditor` receives an upload category and an async `onSend` adapter. It owns the label,
+  file selection, pending/error state and retry. A rejected request retains the selection.
+- `MobileUploadPage` receives categories and a capability endpoint. It shows receipts without
+  requiring a staff login on the phone. Student OCR and document cropping remain in their existing
+  capture flow; only the QR presentation is shared with that flow.
+
+Teacher upload sessions use random bearer tokens stored only as hashes in PostgreSQL. The URL
+carries the token in its fragment; requests send it in Authorization. Sessions expire after one
+hour and close when the owning UI unmounts or the registration is saved. Closing never removes
+received files. A draft's files attach to the teacher in the registration transaction. Existing
+teacher files are visible only to administration, not to a phone session created later.
+
+Teacher registration lives under `secao=cadastro`. Its document panel is also available in the
+create/edit dialog. The overview remains the agenda and linked classes.
+
+## Registration attachment panels
+
+`AttachmentPanel`, `AttachmentUploadRow`, `AttachmentRow`, and `AttachmentAdd` are exported
+by `@lazuli/ui`, with the interactive `Components/AttachmentPanel` Storybook example.
+Student intake and teacher registration use the same dark surface, compact header navigation,
+vertical document list, and inline title/subtitle entry. The back action stays beside the heading.
+Each upload row is a dashed drop target built on `FileUpload`: dropping and clicking use identical
+format, size, disabled, and error behavior. Consumers supply upload adapters and review content;
+the design system has no knowledge of storage, OCR, sessions, or authentication.
+Custom student attachments have independent identifiers and persisted title/subtitle metadata.
+Only the standard identity categories trigger extraction. Teacher attachments retain their
+existing categories and persist the subtitle alongside the label.

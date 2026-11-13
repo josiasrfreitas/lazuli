@@ -1,0 +1,842 @@
+.page {
+  --calendar-radius: var(--lz-radius-lg);
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+  padding: 1.5rem 2rem;
+  color: var(--foreground);
+  min-height: 100%;
+  align-content: start;
+}
+.header {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+.title {
+  min-width: 0;
+}
+.header h1 {
+  color: var(--heading);
+  margin: 0;
+  font-size: var(--lz-text-h2);
+  line-height: 1.2;
+}
+.subtitle {
+  margin: 0.375rem 0 0;
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.actions,
+.navigation,
+.contextHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.actions {
+  grid-column: 3;
+  justify-self: end;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.navigation {
+  grid-column: 2;
+  gap: 0.375rem;
+}
+.navigation h2 {
+  margin: 0;
+  min-width: 5rem;
+  text-align: center;
+  font-size: var(--lz-text-h3);
+  font-family: var(--lz-font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+.navigation h2[data-month="true"] {
+  min-width: 11rem;
+}
+.navigationLabel {
+  text-align: center;
+  max-width: 16rem;
+}
+.navigationLabel h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.navigationLabel p {
+  margin: 0.25rem 0 0;
+  font: var(--lz-text-micro) var(--lz-font-numeric);
+  color: var(--muted-foreground);
+}
+.status {
+  position: absolute;
+  right: 0;
+  bottom: -1.125rem;
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: 1.5rem;
+  min-width: 0;
+  align-items: start;
+}
+.canvas {
+  min-width: 0;
+}
+.year {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+}
+.semester {
+  min-width: 0;
+}
+.semesterHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--lz-radius-md);
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.semesterHeading h2 {
+  margin: 0;
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.semesterHeading span {
+  font-size: var(--lz-text-caption);
+}
+.semesterHeading button {
+  margin-left: auto;
+}
+.months {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.month {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--calendar-radius);
+  padding: 0.875rem;
+  overflow: hidden;
+}
+.monthHeading {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0 0.625rem;
+  cursor: pointer;
+  color: var(--heading);
+}
+.monthHeading h3 {
+  margin: 0;
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.monthHeading h3 small {
+  margin-left: 0.25rem;
+  font: var(--lz-text-caption) var(--lz-font-numeric);
+  color: var(--muted-foreground);
+}
+.month[data-outside="true"][data-compact="true"]:not([data-vacation="after"]) {
+  background: color-mix(in srgb, var(--card) 45%, transparent);
+  border-color: var(--border-subtle);
+}
+.month[data-outside="true"][data-compact="true"]:not([data-vacation="after"]) .monthHeading,
+.month[data-outside="true"][data-compact="true"]:not([data-vacation="after"]) .weekdays {
+  color: var(--muted-foreground);
+}
+.day[data-outside="true"]:not([data-vacation="after"]) {
+  opacity: 0.45;
+  background: transparent;
+}
+.day[data-outside="true"]:hover,
+.day[data-outside="true"]:focus-visible,
+.day[data-outside="true"][aria-pressed="true"] {
+  opacity: 1;
+}
+.monthHeading svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--muted-foreground);
+  transition: transform 150ms ease-out;
+}
+.monthHeading:hover:not(:disabled) {
+  color: var(--interactive);
+}
+.monthHeading:hover:not(:disabled) svg {
+  transform: translate(2px, -2px);
+  color: var(--interactive);
+}
+.weekdays,
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.weekdays {
+  margin-bottom: 0.375rem;
+  font: var(--lz-text-micro) var(--lz-font-numeric);
+  color: var(--muted-foreground);
+  text-align: center;
+}
+.days {
+  gap: 0.1875rem;
+}
+.day {
+  position: relative;
+  min-width: 0;
+  min-height: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--lz-radius-sm);
+  cursor: pointer;
+  font: var(--lz-text-control) var(--lz-font-numeric);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  color: var(--foreground);
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+.day[data-weekend="true"] {
+  color: var(--muted-foreground);
+}
+.day[data-kind="academic"] {
+  background: color-mix(in srgb, var(--accent) 35%, var(--card));
+}
+.day[data-kind="unknown"] {
+  color: var(--muted-foreground);
+}
+.day[data-kind="vacation"] {
+  background: var(--muted);
+  color: var(--foreground);
+  border-bottom-color: var(--border-strong);
+}
+.day[data-kind="boundary"] {
+  color: var(--accent-foreground);
+  background: var(--accent);
+  border-color: var(--interactive);
+  font-weight: 700;
+}
+.day[data-kind="holiday"] {
+  background: var(--warning-muted);
+  color: var(--warning);
+  font-weight: 700;
+}
+.day[data-kind="loading"] {
+  color: var(--muted-foreground);
+}
+.dayNumber {
+  display: grid;
+  place-items: center;
+  min-width: 1.375rem;
+  min-height: 1.375rem;
+  border-radius: var(--lz-radius-sm);
+}
+.day[data-today="true"] .dayNumber {
+  color: var(--brand-foreground);
+  background: var(--brand);
+  font-weight: 700;
+}
+.day:hover:not(:disabled) {
+  background: var(--accent-hover);
+  color: var(--accent-foreground);
+  border-color: var(--interactive);
+}
+.day[aria-pressed="true"] {
+  border-color: var(--interactive);
+  outline: 1px solid var(--interactive);
+  outline-offset: 1px;
+}
+.day:disabled {
+  cursor: default;
+}
+.monthHeading:disabled,
+.monthFoot button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.day:focus-visible,
+.monthHeading:focus-visible,
+.monthFoot button:focus-visible,
+.period:focus-visible,
+.entry:focus-visible,
+.highlight:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  z-index: 1;
+}
+.markers {
+  display: flex;
+  gap: 0.125rem;
+  min-height: 0.1875rem;
+  position: absolute;
+  bottom: 1px;
+}
+.markers i {
+  width: 0.1875rem;
+  height: 0.1875rem;
+  border-radius: 50%;
+  background: var(--info);
+}
+.markers i[data-kind="boundary"] {
+  border-radius: 0;
+  background: var(--interactive);
+}
+.markers i[data-kind="holiday"] {
+  background: var(--warning);
+}
+.monthFoot {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  min-height: 1.5rem;
+  font-size: var(--lz-text-micro);
+  color: var(--muted-foreground);
+}
+.monthFoot button {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  width: 100%;
+  text-align: left;
+  color: var(--interactive);
+}
+.monthFoot svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.month:not([data-compact="true"]) {
+  padding: 1rem;
+}
+.month:not([data-compact="true"]) .weekdays {
+  padding-block: 0.5rem;
+  font-size: var(--lz-text-caption);
+}
+.month:not([data-compact="true"]) .days {
+  gap: 0;
+}
+.month:not([data-compact="true"]) .day,
+.month:not([data-compact="true"]) .blankDay {
+  min-height: 7rem;
+  border-radius: 0;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border-subtle);
+}
+.month:not([data-compact="true"]) .day {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0.5rem;
+  gap: 0.5rem;
+}
+.dayAdd {
+  position: absolute;
+  right: 0.375rem;
+  top: 0.625rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+.day:hover .dayAdd,
+.day:focus-visible .dayAdd {
+  opacity: 1;
+}
+.dayEntries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  font: var(--lz-text-micro) var(--lz-font-body);
+  text-align: left;
+}
+.dayEntries > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding: 0.25rem;
+  border-radius: var(--lz-radius-sm);
+  background: var(--info-muted);
+  color: var(--info);
+}
+.dayEntries > span[data-kind="holiday"] {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+.dayEntries > span[data-kind="boundary"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.dayEntries small {
+  color: var(--muted-foreground);
+  font-size: inherit;
+  font-weight: 400;
+}
+.context {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 1rem;
+  padding: 1.125rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--calendar-radius);
+  min-width: 0;
+}
+.contextHeading {
+  justify-content: space-between;
+}
+.context h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+  margin: 0;
+}
+.context h2 svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--interactive);
+  flex-shrink: 0;
+}
+.contextSection {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  min-width: 0;
+}
+.periodList {
+  display: grid;
+  gap: 0.5rem;
+}
+.period {
+  display: grid;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+  border-radius: var(--lz-radius-md);
+  background: var(--accent);
+  color: var(--accent-foreground);
+  cursor: pointer;
+}
+.period:hover {
+  background: var(--accent-hover);
+}
+.period strong {
+  font-size: var(--lz-text-body);
+}
+.period span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font: var(--lz-text-caption) var(--lz-font-numeric);
+}
+.period svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.emptyNote {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  line-height: 1.5;
+  margin: 0;
+}
+.emptyNote p {
+  margin: 0 0 0.75rem;
+}
+.dateHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.dateHeading > strong {
+  font: 600 2.5rem/1 var(--lz-font-numeric);
+  color: var(--heading);
+}
+.dateHeading h2 {
+  font-size: var(--lz-text-caption);
+  font-weight: 400;
+  line-height: 1.4;
+}
+.dayStatus {
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-radius: var(--lz-radius-md);
+  font-size: var(--lz-text-caption);
+}
+.dayStatus svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.125rem;
+}
+.dayStatus p {
+  margin: 0.375rem 0 0;
+  line-height: 1.45;
+}
+.dayStatus[data-kind="holiday"] {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+.dayStatus[data-kind="unknown"],
+.dayStatus[data-kind="vacation"] {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.dayStatus[data-kind="vacation"] {
+  color: var(--foreground);
+}
+.vacations {
+  display: grid;
+  gap: 0.625rem;
+}
+.vacations[data-compact="true"] {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.75rem;
+  gap: 0.375rem;
+}
+.vacations[data-compact="true"] button {
+  padding: 0.5rem 0.75rem;
+}
+.vacations button {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  text-align: left;
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: var(--lz-radius-md);
+  cursor: pointer;
+}
+.vacations button[data-before="true"] {
+  background: transparent;
+  color: var(--muted-foreground);
+}
+.vacations button:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.vacations button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.vacations svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+.vacations span {
+  flex: 1;
+}
+.vacations strong,
+.vacations small {
+  display: block;
+  font-size: var(--lz-text-caption);
+}
+.vacations small {
+  margin-top: 0.25rem;
+  font-size: var(--lz-text-micro);
+}
+.vacationLabel {
+  color: var(--foreground);
+}
+.vacationLabel[data-before="true"] {
+  color: var(--muted-foreground);
+}
+.legend i[data-kind="vacation-before"] {
+  opacity: 0.45;
+}
+.entryList {
+  display: grid;
+  gap: 0.625rem;
+  min-width: 0;
+}
+.entry,
+.highlight {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  text-align: left;
+  width: 100%;
+  min-width: 0;
+  padding-block: 0.375rem;
+  border-radius: var(--lz-radius-sm);
+}
+button.entry,
+.highlight {
+  cursor: pointer;
+}
+button.entry:hover,
+.highlight:hover {
+  background: var(--accent);
+}
+.entry > svg,
+.highlight > svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+  color: var(--interactive);
+}
+.entry[data-kind="holiday"] > svg {
+  color: var(--warning);
+}
+.entry > span,
+.highlight > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+.entry strong,
+.highlight strong {
+  display: block;
+  font-size: var(--lz-text-caption);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.entry small,
+.highlight small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-micro);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+.entry p {
+  font-size: var(--lz-text-caption);
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  margin: 0.5rem 0 0;
+}
+.highlightDate {
+  min-width: 2.75rem;
+  font: var(--lz-text-caption) var(--lz-font-numeric);
+  color: var(--muted-foreground);
+}
+.contextActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.75rem;
+}
+.legend {
+  font-size: var(--lz-text-micro);
+  color: var(--muted-foreground);
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+.legend summary {
+  cursor: pointer;
+}
+.legend > div {
+  display: grid;
+  gap: 0.625rem;
+  padding-top: 0.75rem;
+}
+.legend span {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.legend i {
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 1px solid var(--border-strong);
+  background: var(--muted);
+  border-radius: 2px;
+}
+.legend i[data-kind="boundary"] {
+  border-color: var(--interactive);
+  background: var(--accent);
+}
+.legend i[data-kind="holiday"] {
+  background: var(--warning);
+  border-color: var(--warning);
+}
+.legend i[data-kind="event"] {
+  background: var(--info);
+  border-radius: 50%;
+  border-color: var(--info);
+}
+.legend i[data-kind="unknown"] {
+  background: transparent;
+  border-style: dashed;
+}
+.monthNotes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.loadingLabel {
+  animation: calendar-pulse 1.4s ease-in-out infinite;
+}
+@keyframes calendar-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (max-width: 1200px) {
+  .page {
+    padding: 1.25rem;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    gap: 1rem;
+  }
+  .months {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .title {
+    grid-column: 1 / -1;
+  }
+  .navigation {
+    grid-column: 1;
+  }
+  .actions {
+    grid-column: 2;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .context {
+    position: static;
+  }
+  .months {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .context[data-editing="true"] {
+    order: -1;
+  }
+}
+@media (max-width: 639px) {
+  .page {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .header h1 {
+    font-size: var(--lz-text-h3);
+  }
+  .header {
+    gap: 0.75rem;
+  }
+  .navigation {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: center;
+  }
+  .actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    justify-content: flex-start;
+  }
+  .months {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem;
+  }
+  .month {
+    padding: 0.625rem;
+  }
+  .month:not([data-compact="true"]) {
+    padding: 0.5rem;
+  }
+  .month:not([data-compact="true"]) .day,
+  .month:not([data-compact="true"]) .blankDay {
+    min-height: 5.25rem;
+  }
+  .month:not([data-compact="true"]) .day {
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+  .month:not([data-compact="true"]) .dayEntries > span {
+    padding: 0.125rem;
+    -webkit-line-clamp: 2;
+  }
+  .dayEntries small {
+    display: none;
+  }
+  .dayAdd {
+    display: none;
+  }
+  .navigation h2[data-month="true"] {
+    min-width: 8rem;
+  }
+  .context {
+    padding: 1rem;
+  }
+  .dayStatus {
+    font-size: var(--lz-text-caption);
+  }
+}
+@media (max-width: 420px) {
+  .months {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .month[data-compact="true"] .day {
+    min-height: 2.25rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .day,
+  .dayAdd,
+  .monthHeading svg {
+    transition: none;
+  }
+  .monthHeading:hover svg {
+    transform: none;
+  }
+  .loadingLabel {
+    animation: none;
+  }
+}
+.contextSlot {
+  position: sticky;
+  top: 1rem;
+  min-width: 0;
+  scroll-margin-top: 1rem;
+}
+@media (max-width: 900px) {
+  .contextSlot {
+    position: static;
+  }
+}

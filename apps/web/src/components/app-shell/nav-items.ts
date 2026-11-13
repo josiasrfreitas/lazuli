@@ -2,6 +2,7 @@ import {
   type LucideIcon,
   ChartNoAxesCombined,
   CalendarRange,
+  CalendarDays,
   BookOpen,
   DollarSign,
   FileText,
@@ -26,6 +27,7 @@ export type NavItem = {
   icon: LucideIcon;
   /** Roles that can open the target screen; mirrors the backend procedures. */
   roles: readonly StaffRole[];
+  children?: readonly { href: string; label: string; icon: LucideIcon }[];
 };
 
 export type NavSection = {
@@ -70,6 +72,10 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       {
         href: "/aulas",
         label: "Agenda",
+        children: [
+          { href: "/aulas", label: "Aulas", icon: BookOpen },
+          { href: "/aulas?visao=academico", label: "Calendário", icon: CalendarDays },
+        ],
         icon: CalendarRange,
         roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
       },

@@ -1,3 +1,5 @@
+import { attachTeacherUploads } from "./upload-sessions.js";
+import type { teacherCreateInputSchema, z } from "@lazuli/validators";
 import type { Prisma } from "@lazuli/db";
 import { hasTeacherIdentity } from "./identity.js";
 import { saoPauloDateOnly, weekdayOf } from "@lazuli/domain";
@@ -31,7 +33,12 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
       exceptId: existing.id,
     });
     await input.database.teacherProfile.create({
-      data: { userId: existing.id, cpf: input.values.cpf },
+      data: { userId: existing.id, ...profileData(input.values) },
+    });
+    await attachTeacherUploads(input.database, {
+      sessionId: input.values.documentSessionId,
+      teacherId: existing.id,
+      ownerId: input.actorId,
     });
     return { id: existing.id };
   }
@@ -42,9 +49,14 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
       email: input.values.email,
       role: "TEACHER",
       isEnabled: input.values.isEnabled,
-      teacherProfile: { create: { cpf: input.values.cpf } },
+      teacherProfile: { create: { ...profileData(input.values) } },
     },
     select: { id: true },
+  });
+  await attachTeacherUploads(input.database, {
+    sessionId: input.values.documentSessionId,
+    teacherId: teacher.id,
+    ownerId: input.actorId,
   });
   return teacher;
 }
@@ -67,18 +79,27 @@ export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: st
     values: input.values,
     exceptId: input.values.id,
   });
-  return input.database.user.update({
+  const updated = await input.database.user.update({
     where: { id: input.values.id },
     data: {
       name: input.values.name,
       email: input.values.email,
       isEnabled: input.values.isEnabled,
       teacherProfile: {
-        upsert: { create: { cpf: input.values.cpf }, update: { cpf: input.values.cpf } },
+        upsert: {
+          create: { ...profileData(input.values) },
+          update: { ...profileData(input.values) },
+        },
       },
     },
     select: { id: true },
   });
+  await attachTeacherUploads(input.database, {
+    sessionId: input.values.documentSessionId,
+    teacherId: updated.id,
+    ownerId: input.actorId,
+  });
+  return updated;
 }
 
 async function assertUniqueIdentity({
@@ -170,13 +191,15 @@ export async function substituteMeeting(input: SubstituteMeetingInput): Promise<
 
 type CreateTeacherInput = {
   actorRole?: string;
+  actorId?: string;
   database: Database;
-  values: { name: string; cpf: string; email: string; isEnabled: boolean };
+  values: z.infer<typeof teacherCreateInputSchema>;
 };
 type UpdateTeacherInput = {
   actorRole?: string;
+  actorId?: string;
   database: Database;
-  values: { id: string; name: string; cpf: string; email: string; isEnabled: boolean };
+  values: z.infer<typeof teacherCreateInputSchema> & { id: string };
 };
 type AssertUniqueIdentityInput = {
   database: Database;
@@ -320,4 +343,25 @@ async function substitutionMeeting(input: SubstituteMeetingInput): Promise<Teach
   )
     throw badRequest("Encontro já atribuído a este professor ou a um substituto.");
   return meeting;
+}
+
+type ProfileData = Pick<
+  Prisma.TeacherProfileUncheckedCreateInput,
+  "phone" | "cpf" | "employmentType" | "weeklyHours" | "notes" | "vacationStart" | "vacationEnd"
+>;
+function profileData(values: z.infer<typeof teacherCreateInputSchema>): ProfileData {
+  const data: ProfileData = { cpf: values.cpf };
+  if (values.phone !== undefined) data.phone = values.phone || null;
+  if (values.employmentType !== undefined) data.employmentType = values.employmentType;
+  if (values.weeklyHours !== undefined) data.weeklyHours = values.weeklyHours;
+  if (values.notes !== undefined) data.notes = values.notes;
+  if (values.vacationStart !== undefined)
+    data.vacationStart = values.vacationStart ? utcDate(values.vacationStart) : null;
+  if (values.vacationEnd !== undefined)
+    data.vacationEnd = values.vacationEnd ? utcDate(values.vacationEnd) : null;
+  if (values.employmentType !== undefined && values.employmentType !== "CLT") {
+    data.vacationStart = null;
+    data.vacationEnd = null;
+  }
+  return data;
 }

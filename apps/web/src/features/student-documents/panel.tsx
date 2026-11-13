@@ -1,6 +1,12 @@
 import { useState, type ReactElement } from "react";
-import { ToastAlert, Button, FileUpload } from "@lazuli/ui";
-import { ArrowLeft, FileCheck2, Paperclip, LoaderCircle, QrCode, X } from "lucide-react";
+import {
+  AttachmentPanel,
+  AttachmentUploadRow,
+  AttachmentAdd,
+  ToastAlert,
+  Button,
+} from "@lazuli/ui";
+import { FileCheck2, Paperclip, LoaderCircle } from "lucide-react";
 import { ENROLLMENT_DOCUMENTS, statusLabel, type DocumentDefinition } from "./model";
 import { SessionLink } from "./qr-dialog";
 import { DocumentCapture } from "./capture";
@@ -75,14 +81,27 @@ export function StudentDocumentPanel({
   }
   const props = { documents, selection, qr, busy, setSelection, setQr, setBusy, prepare };
   return (
-    <aside
+    <AttachmentPanel
       id="student-document-panel"
-      className={`dark ${styles.sidePanel}`}
-      aria-label="Anexos do aluno"
-      data-open={documents.open}
-      inert={!documents.open}
+      className={styles.sidePanel}
+      open={documents.open}
+      title={qr ? "Enviar pelo celular" : "Anexos do aluno"}
+      busy={busy}
+      onBack={
+        qr || selection
+          ? () => {
+              setSelection(null);
+              setQr(false);
+            }
+          : undefined
+      }
+      onMobile={() => {
+        setQr(!qr);
+        setSelection(null);
+        prepare();
+      }}
+      onClose={() => documents.setOpen(false)}
     >
-      <PanelHeading {...props} />
       {documents.create.isError && !documents.session && (
         <ToastAlert variant="destructive">
           Não foi possível preparar o envio.
@@ -95,103 +114,13 @@ export function StudentDocumentPanel({
         <PanelContent {...props} selectedFile={selectedFile} />
       </div>
       <DocumentReviewNotice />
-    </aside>
+    </AttachmentPanel>
   );
 }
 function panelViewKey(qr: boolean, selection: Selection | null): string {
   if (qr) return "qr";
   if (!selection) return "list";
   return `${selection.document.id}:${selection.file ? "capture" : "review"}`;
-}
-function PanelHeading({
-  documents,
-  selection,
-  qr,
-  busy,
-  setSelection,
-  setQr,
-  prepare,
-}: PanelProps): ReactElement {
-  return (
-    <div className={styles.heading}>
-      <div className={styles.actions}>
-        {(qr || selection) && (
-          <PanelBackButton
-            busy={busy}
-            onBack={() => {
-              setSelection(null);
-              setQr(false);
-            }}
-          />
-        )}
-        <h2>{qr ? "Enviar pelo celular" : "Anexos do aluno"}</h2>
-      </div>
-      <PanelHeadingActions
-        documents={documents}
-        qr={qr}
-        busy={busy}
-        setQr={setQr}
-        setSelection={setSelection}
-        prepare={prepare}
-      />
-    </div>
-  );
-}
-function PanelHeadingActions({
-  documents,
-  qr,
-  busy,
-  setQr,
-  setSelection,
-  prepare,
-}: Pick<
-  PanelProps,
-  "documents" | "qr" | "busy" | "setQr" | "setSelection" | "prepare"
->): ReactElement {
-  return (
-    <div className={styles.actions}>
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
-        disabled={busy}
-        aria-label="Mostrar QR code"
-        title="Enviar pelo celular"
-        onClick={() => {
-          setQr(!qr);
-          setSelection(null);
-          prepare();
-        }}
-      >
-        <QrCode />
-      </Button>
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
-        disabled={busy}
-        aria-label="Fechar anexos"
-        onClick={() => documents.setOpen(false)}
-      >
-        <X />
-      </Button>
-    </div>
-  );
-}
-function PanelBackButton({ busy, onBack }: { busy: boolean; onBack: () => void }): ReactElement {
-  return (
-    <Button
-      type="button"
-      size="icon-sm"
-      variant="ghost"
-      disabled={busy}
-      aria-label="Voltar aos anexos"
-      title="Voltar aos anexos"
-      onClick={onBack}
-    >
-      <ArrowLeft aria-hidden="true" />
-    </Button>
-  );
 }
 function PanelContent({
   documents,
@@ -294,11 +223,24 @@ function PanelList({
   setSelection: (selection: Selection | null) => void;
   prepare: () => void;
 }): ReactElement {
+  const { extras, setExtras } = documents;
+  const saved = (documents.query.data?.files ?? [])
+    .filter((file) => file.kind.startsWith("custom_"))
+    .map((file) => ({
+      id: file.kind as `custom_${string}`,
+      title: file.title ?? "Documento",
+      detail: file.subtitle ?? "",
+      extracts: false,
+    }));
+  const definitions = [
+    ...ENROLLMENT_DOCUMENTS,
+    ...saved,
+    ...extras.filter((item) => !saved.some((file) => file.id === item.id)),
+  ];
   return (
     <>
-      <p>Envie os arquivos pelo computador.</p>
-      <ul className={styles.list}>
-        {ENROLLMENT_DOCUMENTS.map((document) => (
+      <ul>
+        {definitions.map((document) => (
           <PanelRow
             key={document.id}
             document={document}
@@ -308,6 +250,15 @@ function PanelList({
           />
         ))}
       </ul>
+      <AttachmentAdd
+        disabled={documents.captureBusy}
+        onAdd={({ title, subtitle }) =>
+          setExtras((previous) => [
+            ...previous,
+            { id: `custom_${crypto.randomUUID()}`, title, detail: subtitle, extracts: false },
+          ])
+        }
+      />
     </>
   );
 }
@@ -324,75 +275,27 @@ function PanelRow({
 }): ReactElement {
   const processing = file?.status === "RECEIVED" || file?.status === "PROCESSING";
   return (
-    <li className={styles.attachmentRow}>
-      <div>
-        <strong>{document.title}</strong>
-        <small>{document.detail}</small>
-      </div>
-      <div className={styles.actions}>
-        <PanelUpload
-          document={document}
-          file={file}
-          processing={processing}
-          setSelection={setSelection}
-          prepare={prepare}
-        />
-        {file && (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => setSelection({ document })}
-          >
-            {processing ? <LoaderCircle className={styles.processingSpinner} /> : <FileCheck2 />}
-            {file.status === "READY" ? "Conferir" : statusLabel(file.status)}
-          </Button>
-        )}
-      </div>
-    </li>
-  );
-}
-function PanelUpload({
-  document,
-  file,
-  processing,
-  setSelection,
-  prepare,
-}: {
-  document: DocumentDefinition;
-  file: DocumentFileRow | undefined;
-  processing: boolean;
-  setSelection: (selection: Selection | null) => void;
-  prepare: () => void;
-}): ReactElement {
-  return (
-    <FileUpload
-      compact
-      value={[]}
+    <AttachmentUploadRow
+      title={document.title}
+      subtitle={document.detail}
+      uploaded={Boolean(file)}
+      disabled={processing}
       accept={DOCUMENT_ACCEPT}
       acceptLabel={DOCUMENT_ACCEPT_LABEL}
       maxSize={26_214_400}
       maxSizeByType={DOCUMENT_SIZE_LIMITS}
       sizeLabel={DOCUMENT_SIZE_LABEL}
-      disabled={processing}
-      onValueChange={(files) => {
-        if (files[0]) {
-          setSelection({ document, file: files[0] });
-          prepare();
-        }
+      onFile={(file) => {
+        setSelection({ document, file });
+        prepare();
       }}
-      renderTrigger={(picker) => (
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          disabled={picker.disabled}
-          onClick={picker.open}
-        >
-          <Paperclip />
-          {file ? "Trocar" : "Enviar"}
+    >
+      {file && (
+        <Button type="button" size="sm" variant="ghost" onClick={() => setSelection({ document })}>
+          {processing ? <LoaderCircle className={styles.processingSpinner} /> : <FileCheck2 />}
+          {file.status === "READY" ? "Conferir" : statusLabel(file.status)}
         </Button>
       )}
-    />
+    </AttachmentUploadRow>
   );
 }

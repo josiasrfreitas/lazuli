@@ -1,4 +1,5 @@
 import type { Prisma } from "@lazuli/db";
+export { evidenceSourceApplicable as sourceApplicable } from "@lazuli/db/appointment-evidence";
 import { TRPCError } from "@trpc/server";
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import {
@@ -76,20 +77,6 @@ export function appointmentRestriction(
   )
     return "A administração pode corrigir registros de atendimentos de dias anteriores.";
   return null;
-}
-export function sourceApplicable(row: AbsenceSource): boolean {
-  const session = row.classSession;
-  return (
-    !row.deletedAt &&
-    row.status === "ABSENT" &&
-    !session.deletedAt &&
-    session.status !== "CANCELLED" &&
-    Boolean(session.attendanceConfirmedAt) &&
-    !row.enrollment.deletedAt &&
-    row.enrollment.classId === session.classId &&
-    row.enrollment.entryDate <= session.date &&
-    (!row.enrollment.exitDate || row.enrollment.exitDate > session.date)
-  );
 }
 export async function loadAppointment(
   context: AppointmentContext,

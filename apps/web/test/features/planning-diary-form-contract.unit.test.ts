@@ -28,7 +28,7 @@ function checkTextControls(tags: string[], names: string[]): void {
   }
 }
 
-void it("gives planning-window dates masked-text controls and a correction reason", () => {
+void it("keeps only the planning start editable alongside its correction reason", () => {
   const { markup, tags } = controls(
     createElement(WindowFields, {
       values: { plannedStartOn: "", plannedEndOn: "", objective: "", reason: "" },
@@ -37,8 +37,9 @@ void it("gives planning-window dates masked-text controls and a correction reaso
       change: () => {},
     }),
   );
-  checkTextControls(tags, ["plannedStartOn", "plannedEndOn", "objective", "reason"]);
-  assert.equal(tags.filter((tag) => /placeholder="dd\/mm\/aaaa"/u.test(tag)).length, 2);
+  checkTextControls(tags, ["plannedStartOn", "reason"]);
+  assert.doesNotMatch(markup, /name="plannedEndOn"|name="objective"/u);
+  assert.equal(tags.filter((tag) => /placeholder="dd\/mm\/aaaa"/u.test(tag)).length, 1);
   assert.doesNotMatch(markup, /role="combobox"/u);
 });
 

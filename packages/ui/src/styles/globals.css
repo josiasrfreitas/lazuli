@@ -30,3 +30,5 @@
     @apply bg-background font-body text-foreground antialiased;
   }
 }
+
+@import "./components/attachment-panel.css";

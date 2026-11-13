@@ -1,46 +1,54 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { MoreHorizontal, Pencil } from "lucide-react";
-import { Avatar, Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
+import { Check, Mail, MoreHorizontal, Pencil, X } from "lucide-react";
+import { Badge, Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
+import { TeacherPhoto } from "./teacher-photo";
+import styles from "./teacher-overview.module.css";
 import { TeacherStatus } from "./teacher-status";
 
 const ISO_DATE_LENGTH = 10;
 
-export function TeacherHeader({ teacher, onEdit, onDepart }: TeacherHeaderInput): ReactElement {
-  const enabled =
-    teacher.isEnabled &&
-    (!teacher.teacherProfile?.departureDate ||
-      teacher.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > teacher.today);
+export function TeacherHeader({
+  teacher,
+  onEdit,
+  onDepart,
+  navigation,
+}: TeacherHeaderInput): ReactElement {
+  const enabled = teacherHasAccess(teacher);
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
-      <div className="grid min-w-0 gap-1.5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Avatar name={teacher.name} colorKey={teacher.id} />
-          <h1 className="break-words font-display text-h2 font-semibold text-heading">
-            {teacher.name}
-          </h1>
-          <TeacherStatus departure={teacher.teacherProfile?.departureDate} today={teacher.today} />
-        </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
-          <span className="break-all">{teacher.email}</span>
-          <span aria-hidden="true">|</span>
-          <span>{enabled ? "Acesso ao sistema habilitado" : "Sem acesso ao sistema"}</span>
-        </div>
+    <header className={styles.teacherHeader}>
+      <div className={styles.teacherIdentity}>
+        <TeacherPhoto id={teacher.id} name={teacher.name} />
+        <h1 title={teacher.name}>{teacher.name}</h1>
       </div>
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon-compact-responsive"
-            onClick={onEdit}
-            aria-label="Editar cadastro"
-            title="Editar cadastro"
-          >
-            <Pencil aria-hidden="true" />
-          </Button>
-          {!teacher.teacherProfile?.departureDate && <TeacherActions onDepart={onDepart} />}
-        </div>
+      <div className={styles.teacherActions}>
+        <TeacherStatus departure={teacher.teacherProfile?.departureDate} today={teacher.today} />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onEdit}
+          aria-label="Editar cadastro"
+          title="Editar cadastro"
+        >
+          <Pencil aria-hidden="true" />
+        </Button>
+        {!teacher.teacherProfile?.departureDate && <TeacherActions onDepart={onDepart} />}
       </div>
+      <span className={styles.email} title={teacher.email}>
+        <Mail aria-hidden="true" />
+        <span>{teacher.email}</span>
+      </span>
+      <Badge
+        variant={enabled ? "success" : "destructive"}
+        title={enabled ? "Acesso ao sistema habilitado" : "Acesso ao sistema desabilitado"}
+      >
+        <span className={styles.access}>
+          {enabled ? <Check aria-hidden="true" /> : <X aria-hidden="true" />}
+          <span className={styles.accessLabel}>Acesso ao sistema</span>
+          <span className="sr-only">{enabled ? " habilitado" : " desabilitado"}</span>
+        </span>
+      </Badge>
+      <div className={styles.navigation}>{navigation}</div>
     </header>
   );
 }
@@ -50,13 +58,7 @@ function TeacherActions(props: TeacherActionsProps): ReactElement {
   return (
     <Popover>
       <PopoverTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-compact-responsive"
-            aria-label="Mais ações do professor"
-          />
-        }
+        render={<Button variant="ghost" size="icon-sm" aria-label="Mais ações do professor" />}
       >
         <MoreHorizontal />
       </PopoverTrigger>
@@ -71,6 +73,15 @@ function TeacherActions(props: TeacherActionsProps): ReactElement {
 
 type TeacherHeaderInput = {
   teacher: RouterOutputs["teachers"]["byId"];
+  navigation?: ReactNode;
   onEdit: () => void;
   onDepart: () => void;
 };
+
+function teacherHasAccess(teacher: TeacherHeaderInput["teacher"]): boolean {
+  return (
+    teacher.isEnabled &&
+    (!teacher.teacherProfile?.departureDate ||
+      teacher.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > teacher.today)
+  );
+}

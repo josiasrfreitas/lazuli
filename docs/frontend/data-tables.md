@@ -56,3 +56,5 @@ Table frames share a short entrance; skeleton rows and busy tables share the dia
 sweep. Keep initial loading inside `DataTable` (or `TableSkeleton` for existing composed tables)
 instead of replacing the frame with a spinner. Reduced-motion preferences retain static loading
 placeholders, and background refreshes preserve readable rows and pagination.
+
+Use `width: "actions"` for a column containing a single 32px icon button: its 72px budget includes standard cell padding. `selection` is reserved for selection controls and is too narrow for row action buttons.

@@ -3,7 +3,9 @@ import type { StaffUser } from "../trpc/context.js";
 import { TRPCError } from "@trpc/server";
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import { classRecordSnapshotSchema, type ClassRecordSnapshot } from "@lazuli/validators";
-import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
+import { responsibilitySelect } from "../teachers/responsibility.js";
+export { evidenceSessionTeacher as responsibleTeacher } from "@lazuli/db/appointment-evidence";
+import { evidenceSessionTeacher as responsibleTeacher } from "@lazuli/db/appointment-evidence";
 import { notFound, badRequest } from "../trpc/errors.js";
 export type RecordContext = { database: Prisma.TransactionClient; staffUser: StaffUser; now: Date };
 const DATE_ONLY_LENGTH = 10;
@@ -36,36 +38,6 @@ export const recordSessionInclude = {
   },
 } satisfies Prisma.ClassSessionInclude;
 export type RecordSession = Prisma.ClassSessionGetPayload<{ include: typeof recordSessionInclude }>;
-type ResponsibleSession = Pick<
-  RecordSession,
-  "id" | "date" | "scheduleSlotId" | "responsibilityFrozenAt" | "usualTeacherId" | "classRecord"
-> & {
-  class: Pick<
-    RecordSession["class"],
-    "teacherId" | "teacher" | "teacherAssignments" | "substitutions"
-  >;
-};
-export function responsibleTeacher(
-  session: ResponsibleSession,
-): { id: string; name: string } | null {
-  if (session.classRecord) return session.classRecord.teachingTeacher;
-  const substitute = session.class.substitutions.find(
-    (row) =>
-      row.date.getTime() === session.date.getTime() &&
-      (session.scheduleSlotId
-        ? row.scheduleSlotId === session.scheduleSlotId
-        : row.classSessionId === session.id),
-  );
-  if (substitute) return substitute.teacher;
-  if (session.responsibilityFrozenAt) {
-    const candidates = [
-      session.class.teacher,
-      ...session.class.teacherAssignments.map((row) => row.teacher),
-    ];
-    return candidates.find((row) => row.id === session.usualTeacherId) ?? null;
-  }
-  return usualTeacherOn(session.class, session.date);
-}
 export function canRead(context: RecordContext, session: RecordSession): boolean {
   return (
     context.staffUser.role !== "TEACHER" || responsibleTeacher(session)?.id === context.staffUser.id

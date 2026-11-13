@@ -31,21 +31,19 @@ export function PlanWindowForm({ data, onClose }: FormProps): ReactElement {
   const { plan, scope } = openedData;
   const [values, setValues] = useState(() => windowDraft(openedData));
   const validation = useValidation();
-  const save = trpc.planning.saveWindow.useMutation({ onSuccess: useSaved(onClose) });
+  const save = trpc.planning.saveStart.useMutation({ onSuccess: useSaved(onClose) });
   const change = useFieldChange({ setValues, clear: validation.clear, reset: save.reset });
   return (
     <TaskDialog
-      title={plan ? "Revisar período e objetivo" : "Iniciar planejamento"}
-      description={
-        scope.student
-          ? `${scope.student.fullName} · o prazo do PPT pode atravessar semestres.`
-          : `${scope.class.name} · período letivo de ${dateLabel(scope.semester.startOn)} a ${dateLabel(scope.semester.endOn)}.`
-      }
+      size="compact"
+      actionSize="sm"
+      title="Definir início da programação"
+      description={`${scope.student?.fullName ?? scope.class.name} · término em ${dateLabel(scope.semester.endOn)}, definido pelo calendário acadêmico.`}
       formId="plan-window-form"
       firstField="plannedStartOn"
       pending={save.isPending}
       onClose={onClose}
-      submitLabel={plan ? "Salvar revisão" : "Criar plano"}
+      submitLabel="Salvar início"
       bodyRef={validation.body}
       error={save.error?.message}
     >
@@ -174,7 +172,7 @@ export function PlanRemoveForm({
 function windowDraft({ plan, scope }: Planning): WindowDraft {
   return {
     plannedStartOn: dateLabel(
-      plan?.plannedStartOn ?? scope.progressStartOn ?? scope.semester.startOn,
+      plan?.plannedStartOn ?? scope.progressStartOn ?? scope.classStartOn ?? scope.semester.startOn,
     ),
     plannedEndOn: windowEndLabel({ plan, scope }),
     objective: plan?.objective ?? "",
@@ -187,7 +185,7 @@ function windowInput(data: Planning, values: WindowDraft): object {
     ...targetFor(data),
     version: data.plan?.version ?? 0,
     plannedStartOn: parseDateBR(values.plannedStartOn) ?? "",
-    plannedEndOn: parseDateBR(values.plannedEndOn) ?? "",
+    plannedEndOn: data.scope.semester.endOn,
     objective: values.objective || null,
     ...(data.plan ? { reason: values.reason } : {}),
   };
@@ -276,9 +274,8 @@ function useFieldChange<T>({
   };
 }
 
-function windowEndLabel({ plan, scope }: Pick<Planning, "plan" | "scope">): string {
-  if (plan) return dateLabel(plan.plannedEndOn);
-  return scope.student ? "" : dateLabel(scope.semester.endOn);
+function windowEndLabel({ scope }: Pick<Planning, "plan" | "scope">): string {
+  return dateLabel(scope.semester.endOn);
 }
 
 function UpcomingDates({ sessions }: { sessions: Planning["upcoming"] }): ReactElement {

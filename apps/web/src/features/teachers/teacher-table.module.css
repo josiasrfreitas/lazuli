@@ -1,0 +1,37 @@
+.hours {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  margin-inline: auto;
+  width: fit-content;
+  min-width: 5rem;
+}
+
+.progress {
+  display: block;
+  appearance: none;
+  width: 3rem;
+  height: 2px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  color: var(--primary);
+}
+
+.progress::-webkit-progress-bar {
+  background: var(--border);
+}
+
+.progress::-webkit-progress-value {
+  background: var(--primary);
+}
+
+.progress::-moz-progress-bar {
+  background: var(--primary);
+}
+
+.hoursHeader {
+  display: block;
+  text-align: center;
+}

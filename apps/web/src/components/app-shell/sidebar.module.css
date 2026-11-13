@@ -5,15 +5,3 @@
 .scrollViewport::-webkit-scrollbar {
   width: 0;
 }
-
-:global([data-slot="app-sidebar"]:hover) .scrollViewport,
-:global([data-slot="app-sidebar"]:has(:focus-visible)) .scrollViewport,
-:global([data-slot="app-sidebar"]:has([data-popup-open])) .scrollViewport {
-  scrollbar-width: thin;
-}
-
-:global([data-slot="app-sidebar"]:hover) .scrollViewport::-webkit-scrollbar,
-:global([data-slot="app-sidebar"]:has(:focus-visible)) .scrollViewport::-webkit-scrollbar,
-:global([data-slot="app-sidebar"]:has([data-popup-open])) .scrollViewport::-webkit-scrollbar {
-  width: 8px;
-}

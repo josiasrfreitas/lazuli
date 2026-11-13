@@ -3,6 +3,7 @@
 import { useId, type ReactNode } from "react";
 
 import Link from "next/link";
+import { AgendaNavGroup } from "./agenda-nav-group";
 import { usePathname } from "next/navigation";
 
 import type { StaffRole } from "@lazuli/auth/server";
@@ -48,9 +49,13 @@ function SidebarNavSection({
         </div>
       )}
       <div className="flex flex-col gap-1">
-        {section.items.map((item) => (
-          <SidebarNavLink item={item} key={item.href} pathname={pathname} />
-        ))}
+        {section.items.map((item) =>
+          item.children ? (
+            <AgendaNavGroup key={item.href} item={item} pathname={pathname} />
+          ) : (
+            <SidebarNavLink item={item} key={item.href} pathname={pathname} />
+          ),
+        )}
       </div>
     </div>
   );

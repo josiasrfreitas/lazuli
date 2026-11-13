@@ -40,6 +40,9 @@ const teacher: StaffUser = {
 const caller = (staffUser = admin): ReturnType<typeof createCaller> =>
   createCaller({ db, staffUser, now });
 async function clean(): Promise<void> {
+  await db.classSessionRecord.deleteMany({
+    where: { classSession: { class: { internalCode: { startsWith: config.prefix } } } },
+  });
   const where = { student: { fullName: { startsWith: config.prefix } } };
   await db.pedagogicalFollowUp.deleteMany({
     where: { intervention: where },
@@ -574,4 +577,66 @@ void it("limits recent class reports to visible, undeleted records from that cla
     classId: "00000000-0000-0000-0000-000000000001",
   });
   assert.deepEqual(unrelated, []);
+});
+
+void it("persists an outside-class event and includes it in student follow-up without a lesson", async () => {
+  const data = await fixture();
+  const report = await caller(teacher).occurrences.create({
+    studentId: data.ana.id,
+    occurredOn: "2074-02-13",
+    occurredTime: "23:45",
+    title: "Fora de Aula",
+    category: "OTHER",
+    account: "Conflito durante o evento cultural.",
+  });
+  const detail = await caller(teacher).occurrences.byId(report);
+  assert.equal(detail.classSession, null);
+  assert.equal(detail.occurredOn?.toISOString(), "2074-02-13T00:00:00.000Z");
+  assert.equal(detail.occurredTime, "23:45");
+  assert.equal(detail.account, "Conflito durante o evento cultural.");
+  assert.equal(detail.recordedBy.id, teacher.id);
+  const listing = await caller(teacher).occurrences.list({ studentId: data.ana.id });
+  assert.equal(
+    listing.rows.some((row) => row.id === report.id),
+    true,
+  );
+  const unrelated = await createStudentFor(config, { suffix: "Sem vínculo" });
+  await assert.rejects(
+    caller(teacher).occurrences.create({
+      studentId: unrelated.id,
+      occurredOn: "2074-02-13",
+      occurredTime: "12:00",
+      title: "Fora de Aula",
+      category: "OTHER",
+      account: "Evento sem acesso.",
+    }),
+    { code: "BAD_REQUEST" },
+  );
+});
+
+void it("counts monthly teaching hours only after a completed record", async () => {
+  const { teacherMonthlyHours } = await import("../../src/teachers/monthly-hours.js");
+  const data = await fixture();
+  const read = async () =>
+    (await teacherMonthlyHours(db, { teacherIds: [teacher.id], now })).get(teacher.id);
+  assert.deepEqual(await read(), { plannedMinutes: 60, completedMinutes: 0 });
+  await db.classSession.update({
+    where: { id: data.session.id },
+    data: { attendanceConfirmedAt: now },
+  });
+  assert.equal((await read())?.completedMinutes, 0);
+  await db.classSessionRecord.create({
+    data: { classSessionId: data.session.id, teachingTeacherId: teacher.id, snapshot: {} },
+  });
+  assert.deepEqual(await read(), { plannedMinutes: 60, completedMinutes: 60 });
+  await db.classSession.update({
+    where: { id: data.session.id },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: now,
+      cancelReason: "Cancelamento no cenário",
+      attendanceConfirmedAt: null,
+    },
+  });
+  assert.deepEqual(await read(), { plannedMinutes: 0, completedMinutes: 0 });
 });

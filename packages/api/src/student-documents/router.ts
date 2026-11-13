@@ -14,6 +14,31 @@ export function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 export const studentDocumentsRouter = router({
+  photos: adminProcedure
+    .input(z.object({ studentIds: z.array(z.string().uuid()).max(500) }).strict())
+    .query(async ({ ctx, input }) => {
+      const files = await ctx.db.studentDocumentFile.findMany({
+        where: {
+          kind: "photo",
+          status: "READY",
+          deletedAt: null,
+          session: {
+            studentId: { in: input.studentIds },
+            deletedAt: null,
+            student: { deletedAt: null },
+          },
+        },
+        select: { id: true, updatedAt: true, session: { select: { studentId: true } } },
+        orderBy: { updatedAt: "desc" },
+      });
+      const seen = new Set<string>();
+      return files.flatMap((file) => {
+        const studentId = file.session.studentId;
+        if (!studentId || seen.has(studentId)) return [];
+        seen.add(studentId);
+        return [{ studentId, id: file.id, updatedAt: file.updatedAt }];
+      });
+    }),
   list: adminProcedure
     .input(z.object({ studentId: z.string().uuid() }).strict())
     .query(async ({ ctx, input }) => {
@@ -22,7 +47,15 @@ export const studentDocumentsRouter = router({
           deletedAt: null,
           session: { studentId: input.studentId, student: { deletedAt: null } },
         },
-        select: { id: true, kind: true, status: true, updatedAt: true, key: true },
+        select: {
+          id: true,
+          kind: true,
+          title: true,
+          subtitle: true,
+          status: true,
+          updatedAt: true,
+          key: true,
+        },
         orderBy: { updatedAt: "desc" },
       });
       return files.map(({ key, ...file }) => ({ ...file, format: documentFormat(key) }));
@@ -107,6 +140,8 @@ export const studentDocumentsRouter = router({
           id: true,
           sessionId: true,
           kind: true,
+          title: true,
+          subtitle: true,
           status: true,
           extraction: true,
           updatedAt: true,

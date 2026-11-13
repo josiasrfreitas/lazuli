@@ -1,0 +1,46 @@
+.documents {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  min-height: 28rem;
+}
+.strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  min-width: 0;
+  padding: 0.25rem 0.125rem 0.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.strip > button {
+  flex: 0 0 7rem;
+  min-width: 0;
+}
+.strip > button > span {
+  overflow-wrap: anywhere;
+}
+.loading {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  min-height: 28rem;
+}
+
+.documents[data-embedded] {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--muted);
+  border-radius: var(--radius-lg);
+}
+
+.editor {
+  width: 100%;
+  max-width: 30rem;
+  padding-top: 0.25rem;
+}

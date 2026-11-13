@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { WindowFields, ItemFields } from "../../src/features/stage-planning/form-fields.js";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-void it("presents the plan window as labelled numeric date fields and requires an attributed revision reason", () => {
+void it("presents only the start as an editable date and requires an attributed revision reason", () => {
   const markup = renderToStaticMarkup(
     createElement(WindowFields, {
       values: { plannedStartOn: "", plannedEndOn: "", objective: "", reason: "" },
@@ -17,14 +17,15 @@ void it("presents the plan window as labelled numeric date fields and requires a
       change: () => {},
     }),
   );
-  for (const name of ["plannedStartOn", "plannedEndOn"]) {
+  for (const name of ["plannedStartOn"]) {
     const input = markup.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`, "u"))?.[0] ?? "";
     assert.match(markup, new RegExp(`for="${name}"`, "u"));
     assert.match(input, /placeholder="dd\/mm\/aaaa"/u);
     assert.match(input, /inputMode="numeric"/u);
     assert.match(input, /autoComplete="off"/iu);
   }
-  assert.match(markup, /Informe o prazo do estágio\./u);
+  assert.doesNotMatch(markup, /<input[^>]*name="plannedEndOn"/u);
+  assert.doesNotMatch(markup, /<textarea[^>]*name="objective"/u);
   assert.match(markup, /Explique o motivo da revisão\./u);
   const reason = markup.match(/<textarea[^>]*name="reason"[^>]*>/u)?.[0] ?? "";
   assert.match(reason, /aria-invalid="true"/u);

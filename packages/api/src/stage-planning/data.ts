@@ -19,6 +19,7 @@ const classInclude = {
   ...responsibilitySelect,
   id: true,
   portalClassName: true,
+  startDate: true,
   status: true,
   scheduleType: true,
   sharedStage: { select: stageSelect },
@@ -27,7 +28,12 @@ const classInclude = {
 export const planInclude = {
   items: {
     where: { deletedAt: null },
-    orderBy: [{ plannedOn: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    orderBy: [
+      { plannedOn: "asc" },
+      { programActivity: { sequence: "asc" } },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
   },
 } satisfies Prisma.StagePlanInclude;
 export type Plan = Prisma.StagePlanGetPayload<{ include: typeof planInclude }>;
@@ -40,6 +46,7 @@ export type PlanningScope = {
   progressId: string | null;
   planId: string | null;
   progressStartOn: string | null;
+  classStartOn: string;
   readOnly: boolean;
   today: string;
 };
@@ -172,6 +179,7 @@ function scopeFor(input: {
       endOn: dateOnly(classRow.semester.endDate),
     },
     stage,
+    classStartOn: dateOnly(classRow.startDate ?? classRow.semester.startDate),
     ...progressContext(progress),
     readOnly: substituteOnly || classRow.status !== "ACTIVE" || historical,
     today,

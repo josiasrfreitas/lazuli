@@ -50,13 +50,16 @@ export function formatClassSchedule(slots: readonly ScheduleSlot[]): string {
 const OCCUPANCY_INDICATORS = {
   normal: { variant: "success", label: "Ocupação tranquila" },
   high: { variant: "destructive", label: "Ocupação alta" },
-  over: { variant: "over-capacity", label: "Acima da referência" },
+  over: { variant: "over-capacity", label: "Acima da capacidade" },
 } as const;
-export function classOccupancyIndicator(occupancy: number): {
+export function classOccupancyIndicator(
+  occupancy: number,
+  capacity?: number,
+): {
   variant: "success" | "destructive" | "over-capacity";
   label: string;
 } {
-  return OCCUPANCY_INDICATORS[classOccupancyLevel(occupancy)];
+  return OCCUPANCY_INDICATORS[classOccupancyLevel(occupancy, capacity)];
 }
 
 export function formatTrackName(name: string): string {

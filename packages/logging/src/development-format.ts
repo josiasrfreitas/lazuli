@@ -80,7 +80,7 @@ function details(entry: LogEntry): string[] {
   const user = stringField(entry, "user_id") ?? stringField(entry, "staff_user_id");
   const error = stringField(entry, "error_code");
   const cause = stringField(entry, "error_cause_code");
-  const type = stringField(entry, "error_cause_name");
+  const type = stringField(entry, "error_cause_name") ?? stringField(entry, "error_name");
   return [
     ...(typeof duration === "number" ? [`${duration}ms`] : []),
     statusDetail(entry.status),

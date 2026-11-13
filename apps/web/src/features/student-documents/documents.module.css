@@ -192,6 +192,9 @@
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+.profilePhotoTrigger[data-readonly] {
+  cursor: default;
+}
 .profilePhotoThumb {
   position: relative;
   display: grid;

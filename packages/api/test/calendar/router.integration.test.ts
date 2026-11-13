@@ -1,123 +1,143 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { after, before, it } from "node:test";
-
 import { db } from "@lazuli/db";
-
 import {
   ADMIN,
   caller,
-  callerWithQueue,
   cleanCalendarDatabase,
   ensureCalendarUsers,
   TEST_PREFIX,
 } from "../support/calendar-test-support.js";
-import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
-
-const FEDERAL_HOLIDAY_COUNT = 9;
-const FEDERAL_HOLIDAY_COUNT_AFTER_CUSTOM_REASON = 8;
-const IDEMPOTENT_IMPORT_YEAR = 2031;
-const CUSTOM_REASON_IMPORT_YEAR = 2032;
-const MANUAL_UPDATE_DATE = "2033-04-21";
-const FUTURE_REMOVE_DATE = "2099-11-20";
-const SEMESTER_NAME = `${TEST_PREFIX}2098.1`;
+import type { CalendarChange } from "../../src/calendar/change-schema.js";
 
 void before(async () => {
   await db.$connect();
 });
-
 void after(async () => {
   await cleanCalendarDatabase();
   await db.$disconnect();
 });
-
-void it("imports Brazil federal holidays idempotently", async () => {
+async function confirm(change: CalendarChange) {
+  const preview = await caller().calendar.academic.changes.preview(change);
+  return caller().calendar.academic.changes.confirm({
+    change,
+    fingerprint: preview.fingerprint,
+    commandId: randomUUID(),
+  });
+}
+void it("requires a fresh preview and deduplicates the same confirmed command", async () => {
   await cleanCalendarDatabase();
   await ensureCalendarUsers();
-
-  const first = await caller().calendar.importBrazilFederalHolidays({
-    year: IDEMPOTENT_IMPORT_YEAR,
+  const change: CalendarChange = {
+    action: "interruption",
+    kind: "RECESS",
+    title: `${TEST_PREFIX}Original`,
+    description: null,
+    from: "2033-04-21",
+    through: "2033-04-21",
+  };
+  const preview = await caller().calendar.academic.changes.preview(change);
+  const commandId = randomUUID();
+  const first = await caller().calendar.academic.changes.confirm({
+    change,
+    fingerprint: preview.fingerprint,
+    commandId,
   });
-  const second = await caller().calendar.importBrazilFederalHolidays({
-    year: IDEMPOTENT_IMPORT_YEAR,
+  const retry = await caller().calendar.academic.changes.confirm({
+    change,
+    fingerprint: preview.fingerprint,
+    commandId,
   });
-
-  assert.equal(first.imported, FEDERAL_HOLIDAY_COUNT);
-  assert.equal(first.skipped, 0);
-  assert.equal(second.imported, 0);
-  assert.equal(second.skipped, FEDERAL_HOLIDAY_COUNT);
-  assert.equal(second.holidays.length, FEDERAL_HOLIDAY_COUNT);
+  assert.equal(first.id, retry.id);
+  assert.equal(first.status, "PENDING");
+  await assert.rejects(
+    caller().calendar.academic.changes.confirm({
+      change,
+      fingerprint: preview.fingerprint,
+      commandId: randomUUID(),
+    }),
+    /agenda mudou/u,
+  );
+  assert.equal(await db.academicInterruption.count({ where: { title: change.title } }), 1);
 });
-
-void it("preserves an existing custom reason during bulk import", async () => {
+void it("removing one interruption preserves another interruption and an unmanaged closure", async () => {
+  await cleanCalendarDatabase();
+  await ensureCalendarUsers();
+  const change: CalendarChange = {
+    action: "interruption",
+    kind: "RECESS",
+    title: `${TEST_PREFIX}Intervalo`,
+    description: null,
+    from: "2099-11-20",
+    through: "2099-11-22",
+  };
+  await db.schoolClosedDay.create({
+    data: { date: new Date("2099-11-20"), reason: `${TEST_PREFIX}Manual`, createdById: ADMIN.id },
+  });
+  await confirm(change);
+  await confirm({
+    ...change,
+    title: `${TEST_PREFIX}Sobreposto`,
+    from: "2099-11-21",
+    through: "2099-11-21",
+  });
+  const original = await db.academicInterruption.findFirstOrThrow({
+    where: { title: change.title },
+  });
+  await confirm({
+    action: "removeInterruption",
+    id: original.id,
+    expectedUpdatedAt: original.updatedAt.toISOString(),
+  });
+  const rows = await db.schoolClosedDay.findMany({
+    where: { date: { gte: new Date("2099-11-20"), lte: new Date("2099-11-22") }, deletedAt: null },
+    orderBy: { date: "asc" },
+  });
+  assert.deepEqual(
+    rows.map((row) => row.date.toISOString().slice(0, 10)),
+    ["2099-11-20", "2099-11-21"],
+  );
+  assert.equal(rows[0]?.calendarManaged, false);
+  assert.equal(rows[0]?.reason, `${TEST_PREFIX}Manual`);
+});
+void it("holiday import preserves custom reasons and is idempotent", async () => {
   await cleanCalendarDatabase();
   await ensureCalendarUsers();
   await db.schoolClosedDay.create({
     data: {
-      date: new Date(`${CUSTOM_REASON_IMPORT_YEAR}-01-01T00:00:00.000Z`),
+      date: new Date("2032-01-01"),
       reason: `${TEST_PREFIX}Recesso manual`,
       createdById: ADMIN.id,
     },
   });
-
-  const result = await caller().calendar.importBrazilFederalHolidays({
-    year: CUSTOM_REASON_IMPORT_YEAR,
-  });
-  const janFirst = result.holidays.find(
-    (holiday) => holiday.date === `${CUSTOM_REASON_IMPORT_YEAR}-01-01`,
+  const change: CalendarChange = {
+    action: "holidays",
+    dates: [{ date: "2032-01-01", title: "Ano novo", sourceKey: "BR:2032-01-01" }],
+  };
+  await confirm(change);
+  await confirm(change);
+  assert.equal(await db.academicInterruption.count({ where: { sourceKey: "BR:2032-01-01" } }), 1);
+  assert.equal(
+    (await db.schoolClosedDay.findUniqueOrThrow({ where: { date: new Date("2032-01-01") } }))
+      .reason,
+    `${TEST_PREFIX}Recesso manual`,
   );
-
-  assert.equal(result.imported, FEDERAL_HOLIDAY_COUNT_AFTER_CUSTOM_REASON);
-  assert.equal(result.skipped, 1);
-  assert.equal(janFirst?.reason, `${TEST_PREFIX}Recesso manual`);
 });
-
-void it("manual add updates the reason for an existing date", async () => {
+void it("semester confirmation persists a worker request and rejects overlapping periods", async () => {
   await cleanCalendarDatabase();
   await ensureCalendarUsers();
-
-  const created = await caller().calendar.addClosedDay({
-    date: MANUAL_UPDATE_DATE,
-    reason: `${TEST_PREFIX}Original`,
-  });
-  const updated = await caller().calendar.addClosedDay({
-    date: MANUAL_UPDATE_DATE,
-    reason: `${TEST_PREFIX}Atualizado`,
-  });
-
-  assert.equal(created.created, true);
-  assert.equal(updated.updated, true);
-  assert.equal(updated.closedDay.reason, `${TEST_PREFIX}Atualizado`);
-});
-
-void it("remove is idempotent and flags future regeneration", async () => {
-  await cleanCalendarDatabase();
-  await ensureCalendarUsers();
-  await caller().calendar.addClosedDay({
-    date: FUTURE_REMOVE_DATE,
-    reason: `${TEST_PREFIX}Remover`,
-  });
-
-  const first = await caller().calendar.removeClosedDay({ date: FUTURE_REMOVE_DATE });
-  const second = await caller().calendar.removeClosedDay({ date: FUTURE_REMOVE_DATE });
-
-  assert.deepEqual(first, { removed: true, regenerateRequired: true });
-  assert.deepEqual(second, { removed: false, regenerateRequired: true });
-});
-
-void it("create semester enqueues session generation", async () => {
-  await cleanCalendarDatabase();
-  await ensureCalendarUsers();
-  const queue = recordingSessionsGenerateQueue("job-calendar");
-
-  const result = await callerWithQueue({ queue }).calendar.createSemester({
-    name: SEMESTER_NAME,
-    startDate: "2098-02-01",
-    endDate: "2098-06-30",
-  });
-
-  assert.equal(result.semester.name, SEMESTER_NAME);
-  assert.equal(result.sessionsGenerateJob.workflowName, "sessions-generate");
-  assert.deepEqual(queue.calls, [
-    { semesterId: result.semester.id, requestId: result.sessionsGenerateJob.id },
-  ]);
+  const change: CalendarChange = {
+    action: "period",
+    name: `${TEST_PREFIX}2098.1`,
+    from: "2098-02-01",
+    through: "2098-06-30",
+  };
+  const saved = await confirm(change);
+  assert.ok(saved.semesterId);
+  assert.equal(saved.status, "PENDING");
+  await assert.rejects(
+    caller().calendar.academic.changes.preview({ ...change, name: `${TEST_PREFIX}Sobreposição` }),
+    /coincide/u,
+  );
 });
