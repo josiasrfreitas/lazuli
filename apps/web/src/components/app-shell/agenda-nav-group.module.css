@@ -37,10 +37,8 @@
   padding-left: 0.125rem;
   border-left: 1px solid var(--navigation-border);
 }
-.children:has(a[aria-current="page"]) {
-  border-left-color: var(--selection-indicator);
-}
 .children a {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -138,4 +136,28 @@
 
 .group .children a[aria-current="page"] {
   color: var(--selection-indicator);
+}
+
+/* Follow the branch only as far as the selected destination. */
+.children a:has(~ a[aria-current="page"])::before,
+.children a[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: calc(-0.125rem - 1px);
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--selection-indicator);
+}
+.children a[aria-current="page"]::before {
+  bottom: 50%;
+}
+.children a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: calc(-0.125rem - 1px);
+  top: 50%;
+  width: calc(0.625rem + 1px);
+  border-top: 1px solid var(--selection-indicator);
 }
