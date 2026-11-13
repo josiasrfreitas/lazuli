@@ -25,7 +25,11 @@ export function AppBreadcrumb({ role }: AppBreadcrumbInput): ReactNode {
           <ChevronRight className="size-3.5" />
         </li>
         <li aria-current="page" className="font-semibold text-foreground">
-          {breadcrumb.page}
+          {pathname === "/aulas"
+            ? params.get("visao") === "academico"
+              ? "Calendário Acadêmico"
+              : "Agenda de Aulas"
+            : breadcrumb.page}
         </li>
       </ol>
     </nav>

@@ -33,6 +33,7 @@
   color: var(--navigation-foreground);
 }
 .children {
+  position: relative;
   margin: 0.25rem 0 0.25rem calc(0.875rem * 0.85);
   padding-left: 0.125rem;
   border-left: 1px solid var(--navigation-border);
@@ -160,4 +161,35 @@
   top: 50%;
   width: calc(0.625rem + 1px);
   border-top: 1px solid var(--selection-indicator);
+}
+
+.group .trigger[data-active="true"],
+.group .trigger[data-active="true"] > svg {
+  color: var(--selection-indicator);
+}
+
+.trigger {
+  position: relative;
+}
+.trigger[data-active="true"][aria-expanded="true"]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: calc(0.875rem * 0.85);
+  top: calc(50% + 0.5rem);
+  bottom: -0.25rem;
+  width: calc(0.9375rem - 0.875rem * 0.85);
+  border-left: 1px solid var(--selection-indicator);
+  border-top: 1px solid var(--selection-indicator);
+}
+@media (min-width: 640px) {
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .trigger::after {
+    display: none;
+  }
+}
+.group[data-mobile="true"] .trigger::after {
+  width: calc(1.125rem - 0.875rem * 0.85);
 }
