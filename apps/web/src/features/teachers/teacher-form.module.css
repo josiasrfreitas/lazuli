@@ -80,7 +80,7 @@
   }
 }
 
-.dialog {
+:global([data-teacher-form-dialog]) {
   overflow: hidden;
 }
 .layout > * {
@@ -96,11 +96,11 @@
   overflow: auto;
 }
 
-.dialog :global([data-slot="form-section"]) {
+:global([data-teacher-form-dialog]) :global([data-slot="form-section"]) {
   gap: 0.5rem;
 }
 @media (min-width: 901px) {
-  .dialog {
+  :global([data-teacher-form-dialog]) {
     max-height: calc(100dvh - 2rem);
   }
 }

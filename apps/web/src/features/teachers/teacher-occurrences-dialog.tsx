@@ -37,11 +37,6 @@ export function TeacherOccurrencesDialog({
 }): ReactElement {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const normalize = (value: string): string =>
-    value
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLocaleLowerCase("pt-BR");
   const open = data.occurrences.filter((row) => row.status !== "CLOSED").length;
   const rows = data.occurrences.filter(
     (row) =>
@@ -70,34 +65,16 @@ export function TeacherOccurrencesDialog({
               Ocorrências dos alunos atuais neste semestre, em aula e fora dela.
             </DialogDescription>
           </DialogHeader>
-          <div className={styles.toolbar}>
-            <SegmentedControl
-              size="sm"
-              value={filter}
-              aria-label="Filtrar ocorrências"
-              onValueChange={(value) => {
-                if (value) setFilter(value);
-              }}
-            >
-              <SegmentedControlItem value="all">
-                Todas · {data.occurrences.length}
-              </SegmentedControlItem>
-              <SegmentedControlItem value="open">Em aberto · {open}</SegmentedControlItem>
-              <SegmentedControlItem value="closed">
-                Encerradas · {data.occurrences.length - open}
-              </SegmentedControlItem>
-            </SegmentedControl>
-            <Input
-              size="sm"
-              type="search"
-              aria-label="Buscar ocorrência por aluno, título ou contexto"
-              placeholder="Buscar aluno ou ocorrência"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
+          <OccurrenceFilters
+            filter={filter}
+            search={search}
+            total={data.occurrences.length}
+            open={open}
+            setFilter={setFilter}
+            setSearch={setSearch}
+          />
           <DialogBody>
-            {rows.length ? (
+            {rows.length > 0 ? (
               <ul className={styles.list}>
                 {rows.map((row) => (
                   <OccurrenceItem key={row.id} row={row} />
@@ -128,13 +105,7 @@ function OccurrenceItem({ row }: { row: Occurrence }): ReactElement {
             {row.date ? ` · ${dateLabel(row.date)}` : ""} · {CATEGORY[row.category]}
           </p>
         </div>
-        <Badge
-          variant={
-            row.status === "CLOSED" ? "success" : row.status === "FOLLOWING_UP" ? "info" : "warning"
-          }
-        >
-          {OCCURRENCE_STATUS[row.status]}
-        </Badge>
+        <Badge variant={occurrenceTone(row.status)}>{OCCURRENCE_STATUS[row.status]}</Badge>
       </header>
       <h3>{row.title}</h3>
       <p className={styles.report}>{row.summary}</p>
@@ -158,4 +129,57 @@ function OccurrenceItem({ row }: { row: Occurrence }): ReactElement {
       </footer>
     </li>
   );
+}
+
+function normalize(value: string): string {
+  return value
+    .normalize("NFD")
+    .replaceAll(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("pt-BR");
+}
+
+function OccurrenceFilters({
+  filter,
+  search,
+  total,
+  open,
+  setFilter,
+  setSearch,
+}: {
+  filter: string;
+  search: string;
+  total: number;
+  open: number;
+  setFilter: (value: string) => void;
+  setSearch: (value: string) => void;
+}): ReactElement {
+  return (
+    <div className={styles.toolbar}>
+      <SegmentedControl
+        size="sm"
+        value={filter}
+        aria-label="Filtrar ocorrências"
+        onValueChange={(value) => {
+          if (value) setFilter(value);
+        }}
+      >
+        <SegmentedControlItem value="all">Todas · {total}</SegmentedControlItem>
+        <SegmentedControlItem value="open">Em aberto · {open}</SegmentedControlItem>
+        <SegmentedControlItem value="closed">Encerradas · {total - open}</SegmentedControlItem>
+      </SegmentedControl>
+      <Input
+        size="sm"
+        type="search"
+        aria-label="Buscar ocorrência por aluno, título ou contexto"
+        placeholder="Buscar aluno ou ocorrência"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+    </div>
+  );
+}
+
+function occurrenceTone(status: Occurrence["status"]): "success" | "info" | "warning" {
+  if (status === "CLOSED") return "success";
+  return status === "FOLLOWING_UP" ? "info" : "warning";
 }

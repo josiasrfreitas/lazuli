@@ -56,21 +56,23 @@ export function TeacherRegistrationLoading(): ReactElement {
 
 export function TeacherAttachmentsLoading(): ReactElement {
   return (
-    <AttachmentPanel title="Anexos do professor" busy className={loading.surface}>
-      <div aria-busy="true" aria-label="Carregando anexos" className="grid gap-5">
-        <InlineSkeleton className="w-4/5" />
-        {[0, 1].map((row) => (
-          <div key={row} className="flex items-center justify-between gap-4" aria-hidden="true">
-            <div className="grid min-w-0 flex-1 gap-2">
-              <InlineSkeleton className="w-32 max-w-full" />
-              <InlineSkeleton className="w-48 max-w-full" />
+    <div className={`${loading.surface} rounded-lg`}>
+      <AttachmentPanel title="Anexos do professor" busy>
+        <div aria-busy="true" aria-label="Carregando anexos" className="grid gap-5">
+          <InlineSkeleton className="w-4/5" />
+          {[0, 1].map((row) => (
+            <div key={row} className="flex items-center justify-between gap-4" aria-hidden="true">
+              <div className="grid min-w-0 flex-1 gap-2">
+                <InlineSkeleton className="w-32 max-w-full" />
+                <InlineSkeleton className="w-48 max-w-full" />
+              </div>
+              <InlineSkeleton shape="block" className="h-8 w-20" />
             </div>
-            <InlineSkeleton shape="block" className="h-8 w-20" />
-          </div>
-        ))}
-        <InlineSkeleton shape="block" className="h-8 w-full" />
-      </div>
-    </AttachmentPanel>
+          ))}
+          <InlineSkeleton shape="block" className="h-8 w-full" />
+        </div>
+      </AttachmentPanel>
+    </div>
   );
 }
 

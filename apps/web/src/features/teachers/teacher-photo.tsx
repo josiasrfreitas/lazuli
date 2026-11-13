@@ -4,7 +4,7 @@ import { toastManager } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { ProfilePhotoView } from "../student-documents/profile-photo-view";
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 5_242_880;
 
 export function TeacherPhoto({ id, name }: { id: string; name: string }): ReactElement {
   const query = trpc.teachers.files.useQuery(

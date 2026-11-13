@@ -97,32 +97,7 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
         </span>
       ),
     },
-    {
-      id: "monthlyHours",
-      header: (
-        <span className={styles.hoursHeader}>
-          Horas · {today.slice(MONTH_START, MONTH_END)}/{today.slice(0, YEAR_END)}
-        </span>
-      ),
-      width: "standard",
-      cell: (row) => (
-        <div
-          className={styles.hours}
-          title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
-        >
-          <span className="font-numeric tabular-nums">
-            {hoursLabel(row.monthlyHours.completedMinutes)} /{" "}
-            {hoursLabel(row.monthlyHours.plannedMinutes)} h
-          </span>
-          <progress
-            className={styles.progress}
-            aria-label="Progresso das horas realizadas no mês"
-            max={row.monthlyHours.plannedMinutes || 1}
-            value={Math.min(row.monthlyHours.completedMinutes, row.monthlyHours.plannedMinutes)}
-          />
-        </div>
-      ),
-    },
+    monthlyHoursColumn(today),
     {
       id: "appointmentHours",
       header: <span className="whitespace-nowrap">Horas de atendimento</span>,
@@ -185,3 +160,32 @@ type TeacherColumnsInput = {
   today: string;
 };
 type TeacherAccessInput = { row: TeacherRow; today: string };
+
+function monthlyHoursColumn(today: string): DataTableColumn<TeacherRow> {
+  return {
+    id: "monthlyHours",
+    header: (
+      <span className={styles.hoursHeader}>
+        Horas · {today.slice(MONTH_START, MONTH_END)}/{today.slice(0, YEAR_END)}
+      </span>
+    ),
+    width: "standard",
+    cell: (row) => (
+      <div
+        className={styles.hours}
+        title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
+      >
+        <span className="font-numeric tabular-nums">
+          {hoursLabel(row.monthlyHours.completedMinutes)} /{" "}
+          {hoursLabel(row.monthlyHours.plannedMinutes)} h
+        </span>
+        <progress
+          className={styles.progress}
+          aria-label="Progresso das horas realizadas no mês"
+          max={row.monthlyHours.plannedMinutes || 1}
+          value={Math.min(row.monthlyHours.completedMinutes, row.monthlyHours.plannedMinutes)}
+        />
+      </div>
+    ),
+  };
+}

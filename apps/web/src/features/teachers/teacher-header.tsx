@@ -14,10 +14,7 @@ export function TeacherHeader({
   onDepart,
   navigation,
 }: TeacherHeaderInput): ReactElement {
-  const enabled =
-    teacher.isEnabled &&
-    (!teacher.teacherProfile?.departureDate ||
-      teacher.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > teacher.today);
+  const enabled = teacherHasAccess(teacher);
   return (
     <header className={styles.teacherHeader}>
       <div className={styles.teacherIdentity}>
@@ -80,3 +77,11 @@ type TeacherHeaderInput = {
   onEdit: () => void;
   onDepart: () => void;
 };
+
+function teacherHasAccess(teacher: TeacherHeaderInput["teacher"]): boolean {
+  return (
+    teacher.isEnabled &&
+    (!teacher.teacherProfile?.departureDate ||
+      teacher.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > teacher.today)
+  );
+}

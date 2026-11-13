@@ -58,40 +58,7 @@ export function TeacherEmploymentFields({
         </Field>
       </div>
       {draft.employmentType === "CLT" && (
-        <FormSection
-          title={
-            <span className="flex items-center gap-2">
-              <CalendarDays className="size-4" aria-hidden="true" />
-              Previsão de férias
-            </span>
-          }
-          description="Opcional. O período informado não altera a agenda de aulas."
-        >
-          <FormRow columns={2}>
-            {(
-              [
-                ["vacationStart", "Início"],
-                ["vacationEnd", "Fim"],
-              ] as const
-            ).map(([key, label]) => (
-              <Field key={key}>
-                <Label htmlFor={`teacher-${key}`}>{label}</Label>
-                <Input
-                  id={`teacher-${key}`}
-                  name={key}
-                  size="compact-responsive"
-                  autoComplete="off"
-                  placeholder="dd/mm/aaaa"
-                  inputMode="numeric"
-                  value={draft[key]}
-                  invalid={Boolean(errors[key])}
-                  onChange={(event) => change(key, maskDateBR(event.target.value))}
-                />
-                {errors[key] && <FieldError match>{errors[key]}</FieldError>}
-              </Field>
-            ))}
-          </FormRow>
-        </FormSection>
+        <VacationFields draft={draft} errors={errors} change={change} />
       )}
       <Field>
         <Label htmlFor="teacher-notes">Observações</Label>
@@ -109,6 +76,45 @@ export function TeacherEmploymentFields({
         />
         {errors.notes && <FieldError match>{errors.notes}</FieldError>}
       </Field>
+    </FormSection>
+  );
+}
+
+function VacationFields({ draft, errors, change }: TeacherFieldProps): ReactElement {
+  return (
+    <FormSection
+      title={
+        <span className="flex items-center gap-2">
+          <CalendarDays className="size-4" aria-hidden="true" />
+          Previsão de férias
+        </span>
+      }
+      description="Opcional. O período informado não altera a agenda de aulas."
+    >
+      <FormRow columns={2}>
+        {(
+          [
+            ["vacationStart", "Início"],
+            ["vacationEnd", "Fim"],
+          ] as const
+        ).map(([key, label]) => (
+          <Field key={key}>
+            <Label htmlFor={`teacher-${key}`}>{label}</Label>
+            <Input
+              id={`teacher-${key}`}
+              name={key}
+              size="compact-responsive"
+              autoComplete="off"
+              placeholder="dd/mm/aaaa"
+              inputMode="numeric"
+              value={draft[key]}
+              invalid={Boolean(errors[key])}
+              onChange={(event) => change(key, maskDateBR(event.target.value))}
+            />
+            {errors[key] && <FieldError match>{errors[key]}</FieldError>}
+          </Field>
+        ))}
+      </FormRow>
     </FormSection>
   );
 }

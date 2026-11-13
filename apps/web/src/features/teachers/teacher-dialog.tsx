@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ChangeEvent,
   type RefObject,
   type ReactElement,
 } from "react";
@@ -38,27 +39,17 @@ import { Camera, Paperclip, KeyRound } from "lucide-react";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
 import styles from "./teacher-form.module.css";
+const PANEL_EXIT_DELAY_MS = 160;
+type TeacherDocuments = ReturnType<typeof useTeacherDocuments>;
 type Teacher = RouterOutputs["teachers"]["byId"];
 export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactElement {
   const documents = useTeacherDocuments(teacher?.id);
-  const photoInput = useRef<HTMLInputElement>(null);
-  const [photoError, setPhotoError] = useState("");
-  const photo = documents.files.find((file) => file.kind === "PHOTO");
+  const { photoInput, photoError, changePhoto } = useTeacherPhotoInput(documents);
   const [attachments, setAttachments] = useState(false);
-  const [panelPresent, setPanelPresent] = useState(false);
-  useEffect(() => {
-    if (attachments) setPanelPresent(true);
-    else {
-      const timer = setTimeout(() => setPanelPresent(false), 160);
-      return () => clearTimeout(timer);
-    }
-  }, [attachments]);
-  const panelVisible = attachments || panelPresent;
+  const panelVisible = useAttachmentPresence(attachments);
 
   const { departed, draft, errors, failure, body, first, pending, change, submit } = useTeacherForm(
-    teacher,
-    onClose,
-    documents.session?.id,
+    { teacher, onClose, documentSessionId: documents.session?.id },
   );
   return (
     <Dialog
@@ -71,64 +62,18 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
         <DialogBackdrop />
         <DialogContent
           initialFocus={first}
-          className={`${styles.dialog} ${panelVisible ? "md:max-w-7xl" : "md:max-w-3xl"}`}
+          className="md:max-w-3xl data-[documents]:md:max-w-7xl"
+          data-teacher-form-dialog
+          data-documents={panelVisible || undefined}
         >
-          <div className={styles.header}>
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              className="size-14 shrink-0 rounded-full"
-              aria-label="Enviar foto do professor"
-              disabled={pending || documents.busy}
-              onClick={() => photoInput.current?.click()}
-            >
-              {photo ? (
-                <img
-                  className={styles.photo}
-                  src={`/api/teacher-files/${photo.id}`}
-                  alt="Foto do professor"
-                />
-              ) : (
-                <Camera />
-              )}
-            </Button>
-            <input
-              ref={photoInput}
-              type="file"
-              accept="image/jpeg,image/png"
-              className="hidden"
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                documents.setBusy(true);
-                setPhotoError("");
-                try {
-                  await documents.send({ kind: "PHOTO", label: "Foto do professor", file });
-                } catch (error) {
-                  setPhotoError(
-                    error instanceof Error ? error.message : "Não foi possível enviar a foto.",
-                  );
-                } finally {
-                  documents.setBusy(false);
-                  event.target.value = "";
-                }
-              }}
-            />
-            <DialogHeader className="min-w-0 flex-1">
-              <DialogTitle>{teacher ? "Editar professor" : "Novo professor"}</DialogTitle>
-              <DialogDescription>
-                Cadastre a pessoa para organizar suas turmas e horários.
-              </DialogDescription>
-            </DialogHeader>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={pending || documents.busy}
-              onClick={() => setAttachments(!attachments)}
-            >
-              <Paperclip /> Anexos{documents.files.length ? ` (${documents.files.length})` : ""}
-            </Button>
-          </div>
+          <TeacherDialogHeader
+            teacher={teacher}
+            documents={documents}
+            pending={pending || documents.busy}
+            photoInput={photoInput}
+            onPhotoChange={changePhoto}
+            onToggleAttachments={() => setAttachments(!attachments)}
+          />
           {photoError && <ToastAlert variant="destructive">{photoError}</ToastAlert>}
           <div className={styles.layout} data-documents={panelVisible}>
             <TeacherFormBody
@@ -336,4 +281,117 @@ type TeacherDialogInput = {
 function teacherSaveLabel(props: TeacherFormFooterProps): string {
   if (props.pending) return "Salvando…";
   return props.teacher ? "Salvar alterações" : "Cadastrar professor";
+}
+
+function useAttachmentPresence(attachments: boolean): boolean {
+  const [panelPresent, setPanelPresent] = useState(false);
+  useEffect(() => {
+    if (attachments) setPanelPresent(true);
+    else {
+      const timer = setTimeout(() => setPanelPresent(false), PANEL_EXIT_DELAY_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [attachments]);
+  return attachments || panelPresent;
+}
+function useTeacherPhotoInput(documents: TeacherDocuments): {
+  photoInput: RefObject<HTMLInputElement | null>;
+  photoError: string;
+  changePhoto: (event: ChangeEvent<HTMLInputElement>) => void;
+} {
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState("");
+  const changePhoto = (event: ChangeEvent<HTMLInputElement>): void => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    documents.setBusy(true);
+    setPhotoError("");
+    void documents
+      .send({ kind: "PHOTO", label: "Foto do professor", file })
+      .catch((error: Error) => {
+        setPhotoError(error instanceof Error ? error.message : "Não foi possível enviar a foto.");
+      })
+      .finally(() => {
+        documents.setBusy(false);
+        input.value = "";
+      });
+  };
+  return { photoInput, photoError, changePhoto };
+}
+type TeacherDialogHeaderProps = {
+  teacher: Teacher | undefined;
+  documents: TeacherDocuments;
+  pending: boolean;
+  photoInput: RefObject<HTMLInputElement | null>;
+  onPhotoChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onToggleAttachments: () => void;
+};
+function TeacherDialogHeader({
+  teacher,
+  documents,
+  pending,
+  photoInput,
+  onPhotoChange,
+  onToggleAttachments,
+}: TeacherDialogHeaderProps): ReactElement {
+  return (
+    <div className={styles.header}>
+      <TeacherPhotoControl
+        documents={documents}
+        pending={pending}
+        photoInput={photoInput}
+        onPhotoChange={onPhotoChange}
+      />
+      <DialogHeader className="min-w-0 flex-1">
+        <DialogTitle>{teacher ? "Editar professor" : "Novo professor"}</DialogTitle>
+        <DialogDescription>
+          Cadastre a pessoa para organizar suas turmas e horários.
+        </DialogDescription>
+      </DialogHeader>
+      <Button variant="ghost" size="sm" disabled={pending} onClick={onToggleAttachments}>
+        <Paperclip /> Anexos{documents.files.length > 0 ? ` (${documents.files.length})` : ""}
+      </Button>
+    </div>
+  );
+}
+function TeacherPhotoControl({
+  documents,
+  pending,
+  photoInput,
+  onPhotoChange,
+}: Pick<
+  TeacherDialogHeaderProps,
+  "documents" | "pending" | "photoInput" | "onPhotoChange"
+>): ReactElement {
+  const photo = documents.files.find((file) => file.kind === "PHOTO");
+  return (
+    <>
+      <Button
+        variant="secondary"
+        size="icon-sm"
+        className="size-14 shrink-0 rounded-full"
+        aria-label="Enviar foto do professor"
+        disabled={pending}
+        onClick={() => photoInput.current?.click()}
+      >
+        {photo ? (
+          <img
+            className={styles.photo}
+            src={`/api/teacher-files/${photo.id}`}
+            alt="Foto do professor"
+          />
+        ) : (
+          <Camera />
+        )}
+      </Button>
+      <input
+        ref={photoInput}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="hidden"
+        onChange={onPhotoChange}
+      />
+    </>
+  );
 }

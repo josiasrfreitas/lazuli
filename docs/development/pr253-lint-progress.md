@@ -1,5 +1,10 @@
 # PR 253 lint progress
 
+> **Closed batch 2:** 50 original errors in the 15 files below; latest remaining: 0 in targeted lint; web types, six focused tests and the styles gate passed. Full lint confirmed 768 remaining errors: exactly 50 removed, zero added.
+> **Baseline:** 818 full-repository errors, `/tmp/lazuli253-lint-after-batch1.json`; batch snapshot `/tmp/lazuli253-batch2-baseline.json`.
+> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` + all batch-2 paths below, relative to `apps/web`.
+> **Next gate:** zero targeted errors, types and focused teacher tests, then `pnpm lint --concurrency=1 --continue=dependencies-successful` and complete diagnostic comparison before batch 3.
+
 > **Closed batch 1:** 50 original errors across the nine files below; latest remaining: 0 (`/tmp/lazuli253-batch1-final.log`); web types and five focused teacher tests passed. Full lint confirmed 818 remaining errors; exactly 50 removed and no new diagnostics.
 > **Baseline:** 868 errors from CI on `ac9f381c`, local full refresh confirmed 868 errors, normalized snapshot `/tmp/lazuli253-lint-baseline.json`; batch snapshot `/tmp/lazuli253-batch1-baseline.json`.
 > **Full command:** `pnpm lint --concurrency=1 --continue=dependencies-successful`; local refresh log `/tmp/lazuli253-lint-baseline.log`.
@@ -36,3 +41,32 @@ PR #253, branch `staging/professor-planejamento`; publication checkout `/tmp/laz
 - Refactoring retained the rendered groups, labels and navigation; extracted header/body/calculation subcomponents and avatar presentation hooks rather than changing UI layout or rules.
 
 Full comparison: 868 → 818; 50 removed, zero added by file/rule/message. Snapshot `/tmp/lazuli253-lint-after-batch1.json`.
+
+## Batch 2 lock
+
+| File                                                               | Original errors |
+| ------------------------------------------------------------------ | --------------: |
+| `apps/web/src/features/teachers/teacher-class-metrics-loading.tsx` |               2 |
+| `apps/web/src/features/teachers/teacher-employment-fields.tsx`     |               1 |
+| `apps/web/src/features/teachers/teacher-form.ts`                   |               3 |
+| `apps/web/src/features/teachers/teacher-occurrence-preview.tsx`    |               6 |
+| `apps/web/src/features/teachers/teacher-occurrences-dialog.tsx`    |               5 |
+| `apps/web/src/features/teachers/teacher-students-loading.tsx`      |               1 |
+| `apps/web/src/features/teachers/teacher-section-loading.tsx`       |               1 |
+| `apps/web/src/features/teachers/teacher-dated-agenda.tsx`          |               7 |
+| `apps/web/src/features/teachers/teacher-class-order.ts`            |               4 |
+| `apps/web/src/features/teachers/teacher-class-metrics.tsx`         |               6 |
+| `apps/web/src/features/teachers/teacher-dialog.tsx`                |               6 |
+| `apps/web/src/features/teachers/teacher-sections.tsx`              |               3 |
+| `apps/web/src/features/teachers/teacher-header.tsx`                |               1 |
+| `apps/web/src/features/teachers/teacher-photo.tsx`                 |               3 |
+| `apps/web/src/features/teachers/teacher-table.tsx`                 |               1 |
+
+## Batch 2 validation in progress
+
+- Targeted lint: zero errors, ten pre-existing warnings; `/tmp/lazuli253-batch2-final.log`.
+- Web types passed: `/tmp/lazuli253-batch2-types-final.log`.
+- Six teacher/occurrence tests passed: `/tmp/lazuli253-batch2-tests.log`.
+- Styles gate passed: `/tmp/lazuli253-batch2-styles.log`.
+- Dependent CSS change: `teacher-form.module.css` now addresses the same dialog via its dedicated data attribute; dimensions and spacing remain the same. Attachment loading keeps the shimmer in a native surrounding layer instead of passing a dynamic class to the shared primitive.
+- Full lint finished: `/tmp/lazuli253-lint-after-batch2.log`; normalized snapshot `/tmp/lazuli253-lint-after-batch2.json` (818 → 768, 50 removed, zero added by file/rule/message).

@@ -26,8 +26,10 @@ export function defaultClassDirection(order: TeacherClassOrder): TeacherClassDir
 
 export function filterTeacherClasses(
   rows: readonly TeacherMetricClass[],
-  students: readonly { id: string; level: string }[],
-  filters: TeacherClassFilters,
+  {
+    students,
+    filters,
+  }: { students: readonly { id: string; level: string }[]; filters: TeacherClassFilters },
 ): TeacherMetricClass[] {
   const attentionIds = new Set(
     students
@@ -44,13 +46,15 @@ export function filterTeacherClasses(
 /** Missing evidence always follows measured values, including a genuine zero. */
 export function orderTeacherClasses(
   rows: readonly TeacherMetricClass[],
-  order: TeacherClassOrder,
-  direction: TeacherClassDirection = defaultClassDirection(order),
+  {
+    order,
+    direction = defaultClassDirection(order),
+  }: { order: TeacherClassOrder; direction?: TeacherClassDirection },
 ): TeacherMetricClass[] {
-  return rows.toSorted((a, b) => {
-    const byName = a.name.localeCompare(b.name, "pt-BR", { numeric: true });
-    const left = order === "absence" ? a.attendance.percent : a[order];
-    const right = order === "absence" ? b.attendance.percent : b[order];
+  return rows.toSorted((leftRow, rightRow) => {
+    const byName = leftRow.name.localeCompare(rightRow.name, "pt-BR", { numeric: true });
+    const left = order === "absence" ? leftRow.attendance.percent : leftRow[order];
+    const right = order === "absence" ? rightRow.attendance.percent : rightRow[order];
     if (left === null) return right === null ? byName : 1;
     if (right === null) return -1;
     return (direction === "desc" ? right - left : left - right) || byName;

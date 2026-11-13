@@ -13,6 +13,7 @@ import { mondayOf, todayInSchool } from "./format";
 import type { RouterOutputs } from "@lazuli/api";
 import styles from "./teacher-overview.module.css";
 
+const MINUTES_PER_HOUR = 60;
 type Event = CalendarEvent & { href: string; meeting?: Meeting };
 type Week = RouterOutputs["teachers"]["week"];
 export function TeacherDatedAgenda({ id, back }: { id: string; back: string }): ReactElement {
@@ -50,7 +51,7 @@ export function TeacherDatedAgenda({ id, back }: { id: string; back: string }): 
         scrollChaining
         emptyDisplay="message"
         density="compact"
-        status={query.isError ? "error" : query.isPending ? "loading" : "ready"}
+        status={agendaStatus(query)}
         onRetry={() => void query.refetch()}
         onEventActivate={(event) =>
           event.meeting ? setMeeting(event.meeting) : router.push(event.href)
@@ -81,15 +82,15 @@ function agendaEvents(data: Week, teacherId: string): Event[] {
             : ("info" as const),
         meeting: row,
         disabled: !row.editable,
-        ...(!row.editable
+        ...(row.editable
           ? {
-              disabledReason:
-                "Esta aula já começou ou possui registros. Não é possível alterar o professor.",
-            }
-          : {
               description: row.substituteTeacherId
                 ? "Consultar substituição"
                 : "Clique para registrar uma substituição nesta aula",
+            }
+          : {
+              disabledReason:
+                "Esta aula já começou ou possui registros. Não é possível alterar o professor.",
             }),
         href: `/turmas/${row.classId}`,
       })),
@@ -121,15 +122,31 @@ function agendaEvents(data: Week, teacherId: string): Event[] {
 }
 
 function occupiedHours(events: Event[]): { start: string; end: string } {
-  if (!events.length) return { start: "08:00", end: "12:00" };
-  const minutes = (time: string): number => {
-    const [hour, minute] = time.split(":").map(Number);
-    return hour! * 60 + minute!;
-  };
-  const start = Math.floor(Math.min(...events.map((event) => minutes(event.startTime))) / 60);
-  const end = Math.ceil(Math.max(...events.map((event) => minutes(event.endTime))) / 60);
+  if (events.length === 0) return { start: "08:00", end: "12:00" };
+  const start = Math.floor(
+    Math.min(...events.map((event) => clockMinutes(event.startTime))) / MINUTES_PER_HOUR,
+  );
+  const end = Math.ceil(
+    Math.max(...events.map((event) => clockMinutes(event.endTime))) / MINUTES_PER_HOUR,
+  );
   return {
     start: `${String(start).padStart(2, "0")}:00`,
     end: `${String(end).padStart(2, "0")}:00`,
   };
+}
+
+function clockMinutes(time: string): number {
+  const [hour, minute] = time.split(":").map(Number);
+  return hour! * MINUTES_PER_HOUR + minute!;
+}
+
+function agendaStatus({
+  isError,
+  isPending,
+}: {
+  isError: boolean;
+  isPending: boolean;
+}): "error" | "loading" | "ready" {
+  if (isError) return "error";
+  return isPending ? "loading" : "ready";
 }

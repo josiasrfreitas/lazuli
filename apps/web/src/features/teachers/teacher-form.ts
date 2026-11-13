@@ -44,11 +44,15 @@ type UseTeacherFormResult = {
 };
 
 type Teacher = RouterOutputs["teachers"]["byId"];
-export function useTeacherForm(
-  teacher: Teacher | undefined,
-  onClose: () => void,
-  documentSessionId?: string,
-): UseTeacherFormResult {
+export function useTeacherForm({
+  teacher,
+  onClose,
+  documentSessionId,
+}: {
+  teacher: Teacher | undefined;
+  onClose: () => void;
+  documentSessionId?: string | undefined;
+}): UseTeacherFormResult {
   const departed = teacherDeparted(teacher);
   const [draft, setDraft] = useState(teacherDraft(teacher));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -141,19 +145,40 @@ function submitTeacherForm(
   else create.mutate(parsed.data);
 }
 
-function teacherDraft(teacher: Teacher | undefined): UseTeacherFormResult["draft"] {
+function teacherDraft(teacher: Teacher | undefined): TeacherDraft {
+  if (!teacher)
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      cpf: "",
+      isEnabled: false,
+      employmentType: "CLT",
+      notes: "",
+      vacationStart: "",
+      vacationEnd: "",
+    };
+  return { ...draftIdentity(teacher), ...draftEmployment(teacher.teacherProfile) };
+}
+function draftIdentity(
+  teacher: Teacher,
+): Pick<TeacherDraft, "name" | "email" | "phone" | "cpf" | "isEnabled"> {
   return {
-    name: teacher?.name ?? "",
-    email: teacher?.email ?? "",
-    phone: teacher?.teacherProfile?.phone ?? "",
-    cpf: teacher?.teacherProfile?.cpf ?? "",
-    isEnabled: teacher?.isEnabled ?? false,
-    employmentType:
-      (teacher?.teacherProfile?.employmentType as TeacherDraft["employmentType"]) ??
-      (teacher ? null : "CLT"),
-    notes: teacher?.teacherProfile?.notes ?? "",
-    vacationStart: displayDate(teacher?.teacherProfile?.vacationStart),
-    vacationEnd: displayDate(teacher?.teacherProfile?.vacationEnd),
+    name: teacher.name,
+    email: teacher.email,
+    phone: teacher.teacherProfile?.phone ?? "",
+    cpf: teacher.teacherProfile?.cpf ?? "",
+    isEnabled: teacher.isEnabled,
+  };
+}
+function draftEmployment(
+  profile: Teacher["teacherProfile"],
+): Pick<TeacherDraft, "employmentType" | "notes" | "vacationStart" | "vacationEnd"> {
+  return {
+    employmentType: (profile?.employmentType as TeacherDraft["employmentType"]) ?? null,
+    notes: profile?.notes ?? "",
+    vacationStart: displayDate(profile?.vacationStart),
+    vacationEnd: displayDate(profile?.vacationEnd),
   };
 }
 function teacherDeparted(teacher: Teacher | undefined): boolean {
@@ -172,5 +197,5 @@ function teacherFieldErrors(error: ClientError): Record<string, string> {
 }
 
 function displayDate(value: Date | null | undefined): string {
-  return value?.toISOString().slice(0, ISO_DATE_LENGTH).split("-").reverse().join("/") ?? "";
+  return value?.toISOString().slice(0, ISO_DATE_LENGTH).split("-").toReversed().join("/") ?? "";
 }

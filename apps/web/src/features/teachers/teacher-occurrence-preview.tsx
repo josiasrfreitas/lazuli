@@ -18,6 +18,8 @@ import { studentFollowUpHref } from "~/features/pedagogical-follow-up/student-na
 import styles from "./teacher-overview.module.css";
 import { TeacherOccurrenceLoading } from "./teacher-metric-loading";
 
+type Occurrence = RouterOutputs["teachers"]["metrics"]["occurrences"][number];
+type Rotation = ReturnType<typeof useOccurrenceRotation>;
 type Metrics = RouterOutputs["teachers"]["metrics"];
 export function TeacherOccurrencePreview({
   data,
@@ -52,132 +54,172 @@ export function TeacherOccurrencePreview({
         <Button
           size="sm"
           variant="link"
-          disabled={!rows.length}
+          disabled={rows.length === 0}
           onClick={(event) => onDetails(event.currentTarget)}
         >
           Ver todas
         </Button>
       </div>
-      {pending ? (
-        <TeacherOccurrenceLoading />
-      ) : row ? (
-        <>
-          <p className={styles.occurrenceTotals}>
-            <strong data-attention={open.length > 0 || undefined}>{open.length} em aberto</strong>
-            <span>·</span>
-            {open.filter((item) => item.accompanied).length} com intervenção
-          </p>
-          <div
-            key={row.id}
-            className={styles.occurrenceSlide}
-            aria-live={rotation.automatic ? "off" : "polite"}
-          >
-            <div className={styles.occurrenceStudent}>
-              <StudentAvatar name={row.name} colorKey={row.studentId} size="md" />
-              <div>
-                <Link href={`/alunos/${row.studentId}?secao=pedagogico`}>{row.name}</Link>
-                <span>
-                  {row.outsideClass ? "Fora de aula" : "Em aula"}
-                  {row.date ? ` · ${dateLabel(row.date)}` : ""}
-                </span>
-              </div>
-              <Badge
-                variant={
-                  row.status === "CLOSED"
-                    ? "success"
-                    : row.status === "FOLLOWING_UP"
-                      ? "info"
-                      : "warning"
-                }
-              >
-                {OCCURRENCE_STATUS[row.status]}
-              </Badge>
-            </div>
-            <div className={styles.occurrenceReport}>
-              <p className={styles.occurrenceCategory}>{CATEGORY[row.category]}</p>
-              <div
-                className={styles.occurrenceColumns}
-                data-response={Boolean(row.initialResponse)}
-              >
-                <div>
-                  <h3>{row.title}</h3>
-                  <p
-                    className={styles.occurrenceExcerpt}
-                    tabIndex={0}
-                    role="region"
-                    aria-label="Relato da ocorrência"
-                  >
-                    {row.summary}
-                  </p>
-                </div>
-                {row.initialResponse && (
-                  <div className={styles.occurrenceResponse}>
-                    <h3>Ação imediata</h3>
-                    <p
-                      className={styles.occurrenceExcerpt}
-                      tabIndex={0}
-                      role="region"
-                      aria-label="Ação imediata"
-                    >
-                      {row.initialResponse}
-                    </p>
-                  </div>
-                )}
-              </div>
-              <p className={styles.occurrenceAuthor}>Registrado por {row.recordedBy}</p>
-            </div>
-          </div>
-          <footer className={styles.occurrenceFooter}>
-            <Link href={studentFollowUpHref(row.studentId, { kind: "occurrence", id: row.id })}>
-              Ver relato
-              <ArrowUpRight aria-hidden="true" />
-            </Link>
-            {rows.length > 1 && (
-              <div className={styles.occurrenceControls}>
-                <span>
-                  {rotation.index + 1} de {rows.length}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Ocorrência anterior"
-                  onClick={rotation.previous}
-                >
-                  <ChevronLeft aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Próxima ocorrência"
-                  onClick={rotation.next}
-                >
-                  <ChevronRight aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={
-                    rotation.paused ? "Retomar troca automática" : "Pausar troca automática"
-                  }
-                  onClick={rotation.togglePaused}
-                >
-                  {rotation.paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
-                </Button>
-              </div>
-            )}
-          </footer>
-        </>
-      ) : (
-        <div className={styles.occurrenceEmpty}>
-          <MessageSquareText aria-hidden="true" />
-          <h3>{data ? "Tudo tranquilo por aqui" : "Ocorrências indisponíveis"}</h3>
-          <p>
-            {data
-              ? "Por enquanto, só o verbo to be dando trabalho. Nenhuma ocorrência registrada."
-              : "Tente atualizar os indicadores."}
-          </p>
-        </div>
-      )}
+      <OccurrencePreviewBody
+        data={data}
+        pending={pending}
+        row={row}
+        open={open}
+        rows={rows}
+        rotation={rotation}
+      />
     </section>
   );
+}
+
+function OccurrencePreviewBody({
+  data,
+  pending,
+  row,
+  open,
+  rows,
+  rotation,
+}: {
+  data: Metrics | undefined;
+  pending: boolean;
+  row: Occurrence | undefined;
+  open: Occurrence[];
+  rows: Occurrence[];
+  rotation: Rotation;
+}): ReactElement {
+  if (pending) return <TeacherOccurrenceLoading />;
+  if (!row) return <OccurrenceEmpty data={data} />;
+  return (
+    <>
+      <p className={styles.occurrenceTotals}>
+        <strong data-attention={open.length > 0 || undefined}>{open.length} em aberto</strong>
+        <span>·</span>
+        {open.filter((item) => item.accompanied).length} com intervenção
+      </p>
+      <OccurrenceSlide key={row.id} row={row} automatic={rotation.automatic} />
+      <OccurrenceFooter row={row} count={rows.length} rotation={rotation} />
+    </>
+  );
+}
+function OccurrenceEmpty({ data }: { data: Metrics | undefined }): ReactElement {
+  return (
+    <div className={styles.occurrenceEmpty}>
+      <MessageSquareText aria-hidden="true" />
+      <h3>{data ? "Tudo tranquilo por aqui" : "Ocorrências indisponíveis"}</h3>
+      <p>
+        {data
+          ? "Por enquanto, só o verbo to be dando trabalho. Nenhuma ocorrência registrada."
+          : "Tente atualizar os indicadores."}
+      </p>
+    </div>
+  );
+}
+
+function OccurrenceSlide({
+  row,
+  automatic,
+}: {
+  row: Occurrence;
+  automatic: boolean;
+}): ReactElement {
+  return (
+    <div className={styles.occurrenceSlide} aria-live={automatic ? "off" : "polite"}>
+      <div className={styles.occurrenceStudent}>
+        <StudentAvatar name={row.name} colorKey={row.studentId} size="md" />
+        <div>
+          <Link href={`/alunos/${row.studentId}?secao=pedagogico`}>{row.name}</Link>
+          <span>
+            {row.outsideClass ? "Fora de aula" : "Em aula"}
+            {row.date ? ` · ${dateLabel(row.date)}` : ""}
+          </span>
+        </div>
+        <Badge variant={occurrenceTone(row.status)}>{OCCURRENCE_STATUS[row.status]}</Badge>
+      </div>
+      <div className={styles.occurrenceReport}>
+        <p className={styles.occurrenceCategory}>{CATEGORY[row.category]}</p>
+        <div className={styles.occurrenceColumns} data-response={Boolean(row.initialResponse)}>
+          <div>
+            <h3>{row.title}</h3>
+            <p
+              className={styles.occurrenceExcerpt}
+              tabIndex={0}
+              role="region"
+              aria-label="Relato da ocorrência"
+            >
+              {row.summary}
+            </p>
+          </div>
+          {row.initialResponse && (
+            <div className={styles.occurrenceResponse}>
+              <h3>Ação imediata</h3>
+              <p
+                className={styles.occurrenceExcerpt}
+                tabIndex={0}
+                role="region"
+                aria-label="Ação imediata"
+              >
+                {row.initialResponse}
+              </p>
+            </div>
+          )}
+        </div>
+        <p className={styles.occurrenceAuthor}>Registrado por {row.recordedBy}</p>
+      </div>
+    </div>
+  );
+}
+
+function OccurrenceFooter({
+  row,
+  count,
+  rotation,
+}: {
+  row: Occurrence;
+  count: number;
+  rotation: Rotation;
+}): ReactElement {
+  return (
+    <footer className={styles.occurrenceFooter}>
+      <Link href={studentFollowUpHref(row.studentId, { kind: "occurrence", id: row.id })}>
+        Ver relato
+        <ArrowUpRight aria-hidden="true" />
+      </Link>
+      {count > 1 && (
+        <div className={styles.occurrenceControls}>
+          <span>
+            {rotation.index + 1} de {count}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Ocorrência anterior"
+            onClick={rotation.previous}
+          >
+            <ChevronLeft aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Próxima ocorrência"
+            onClick={rotation.next}
+          >
+            <ChevronRight aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={rotation.paused ? "Retomar troca automática" : "Pausar troca automática"}
+            onClick={rotation.togglePaused}
+          >
+            {rotation.paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
+          </Button>
+        </div>
+      )}
+    </footer>
+  );
+}
+
+function occurrenceTone(status: Occurrence["status"]): "success" | "info" | "warning" {
+  if (status === "CLOSED") return "success";
+  return status === "FOLLOWING_UP" ? "info" : "warning";
 }
