@@ -3,6 +3,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { InlineSkeleton } from "@lazuli/ui";
 import styles from "./teacher-overview.module.css";
 
+const DISPLAYED_BAND_COUNT = 3;
 const BANDS = [
   { level: "HEALTHY", label: "Saudáveis" },
   { level: "ATTENTION", label: "Em atenção" },
@@ -50,12 +51,21 @@ export function TeacherHealthDistribution({
           ) : null,
         )}
       </svg>
-      {bands.slice(0, 3).map((band) => (
+      {bands.slice(0, DISPLAYED_BAND_COUNT).map((band) => (
         <div key={band.level} data-level={band.level}>
-          <strong>{pending ? <InlineSkeleton className="w-8" /> : data ? band.count : "—"}</strong>
+          <strong>
+            {pending ? <InlineSkeleton className="w-8" /> : bandCount(band.count, data)}
+          </strong>
           <span>{band.label}</span>
         </div>
       ))}
     </div>
   );
+}
+
+function bandCount(
+  count: number,
+  data: RouterOutputs["teachers"]["metrics"] | undefined,
+): number | string {
+  return data ? count : "—";
 }

@@ -1,6 +1,7 @@
 "use client";
-import { useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { ArrowRight, HeartPulse } from "lucide-react";
+import type { RouterOutputs } from "@lazuli/api";
 import { Button, InlineSkeleton } from "@lazuli/ui";
 import { TeacherClassIndicators } from "./teacher-class-indicators";
 import { TeacherOccurrencesDialog } from "./teacher-occurrences-dialog";
@@ -33,14 +34,7 @@ export function TeacherMetrics({
   };
   return (
     <div className={styles.overview} data-expanded={query.isError || undefined}>
-      {query.isError && (
-        <div role="alert" className={styles.error}>
-          <p>Não foi possível atualizar os indicadores.</p>
-          <Button size="sm" variant="secondary" onClick={() => void query.refetch()}>
-            Tentar novamente
-          </Button>
-        </div>
-      )}
+      {query.isError && <MetricError retry={() => void query.refetch()} />}
       <div className={styles.overviewGrid} aria-busy={pending} data-loading={pending || undefined}>
         <MetricContainer
           title="Saúde dos alunos"
@@ -82,22 +76,12 @@ export function TeacherMetrics({
           onDetails={(button) => open("attendance", button)}
         />
       </div>
-      {detail === "followup" && data && (
-        <TeacherOccurrencesDialog
-          data={data}
-          onClose={() => setDetail(null)}
-          returnFocus={trigger}
-        />
-      )}
-      {detail && detail !== "followup" && data && (
-        <TeacherMetricDetails
-          key={detail}
-          data={data}
-          detail={detail}
-          onClose={() => setDetail(null)}
-          returnFocus={trigger}
-        />
-      )}
+      <MetricDetailsPanel
+        detail={detail}
+        data={data}
+        onClose={() => setDetail(null)}
+        returnFocus={trigger}
+      />
     </div>
   );
 }
@@ -177,6 +161,42 @@ function MetricAction({
       >
         {children}
         <ArrowRight aria-hidden="true" />
+      </Button>
+    </div>
+  );
+}
+
+function MetricDetailsPanel({
+  detail,
+  data,
+  onClose,
+  returnFocus,
+}: {
+  detail: MetricDetail | null;
+  data: RouterOutputs["teachers"]["metrics"] | undefined;
+  onClose: () => void;
+  returnFocus: RefObject<HTMLButtonElement | null>;
+}): ReactElement | null {
+  if (!detail || !data) return null;
+  if (detail === "followup")
+    return <TeacherOccurrencesDialog data={data} onClose={onClose} returnFocus={returnFocus} />;
+  return (
+    <TeacherMetricDetails
+      key={detail}
+      data={data}
+      detail={detail}
+      onClose={onClose}
+      returnFocus={returnFocus}
+    />
+  );
+}
+
+function MetricError({ retry }: { retry: () => void }): ReactElement {
+  return (
+    <div role="alert" className={styles.error}>
+      <p>Não foi possível atualizar os indicadores.</p>
+      <Button size="sm" variant="secondary" onClick={retry}>
+        Tentar novamente
       </Button>
     </div>
   );

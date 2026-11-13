@@ -61,9 +61,6 @@ jobs:
   unit:
     name: Testes unitários, scripts e estilos
     runs-on: ubuntu-latest
-    # Unit router imports initialize the client without connecting to a live database.
-    env:
-      DATABASE_URL: postgresql://unit:unit@127.0.0.1:5432/unit
     steps:
       - name: Preparar código
         uses: actions/checkout@v4

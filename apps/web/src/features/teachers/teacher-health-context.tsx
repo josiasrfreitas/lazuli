@@ -5,6 +5,9 @@ import type { RouterOutputs } from "@lazuli/api";
 import { TeacherHealthContextLoading } from "./teacher-metric-loading";
 import styles from "./teacher-overview.module.css";
 
+const HIGHLIGHT_COUNT = 3;
+const INDICATOR_COUNT = 4;
+
 export function TeacherHealthContext({
   data,
 }: {
@@ -13,15 +16,21 @@ export function TeacherHealthContext({
   if (!data) return <TeacherHealthContextLoading />;
   const flagged = data.students
     .filter((student) => student.level === "ATTENTION" || student.level === "PRIORITY")
-    .toSorted((a, b) => (a.score ?? 0) - (b.score ?? 0) || a.name.localeCompare(b.name, "pt-BR"))
-    .slice(0, 3);
+    .toSorted(
+      (left, right) =>
+        (left.score ?? 0) - (right.score ?? 0) || left.name.localeCompare(right.name, "pt-BR"),
+    )
+    .slice(0, HIGHLIGHT_COUNT);
   const highlightedIds = new Set(flagged.map((student) => student.id));
   const highest = data.students
     .filter((student) => student.score !== null && !highlightedIds.has(student.id))
-    .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.name.localeCompare(b.name, "pt-BR"))
-    .slice(0, 3);
+    .toSorted(
+      (left, right) =>
+        (right.score ?? 0) - (left.score ?? 0) || left.name.localeCompare(right.name, "pt-BR"),
+    )
+    .slice(0, HIGHLIGHT_COUNT);
   const partial = data.students.filter(
-    (student) => student.score !== null && student.availableIndicators < 4,
+    (student) => student.score !== null && student.availableIndicators < INDICATOR_COUNT,
   ).length;
   const missing = data.studentCount - data.coveredStudents;
   return (
@@ -37,7 +46,7 @@ export function TeacherHealthContext({
               {students.map((student) => (
                 <TeacherHealthStudent key={student.id} student={student} />
               ))}
-              {Array.from({ length: 3 - students.length }, (_, index) => (
+              {Array.from({ length: HIGHLIGHT_COUNT - students.length }, (_empty, index) => (
                 <li key={`empty-${index}`} className={styles.healthFocusEmpty} aria-hidden="true" />
               ))}
             </ul>
@@ -54,12 +63,19 @@ export function TeacherHealthContext({
       )}
       <p className={styles.healthCoverage}>
         {missing > 0 ? `${missing} sem dados suficientes. ` : ""}
-        {partial > 0
-          ? `${partial} ${partial === 1 ? "aluno com indicadores parciais" : "alunos com indicadores parciais"}. Dados ausentes não viram zero.`
-          : data.coveredStudents > 0
-            ? "Os alunos avaliados têm os quatro indicadores disponíveis."
-            : "As faixas aparecem conforme os registros são preenchidos."}
+        {coverageLabel({ partial, covered: data.coveredStudents })}
       </p>
     </div>
   );
+}
+
+function coverageLabel({ partial, covered }: { partial: number; covered: number }): string {
+  if (partial > 0) {
+    const cohort =
+      partial === 1 ? "aluno com indicadores parciais" : "alunos com indicadores parciais";
+    return `${partial} ${cohort}. Dados ausentes não viram zero.`;
+  }
+  return covered > 0
+    ? "Os alunos avaliados têm os quatro indicadores disponíveis."
+    : "As faixas aparecem conforme os registros são preenchidos.";
 }

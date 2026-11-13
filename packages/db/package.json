@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./student-health-batch": "./src/student-health-batch.ts",
     "./teacher-responsibility": "./src/teacher-responsibility.ts",
     "./appointment-evidence": "./src/appointment-evidence.ts",
     "./prisma": "./src/generated/prisma/client.ts"

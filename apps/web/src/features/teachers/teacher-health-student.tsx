@@ -9,6 +9,7 @@ import { metricNumber } from "./teacher-metric-details";
 import styles from "./teacher-overview.module.css";
 import preview from "./teacher-health-student.module.css";
 
+const FULL_ATTENDANCE_PERCENT = 100;
 type Student = RouterOutputs["teachers"]["metrics"]["students"][number];
 
 export function TeacherHealthStudent({ student }: { student: Student }): ReactElement {
@@ -48,7 +49,7 @@ export function TeacherHealthStudent({ student }: { student: Student }): ReactEl
               <dd>
                 {student.attendance.percent === null
                   ? "Sem chamada"
-                  : `${metricNumber(100 - student.attendance.percent)}%`}
+                  : `${metricNumber(FULL_ATTENDANCE_PERCENT - student.attendance.percent)}%`}
               </dd>
             </div>
             <div>

@@ -8,6 +8,7 @@ import {
   useState,
   type ComponentProps,
   type ReactNode,
+  type ReactElement,
 } from "react";
 import { Avatar } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -18,10 +19,12 @@ type Context = {
   photos: Map<string, Photo>;
   pending: boolean;
 };
+const PHOTO_BATCH_DELAY_MS = 40;
+const PHOTO_BATCH_LIMIT = 500;
 const Photos = createContext<Context | null>(null);
 
 /** Collect mounted identities before issuing one independent metadata query. */
-export function StudentAvatarProvider({ children }: { children: ReactNode }) {
+export function StudentAvatarProvider({ children }: { children: ReactNode }): ReactElement {
   const [counts, setCounts] = useState(() => new Map<string, number>());
   const register = useCallback((id: string) => {
     setCounts((previous) => new Map(previous).set(id, (previous.get(id) ?? 0) + 1));
@@ -34,14 +37,14 @@ export function StudentAvatarProvider({ children }: { children: ReactNode }) {
         return next;
       });
   }, []);
-  const ids = useMemo(() => [...counts.keys()].sort(), [counts]);
+  const ids = useMemo(() => [...counts.keys()].toSorted(), [counts]);
   const [batch, setBatch] = useState<string[]>([]);
   useEffect(() => {
-    const timer = setTimeout(() => setBatch(ids), 40);
+    const timer = setTimeout(() => setBatch(ids), PHOTO_BATCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [ids]);
   const query = trpc.studentDocuments.photos.useQuery(
-    { studentIds: batch.slice(0, 500) },
+    { studentIds: batch.slice(0, PHOTO_BATCH_LIMIT) },
     {
       enabled: batch.length > 0,
       staleTime: 60_000,
@@ -61,46 +64,68 @@ export function StudentAvatarProvider({ children }: { children: ReactNode }) {
   return <Photos.Provider value={value}>{children}</Photos.Provider>;
 }
 
-export function StudentAvatar(props: ComponentProps<typeof Avatar>) {
+function useStudentPhoto(id: string | undefined): { url: string | null; pending: boolean } {
   const context = useContext(Photos);
-  const id = props.colorKey;
   const register = context?.register;
   useEffect(() => {
     if (id && register && /^[0-9a-f-]{36}$/i.test(id)) return register(id);
   }, [id, register]);
-  const photo = id ? context?.photos.get(id) : undefined;
+  const photo = context?.photos.get(id ?? "");
   const url = photo
     ? `/api/student-document-files/${photo.id}?v=${photo.updatedAt.getTime()}`
     : null;
+  return { url, pending: context?.pending ?? false };
+}
+
+function usePhotoPresentation(
+  url: string | null,
+  pending: boolean,
+): {
+  loading: boolean;
+  visible: boolean;
+  ready: boolean;
+  setLoaded: (url: string) => void;
+  setFailed: (url: string) => void;
+} {
   const [loaded, setLoaded] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const loading = pending || Boolean(url && url !== loaded && url !== failed);
+  return {
+    loading,
+    visible: Boolean(url && failed !== url),
+    ready: loaded === url,
+    setLoaded,
+    setFailed,
+  };
+}
+
+export function StudentAvatar(props: ComponentProps<typeof Avatar>): ReactElement {
+  const { url, pending } = useStudentPhoto(props.colorKey);
+  const presentation = usePhotoPresentation(url, pending);
   return (
-    <span
-      className="relative inline-flex shrink-0"
-      aria-busy={Boolean(context?.pending || (url && url !== loaded && url !== failed))}
-    >
+    <span className="relative inline-flex shrink-0" aria-busy={presentation.loading}>
       <span
         className={
-          context?.pending || (url && url !== loaded && url !== failed)
+          presentation.loading
             ? "inline-flex animate-pulse motion-reduce:animate-none"
             : "inline-flex"
         }
       >
         <Avatar {...props} />
       </span>
-      {url && failed !== url && (
+      {url && presentation.visible && (
         <img
           src={url}
           alt=""
           loading="lazy"
           decoding="async"
           className={
-            loaded === url
+            presentation.ready
               ? "absolute inset-0 size-full rounded-full object-cover"
               : "absolute inset-0 size-full rounded-full object-cover opacity-0"
           }
-          onLoad={() => setLoaded(url)}
-          onError={() => setFailed(url)}
+          onLoad={() => presentation.setLoaded(url)}
+          onError={() => presentation.setFailed(url)}
         />
       )}
     </span>

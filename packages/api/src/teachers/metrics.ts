@@ -1,4 +1,5 @@
-import { readStudentHealthBatch, type Prisma } from "@lazuli/db";
+import type { Prisma } from "@lazuli/db";
+import { readStudentHealthBatch } from "@lazuli/db/student-health-batch";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   responsibilitySelect,
