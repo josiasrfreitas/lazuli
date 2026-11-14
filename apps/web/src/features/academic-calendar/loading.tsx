@@ -1,6 +1,7 @@
+import type { ReactElement } from "react";
 import { LoaderCircle } from "lucide-react";
 
-export function AcademicCalendarLoading() {
+export function AcademicCalendarLoading(): ReactElement {
   return (
     <section className="grid gap-4 p-4 md:px-8 md:py-6" aria-busy="true">
       <h1 className="font-display text-h3 text-heading">Calendário acadêmico</h1>
