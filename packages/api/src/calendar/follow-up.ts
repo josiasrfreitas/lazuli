@@ -1,6 +1,16 @@
 import type { Prisma } from "@lazuli/db";
 import { civil } from "./change-state.js";
-export async function calendarPlanWarnings(database: Prisma.TransactionClient, year: number) {
+type CalendarPlanWarning = {
+  id: string;
+  date: string;
+  title: string;
+  classId: string | null;
+  name: string;
+};
+export async function calendarPlanWarnings(
+  database: Prisma.TransactionClient,
+  year: number,
+): Promise<CalendarPlanWarning[]> {
   const [items, closedDays] = await Promise.all([
     database.stagePlanItem.findMany({
       where: {

@@ -1,4 +1,12 @@
 import { z, civilDateSchema } from "@lazuli/validators";
+const TITLE_LIMIT = 160;
+const DESCRIPTION_LIMIT = 2000;
+const PERIOD_NAME_LIMIT = 80;
+const SOURCE_KEY_LIMIT = 120;
+const HOLIDAY_IMPORT_LIMIT = 40;
+const DAY_MILLISECONDS = 86_400_000;
+const MAXIMUM_RANGE_DAYS = 365;
+const ISO_YEAR_LENGTH = 4;
 
 const calendarDate = civilDateSchema.refine(
   (value) => value >= "2000-01-01" && value <= "2100-12-31",
@@ -7,8 +15,8 @@ const calendarDate = civilDateSchema.refine(
 const revision = z.string().datetime({ offset: true });
 const interruption = z.object({
   kind: z.enum(["HOLIDAY", "RECESS", "MAINTENANCE", "OTHER"]),
-  title: z.string().trim().min(1).max(160),
-  description: z.string().trim().max(2000).nullable(),
+  title: z.string().trim().min(1).max(TITLE_LIMIT),
+  description: z.string().trim().max(DESCRIPTION_LIMIT).nullable(),
   from: calendarDate,
   through: calendarDate,
 });
@@ -20,7 +28,7 @@ export const calendarChangeSchema = z
         action: z.literal("period"),
         id: z.string().uuid().optional(),
         expectedUpdatedAt: revision.optional(),
-        name: z.string().trim().min(1).max(80),
+        name: z.string().trim().min(1).max(PERIOD_NAME_LIMIT),
         from: calendarDate,
         through: calendarDate,
       })
@@ -47,13 +55,13 @@ export const calendarChangeSchema = z
             z
               .object({
                 date: calendarDate,
-                title: z.string().trim().min(1).max(160),
-                sourceKey: z.string().max(120),
+                title: z.string().trim().min(1).max(TITLE_LIMIT),
+                sourceKey: z.string().max(SOURCE_KEY_LIMIT),
               })
               .strict(),
           )
           .min(1)
-          .max(40),
+          .max(HOLIDAY_IMPORT_LIMIT),
       })
       .strict(),
   ])
@@ -67,7 +75,7 @@ export const calendarChangeSchema = z
         });
       if (
         value.through < value.from ||
-        (Date.parse(value.through) - Date.parse(value.from)) / 86400000 > 365
+        (Date.parse(value.through) - Date.parse(value.from)) / DAY_MILLISECONDS > MAXIMUM_RANGE_DAYS
       )
         context.addIssue({
           code: "custom",
@@ -77,7 +85,7 @@ export const calendarChangeSchema = z
     }
     if (
       value.action === "holidays" &&
-      new Set(value.dates.map((item) => item.date.slice(0, 4))).size !== 1
+      new Set(value.dates.map((item) => item.date.slice(0, ISO_YEAR_LENGTH))).size !== 1
     )
       context.addIssue({
         code: "custom",

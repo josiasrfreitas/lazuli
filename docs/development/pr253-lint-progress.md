@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 6:** 50 original errors across calendar capacity/import/schema and reconciliation: `packages/api/src/calendar/change-schema.ts` (10), `capacity.ts` (10), `holidays.ts` (9), `follow-up.ts` (1); `packages/worker-handlers/src/calendar/process.ts` (13), `appointments.ts` (2); `apps/worker/src/periodic-tasks.ts` (2), `test/periodic-tasks.unit.test.ts` (3). No batch-6 edits yet; latest remaining: 50.
-> **Baseline:** 618 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch5.json`.
-> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over the recorded files and extracted helpers/callers, serially.
-> **Next gate:** zero targeted errors, types and focused calendar/worker tests, then full serial lint and diagnostic comparison. Keep batches at 50; no rule weakening, suppressions, or lint `--fix`.
+> **Locked batch 7:** 50 original errors: the remaining API files/tests (40), `packages/validators/src/teacher.ts` (9), and `packages/ui/src/components/schedule-calendar.tsx` (1). Exact file inventory below. No batch-7 edits yet; latest remaining: 50.
+> **Baseline:** 568 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch6.json`.
+> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over all recorded paths and extracted helpers/dependent callers, serially.
+> **Next gate:** zero errors across the complete area, types and focused upload/teacher/router tests, then full serial lint and diagnostic comparison. Preserve all fixtures/identifiers, behavior and rules; no lint `--fix`.
+
+> **Closed batch 6:** 50 original errors removed across capacity, holidays, schema, calendar reconciliation and periodic tasks. Full lint 618 → 568, zero added by file/rule/message. Types passed in all 15 workspaces; 16 distinct focused tests passed after running the API import test from its package directory. Full lint included duplication, which passed.
 
 > **Closed batch 5:** 50 removed from calendar impact, change application, state and academic endpoints. Full lint 668 → 618, zero added by file/rule/message. Types passed across all 15 workspaces, with API types rerun after tests. Eight focused projection/router tests passed. Database integration deferred to CI; no local PostgreSQL/Docker infrastructure is installed.
 
@@ -143,3 +145,29 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Preserved manual closure precedence, overlap unions, period placement guards, recorded-activity protection and holiday-source deduplication. Added four focused projection/version regression tests; existing router seam tests remained green (8 total).
 - Targeted lint over all 11 source files: zero errors/warnings. Full lint comparison: 668 → 618, exactly 50 removed and no new diagnostics. Evidence: `pr253-batch5-target.log`, `pr253-batch5-types.log`, `pr253-lint-after-batch5.log`, `pr253-after-batch5.json` in the cloud workspace.
 - Remote head was rechecked at `72131883f559b98d646028b25215809c0dd7aa9c` before this work; no concurrent changes observed. This batch is held locally for a grouped publication.
+
+## Batch 6 validation
+
+- Refactored per-date capacity and plan totals, preserving both null/undefined unknown targets, existing recorded classes on closed days, and effective planning windows.
+- Split reconciliation reads, appointment/visit/session cancellation and generation without moving the transaction, locks, audit persistence, cancellation order or retry interval. Existing appointment evidence snapshots stay in place.
+- Typed the periodic-task seam and fake directly; cron values, replica exclusion, timeouts and returned completion status are unchanged. No test identifiers or expectations changed.
+- API, handler and worker targeted lint: zero errors/warnings. Full `pnpm lint --concurrency=1 --continue=dependencies-successful`: 568 errors, 50 removed and zero added; duplication passed. Types: 15/15 workspaces. Focused tests: periodic registration 1, session generation 7, calendar projection 4 and router seam 4.
+- Evidence: `pr253-batch6-{api,handlers,worker}-target.log`, `pr253-batch6-types.log`, `pr253-lint-after-batch6.log`, `pr253-after-batch6.json` in the cloud workspace. Local integration/transport remains deferred to the grouped publication's CI.
+
+## Batch 7 lock
+
+| File                                                          | Original errors |
+| ------------------------------------------------------------- | --------------: |
+| `packages/validators/src/teacher.ts`                          |               9 |
+| `packages/ui/src/components/schedule-calendar.tsx`            |               1 |
+| `packages/api/test/teachers/metric-rules.unit.test.ts`        |               1 |
+| `packages/api/src/student-documents/transport.ts`             |               6 |
+| `packages/api/src/student-documents/router.ts`                |               1 |
+| `packages/api/src/student-documents/upload.ts`                |               1 |
+| `packages/api/test/calendar/router.transport.test.ts`         |               3 |
+| `packages/api/src/trpc/init.ts`                               |               1 |
+| `packages/api/src/teachers/upload-sessions.ts`                |              14 |
+| `packages/api/src/appointments/scheduling.ts`                 |               2 |
+| `packages/api/test/teachers/metrics-attendance.unit.test.ts`  |               6 |
+| `packages/api/test/occurrences/follow-up.integration.test.ts` |               3 |
+| `packages/api/test/calendar/router.integration.test.ts`       |               2 |

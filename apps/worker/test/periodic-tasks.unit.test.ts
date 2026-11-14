@@ -1,21 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createPeriodicTasks } from "../src/periodic-tasks.js";
+import { createPeriodicTasks, type PeriodicTaskDefinition } from "../src/periodic-tasks.js";
 import { ConcurrencyLimitStrategy } from "@lazuli/integrations/hatchet";
 
-test("registers recurring business work with stable schedules and replica-wide exclusion", () => {
-  const definitions: {
-    name: string;
-    onCrons?: string[];
-    concurrency?: unknown;
-    retries?: number;
-  }[] = [];
+void test("registers recurring business work with stable schedules and replica-wide exclusion", () => {
+  const definitions: PeriodicTaskDefinition[] = [];
   const hatchet = {
     task: (definition: (typeof definitions)[number]) => {
       definitions.push(definition);
       return definition;
     },
-  } as unknown as Parameters<typeof createPeriodicTasks>[0];
+  };
   const workflows = createPeriodicTasks(hatchet);
   assert.equal(workflows.length, 4);
   assert.deepEqual(

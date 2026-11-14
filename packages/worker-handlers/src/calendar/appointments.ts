@@ -7,10 +7,8 @@ import { academicActivityCanBeCancelled } from "@lazuli/domain";
 
 export async function cancelCalendarAppointment(
   database: Prisma.TransactionClient,
-  id: string,
-  request: CalendarReconciliationRequest,
-  now: Date,
-) {
+  { id, request, now }: { id: string; request: CalendarReconciliationRequest; now: Date },
+): Promise<number> {
   const row = await database.pedagogicalAppointment.findUniqueOrThrow({
     where: { id },
     include: appointmentEvidenceInclude,

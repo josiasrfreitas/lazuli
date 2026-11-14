@@ -10,18 +10,29 @@ import { runJob } from "./run-job.js";
 type Hatchet = Awaited<ReturnType<typeof getHatchetClient>>;
 
 /** Stable cron registrations are shared by replicas within the database's Hatchet namespace. */
-export function createPeriodicTasks(hatchet: Pick<Hatchet, "task">) {
-  const actions: Record<keyof typeof PERIODIC_WORKFLOWS, () => Promise<unknown>> = {
-    enrollment: () =>
-      db.$transaction((database) => processDueEnrollmentActions({ database, now: new Date() }), {
-        timeout: 30_000,
-      }),
+export type PeriodicTaskDefinition = Parameters<Hatchet["task"]>[0];
+export function createPeriodicTasks<Task>(hatchet: {
+  task: (definition: PeriodicTaskDefinition) => Task;
+}): Task[] {
+  const actions: Record<keyof typeof PERIODIC_WORKFLOWS, () => Promise<void>> = {
+    enrollment: async () => {
+      await db.$transaction(
+        (database) => processDueEnrollmentActions({ database, now: new Date() }),
+        {
+          timeout: 30_000,
+        },
+      );
+    },
     recovery: async () => {
       await recoverAssessmentFiles(db);
       await recoverStudentDocuments(db);
     },
-    health: () => refreshStudentHealthPending(db),
-    calendar: () => processCalendarReconciliation(db),
+    health: async () => {
+      await refreshStudentHealthPending(db);
+    },
+    calendar: async () => {
+      await processCalendarReconciliation(db);
+    },
   };
   return Object.entries(PERIODIC_WORKFLOWS).map(([key, schedule]) =>
     hatchet.task({
