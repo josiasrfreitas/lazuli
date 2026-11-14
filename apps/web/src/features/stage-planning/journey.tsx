@@ -27,6 +27,7 @@ import { SelectControl } from "~/features/classes/form-controls";
 import { dateLabel, type Planning, type PlannedItem } from "./shared";
 import { semesterOutlook, contentGroups, type ContentGroup } from "./outlook-model";
 import styles from "./journey.module.css";
+import { contentChoicesForUnit } from "./journey-model";
 
 const MINUTES_PER_HOUR = 60;
 const hours = (minutes: number): string =>
@@ -293,9 +294,7 @@ function ContentExplorer({
                   name="planning-content"
                   label="Conteúdo"
                   value={group.id}
-                  choices={groups
-                    .filter((group) => group.unit === group.unit)
-                    .map((group) => ({ value: group.id, label: group.title }))}
+                  choices={contentChoicesForUnit(groups, group.unit)}
                   onChange={onSelect}
                 />
               </div>

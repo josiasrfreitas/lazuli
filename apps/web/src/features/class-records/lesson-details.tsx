@@ -15,7 +15,7 @@ import { StudentAppointmentDialog } from "~/features/appointments/student-appoin
 import { CalendarExperimentalDialog } from "./calendar-experimental-dialog";
 import { RecordAttendance } from "./record-attendance";
 import type { ClassRecord } from "./shared";
-import { kindLabels } from "./shared";
+import { kindLabels, activityStatusLabel } from "./shared";
 import type { ClassRecordContent } from "@lazuli/validators";
 import styles from "./class-record-dialog.module.css";
 
@@ -150,12 +150,7 @@ function PerformedContent({
       </p>
       {recordedActivities(content).map((item) => (
         <p key={item.id} className="text-caption">
-          {item.title ?? "Conteúdo do planejamento"} ·{" "}
-          {item.status === "COMPLETED"
-            ? "Concluído"
-            : item.status === "PARTIAL"
-              ? "Em andamento"
-              : "Sem conclusão informada"}
+          {item.title ?? "Conteúdo do planejamento"} · {activityStatusLabel(item.status)}
         </p>
       ))}
       <p className="whitespace-pre-wrap text-sm">{content.account}</p>

@@ -49,7 +49,7 @@ export function TeacherHealthContextLoading(): ReactElement {
     <div className={styles.healthContext} aria-hidden="true">
       <InlineSkeleton className="w-40" />
       <div className={styles.healthFocusList}>
-        {Array.from({ length: 3 }, (_, index) => (
+        {Array.from({ length: 3 }, (_unused, index) => (
           <div key={index} className={styles.healthFocus}>
             <InlineSkeleton className="size-6" />
             <InlineSkeleton shape="block" className="h-5 w-10 justify-self-end" />

@@ -59,17 +59,7 @@ export function CapacityDialog({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent initialFocus={first} className="md:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              <span className="flex items-center gap-2">
-                <UsersRound aria-hidden="true" className="size-5 shrink-0" />
-                Editar capacidade máxima
-              </span>
-            </DialogTitle>
-            <DialogDescription>
-              {detail.portalClassName} · {detail.occupancy} matrículas ativas
-            </DialogDescription>
-          </DialogHeader>
+          <CapacityHeader detail={detail} />
           <CapacityForm
             value={value}
             error={error}
@@ -164,5 +154,21 @@ export function CapacityForm({
         </div>
       </DialogBody>
     </form>
+  );
+}
+
+function CapacityHeader({ detail }: { detail: RouterOutputs["classes"]["byId"] }): ReactElement {
+  return (
+    <DialogHeader>
+      <DialogTitle>
+        <span className="flex items-center gap-2">
+          <UsersRound aria-hidden="true" className="size-5 shrink-0" />
+          Editar capacidade máxima
+        </span>
+      </DialogTitle>
+      <DialogDescription>
+        {detail.portalClassName} · {detail.occupancy} matrículas ativas
+      </DialogDescription>
+    </DialogHeader>
   );
 }

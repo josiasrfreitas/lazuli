@@ -281,8 +281,12 @@ function TaskActions(props: TaskDialogProps): ReactElement {
         variant={props.submitVariant ?? "primary"}
       >
         {props.submitIcon ?? <Check aria-hidden="true" />}
-        {props.pending ? (props.pendingLabel ?? "Salvando…") : props.submitLabel}
+        {taskSubmitLabel(props)}
       </Button>
     </>
   );
+}
+
+function taskSubmitLabel(props: TaskDialogProps): string {
+  return props.pending ? (props.pendingLabel ?? "Salvando…") : props.submitLabel;
 }

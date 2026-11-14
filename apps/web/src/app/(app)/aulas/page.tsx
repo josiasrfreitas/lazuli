@@ -15,8 +15,9 @@ export default async function Page({
   const identity = await requireRole(["ADMIN", "SYSTEM_ADMIN", "TEACHER"]);
   const teacherView = identity.role === "TEACHER";
   const admin = identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN";
-  if (admin && (await searchParams).visao === "academico") return <AcademicCalendar />;
-  if (Object.keys(await searchParams).length > 0)
+  const params = await searchParams;
+  if (admin && params.visao === "academico") return <AcademicCalendar />;
+  if (Object.keys(params).length > 0)
     return <ClassAgenda teacherView={teacherView} admin={admin} />;
 
   const today = schoolToday();

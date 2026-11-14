@@ -29,24 +29,10 @@ function PlanningWorkspaceContent({ classId, progressId }: WorkspaceProps): Reac
   );
   const prepare = trpc.planning.prepare.useMutation({ onSuccess: () => query.refetch() });
   useEffect(() => {
-    if (
-      query.data &&
-      !query.data.plan &&
-      !query.data.preview &&
-      !query.data.scope.readOnly &&
-      prepare.isIdle
-    )
+    if (needsPreparation(query.data, prepare.isIdle))
       prepare.mutate({ classId, ...(progressId ? { progressId } : {}) });
   }, [query.data, classId, progressId, prepare.isIdle, prepare.mutate]);
-  if (
-    query.isPending ||
-    prepare.isPending ||
-    (query.data &&
-      !query.data.plan &&
-      !query.data.preview &&
-      !query.data.scope.readOnly &&
-      prepare.isIdle)
-  )
+  if (query.isPending || prepare.isPending || needsPreparation(query.data, prepare.isIdle))
     return <PlanningLoading />;
   return (
     <>
@@ -74,13 +60,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
         {data.plan || data.preview ? (
           <PlanningJourney
             data={data}
-            onEdit={
-              !data.plan ||
-              data.scope.readOnly ||
-              data.plan.items.some((item) => item.programActivityId)
-                ? undefined
-                : (item) => setMode({ kind: "item", item })
-            }
+            onEdit={canEditPlanItems(data) ? (item) => setMode({ kind: "item", item }) : undefined}
           />
         ) : (
           <EmptyPlan data={data} onStart={() => setMode({ kind: "window" })} />
@@ -168,5 +148,14 @@ function EmptyPlan({ data, onStart }: { data: Planning; onStart: () => void }): 
         }
       />
     </div>
+  );
+}
+
+function needsPreparation(data: Planning | undefined, idle: boolean): boolean {
+  return Boolean(data && !data.plan && !data.preview && !data.scope.readOnly && idle);
+}
+function canEditPlanItems(data: Planning): boolean {
+  return Boolean(
+    data.plan && !data.scope.readOnly && !data.plan.items.some((item) => item.programActivityId),
   );
 }

@@ -27,7 +27,7 @@ void it("keeps capacity numeric, labelled and keyboard submittable, with an expl
   assert.match(input, /autoComplete="off"/iu);
   assert.match(input, /placeholder="Ex.: 16"/u);
   assert.match(markup, /A turma ficará acima da capacidade informada/u);
-  for (const capacity of [0, -1, 1.5, 501, NaN]) {
+  for (const capacity of [0, -1, 1.5, 501, Number.NaN]) {
     assert.equal(
       classCapacityInputSchema.safeParse({ id: "4a43db89-40c1-4dde-a2de-026e368e1a36", capacity })
         .success,

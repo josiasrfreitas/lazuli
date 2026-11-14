@@ -1,25 +1,10 @@
 # PR 253 lint progress
 
-> **Locked batch 18:** final 18 errors in the inventory below, plus the Pullfrog selected-unit regression in journey.tsx (helper/test allowed). Latest remaining: 18; edits not started.
-> **Baseline:** 18 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch17.json`.
-> **Command:** targeted `pnpm -F @lazuli/web exec lazuli-lint` over all inventory/helper/test paths; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
-> **Next gate:** zero target errors, types, focused contracts and selected-unit regression test, full lint zero and publication gates.
+> **No active lint batch:** all 868 baseline errors resolved in 17 batches of 50 plus the final 18. Latest remaining: 0.
+> **Snapshot:** `/workspace/scratch/e19b55f99412/pr253-after-batch18.json`; full command `pnpm lint --concurrency=1 --continue=dependencies-successful`, all 17 tasks passed including duplication.
+> **Next gate:** publish batches 17–18 together after pre-push and confirm CI/Pullfrog against the exact remote head. No merge or PR comments.
 
-- `apps/web/src/features/shared/task-form.tsx`: 1
-- `apps/web/src/app/(app)/aulas/page.tsx`: 1
-- `apps/web/src/features/class-records/shared.tsx`: 1
-- `apps/web/src/features/class-records/lesson-details.tsx`: 1
-- `apps/web/src/features/class-organization/period-create-form.tsx`: 1
-- `apps/web/test/features/class-capacity-form-contract.unit.test.ts`: 1
-- `apps/web/src/features/class-organization/calendar-holidays.tsx`: 1
-- `apps/web/src/features/class-organization/calendar-closure.tsx`: 1
-- `apps/web/src/features/class-organization/calendar-period.tsx`: 1
-- `apps/web/src/features/teachers/teacher-metric-loading.tsx`: 1
-- `apps/web/src/features/class-organization/calendar-sidebar.tsx`: 1
-- `apps/web/src/features/stage-planning/workspace.tsx`: 2
-- `apps/web/src/features/stage-planning/planning-loading.tsx`: 2
-- `apps/web/src/features/classes/capacity-dialog.tsx`: 1
-- `apps/web/src/app/api/mobile-upload-origin/route.ts`: 2
+> **Closed batch 18:** 18 → 0, exactly 18 removed/zero added. Types 15/15; 17 focused tests passed, including multi-unit selector regression. Target zero errors/42 existing warnings. Format and quality passed (one inherited assertion-in-loop contextual warning).
 
 > **Closed batch 17:** 68 → 18, exactly 50 removed/zero added. Types 15/15 plus web rerun; 23 focused tests passed. Target zero errors/13 existing warnings. Removed the now-unused session-test suppression; no rule weakened.
 
@@ -316,3 +301,25 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Narrowed session generation database contract to the actual projections; real Prisma callers typecheck and seven session tests pass without double casts.
 - Evidence: `pr253-after-batch17.json`, `pr253-lint-after-batch17.log`, `pr253-batch17-{target,handlers,types,web-types,tests,session-tests}.log`.
 - Pullfrog on `10cd450` found selected-unit filtering regression from a shadowed callback variable. Prioritized in final batch with a multi-unit test. Production/unit/styles/deployment passed; integration pending at last check.
+
+## Batch 18 closure
+
+- `apps/web/src/features/shared/task-form.tsx`: 1
+- `apps/web/src/app/(app)/aulas/page.tsx`: 1
+- `apps/web/src/features/class-records/shared.tsx`: 1
+- `apps/web/src/features/class-records/lesson-details.tsx`: 1
+- `apps/web/src/features/class-organization/period-create-form.tsx`: 1
+- `apps/web/test/features/class-capacity-form-contract.unit.test.ts`: 1
+- `apps/web/src/features/class-organization/calendar-holidays.tsx`: 1
+- `apps/web/src/features/class-organization/calendar-closure.tsx`: 1
+- `apps/web/src/features/class-organization/calendar-period.tsx`: 1
+- `apps/web/src/features/teachers/teacher-metric-loading.tsx`: 1
+- `apps/web/src/features/class-organization/calendar-sidebar.tsx`: 1
+- `apps/web/src/features/stage-planning/workspace.tsx`: 2
+- `apps/web/src/features/stage-planning/planning-loading.tsx`: 2
+- `apps/web/src/features/classes/capacity-dialog.tsx`: 1
+- `apps/web/src/app/api/mobile-upload-origin/route.ts`: 2
+
+- Corrected the Pullfrog finding from `10cd450`: content choices compare each candidate unit to the selected unit, with a regression test covering repeated titles across two units.
+- Preserved preparation/editability guards, capacity dialog state, activity labels, agenda query handling and development mobile-origin behavior while removing the remaining lint violations. No CSS/layout or authorization changes.
+- Evidence: `pr253-after-batch18.json`, `pr253-lint-after-batch18.log`, `pr253-batch18-{target,types,tests,record-tests,format,quality}.log`. Local build remains blocked by executor interface enumeration; production builds passed on `10cd450`. Orca is unavailable, so visual validation is not claimed.

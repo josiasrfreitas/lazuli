@@ -36,7 +36,7 @@ export function CalendarSidebar({
       <ClosedDaysList board={board} />
       <Link
         className="text-caption text-interactive underline"
-        href={`/aulas?visao=academico&ano=${start.slice(0, 4)}`}
+        href={`/aulas?visao=academico&ano=${start.slice(0, YEAR_LENGTH)}`}
       >
         Editar feriados e recessos no calendário
       </Link>
@@ -97,3 +97,5 @@ function ClosedDaysList({ board }: { board: OrganizationBoard }): ReactJSX.Eleme
     </div>
   );
 }
+
+const YEAR_LENGTH = 4;

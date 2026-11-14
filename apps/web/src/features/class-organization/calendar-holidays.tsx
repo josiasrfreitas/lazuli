@@ -1,9 +1,10 @@
 "use client";
+import type { ReactElement } from "react";
 import { Alert, Button } from "@lazuli/ui";
 import { CalendarHolidays } from "~/features/academic-calendar/holidays";
 import { trpc } from "~/lib/trpc";
 import type { OrganizationDialogProps } from "./dialogs";
-export function HolidayForm({ board, onClose }: OrganizationDialogProps) {
+export function HolidayForm({ board, onClose }: OrganizationDialogProps): ReactElement {
   const year = board.semester.startDate.getUTCFullYear();
   const query = trpc.calendar.academic.year.useQuery({ year });
   if (query.isPending) return <p role="status">Carregando calendário…</p>;

@@ -79,12 +79,7 @@ export function PerformedContent({ value }: { value: ClassRecordContent }): Reac
       <Badge variant="neutral">{kindLabels[value.kind]}</Badge>
       {recordedActivities(value).map((item) => (
         <p key={item.id} className="text-caption">
-          {item.title ?? "Conteúdo do planejamento"} ·{" "}
-          {item.status === "COMPLETED"
-            ? "Concluído"
-            : item.status === "PARTIAL"
-              ? "Em andamento"
-              : "Sem conclusão informada"}
+          {item.title ?? "Conteúdo do planejamento"} · {activityStatusLabel(item.status)}
         </p>
       ))}
       <p className="whitespace-pre-wrap text-sm leading-relaxed">{value.account}</p>
@@ -163,4 +158,12 @@ function SnapshotAttendance({
       {status === "PRESENT" ? "Presente" : "Falta"}
     </Badge>
   );
+}
+
+export function activityStatusLabel(
+  status: ReturnType<typeof recordedActivities>[number]["status"],
+): string {
+  if (status === "COMPLETED") return "Concluído";
+  if (status === "PARTIAL") return "Em andamento";
+  return "Sem conclusão informada";
 }

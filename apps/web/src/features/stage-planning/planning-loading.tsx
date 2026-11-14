@@ -20,8 +20,8 @@ export function PlanningLoading(): ReactElement {
             <InlineSkeleton className="h-4 w-64 max-w-full rounded-sm" />
           </div>
           <div className="grid gap-5">
-            {[0, 1].map((i) => (
-              <div key={i} className="grid gap-2">
+            {[0, 1].map((index) => (
+              <div key={index} className="grid gap-2">
                 <InlineSkeleton className="h-4 w-40 max-w-full rounded-sm" />
                 <InlineSkeleton className="h-1.5 w-full" />
               </div>
@@ -32,8 +32,8 @@ export function PlanningLoading(): ReactElement {
       <div className={styles.content} aria-hidden="true">
         <InlineSkeleton className="h-4 w-40 max-w-full rounded-sm" />
         <div className={styles.moments}>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="grid gap-3">
+          {[0, 1, 2].map((index) => (
+            <div key={index} className="grid gap-3">
               <InlineSkeleton className="h-3 w-24 max-w-full rounded-sm" />
               <InlineSkeleton className="h-5 w-40 max-w-full rounded-sm" />
               <InlineSkeleton className="h-3 w-48 max-w-full rounded-sm" />

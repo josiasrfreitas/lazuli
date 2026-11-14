@@ -131,3 +131,12 @@ function stepState({
   if (evidence.length > 0) return "worked";
   return item.plannedOn !== null && item.plannedOn <= today ? "unconfirmed" : "scheduled";
 }
+
+export function contentChoicesForUnit(
+  groups: readonly { id: string; title: string; unit: string }[],
+  selectedUnit: string,
+): { value: string; label: string }[] {
+  return groups
+    .filter((candidate) => candidate.unit === selectedUnit)
+    .map((candidate) => ({ value: candidate.id, label: candidate.title }));
+}
