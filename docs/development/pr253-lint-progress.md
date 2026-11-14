@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 13:** 50 original errors in apps/web/src/features/academic-calendar: event-form.tsx (19), event-fields.tsx (11), holidays.tsx (14), management.tsx (6). Latest remaining: 50; edits not started.
-> **Baseline:** 268 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch12.json`.
-> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over all four files and helpers; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
-> **Next gate:** zero errors in target/helpers, types and relevant event/holiday tests, then full comparison. Preserve mutation, validation, confirmation and pending boundaries. No suppressions, rule weakening or `--fix`.
+> **Locked batch 14:** 50 original errors under apps/web/src/features: academic-calendar/change-form.tsx (13), change-fields.tsx (9), processing.tsx (9), day-agenda.tsx (11), workshop-data.ts (3), appointments/schedule-dialog-model.ts (4), appointments/academic-exception-dialog.tsx (1). Latest remaining: 50; edits not started.
+> **Baseline:** 218 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch13.json`.
+> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over all seven files and helpers; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
+> **Next gate:** zero target/helper errors, types and focused calendar/appointment tests, then full comparison. Preserve validation, confirmation, retry and mutation ordering; no suppressions or `--fix`.
+
+> **Closed batch 13:** 268 → 218 errors; exactly 50 removed/zero added. Target zero errors/five existing warnings; types 15/15 plus web rerun after tests; eight focused tests passed. Duplication, format, whitespace and test quality passed.
 
 > **Closed batch 12:** 318 → 268 errors, exactly 50 removed/zero added. Compared to published batch 8: 468 → 268, exactly 200 removed/zero added; all four changed length diagnostics from batch 10 are now resolved. Types 15/15, web types rerun after tests; 20 distinct focused tests passed (four context render tests rerun after correcting the expected button span). Target zero errors/three existing warnings. Duplication, format, whitespace and test quality passed.
 
@@ -258,3 +260,10 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Inventory: context-panel.tsx 21, workspace.tsx 28, loading.tsx 1. Preserved day status precedence, annual scroll restoration, reduced-motion handling, keyboard focus return, month/period bounds and conditional editor/daily agenda slots.
 - Tests cover holiday status during vacation, unavailable/empty context, editor placement and disabled creation, daily agenda replacement. No CSS, labels or fixture identifiers changed.
 - Evidence: `pr253-after-batch12.json`, `pr253-lint-after-batch12.log`, `pr253-batch12-{target,types,web-types,tests,context-tests}.log`. Local production build remains blocked by interface enumeration; prior remote production/deployment succeeded.
+
+## Batch 13 closure and interruption diagnosis
+
+- Split event initialization, state, removal confirmation and dialog presentation; preserved optimistic revision payloads, pending cleanup and focus behavior. Split holiday queries/filters/results and management panels; kept existing field/tab elements and CSS classes through native render slots.
+- Added year-boundary/São Paulo prefill and empty/new draft tests; original event field and validation assertions retained. Evidence: `pr253-after-batch13.json`, `pr253-lint-after-batch13.log`, `pr253-batch13-{target,types,web-types,tests}.log`.
+- Published head `8f41e3ef38e8c98fa845151d477a2453c29f996e`: production/unit/scripts/styles/deployment passed; Pullfrog reported no new issues. Static CI logs confirm 262 web + 6 handler lint errors; integration/transport still pending at last check.
+- A tool call to create `/tmp/pr253-holidays13.py`, edit holidays and lint returned “aborted by user”. The script/log were absent and holidays unchanged afterward. No accessible evidence identifies the cancellation origin; Josias said he did not interfere and explicitly authorized resumption. Session/auth remained healthy; the operation was completed only after that authorization. No ZIP scripts were executed.

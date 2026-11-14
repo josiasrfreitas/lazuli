@@ -1,3 +1,4 @@
+import { initialEventDraft } from "../../src/features/academic-calendar/event-form-model.js";
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { createElement } from "react";
@@ -53,4 +54,45 @@ void it("rejects invalid dates, times and nonpositive event durations", () => {
     eventDraftSchema.safeParse({ ...values, endDate: "21/11/2026", endTime: "00:00" }).success,
     true,
   );
+});
+
+void it("prefills school-local dates and times across a UTC year boundary", () => {
+  const draft = initialEventDraft({
+    item: {
+      id: "new-year-event",
+      title: "Virada",
+      description: null,
+      startsAt: new Date("2027-01-01T01:30:00Z"),
+      endsAt: new Date("2027-01-01T03:30:00Z"),
+      updatedAt: new Date("2026-12-01T00:00:00Z"),
+    },
+    initialDate: "2026-11-20",
+  });
+  assert.deepEqual(draft, {
+    title: "Virada",
+    description: "",
+    startDate: "31/12/2026",
+    startTime: "22:30",
+    endDate: "01/01/2027",
+    endTime: "00:30",
+  });
+});
+
+void it("prefills only dates for a new event and leaves an unspecified draft empty", () => {
+  assert.deepEqual(initialEventDraft({ initialDate: "2026-11-20" }), {
+    title: "",
+    description: "",
+    startDate: "20/11/2026",
+    startTime: "",
+    endDate: "20/11/2026",
+    endTime: "",
+  });
+  assert.deepEqual(initialEventDraft({}), {
+    title: "",
+    description: "",
+    startDate: "",
+    startTime: "",
+    endDate: "",
+    endTime: "",
+  });
 });
