@@ -18,7 +18,11 @@ void after(async () => {
   await cleanCalendarDatabase();
   await db.$disconnect();
 });
-async function confirm(change: CalendarChange) {
+async function confirm(
+  change: CalendarChange,
+): Promise<
+  Awaited<ReturnType<ReturnType<typeof caller>["calendar"]["academic"]["changes"]["confirm"]>>
+> {
   const preview = await caller().calendar.academic.changes.preview(change);
   return caller().calendar.academic.changes.confirm({
     change,
@@ -118,11 +122,10 @@ void it("holiday import preserves custom reasons and is idempotent", async () =>
   await confirm(change);
   await confirm(change);
   assert.equal(await db.academicInterruption.count({ where: { sourceKey: "BR:2032-01-01" } }), 1);
-  assert.equal(
-    (await db.schoolClosedDay.findUniqueOrThrow({ where: { date: new Date("2032-01-01") } }))
-      .reason,
-    `${TEST_PREFIX}Recesso manual`,
-  );
+  const closedDay = await db.schoolClosedDay.findUniqueOrThrow({
+    where: { date: new Date("2032-01-01") },
+  });
+  assert.equal(closedDay.reason, `${TEST_PREFIX}Recesso manual`);
 });
 void it("semester confirmation persists a worker request and rejects overlapping periods", async () => {
   await cleanCalendarDatabase();

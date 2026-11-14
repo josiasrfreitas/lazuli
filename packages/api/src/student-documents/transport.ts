@@ -21,8 +21,11 @@ const HTTP = {
   notFound: 404,
   conflict: 409,
   gone: 410,
+  internalError: 500,
 };
 const TOKEN_LENGTH = 43;
+const MAX_TITLE_LENGTH = 100;
+const MAX_SUBTITLE_LENGTH = 240;
 function json<Value>(value: Value, status: number = HTTP.ok): Response {
   return Response.json(value, { status, headers: HEADERS });
 }
@@ -113,7 +116,10 @@ async function uploadCapture(
   }
   try {
     const metadata = z
-      .object({ title: z.string().trim().min(1).max(100), subtitle: z.string().trim().max(240) })
+      .object({
+        title: z.string().trim().min(1).max(MAX_TITLE_LENGTH),
+        subtitle: z.string().trim().max(MAX_SUBTITLE_LENGTH),
+      })
       .parse(
         JSON.parse(
           decodeURIComponent(
@@ -152,30 +158,7 @@ async function uploadCapture(
       HTTP.created,
     );
   } catch (error) {
-    const conflict = error instanceof Error && ["BUSY", "CLOSED"].includes(error.message);
-    const invalid =
-      error instanceof z.ZodError || error instanceof SyntaxError || error instanceof URIError;
-    const fields = {
-      request_id: ctx.requestId,
-      resource: "studentDocuments.upload",
-      operation: "POST",
-      status: "error",
-      ...safeError(error),
-    };
-    if (conflict || invalid) {
-      logger.warn(
-        fields,
-        conflict
-          ? "Document upload rejected: session busy or closed"
-          : "Document upload rejected: invalid metadata",
-      );
-      return json(
-        { code: conflict ? "BUSY_OR_CLOSED" : "INVALID_METADATA" },
-        conflict ? HTTP.conflict : HTTP.badRequest,
-      );
-    }
-    logger.error(fields, "Document upload failed while storing file or metadata");
-    return json({ code: "UPLOAD_FAILED" }, 500);
+    return uploadFailure(ctx, error);
   }
 }
 async function readCaptureStatus(ctx: Context, sessionId: string): Promise<Response> {
@@ -224,4 +207,31 @@ export async function downloadStudentDocument(ctx: Context, id: string): Promise
 
 function readToken(request: Request): string | undefined {
   return request.headers.get("authorization")?.replace(/^Bearer /u, "");
+}
+
+function uploadFailure<Failure>(ctx: Context, error: Failure): Response {
+  const conflict = error instanceof Error && ["BUSY", "CLOSED"].includes(error.message);
+  const invalid =
+    error instanceof z.ZodError || error instanceof SyntaxError || error instanceof URIError;
+  const fields = {
+    request_id: ctx.requestId,
+    resource: "studentDocuments.upload",
+    operation: "POST",
+    status: "error",
+    ...safeError(error),
+  };
+  if (conflict || invalid) {
+    logger.warn(
+      fields,
+      conflict
+        ? "Document upload rejected: session busy or closed"
+        : "Document upload rejected: invalid metadata",
+    );
+    return json(
+      { code: conflict ? "BUSY_OR_CLOSED" : "INVALID_METADATA" },
+      conflict ? HTTP.conflict : HTTP.badRequest,
+    );
+  }
+  logger.error(fields, "Document upload failed while storing file or metadata");
+  return json({ code: "UPLOAD_FAILED" }, HTTP.internalError);
 }

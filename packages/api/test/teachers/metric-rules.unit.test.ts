@@ -11,7 +11,7 @@ void it("weights students equally rather than grades or class sizes", () => {
     ]),
     70,
   );
-  assert.equal(mean([100, 100, ...Array<number>(18).fill(60)]), 64);
+  assert.equal(mean([100, 100, ...Array.from({ length: 18 }, () => 60)]), 64);
 });
 void it("keeps missing evidence distinct from a real zero", () => {
   assert.equal(mean([null, null]), null);

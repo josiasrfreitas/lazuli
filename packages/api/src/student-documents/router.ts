@@ -8,6 +8,7 @@ import { documentFormat } from "./upload.js";
 import { deleteStudentDocument } from "./delete.js";
 
 const TOKEN_BYTES = 32;
+const MAX_PHOTO_STUDENTS = 500;
 const processLogger = createServiceLogger("web");
 
 export function tokenHash(token: string): string {
@@ -15,7 +16,7 @@ export function tokenHash(token: string): string {
 }
 export const studentDocumentsRouter = router({
   photos: adminProcedure
-    .input(z.object({ studentIds: z.array(z.string().uuid()).max(500) }).strict())
+    .input(z.object({ studentIds: z.array(z.string().uuid()).max(MAX_PHOTO_STUDENTS) }).strict())
     .query(async ({ ctx, input }) => {
       const files = await ctx.db.studentDocumentFile.findMany({
         where: {

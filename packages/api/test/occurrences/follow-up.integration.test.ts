@@ -617,14 +617,19 @@ void it("persists an outside-class event and includes it in student follow-up wi
 void it("counts monthly teaching hours only after a completed record", async () => {
   const { teacherMonthlyHours } = await import("../../src/teachers/monthly-hours.js");
   const data = await fixture();
-  const read = async () =>
-    (await teacherMonthlyHours(db, { teacherIds: [teacher.id], now })).get(teacher.id);
+  const read = async (): Promise<
+    { plannedMinutes: number; completedMinutes: number } | undefined
+  > => {
+    const hours = await teacherMonthlyHours(db, { teacherIds: [teacher.id], now });
+    return hours.get(teacher.id);
+  };
   assert.deepEqual(await read(), { plannedMinutes: 60, completedMinutes: 0 });
   await db.classSession.update({
     where: { id: data.session.id },
     data: { attendanceConfirmedAt: now },
   });
-  assert.equal((await read())?.completedMinutes, 0);
+  const confirmedHours = await read();
+  assert.equal(confirmedHours?.completedMinutes, 0);
   await db.classSessionRecord.create({
     data: { classSessionId: data.session.id, teachingTeacherId: teacher.id, snapshot: {} },
   });

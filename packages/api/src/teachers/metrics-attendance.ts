@@ -11,20 +11,54 @@ export type AttendanceEvidence = {
   classes: { classId: string; due: number; confirmed: number }[];
 };
 type MetricInput = { classes: MetricClass[]; teacherId: string; now: Date };
-type AttendanceSession = {
-  id: string;
-  scheduleSlotId: string | null;
-  classId: string;
-  date: Date;
-  startTime: Date;
-  endTime: Date;
-  attendanceConfirmedAt: Date | null;
-  classRecord: { deletedAt: Date | null; teachingTeacherId: string | null } | null;
+const attendanceSelect = {
+  id: true,
+  scheduleSlotId: true,
+  classId: true,
+  date: true,
+  startTime: true,
+  endTime: true,
+  attendanceConfirmedAt: true,
+  classRecord: { select: { deletedAt: true, teachingTeacherId: true } },
   attendanceRows: {
-    enrollmentId: string;
-    status: string;
-    makeupCoverages: { minutes: number }[];
-  }[];
+    where: { deletedAt: null },
+    select: {
+      enrollmentId: true,
+      status: true,
+      makeupCoverages: {
+        where: {
+          deletedAt: null,
+          appointment: {
+            deletedAt: null,
+            status: "ATTENDED",
+          },
+        },
+        select: { minutes: true },
+      },
+    },
+  },
+} as const satisfies Prisma.ClassSessionSelect;
+const substitutionSelect = {
+  classId: true,
+  classSessionId: true,
+  scheduleSlotId: true,
+  date: true,
+  teacherId: true,
+} as const satisfies Prisma.ClassSubstitutionSelect;
+type AttendanceSession = Prisma.ClassSessionGetPayload<{ select: typeof attendanceSelect }>;
+export type AttendanceDatabase = {
+  classSession: {
+    findMany(input: {
+      where: Prisma.ClassSessionWhereInput;
+      select: typeof attendanceSelect;
+    }): Promise<AttendanceSession[]>;
+  };
+  classSubstitution: {
+    findMany(input: {
+      where: Prisma.ClassSubstitutionWhereInput;
+      select: typeof substitutionSelect;
+    }): Promise<Prisma.ClassSubstitutionGetPayload<{ select: typeof substitutionSelect }>[]>;
+  };
 };
 type SubstitutionMaps = { bySession: Map<string | null, string>; bySlot: Map<string, string> };
 type MetricClass = Parameters<typeof teacherResponsibilityPeriods>[0] & {
@@ -34,7 +68,7 @@ type MetricClass = Parameters<typeof teacherResponsibilityPeriods>[0] & {
 };
 /** Only small attendance facts are loaded; no lesson snapshots or file bodies. */
 export async function metricAttendance(
-  database: Prisma.TransactionClient,
+  database: AttendanceDatabase,
   input: MetricInput,
 ): Promise<AttendanceEvidence> {
   if (input.classes.length === 0) return { students: [], classes: [] };
@@ -104,7 +138,7 @@ export async function metricAttendance(
 }
 
 async function readSubstitutions(
-  database: Prisma.TransactionClient,
+  database: AttendanceDatabase,
   input: MetricInput,
 ): Promise<SubstitutionMaps> {
   const substitutions = await database.classSubstitution.findMany({
@@ -119,13 +153,7 @@ async function readSubstitutions(
         lte: new Date(saoPauloDateOnly(input.now)),
       },
     },
-    select: {
-      classId: true,
-      classSessionId: true,
-      scheduleSlotId: true,
-      date: true,
-      teacherId: true,
-    },
+    select: substitutionSelect,
   });
   const bySession = new Map(
     substitutions
@@ -144,9 +172,30 @@ async function readSubstitutions(
 }
 
 async function readSessions(
-  database: Prisma.TransactionClient,
+  database: AttendanceDatabase,
   input: MetricInput,
 ): Promise<AttendanceSession[]> {
+  const rows = attendanceSelect.attendanceRows;
+  const coverages = rows.select.makeupCoverages;
+  const select = {
+    ...attendanceSelect,
+    attendanceRows: {
+      ...rows,
+      select: {
+        ...rows.select,
+        makeupCoverages: {
+          ...coverages,
+          where: {
+            ...coverages.where,
+            appointment: {
+              ...coverages.where.appointment,
+              date: { lte: new Date(saoPauloDateOnly(input.now)) },
+            },
+          },
+        },
+      },
+    },
+  };
   return database.classSession.findMany({
     where: {
       deletedAt: null,
@@ -156,33 +205,6 @@ async function readSessions(
         date: { gte: group.semester.startDate, lte: new Date(saoPauloDateOnly(input.now)) },
       })),
     },
-    select: {
-      id: true,
-      scheduleSlotId: true,
-      classId: true,
-      date: true,
-      startTime: true,
-      endTime: true,
-      attendanceConfirmedAt: true,
-      classRecord: { select: { deletedAt: true, teachingTeacherId: true } },
-      attendanceRows: {
-        where: { deletedAt: null },
-        select: {
-          enrollmentId: true,
-          status: true,
-          makeupCoverages: {
-            where: {
-              deletedAt: null,
-              appointment: {
-                deletedAt: null,
-                status: "ATTENDED",
-                date: { lte: new Date(saoPauloDateOnly(input.now)) },
-              },
-            },
-            select: { minutes: true },
-          },
-        },
-      },
-    },
+    select,
   });
 }

@@ -54,14 +54,10 @@ void it("teacher and anonymous callers cannot preview or confirm calendar mutati
     const body = path.endsWith("preview")
       ? change
       : { change, fingerprint: "0".repeat(64), commandId: randomUUID() };
-    assert.equal(
-      (await callHttpMutation({ path, body, staffUser: TEACHER })).status,
-      HTTP_FORBIDDEN,
-    );
-    assert.equal(
-      (await callHttpMutation({ path, body, staffUser: null })).status,
-      HTTP_UNAUTHORIZED,
-    );
+    const teacherResponse = await callHttpMutation({ path, body, staffUser: TEACHER });
+    assert.equal(teacherResponse.status, HTTP_FORBIDDEN);
+    const anonymousResponse = await callHttpMutation({ path, body, staffUser: null });
+    assert.equal(anonymousResponse.status, HTTP_UNAUTHORIZED);
   }
 });
 void it("legacy mutation paths cannot bypass the preview", async () => {
@@ -73,6 +69,8 @@ void it("legacy mutation paths cannot bypass the preview", async () => {
     "calendar.createSemester",
     "semesterOrganization.closeRange",
     "semesterOrganization.updatePeriod",
-  ])
-    assert.equal((await callHttpMutation({ path, body: {} })).status, 404);
+  ]) {
+    const response = await callHttpMutation({ path, body: {} });
+    assert.equal(response.status, 404);
+  }
 });

@@ -67,7 +67,7 @@ export async function storeDocument(
       const data = {
         ...documentData(reference, { ...input, contentType }),
         ...(input.title ? { title: input.title } : {}),
-        ...(input.subtitle !== undefined ? { subtitle: input.subtitle } : {}),
+        ...(input.subtitle === undefined ? {} : { subtitle: input.subtitle }),
       };
       const file = await transaction.studentDocumentFile.upsert({
         where,

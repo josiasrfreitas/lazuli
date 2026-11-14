@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 7:** 50 original errors: the remaining API files/tests (40), `packages/validators/src/teacher.ts` (9), and `packages/ui/src/components/schedule-calendar.tsx` (1). Exact file inventory below. No batch-7 edits yet; latest remaining: 50.
-> **Baseline:** 568 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch6.json`.
-> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over all recorded paths and extracted helpers/dependent callers, serially.
-> **Next gate:** zero errors across the complete area, types and focused upload/teacher/router tests, then full serial lint and diagnostic comparison. Preserve all fixtures/identifiers, behavior and rules; no lint `--fix`.
+> **Locked batch 8:** 50 original errors across appointment evidence (8), the shared attachment panel (10), and teacher/student document consumers (32). Exact inventory below. No batch-8 edits yet; latest remaining: 50.
+> **Baseline:** 518 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch7.json`.
+> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over every recorded path and extracted helper/dependent caller, serially.
+> **Next gate:** zero errors across the complete area, types and focused evidence/attachment/document tests, then full serial lint and comparison. Preserve fixtures, identifiers, layout, behavior and rules; no lint `--fix`.
+
+> **Closed batch 7:** 568 → 518 errors, exactly 50 removed and zero added by file/rule/message. API and validators now have zero lint errors. All 15 type checks and 42 focused tests passed; duplication passed. UI render tests used the UI workspace tsconfig; API subprocess tests used `NODE_ENV=test`. Database integration and browser validation remain deferred (no local database or Orca).
 
 > **Closed batch 6:** 50 original errors removed across capacity, holidays, schema, calendar reconciliation and periodic tasks. Full lint 618 → 568, zero added by file/rule/message. Types passed in all 15 workspaces; 16 distinct focused tests passed after running the API import test from its package directory. Full lint included duplication, which passed.
 
@@ -171,3 +173,26 @@ The third full lint completed across the overnight interruption. Its diagnostics
 | `packages/api/test/teachers/metrics-attendance.unit.test.ts`  |               6 |
 | `packages/api/test/occurrences/follow-up.integration.test.ts` |               3 |
 | `packages/api/test/calendar/router.integration.test.ts`       |               2 |
+
+## Batch 7 closure
+
+- Split capability request dispatch, upload persistence and error responses without moving session/teacher locks, storage cleanup or validation boundaries.
+- Preserved appointment policy order, schema limits, HTTP logging and calendar markup/effect dependencies.
+- Replaced attendance test double casts with a typed query boundary derived from Prisma projections. Added missing session projection fields to the first mock; existing identifiers and assertions are unchanged. The recovery cutoff remains computed per query.
+- Targeted lint: zero errors/warnings. Types: all 15 workspaces. Tests: API 28, validators 7, UI 7. Full lint: 518; no new diagnostics.
+- Published baseline `e818d334049e8321c90365b89775359502774079`: builds, unit/scripts/styles and integration/transport passed; static checks fail only lint (568 errors), so Quality gates fails. Pullfrog succeeded, review 5907139068 reported no new issues.
+
+## Locked batch 8 inventory
+
+| File                                                                | Original errors |
+| ------------------------------------------------------------------- | --------------: |
+| `packages/db/src/appointment-evidence.ts`                           |               8 |
+| `packages/ui/src/components/attachment-panel.tsx`                   |              10 |
+| `apps/web/src/features/student-documents/panel.tsx`                 |               1 |
+| `apps/web/src/features/students/profile/registration-documents.tsx` |               1 |
+| `apps/web/src/features/teachers/teacher-document-browser.tsx`       |               5 |
+| `apps/web/src/features/teachers/use-teacher-documents.ts`           |               3 |
+| `apps/web/src/features/teachers/teacher-document-panel.tsx`         |              14 |
+| `apps/web/src/features/teachers/teacher-registration.tsx`           |               5 |
+| `apps/web/src/features/teachers/teacher-classes-panel.tsx`          |               2 |
+| `apps/web/src/app/api/teacher-files/[id]/route.ts`                  |               1 |

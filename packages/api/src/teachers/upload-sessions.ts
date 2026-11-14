@@ -8,7 +8,12 @@ import type { Context } from "../trpc/context.js";
 import { proofBytes } from "../finance/payment-proof-transport.js";
 import { readTeacher } from "./read.js";
 
-const SESSION_MS = 60 * 60 * 1000;
+const SESSION_MS = 3_600_000;
+const TOKEN_BYTES = 32;
+const TOKEN_LENGTH = 43;
+const HTTP_NOT_FOUND = 404;
+const HTTP_BAD_REQUEST = 400;
+type UploadSession = Prisma.TeacherUploadSessionGetPayload<true>;
 const hash = (token: string): string => createHash("sha256").update(token).digest("hex");
 const sessionIdSchema = z.object({ id: z.string().uuid() }).strict();
 const fileSelect = {
@@ -27,7 +32,7 @@ const HEADERS = {
 };
 export const teacherUploadsRouter = router({
   renew: adminProcedure.input(sessionIdSchema).mutation(async ({ ctx, input }) => {
-    const token = randomBytes(32).toString("base64url");
+    const token = randomBytes(TOKEN_BYTES).toString("base64url");
     const session = await ctx.db.$transaction(async (tx) => {
       await lockSession(tx, input.id);
       const current = await tx.teacherUploadSession.findFirst({
@@ -60,7 +65,7 @@ export const teacherUploadsRouter = router({
           update: {},
         });
       }
-      const token = randomBytes(32).toString("base64url");
+      const token = randomBytes(TOKEN_BYTES).toString("base64url");
       const session = await ctx.db.teacherUploadSession.create({
         data: {
           createdById: ctx.staffUser.id,
@@ -132,109 +137,19 @@ export async function attachTeacherUploads(
 export async function teacherMobileCapture(ctx: Context, request: Request): Promise<Response> {
   try {
     const token = request.headers.get("authorization")?.replace(/^Bearer /u, "") ?? "";
-    if (token.length !== 43) return expired();
+    if (token.length !== TOKEN_LENGTH) return expired();
     const session = await ctx.db.teacherUploadSession.findUnique({
       where: { tokenHash: hash(token) },
     });
     if (!session || session.closedAt || session.deletedAt || session.expiresAt <= new Date())
       return expired();
     if (session.teacherId) await readTeacher(ctx.db, session.teacherId);
-    if (request.method === "GET") {
-      // A phone sees only files uploaded through its capability, never the teacher's existing records.
-      const files = await ctx.db.teacherFile.findMany({
-        where: { uploadSessionId: session.id, deletedAt: null },
-        select: fileSelect,
-        orderBy: { createdAt: "desc" },
-      });
-      return Response.json({ files, expiresAt: session.expiresAt }, { headers: HEADERS });
-    }
-    const url = new URL(request.url);
-    const fileId = url.searchParams.get("file");
-    if (request.method === "DELETE" && fileId) {
-      await ctx.db.$transaction(async (tx) => {
-        await lockSession(tx, session.id);
-        await requireOpen(tx, session.id);
-        await tx.teacherFile.updateMany({
-          where: {
-            id: z.string().uuid().parse(fileId),
-            uploadSessionId: session.id,
-            deletedAt: null,
-          },
-          data: { deletedAt: new Date() },
-        });
-      });
-      return Response.json({ deleted: true }, { headers: HEADERS });
-    }
-    if (request.method !== "POST")
-      return Response.json({ message: "Operação inválida." }, { status: 405, headers: HEADERS });
-    const metadata: unknown = JSON.parse(
-      decodeURIComponent(request.headers.get("x-upload-metadata") ?? ""),
-    );
-    const input = teacherFileUploadSchema.parse({
-      ...z.record(z.unknown()).parse(metadata),
-      teacherId: session.teacherId ?? session.id,
-    });
-    if (request.headers.get("content-type") !== input.contentType)
-      throw new Error("Formato inválido.");
-    const bytes = await proofBytes(request, input);
-    const storage = getStorage();
-    const reference = await storage.put({
-      key: `teacher-files/${randomUUID()}`,
-      contentType: input.contentType,
-      bytes,
-    });
-    try {
-      const file = await ctx.db.$transaction(async (tx) => {
-        await lockSession(tx, session.id);
-        const active = await requireOpen(tx, session.id);
-        if (active.teacherId) {
-          await readTeacher(tx, active.teacherId);
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${active.teacherId}, 234))`;
-        }
-        if (input.kind === "PHOTO")
-          await tx.teacherFile.updateMany({
-            where: {
-              deletedAt: null,
-              kind: "PHOTO",
-              ...(active.teacherId
-                ? { teacherId: active.teacherId }
-                : { uploadSessionId: session.id }),
-            },
-            data: { deletedAt: new Date() },
-          });
-        return tx.teacherFile.create({
-          data: {
-            ...input,
-            subtitle: input.subtitle ?? null,
-            teacherId: active.teacherId,
-            uploadSessionId: session.id,
-            ...reference,
-          },
-          select: fileSelect,
-        });
-      });
-      return Response.json(file, { status: 201, headers: HEADERS });
-    } catch (error) {
-      await storage.remove(reference).catch(() => {});
-      throw error;
-    }
+    return await captureRequest(ctx, { request, session });
   } catch (error) {
-    if (error instanceof TRPCError && error.code === "FORBIDDEN") return expired();
-    return Response.json(
-      {
-        message:
-          error instanceof TRPCError
-            ? error.message
-            : "Não foi possível enviar. Escolha PDF, JPG ou PNG de até 5 MB.",
-      },
-      {
-        status: error instanceof TRPCError && error.code === "NOT_FOUND" ? 404 : 400,
-        headers: HEADERS,
-      },
-    );
+    return captureFailure(error);
   }
 }
-async function requireOpen(tx: Prisma.TransactionClient, id: string) {
+async function requireOpen(tx: Prisma.TransactionClient, id: string): Promise<UploadSession> {
   const session = await tx.teacherUploadSession.findFirst({
     where: { id, closedAt: null, deletedAt: null, expiresAt: { gt: new Date() } },
   });
@@ -245,5 +160,116 @@ function expired(): Response {
   return Response.json(
     { message: "Sessão encerrada. Abra um novo QR code no cadastro." },
     { status: 410, headers: HEADERS },
+  );
+}
+
+async function captureRequest(
+  ctx: Context,
+  { request, session }: { request: Request; session: UploadSession },
+): Promise<Response> {
+  if (request.method === "GET") {
+    // A phone sees only files uploaded through its capability, never the teacher's existing records.
+    const files = await ctx.db.teacherFile.findMany({
+      where: { uploadSessionId: session.id, deletedAt: null },
+      select: fileSelect,
+      orderBy: { createdAt: "desc" },
+    });
+    return Response.json({ files, expiresAt: session.expiresAt }, { headers: HEADERS });
+  }
+  const url = new URL(request.url);
+  const fileId = url.searchParams.get("file");
+  if (request.method === "DELETE" && fileId) {
+    await ctx.db.$transaction(async (tx) => {
+      await lockSession(tx, session.id);
+      await requireOpen(tx, session.id);
+      await tx.teacherFile.updateMany({
+        where: {
+          id: z.string().uuid().parse(fileId),
+          uploadSessionId: session.id,
+          deletedAt: null,
+        },
+        data: { deletedAt: new Date() },
+      });
+    });
+    return Response.json({ deleted: true }, { headers: HEADERS });
+  }
+  if (request.method !== "POST")
+    return Response.json({ message: "Operação inválida." }, { status: 405, headers: HEADERS });
+  return uploadCapture(ctx, { request, session });
+}
+
+async function uploadCapture(
+  ctx: Context,
+  { request, session }: { request: Request; session: UploadSession },
+): Promise<Response> {
+  const metadata = z
+    .record(z.unknown())
+    .parse(JSON.parse(decodeURIComponent(request.headers.get("x-upload-metadata") ?? "")));
+  const input = teacherFileUploadSchema.parse({
+    ...metadata,
+    teacherId: session.teacherId ?? session.id,
+  });
+  if (request.headers.get("content-type") !== input.contentType)
+    throw new Error("Formato inválido.");
+  const bytes = await proofBytes(request, input);
+  const storage = getStorage();
+  const reference = await storage.put({
+    key: `teacher-files/${randomUUID()}`,
+    contentType: input.contentType,
+    bytes,
+  });
+  try {
+    const file = await ctx.db.$transaction(async (tx) => {
+      await lockSession(tx, session.id);
+      const active = await requireOpen(tx, session.id);
+      if (active.teacherId) {
+        await readTeacher(tx, active.teacherId);
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${active.teacherId}, 234))`;
+      }
+      if (input.kind === "PHOTO")
+        await tx.teacherFile.updateMany({
+          where: {
+            deletedAt: null,
+            kind: "PHOTO",
+            ...(active.teacherId
+              ? { teacherId: active.teacherId }
+              : { uploadSessionId: session.id }),
+          },
+          data: { deletedAt: new Date() },
+        });
+      return tx.teacherFile.create({
+        data: {
+          ...input,
+          subtitle: input.subtitle ?? null,
+          teacherId: active.teacherId,
+          uploadSessionId: session.id,
+          ...reference,
+        },
+        select: fileSelect,
+      });
+    });
+    return Response.json(file, { status: 201, headers: HEADERS });
+  } catch (error) {
+    await storage.remove(reference).catch(() => {});
+    throw error;
+  }
+}
+
+function captureFailure<Failure>(error: Failure): Response {
+  if (error instanceof TRPCError && error.code === "FORBIDDEN") return expired();
+  return Response.json(
+    {
+      message:
+        error instanceof TRPCError
+          ? error.message
+          : "Não foi possível enviar. Escolha PDF, JPG ou PNG de até 5 MB.",
+    },
+    {
+      status:
+        error instanceof TRPCError && error.code === "NOT_FOUND"
+          ? HTTP_NOT_FOUND
+          : HTTP_BAD_REQUEST,
+      headers: HEADERS,
+    },
   );
 }

@@ -53,26 +53,7 @@ export async function resolveAppointmentMeeting(
     startTime: timeOnly(values.startTime),
     endTime: timeOnly(values.endTime),
   };
-  if (input.meeting.kind === "INDEPENDENT") {
-    const policy = await academicDayPolicy(database, date);
-    if (policy.suspension)
-      throw badRequest(`Sem atividades acadêmicas nesta data: ${policy.suspension}.`);
-    if (policy.outsidePeriod && input.meeting.academicExceptionDate !== date)
-      throw badRequest(
-        "Atendimento fora do período acadêmico. Confirme o atendimento extra para esta data.",
-      );
-  } else if (session) {
-    const period = await database.period.findFirst({
-      where: {
-        deletedAt: null,
-        classes: { some: { id: session.classId } },
-        startDate: { lte: session.date },
-        endDate: { gte: session.date },
-      },
-      select: { id: true },
-    });
-    if (!period) throw badRequest("A aula de destino está fora do semestre da turma.");
-  }
+  await assertAcademicMeeting(context, { meeting: input.meeting, session, date });
   await assertAppointmentSlot(context, {
     values: { ...values, teacherId: values.teacherId },
     session,
@@ -232,4 +213,34 @@ async function assertStudentAvailable(
     )
   )
     throw badRequest("O aluno já tem outro atendimento ou aula experimental neste horário.");
+}
+
+async function assertAcademicMeeting(
+  { database }: AppointmentContext,
+  {
+    meeting,
+    session,
+    date,
+  }: { meeting: AppointmentScheduleInput["meeting"]; session: RecordSession | null; date: string },
+): Promise<void> {
+  if (meeting.kind === "INDEPENDENT") {
+    const policy = await academicDayPolicy(database, date);
+    if (policy.suspension)
+      throw badRequest(`Sem atividades acadêmicas nesta data: ${policy.suspension}.`);
+    if (policy.outsidePeriod && meeting.academicExceptionDate !== date)
+      throw badRequest(
+        "Atendimento fora do período acadêmico. Confirme o atendimento extra para esta data.",
+      );
+  } else if (session) {
+    const period = await database.period.findFirst({
+      where: {
+        deletedAt: null,
+        classes: { some: { id: session.classId } },
+        startDate: { lte: session.date },
+        endDate: { gte: session.date },
+      },
+      select: { id: true },
+    });
+    if (!period) throw badRequest("A aula de destino está fora do semestre da turma.");
+  }
 }

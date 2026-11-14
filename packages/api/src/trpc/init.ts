@@ -49,7 +49,7 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
       request_id: ctx.requestId,
       user_id: ctx.staffUser?.id,
       resource: path,
-      operation: type === "query" ? "GET" : "POST",
+      operation: httpOperation(type),
       procedure: path,
       procedure_type: type,
       duration_ms: Math.round(performance.now() - started),
@@ -83,7 +83,7 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
         request_id: ctx.requestId,
         user_id: ctx.staffUser?.id,
         resource: path,
-        operation: type === "query" ? "GET" : "POST",
+        operation: httpOperation(type),
         procedure: path,
         procedure_type: type,
         duration_ms: Math.round(performance.now() - started),
@@ -153,3 +153,7 @@ export const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
   assertRole(ctx.staffUser.role, ["SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
   return next();
 });
+
+function httpOperation(type: string): "GET" | "POST" {
+  return type === "query" ? "GET" : "POST";
+}

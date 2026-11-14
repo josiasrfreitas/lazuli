@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
 import { detectPersonDocument } from "./person-document.js";
+const MAX_WEEKLY_HOURS = 168;
+const MAX_NOTES_LENGTH = 5000;
+const MAX_SUBTITLE_LENGTH = 240;
+const MAX_LABEL_LENGTH = 100;
+const MAX_FILE_NAME_LENGTH = 255;
+const MAX_FILE_BYTES = 5_242_880;
 const MAX_SEARCH_LENGTH = 80;
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 25;
@@ -30,7 +36,7 @@ const teacherFields = z
     phone: z
       .string()
       .trim()
-      .transform((value) => value.replace(/\D/g, ""))
+      .transform((value) => value.replaceAll(/\D/g, ""))
       .refine((value) => !value || /^\d{10,11}$/.test(value), "Informe o telefone com DDD.")
       .nullish(),
     employmentType: z.enum(["CLT", "PJ", "AUTONOMOUS", "OTHER"]).nullish(),
@@ -38,9 +44,9 @@ const teacherFields = z
       .number()
       .finite()
       .positive("Informe uma carga maior que zero.")
-      .max(168)
+      .max(MAX_WEEKLY_HOURS)
       .nullish(),
-    notes: z.string().trim().max(5000).nullish(),
+    notes: z.string().trim().max(MAX_NOTES_LENGTH).nullish(),
     vacationStart: date.nullish(),
     vacationEnd: date.nullish(),
   })
@@ -75,15 +81,11 @@ export const teacherFileUploadSchema = z
   .object({
     teacherId: id,
     kind: z.enum(["PHOTO", "ID", "CONTRACT", "OTHER"]),
-    subtitle: z.string().trim().max(240).optional(),
-    label: z.string().trim().min(1, "Informe o nome do documento.").max(100),
-    fileName: z.string().trim().min(1).max(255),
+    subtitle: z.string().trim().max(MAX_SUBTITLE_LENGTH).optional(),
+    label: z.string().trim().min(1, "Informe o nome do documento.").max(MAX_LABEL_LENGTH),
+    fileName: z.string().trim().min(1).max(MAX_FILE_NAME_LENGTH),
     contentType: z.enum(["application/pdf", "image/jpeg", "image/png"]),
-    byteLength: z
-      .number()
-      .int()
-      .positive()
-      .max(5 * 1024 * 1024),
+    byteLength: z.number().int().positive().max(MAX_FILE_BYTES),
   })
   .strict()
   .refine((value) => value.kind !== "PHOTO" || value.contentType !== "application/pdf", {
