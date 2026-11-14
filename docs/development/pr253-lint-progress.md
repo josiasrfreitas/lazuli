@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 5:** 50 original errors in `packages/api/src/calendar/impact.ts` (16), `changes.ts` (14), `change-state.ts` (12), and `academic.ts` (8). No batch-5 source changes yet; latest remaining: 50.
-> **Baseline:** 668 full-repository errors, `/workspace/scratch/e19b55f99412/pr253-after-batch4.json` (cloud executor).
-> **Command:** `pnpm -F @lazuli/api exec lazuli-lint` over these four calendar paths and extracted helpers/dependent callers.
-> **Next gate:** zero targeted errors, relevant types and calendar tests, then full serial lint and diagnostic comparison before batch 6. Keep batches at 50; no rule weakening, suppressions, or lint `--fix`.
+> **Locked batch 6:** 50 original errors across calendar capacity/import/schema and reconciliation: `packages/api/src/calendar/change-schema.ts` (10), `capacity.ts` (10), `holidays.ts` (9), `follow-up.ts` (1); `packages/worker-handlers/src/calendar/process.ts` (13), `appointments.ts` (2); `apps/worker/src/periodic-tasks.ts` (2), `test/periodic-tasks.unit.test.ts` (3). No batch-6 edits yet; latest remaining: 50.
+> **Baseline:** 618 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch5.json`.
+> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over the recorded files and extracted helpers/callers, serially.
+> **Next gate:** zero targeted errors, types and focused calendar/worker tests, then full serial lint and diagnostic comparison. Keep batches at 50; no rule weakening, suppressions, or lint `--fix`.
+
+> **Closed batch 5:** 50 removed from calendar impact, change application, state and academic endpoints. Full lint 668 → 618, zero added by file/rule/message. Types passed across all 15 workspaces, with API types rerun after tests. Eight focused projection/router tests passed. Database integration deferred to CI; no local PostgreSQL/Docker infrastructure is installed.
 
 > **Closed batch 4:** all 50 original errors removed from the six teacher API files below, with zero errors/warnings across their extracted helpers. Full comparison: 718 → 668, exactly 50 removed and zero added by file/rule/message.
 > **Cloud authorization:** resumed local work and push to this PR branch were authorized on 2026-11-14. No merge or PR comments authorized.
@@ -134,3 +136,10 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - No tracked generated files, fixture identifiers, migrations, rule settings, or suppressions changed.
 - Baseline CI: all builds, unit/scripts/styles, integration/transport and Pullfrog passed; lint and the aggregate Quality gates failed. CI cannot become green until the remaining backlog is resolved. Original Pullfrog attendance finding was addressed before this batch.
 - Evidence in the cloud workspace: `pr253-lint-prepared.log`, `pr253-lint-after-batch4.log`, `pr253-baseline.json`, `pr253-after-batch4.json`, `pr253-batch4-types-final.log`.
+
+## Batch 5 validation
+
+- Split date helpers, optimistic-version/period validation, closed-day projection, impact reads/selection/evidence, and change application without changing the fingerprint field order or the transaction/advisory-lock boundaries.
+- Preserved manual closure precedence, overlap unions, period placement guards, recorded-activity protection and holiday-source deduplication. Added four focused projection/version regression tests; existing router seam tests remained green (8 total).
+- Targeted lint over all 11 source files: zero errors/warnings. Full lint comparison: 668 → 618, exactly 50 removed and no new diagnostics. Evidence: `pr253-batch5-target.log`, `pr253-batch5-types.log`, `pr253-lint-after-batch5.log`, `pr253-after-batch5.json` in the cloud workspace.
+- Remote head was rechecked at `72131883f559b98d646028b25215809c0dd7aa9c` before this work; no concurrent changes observed. This batch is held locally for a grouped publication.

@@ -6,12 +6,27 @@ import { TRPCError } from "@trpc/server";
 import { adminProcedure, router } from "../trpc/init.js";
 import { activityTransaction } from "../activity/record.js";
 
+const EVENT_TITLE_LIMIT = 160;
+const EVENT_DESCRIPTION_LIMIT = 2000;
+const MINIMUM_CALENDAR_YEAR = 2000;
+const MAXIMUM_CALENDAR_YEAR = 2100;
+const RECENT_REQUEST_MILLISECONDS = 600_000;
+
+const academicEventSelect = {
+  id: true,
+  title: true,
+  description: true,
+  startsAt: true,
+  endsAt: true,
+  updatedAt: true,
+} as const;
+
 const eventInput = z
   .object({
     id: z.string().uuid().optional(),
     expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
-    title: z.string().trim().min(1).max(160),
-    description: z.string().trim().max(2000).nullable(),
+    title: z.string().trim().min(1).max(EVENT_TITLE_LIMIT),
+    description: z.string().trim().max(EVENT_DESCRIPTION_LIMIT).nullable(),
     startsAt: z.string().datetime({ offset: true }),
     endsAt: z.string().datetime({ offset: true }),
   })
@@ -30,13 +45,15 @@ export const academicCalendarRouter = router({
   holidays: adminProcedure
     .input(
       z.object({
-        year: z.number().int().min(2000).max(2100),
+        year: z.number().int().min(MINIMUM_CALENDAR_YEAR).max(MAXIMUM_CALENDAR_YEAR),
         state: z.string().regex(/^$|^[A-Z]{2}$/),
       }),
     )
     .query(({ input }) => holidaySuggestions(input.year, input.state)),
   year: adminProcedure
-    .input(z.object({ year: z.number().int().min(2000).max(2100) }))
+    .input(
+      z.object({ year: z.number().int().min(MINIMUM_CALENDAR_YEAR).max(MAXIMUM_CALENDAR_YEAR) }),
+    )
     .query(async ({ ctx, input }) => {
       const from = new Date(`${input.year}-01-01T00:00:00-03:00`);
       const through = new Date(`${input.year + 1}-01-01T00:00:00-03:00`);
@@ -59,14 +76,7 @@ export const academicCalendarRouter = router({
         }),
         ctx.db.academicEvent.findMany({
           where: { deletedAt: null, startsAt: { lt: through }, endsAt: { gt: from } },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            startsAt: true,
-            endsAt: true,
-            updatedAt: true,
-          },
+          select: academicEventSelect,
           orderBy: { startsAt: "asc" },
         }),
         ctx.db.academicInterruption.findMany({
@@ -84,7 +94,11 @@ export const academicCalendarRouter = router({
             throughDate: { gte: new Date(`${input.year}-01-01T00:00:00Z`) },
             OR: [
               { status: { not: "SUCCEEDED" } },
-              { completedAt: { gte: new Date((ctx.now ?? new Date()).getTime() - 600000) } },
+              {
+                completedAt: {
+                  gte: new Date((ctx.now ?? new Date()).getTime() - RECENT_REQUEST_MILLISECONDS),
+                },
+              },
             ],
           },
           orderBy: { createdAt: "desc" },
