@@ -1,5 +1,11 @@
 # PR 253 lint progress
 
+> **Locked batch 4:** 50 original errors in the six teacher API files below; latest remaining: 50 (before edits).
+> **Baseline:** 718 errors, `/tmp/lazuli253-lint-after-batch3.json`; batch snapshot `/tmp/lazuli253-batch4-baseline.json`.
+> **Command:** `pnpm -F @lazuli/api exec lazuli-lint` over the six paths and every extracted helper/dependent caller.
+> **Next gate:** zero targeted errors, types and focused metric/file tests, then full serial lint and diagnostic comparison before batch 5.
+> **Paused by user:** publish the current state for testing. Batch 4 is locked but no source edits have started. Resume only when requested; keep batches at 50. No automatic merge.
+
 > **Closed batch 3:** 50 original errors across the twelve planning/programming files below; latest remaining: 0 across all three targeted workspaces; all types and 22 focused tests passed. Full lint confirmed 718 remaining errors: exactly 50 removed, zero added.
 > **Baseline:** 768 errors, `/tmp/lazuli253-lint-after-batch2.json`; batch snapshot `/tmp/lazuli253-batch3-baseline.json`.
 > **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over the complete recorded area, sequentially; dependent call sites stay in scope.
@@ -104,3 +110,14 @@ Full comparison: 868 → 818; 50 removed, zero added by file/rule/message. Snaps
 ## Resumption status — 2026-11-14
 
 The third full lint completed across the overnight interruption. Its diagnostics match the locked batch: 50 removed, no new errors. Total resolved: 150 of 868; 718 remain. No fourth batch selected yet. The previous two-hour monitoring window has elapsed; resume the watcher with its persisted event state before claiming current CI status. Original source checkout remains preserved; publication changes are in `/tmp/lazuli-teacher-pr`.
+
+## Batch 4 lock
+
+| File                                              | Original errors |
+| ------------------------------------------------- | --------------: |
+| `packages/api/src/teachers/files.ts`              |              10 |
+| `packages/api/src/teachers/appointment-hours.ts`  |               3 |
+| `packages/api/src/teachers/metrics.ts`            |              18 |
+| `packages/api/src/teachers/commands.ts`           |               1 |
+| `packages/api/src/teachers/metric-rules.ts`       |               6 |
+| `packages/api/src/teachers/metrics-attendance.ts` |              12 |
