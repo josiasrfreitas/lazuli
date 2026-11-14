@@ -435,10 +435,8 @@ function useScheduleSubmission(
   detailsStep: "complete" | "nature",
 ): ScheduleSubmission {
   const refresh = useAppointmentRefresh();
-  const utils = trpc.useUtils();
-  const [checking, setChecking] = useState(false);
-  const [policyError, setPolicyError] = useState<string>();
-  const [exceptionDate, setExceptionDate] = useState<string | null>(null);
+  const policy = useSchedulePolicy();
+  const { checking, policyError, exceptionDate, setExceptionDate } = policy;
   const saved = async (): Promise<void> => {
     await refresh();
     input.onClose();
@@ -446,6 +444,17 @@ function useScheduleSubmission(
   const schedule = trpc.appointments.schedule.useMutation({ onSuccess: saved });
   const reschedule = trpc.appointments.reschedule.useMutation({ onSuccess: saved });
   const pending = checking || schedule.isPending || reschedule.isPending;
+  function persist(parsed: z.output<typeof appointmentScheduleSchema>): void {
+    if (input.previous) {
+      const replacement = draft.validation.validate(appointmentRescheduleSchema, {
+        id: input.previous.id,
+        expectedVersion: input.previous.version,
+        reason: draft.values.reason,
+        replacement: parsed,
+      });
+      if (replacement) reschedule.mutate(replacement);
+    } else schedule.mutate(parsed);
+  }
   async function submit(confirmedDate?: string): Promise<void> {
     if (pending || data.unavailable) return;
     const values = appointmentDraft({ input, draft, data });
@@ -457,41 +466,10 @@ function useScheduleSubmission(
     if (data.enrollmentDateError || !draft.values.selectionReady) return;
     const parsed = draft.validation.validate(appointmentScheduleSchema, values);
     if (!parsed) return;
-    if (parsed.meeting.kind === "INDEPENDENT") {
-      setChecking(true);
-      setPolicyError(undefined);
-      try {
-        const policy = await utils.appointments.academicDay.fetch({ date: parsed.meeting.date });
-        if (policy.suspension) {
-          setPolicyError(`Sem atividades acadêmicas nesta data: ${policy.suspension}.`);
-          return;
-        }
-        if (policy.outsidePeriod && confirmedDate !== parsed.meeting.date) {
-          setExceptionDate(parsed.meeting.date);
-          return;
-        }
-        if (policy.outsidePeriod) parsed.meeting.academicExceptionDate = parsed.meeting.date;
-      } catch (error) {
-        setPolicyError(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível conferir o calendário. Tente novamente.",
-        );
-        return;
-      } finally {
-        setChecking(false);
-      }
-    }
+    if (parsed.meeting.kind === "INDEPENDENT" && !(await policy.check(parsed, confirmedDate)))
+      return;
     setExceptionDate(null);
-    if (input.previous) {
-      const replacement = draft.validation.validate(appointmentRescheduleSchema, {
-        id: input.previous.id,
-        expectedVersion: input.previous.version,
-        reason: draft.values.reason,
-        replacement: parsed,
-      });
-      if (replacement) reschedule.mutate(replacement);
-    } else schedule.mutate(parsed);
+    persist(parsed);
   }
   return {
     pending,
@@ -515,4 +493,52 @@ export function useScheduleModel(
   const data = useScheduleData(input, draft);
   const submission = useScheduleSubmission({ input, draft, data }, detailsStep);
   return { input, draft, data, submission };
+}
+
+type SchedulePolicy = {
+  checking: boolean;
+  policyError: string | undefined;
+  exceptionDate: string | null;
+  setExceptionDate: Dispatch<SetStateAction<string | null>>;
+  check: (
+    parsed: z.output<typeof appointmentScheduleSchema>,
+    confirmedDate?: string,
+  ) => Promise<boolean>;
+};
+function useSchedulePolicy(): SchedulePolicy {
+  const utils = trpc.useUtils();
+  const [checking, setChecking] = useState(false);
+  const [policyError, setPolicyError] = useState<string>();
+  const [exceptionDate, setExceptionDate] = useState<string | null>(null);
+  async function check(
+    parsed: z.output<typeof appointmentScheduleSchema>,
+    confirmedDate?: string,
+  ): Promise<boolean> {
+    if (parsed.meeting.kind !== "INDEPENDENT") return true;
+    setChecking(true);
+    setPolicyError(undefined);
+    try {
+      const policy = await utils.appointments.academicDay.fetch({ date: parsed.meeting.date });
+      if (policy.suspension) {
+        setPolicyError(`Sem atividades acadêmicas nesta data: ${policy.suspension}.`);
+        return false;
+      }
+      if (policy.outsidePeriod && confirmedDate !== parsed.meeting.date) {
+        setExceptionDate(parsed.meeting.date);
+        return false;
+      }
+      if (policy.outsidePeriod) parsed.meeting.academicExceptionDate = parsed.meeting.date;
+    } catch (error) {
+      setPolicyError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível conferir o calendário. Tente novamente.",
+      );
+      return false;
+    } finally {
+      setChecking(false);
+    }
+    return true;
+  }
+  return { checking, policyError, exceptionDate, setExceptionDate, check };
 }

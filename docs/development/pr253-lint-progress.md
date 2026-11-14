@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 14:** 50 original errors under apps/web/src/features: academic-calendar/change-form.tsx (13), change-fields.tsx (9), processing.tsx (9), day-agenda.tsx (11), workshop-data.ts (3), appointments/schedule-dialog-model.ts (4), appointments/academic-exception-dialog.tsx (1). Latest remaining: 50; edits not started.
-> **Baseline:** 218 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch13.json`.
-> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over all seven files and helpers; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
-> **Next gate:** zero target/helper errors, types and focused calendar/appointment tests, then full comparison. Preserve validation, confirmation, retry and mutation ordering; no suppressions or `--fix`.
+> **Locked batch 15:** 50 original errors under apps/web/src/features: academic-calendar/workshop.tsx (27), stage-planning/journey-model.ts (22), stage-planning/shared.tsx (1). Latest remaining: 50; edits not started.
+> **Baseline:** 168 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch14.json`.
+> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over all three files/helpers; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
+> **Next gate:** zero targeted/helper errors, types and relevant planning/calendar tests, then full comparison; preserve evidence ordering, labels, fixtures and layout. Mechanical caller changes permitted; no `--fix` or suppressions.
+
+> **Closed batch 14:** 218 → 168 errors, exactly 50 removed/zero added. Types 15/15 plus web rerun; 11 focused tests passed. Target zero errors/seven existing warnings; duplication, format, whitespace and test-quality gates passed.
 
 > **Closed batch 13:** 268 → 218 errors; exactly 50 removed/zero added. Target zero errors/five existing warnings; types 15/15 plus web rerun after tests; eight focused tests passed. Duplication, format, whitespace and test quality passed.
 
@@ -267,3 +269,9 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Added year-boundary/São Paulo prefill and empty/new draft tests; original event field and validation assertions retained. Evidence: `pr253-after-batch13.json`, `pr253-lint-after-batch13.log`, `pr253-batch13-{target,types,web-types,tests}.log`.
 - Published head `8f41e3ef38e8c98fa845151d477a2453c29f996e`: production/unit/scripts/styles/deployment passed; Pullfrog reported no new issues. Static CI logs confirm 262 web + 6 handler lint errors; integration/transport still pending at last check.
 - A tool call to create `/tmp/pr253-holidays13.py`, edit holidays and lint returned “aborted by user”. The script/log were absent and holidays unchanged afterward. No accessible evidence identifies the cancellation origin; Josias said he did not interfere and explicitly authorized resumption. Session/auth remained healthy; the operation was completed only after that authorization. No ZIP scripts were executed.
+
+## Batch 14 closure
+
+- Inventory: change-form 13, change-fields 9, processing 9, day-agenda 11, workshop-data 3, schedule-dialog-model 4, academic-exception-dialog 1. Mechanical workshop callers updated without new diagnostics.
+- Preserved period/interruption draft semantics, optimistic revisions and impact confirmation; retry visibility/timeouts and invalidation set unchanged. Daily event clipping tested at local midnight and year boundary. Appointment policy retains fetch/error/finally order and confirmation date; class-bound appointments keep their synchronous submission path.
+- Evidence: `pr253-after-batch14.json`, `pr253-lint-after-batch14.log`, `pr253-batch14-{target,types,web-types,tests}.log`. Published `8f41e3e` CI now completed: all builds/tests/integration/transport/Pullfrog passed; lint (268) and aggregate quality failed.

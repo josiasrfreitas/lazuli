@@ -14,11 +14,12 @@ export const MONTHS = [
   "Dezembro",
 ];
 export const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-export function isoDay(year: number, month: number, day: number): string {
+export function isoDay({ year, month, day }: { year: number; month: number; day: number }): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
-export function dayInfo(date: string) {
-  const md = date.slice(5);
+const MONTH_DAY_START = 5;
+export function dayInfo(date: string): { kind: string; label: string; detail: string } {
+  const md = date.slice(MONTH_DAY_START);
   if (md === "09-07")
     return {
       kind: "holiday",

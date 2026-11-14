@@ -1,4 +1,5 @@
 "use client";
+import type { ReactElement } from "react";
 import {
   Button,
   Dialog,
@@ -14,7 +15,7 @@ import {
 import { formatDateOnlyBR } from "~/lib/format";
 import type { ScheduleModel } from "./schedule-dialog-model";
 
-export function AcademicExceptionDialog({ model }: { model: ScheduleModel }) {
+export function AcademicExceptionDialog({ model }: { model: ScheduleModel }): ReactElement | null {
   const exception = model.submission.exception;
   if (!exception) return null;
   return (

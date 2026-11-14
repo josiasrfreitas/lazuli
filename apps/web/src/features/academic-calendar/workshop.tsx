@@ -183,7 +183,7 @@ export function AcademicCalendarWorkshop({
                 item.startsAt <
                   new Date(
                     `${new Date(Date.UTC(year, month + 1, 1)).toISOString().slice(0, 10)}T00:00:00-03:00`,
-                  ) && item.endsAt >= new Date(`${isoDay(year, month, 1)}T00:00:00-03:00`),
+                  ) && item.endsAt >= new Date(`${isoDay({ year, month, day: 1 })}T00:00:00-03:00`),
             )
             .map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4">
@@ -258,7 +258,7 @@ function MonthGrid({
           <span key={`blank-${i}`} />
         ))}
         {Array.from({ length: count }, (_, i) => {
-          const date = isoDay(year, month, i + 1);
+          const date = isoDay({ year, month, day: i + 1 });
           const info = dayInfo(date);
           return compact ? (
             <span
