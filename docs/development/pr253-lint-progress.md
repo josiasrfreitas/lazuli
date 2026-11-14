@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 8:** 50 original errors across appointment evidence (8), the shared attachment panel (10), and teacher/student document consumers (32). Exact inventory below. No batch-8 edits yet; latest remaining: 50.
-> **Baseline:** 518 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch7.json`.
-> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over every recorded path and extracted helper/dependent caller, serially.
-> **Next gate:** zero errors across the complete area, types and focused evidence/attachment/document tests, then full serial lint and comparison. Preserve fixtures, identifiers, layout, behavior and rules; no lint `--fix`.
+> **Locked batch 9:** 50 original errors in academic-calendar day classification (16), navigation (15), motion/expansion (9), impact (6), and interruption details (4). Exact inventory below. No batch-9 edits yet; latest remaining: 50.
+> **Baseline:** 468 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch8.json`.
+> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over all six recorded files and any extracted helpers.
+> **Next gate:** zero targeted errors, types and focused calendar tests, then full serial lint and comparison. Preserve fixtures, identifiers, behavior and layout; no lint `--fix`.
+
+> **Closed batch 8:** 518 → 468 errors, exactly 50 removed and zero added. All 15 workspace type checks passed; UI types rerun after two new tests. Eight focused tests, styles, formatting and test-quality gates passed. CSS rules/media were compared to HEAD and CSS Modules pure-mode compilation passed. Local full build is blocked by `os.networkInterfaces()` in `next.config.mjs` (`uv_interface_addresses`, executor restriction); production build must run in CI. Orca/browser validation remains unavailable.
 
 > **Closed batch 7:** 568 → 518 errors, exactly 50 removed and zero added by file/rule/message. API and validators now have zero lint errors. All 15 type checks and 42 focused tests passed; duplication passed. UI render tests used the UI workspace tsconfig; API subprocess tests used `NODE_ENV=test`. Database integration and browser validation remain deferred (no local database or Orca).
 
@@ -196,3 +198,22 @@ The third full lint completed across the overnight interruption. Its diagnostics
 | `apps/web/src/features/teachers/teacher-registration.tsx`           |               5 |
 | `apps/web/src/features/teachers/teacher-classes-panel.tsx`          |               2 |
 | `apps/web/src/app/api/teacher-files/[id]/route.ts`                  |               1 |
+
+## Batch 8 closure
+
+- Added concrete appointment-evidence output types, preserving serialization fields and enum precision.
+- Split attachment, teacher registration, file-browser and class controls into sections/hooks without changing markup, handlers or query lifetimes. Kept all limits and polling periods.
+- Student attachment layout uses the existing static `id` attribute at the same selector specificity. Standalone rules/animations moved to `document-panel.css`; rules containing local classes remain in the CSS Module. A PostCSS comparison verified every declaration/selector/media condition against the previous revision after the intentional selector substitution. Next's CSS Modules pure-mode compiler accepted the module.
+- Targeted lint: zero errors (four pre-existing web style warnings). Full lint: 468, all outside the closed area. Duplication passed. Types: 15/15. Tests: attachment accessibility 2, capture navigation/teacher form/prefill 6. Test quality: zero errors/warnings. Styles and format passed.
+- No full build claimed: the cloud executor denies network-interface enumeration before Next loads the application. Logs: `pr253-batch8-build.log`. No repository configuration was changed to bypass this limit.
+
+## Locked batch 9 inventory
+
+| File                                                               | Original errors |
+| ------------------------------------------------------------------ | --------------: |
+| `apps/web/src/features/academic-calendar/model.ts`                 |              16 |
+| `apps/web/src/features/academic-calendar/navigation.ts`            |              15 |
+| `apps/web/src/features/academic-calendar/use-calendar-motion.ts`   |               4 |
+| `apps/web/src/features/academic-calendar/use-dialog-expansion.ts`  |               5 |
+| `apps/web/src/features/academic-calendar/impact.tsx`               |               6 |
+| `apps/web/src/features/academic-calendar/interruption-details.tsx` |               4 |

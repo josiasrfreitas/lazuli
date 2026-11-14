@@ -91,16 +91,7 @@ function useDocumentsModel(
   const files = documents.data ?? [];
   const slots = documentSlots(files);
   const selected = selectedSlot(slots, selectedId);
-  const definition: DocumentDefinition | undefined =
-    DOCUMENTS.find((document) => document.id === selected?.kind) ??
-    (selected?.file
-      ? {
-          id: selected.kind,
-          title: selected.file.title ?? "Documento",
-          detail: selected.file.subtitle ?? "",
-          extracts: false,
-        }
-      : undefined);
+  const definition = selectedDefinition(selected);
   const file = selected?.file;
   const processing = file?.status === "RECEIVED" || file?.status === "PROCESSING";
   async function refresh(): Promise<void> {
@@ -382,5 +373,19 @@ function DocumentsBody({ model }: { model: DocumentsModel }): ReactElement {
       <DocumentSelector model={model} />
       <DocumentStage model={model} />
     </>
+  );
+}
+
+function selectedDefinition(selected: DocumentSlot | undefined): DocumentDefinition | undefined {
+  return (
+    DOCUMENTS.find((document) => document.id === selected?.kind) ??
+    (selected?.file
+      ? {
+          id: selected.kind,
+          title: selected.file.title ?? "Documento",
+          detail: selected.file.subtitle ?? "",
+          extracts: false,
+        }
+      : undefined)
   );
 }

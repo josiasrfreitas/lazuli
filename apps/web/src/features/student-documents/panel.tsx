@@ -13,6 +13,7 @@ import { DocumentCapture } from "./capture";
 import { DocumentReviewNotice } from "./review-notice";
 import type { DocumentSelection, EnrollmentDocuments } from "./use-enrollment-documents";
 import { DocumentProcessing, ExtractedDocumentData } from "./result";
+import "./document-panel.css";
 import styles from "./documents.module.css";
 import {
   DOCUMENT_ACCEPT,
@@ -83,7 +84,6 @@ export function StudentDocumentPanel({
   return (
     <AttachmentPanel
       id="student-document-panel"
-      className={styles.sidePanel}
       open={documents.open}
       title={qr ? "Enviar pelo celular" : "Anexos do aluno"}
       busy={busy}

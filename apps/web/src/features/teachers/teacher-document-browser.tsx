@@ -29,6 +29,7 @@ const PdfPreview = dynamic(
     ),
   },
 );
+const NOT_ATTACHED = "Não anexado";
 const ICONS: Record<string, LucideIcon> = {
   PHOTO: FileImage,
   ID: IdCard,
@@ -49,16 +50,14 @@ export function TeacherDocumentBrowser({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const slots: Slot[] = TEACHER_UPLOAD_CATEGORIES.flatMap<Slot>((category) => {
     const files = documents.files.filter((file) => file.kind === category.id);
-    if (files.length)
+    if (files.length > 0)
       return files.map((file) => ({ id: file.id, label: file.label, kind: file.kind, file }));
-    return [{ id: category.id, label: category.label, kind: category.id as File["kind"] }];
+    return [{ id: category.id, label: category.label, kind: category.id }];
   });
   const selected =
     slots.find((slot) => slot.id === selectedId) ??
     slots.find((slot) => slot.file && slot.kind !== "PHOTO") ??
     slots[0]!;
-  const category = TEACHER_UPLOAD_CATEGORIES.find((item) => item.id === selected.kind)!;
-  const Icon = ICONS[selected.kind] ?? FileText;
   if (documents.loading)
     return (
       <div className={styles.loading} aria-busy="true">
@@ -76,91 +75,8 @@ export function TeacherDocumentBrowser({
     );
   return (
     <>
-      <div className={styles.strip} role="group" aria-label="Selecionar documento do professor">
-        {slots.map((slot) => {
-          const SlotIcon = ICONS[slot.kind] ?? FileText;
-          return (
-            <button
-              key={slot.id}
-              type="button"
-              className={shared.documentChoice}
-              aria-pressed={selected.id === slot.id}
-              title={slot.label}
-              aria-label={`${slot.label} · ${slot.file ? "Anexado" : "Não anexado"}`}
-              onClick={(event) => {
-                setSelectedId(slot.id);
-                event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" });
-              }}
-            >
-              <span className={shared.choicePlaceholder}>
-                <SlotIcon aria-hidden="true" />
-              </span>
-              <span className={shared.choiceLabel}>{slot.label}</span>
-              <span className={shared.choiceStatus}>
-                {slot.file ? (
-                  <>
-                    <Check aria-hidden="true" />
-                    Anexado
-                  </>
-                ) : (
-                  "Não anexado"
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <div className={shared.documentStage}>
-        <div className={shared.previewTitle}>
-          <h4>{selected.label}</h4>
-          <span className={shared.documentStatus}>{selected.file ? "Anexado" : "Não anexado"}</span>
-        </div>
-        {selected.file ? (
-          <TeacherFilePreview key={selected.file.id} file={selected.file} />
-        ) : (
-          <div className={shared.preview} data-empty="true">
-            <div className={shared.documentPlaceholder}>
-              <Icon aria-hidden="true" />
-              <div>
-                <p>Adicione este documento ao cadastro</p>
-                <span>
-                  {category.customLabel
-                    ? "Escolha um título para identificar o anexo."
-                    : "Envie pelo computador ou pela câmera do celular."}
-                </span>
-              </div>
-              <Button size="compact-responsive" onClick={() => onUpload(category)}>
-                <Plus aria-hidden="true" />
-                Anexar documento
-              </Button>
-            </div>
-          </div>
-        )}
-        {selected.file && (
-          <div className={shared.documentActions}>
-            <a
-              className={shared.original}
-              href={`/api/teacher-files/${selected.file.id}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink aria-hidden="true" />
-              Abrir original
-            </a>
-            <Button variant="ghost" size="sm" onClick={() => onUpload(category)}>
-              {selected.kind === "PHOTO" ? "Trocar foto" : "Adicionar outro"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Remover ${selected.label}`}
-              onClick={() => onRemove(selected.file!.id)}
-            >
-              <Trash2 />
-            </Button>
-          </div>
-        )}
-      </div>
+      <TeacherDocumentChoices slots={slots} selected={selected} onSelect={setSelectedId} />
+      <TeacherDocumentStage selected={selected} onUpload={onUpload} onRemove={onRemove} />
     </>
   );
 }
@@ -195,6 +111,119 @@ function TeacherFilePreview({ file }: { file: File }): ReactElement {
           onLoad={() => setState("ready")}
           onError={() => setState("error")}
         />
+      )}
+    </div>
+  );
+}
+
+function TeacherDocumentChoices({
+  slots,
+  selected,
+  onSelect,
+}: {
+  slots: Slot[];
+  selected: Slot;
+  onSelect: (id: string) => void;
+}): ReactElement {
+  return (
+    <div className={styles.strip} role="group" aria-label="Selecionar documento do professor">
+      {slots.map((slot) => {
+        const SlotIcon = ICONS[slot.kind] ?? FileText;
+        return (
+          <button
+            key={slot.id}
+            type="button"
+            className={shared.documentChoice}
+            aria-pressed={selected.id === slot.id}
+            title={slot.label}
+            aria-label={`${slot.label} · ${slot.file ? "Anexado" : NOT_ATTACHED}`}
+            onClick={(event) => {
+              onSelect(slot.id);
+              event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" });
+            }}
+          >
+            <span className={shared.choicePlaceholder}>
+              <SlotIcon aria-hidden="true" />
+            </span>
+            <span className={shared.choiceLabel}>{slot.label}</span>
+            <span className={shared.choiceStatus}>
+              {slot.file ? (
+                <>
+                  <Check aria-hidden="true" />
+                  Anexado
+                </>
+              ) : (
+                NOT_ATTACHED
+              )}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TeacherDocumentStage({
+  selected,
+  onUpload,
+  onRemove,
+}: {
+  selected: Slot;
+  onUpload: (category: UploadCategory) => void;
+  onRemove: (id: string) => void;
+}): ReactElement {
+  const category = TEACHER_UPLOAD_CATEGORIES.find((item) => item.id === selected.kind)!;
+  const Icon = ICONS[selected.kind] ?? FileText;
+  return (
+    <div className={shared.documentStage}>
+      <div className={shared.previewTitle}>
+        <h4>{selected.label}</h4>
+        <span className={shared.documentStatus}>{selected.file ? "Anexado" : NOT_ATTACHED}</span>
+      </div>
+      {selected.file ? (
+        <TeacherFilePreview key={selected.file.id} file={selected.file} />
+      ) : (
+        <div className={shared.preview} data-empty="true">
+          <div className={shared.documentPlaceholder}>
+            <Icon aria-hidden="true" />
+            <div>
+              <p>Adicione este documento ao cadastro</p>
+              <span>
+                {category.customLabel
+                  ? "Escolha um título para identificar o anexo."
+                  : "Envie pelo computador ou pela câmera do celular."}
+              </span>
+            </div>
+            <Button size="compact-responsive" onClick={() => onUpload(category)}>
+              <Plus aria-hidden="true" />
+              Anexar documento
+            </Button>
+          </div>
+        </div>
+      )}
+      {selected.file && (
+        <div className={shared.documentActions}>
+          <a
+            className={shared.original}
+            href={`/api/teacher-files/${selected.file.id}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <ExternalLink aria-hidden="true" />
+            Abrir original
+          </a>
+          <Button variant="ghost" size="sm" onClick={() => onUpload(category)}>
+            {selected.kind === "PHOTO" ? "Trocar foto" : "Adicionar outro"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Remover ${selected.label}`}
+            onClick={() => onRemove(selected.file!.id)}
+          >
+            <Trash2 />
+          </Button>
+        </div>
       )}
     </div>
   );

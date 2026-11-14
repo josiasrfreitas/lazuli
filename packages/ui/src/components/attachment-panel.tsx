@@ -1,9 +1,20 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type ReactElement } from "react";
 import { ArrowLeft, Paperclip, Plus, QrCode, X } from "lucide-react";
 import { Button } from "./button";
 import { FileUpload } from "./file-upload";
 import { Input } from "./input";
+type AttachmentPanelProps = {
+  title?: string;
+  children: ReactNode;
+  onBack?: (() => void) | undefined;
+  onMobile?: (() => void) | undefined;
+  onClose?: (() => void) | undefined;
+  busy?: boolean;
+  className?: string | undefined;
+  id?: string;
+  open?: boolean;
+};
 export function AttachmentPanel({
   title = "Anexos",
   children,
@@ -14,17 +25,7 @@ export function AttachmentPanel({
   className = "",
   id,
   open,
-}: {
-  title?: string;
-  children: ReactNode;
-  onBack?: (() => void) | undefined;
-  onMobile?: (() => void) | undefined;
-  onClose?: (() => void) | undefined;
-  busy?: boolean;
-  className?: string | undefined;
-  id?: string;
-  open?: boolean;
-}) {
+}: AttachmentPanelProps): ReactElement {
   return (
     <aside
       id={id}
@@ -88,7 +89,7 @@ export function AttachmentRow({
   title: string;
   subtitle?: string | undefined;
   children: ReactNode;
-}) {
+}): ReactElement {
   return (
     <li className="attachment-panel__row">
       <div className="attachment-panel__copy">
@@ -105,11 +106,11 @@ export function AttachmentAdd({
 }: {
   onAdd: (value: { title: string; subtitle: string }) => void;
   disabled?: boolean;
-}) {
+}): ReactElement {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
-  const add = () => {
+  const add = (): void => {
     if (!title.trim()) return;
     onAdd({ title: title.trim(), subtitle: subtitle.trim() });
     setTitle("");
@@ -124,10 +125,10 @@ export function AttachmentAdd({
         placeholder="Título do anexo"
         maxLength={100}
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
+        onChange={(event) => setTitle(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
             add();
           }
         }}
@@ -137,10 +138,10 @@ export function AttachmentAdd({
         placeholder="Orientação ou descrição (opcional)"
         maxLength={240}
         value={subtitle}
-        onChange={(e) => setSubtitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
+        onChange={(event) => setSubtitle(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
             add();
           }
         }}
@@ -199,7 +200,7 @@ export function AttachmentUploadRow({
   maxSizeByType?: Record<string, number> | undefined;
   sizeLabel?: string | undefined;
   uploaded?: boolean;
-}) {
+}): ReactElement {
   return (
     <li className="attachment-panel__upload">
       <FileUpload

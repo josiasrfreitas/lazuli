@@ -47,8 +47,11 @@ export type AppointmentEvidenceRow = Prisma.PedagogicalAppointmentGetPayload<{
   include: typeof appointmentEvidenceInclude;
 }>;
 type EvidenceSession = Prisma.ClassSessionGetPayload<{ include: typeof evidenceSessionInclude }>;
-const civil = (value: Date) => value.toISOString().slice(0, 10);
-const time = (value: Date) => value.toISOString().slice(11, 16);
+const DATE_LENGTH = 10;
+const TIME_START = 11;
+const TIME_END = 16;
+const civil = (value: Date): string => value.toISOString().slice(0, DATE_LENGTH);
+const time = (value: Date): string => value.toISOString().slice(TIME_START, TIME_END);
 
 export function evidenceSessionTeacher(
   session: Pick<
@@ -60,7 +63,7 @@ export function evidenceSessionTeacher(
       "teacherId" | "teacher" | "teacherAssignments" | "substitutions"
     >;
   },
-) {
+): { id: string; name: string } | null {
   if (session.classRecord) return session.classRecord.teachingTeacher;
   const substitute = session.class.substitutions.find(
     (row) =>
@@ -80,7 +83,7 @@ export function evidenceSessionTeacher(
 }
 export function evidenceSourceApplicable(
   row: AppointmentEvidenceRow["coverages"][number]["attendance"],
-) {
+): boolean {
   const session = row.classSession;
   return (
     !row.deletedAt &&
@@ -95,7 +98,7 @@ export function evidenceSourceApplicable(
   );
 }
 /** Serializable historical evidence shared by interactive writes and calendar reconciliation. */
-export function createAppointmentEvidence(row: AppointmentEvidenceRow) {
+export function createAppointmentEvidence(row: AppointmentEvidenceRow): AppointmentEvidence {
   return {
     id: row.id,
     version: row.version,
@@ -141,3 +144,47 @@ export function createAppointmentEvidence(row: AppointmentEvidenceRow) {
     })),
   };
 }
+
+export type AppointmentEvidence = Pick<
+  AppointmentEvidenceRow,
+  | "id"
+  | "version"
+  | "enrollmentId"
+  | "targetClassSessionId"
+  | "legacyMakeupId"
+  | "rescheduledFromId"
+  | "purpose"
+  | "status"
+  | "format"
+  | "plannedContent"
+  | "performedContent"
+  | "performedMinutes"
+  | "notes"
+  | "scheduledBy"
+  | "recordedBy"
+  | "cancelledBy"
+  | "cancellationReason"
+> & {
+  student: { id: string; name: string };
+  teacher: { id: string; name: string } | null;
+  targetClassName: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  scheduledAt: string;
+  recordedAt: string | null;
+  cancelledAt: string | null;
+  coverages: {
+    attendanceId: string;
+    minutes: number;
+    enrollmentId: string;
+    sourceSessionId: string;
+    sourceClassId: string;
+    sourceClassName: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    sourceStatus: AppointmentEvidenceRow["coverages"][number]["attendance"]["status"];
+    applicable: boolean;
+  }[];
+};
