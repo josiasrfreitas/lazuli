@@ -8,11 +8,10 @@ type OutlookInput = {
   preview?: Planning["preview"];
 };
 export function semesterOutlook(data: OutlookInput) {
-  const journey = planningJourney(
-    data.plan?.items ?? data.preview?.items ?? [],
-    data.records,
-    data.scope.today,
-  );
+  const journey = planningJourney(data.plan?.items ?? data.preview?.items ?? [], {
+    records: data.records,
+    today: data.scope.today,
+  });
   const frontier = journey.steps.findLast((step) => step.evidence.length > 0)?.number ?? 0;
   const gaps = journey.steps.filter(
     (step) => step.number < frontier && !step.evidence.length,

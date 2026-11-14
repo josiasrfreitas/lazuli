@@ -21,14 +21,14 @@ export type JourneyRecord = {
 export type StepState = "completed" | "partial" | "worked" | "unconfirmed" | "scheduled";
 export function planningJourney<I extends JourneyItem, R extends JourneyRecord>(
   items: readonly I[],
-  records: readonly R[],
-  today: string,
-) {
-  const ordered = items.toSorted((a, b) =>
-    (a.plannedOn ?? "9999").localeCompare(b.plannedOn ?? "9999"),
+  { records, today }: { records: readonly R[]; today: string },
+): PlanningJourney<I, R> {
+  const ordered = items.toSorted((first, second) =>
+    (first.plannedOn ?? "9999").localeCompare(second.plannedOn ?? "9999"),
   );
   const history = records.toSorted(
-    (a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time),
+    (first, second) =>
+      second.date.localeCompare(first.date) || second.time.localeCompare(first.time),
   );
   const steps = ordered.map((item, index) => {
     const evidence = history.flatMap((record) => {
@@ -42,27 +42,23 @@ export function planningJourney<I extends JourneyItem, R extends JourneyRecord>(
           ]
         : [];
     });
-    const state: StepState = evidence.some((r) => r.content.planItemStatus === "COMPLETED")
-      ? "completed"
-      : evidence.some((r) => r.content.planItemStatus === "PARTIAL")
-        ? "partial"
-        : evidence.length
-          ? "worked"
-          : item.plannedOn !== null && item.plannedOn <= today
-            ? "unconfirmed"
-            : "scheduled";
+    const state = stepState({ evidence, item, today });
     return { item, number: index + 1, evidence, state };
   });
-  const latestLinked = history.find((r) =>
-    recordedActivities(r.content).some((entry) => steps.some((s) => s.item.id === entry.id)),
+  const latestLinked = history.find((record) =>
+    recordedActivities(record.content).some((entry) =>
+      steps.some((step) => step.item.id === entry.id),
+    ),
   );
   const current = steps.findLast(
-    (s) =>
+    (step) =>
       latestLinked &&
-      recordedActivities(latestLinked.content).some((entry) => entry.id === s.item.id),
+      recordedActivities(latestLinked.content).some((entry) => entry.id === step.item.id),
   );
-  const expected = steps.findLast((s) => s.item.plannedOn !== null && s.item.plannedOn <= today);
-  const dates = [...new Set(ordered.flatMap((i) => (i.plannedOn ? [i.plannedOn] : [])))];
+  const expected = steps.findLast(
+    (step) => step.item.plannedOn !== null && step.item.plannedOn <= today,
+  );
+  const dates = [...new Set(ordered.flatMap((item) => (item.plannedOn ? [item.plannedOn] : [])))];
   const difference =
     current?.item.plannedOn && expected?.item.plannedOn
       ? dates.indexOf(current.item.plannedOn) - dates.indexOf(expected.item.plannedOn)
@@ -70,10 +66,10 @@ export function planningJourney<I extends JourneyItem, R extends JourneyRecord>(
   const next =
     current && current.state !== "completed"
       ? current
-      : steps.find((s) => s.number > (current?.number ?? 0) && s.state !== "completed");
+      : steps.find((step) => step.number > (current?.number ?? 0) && step.state !== "completed");
   const groups = dates.map((date) => ({
     date,
-    steps: steps.filter((s) => s.item.plannedOn === date),
+    steps: steps.filter((step) => step.item.plannedOn === date),
   }));
   return {
     steps,
@@ -83,12 +79,55 @@ export function planningJourney<I extends JourneyItem, R extends JourneyRecord>(
     next,
     difference,
     latestLinked,
-    recent: history.slice(0, 3),
-    completed: steps.filter((s) => s.state === "completed").length,
-    unconfirmed: steps.filter((s) => s.state === "unconfirmed").length,
+    recent: history.slice(0, RECENT_LIMIT),
+    completed: steps.filter((step) => step.state === "completed").length,
+    unconfirmed: steps.filter((step) => step.state === "unconfirmed").length,
     unlinked: history.filter(
-      (r) =>
-        !recordedActivities(r.content).some((entry) => steps.some((s) => s.item.id === entry.id)),
+      (record) =>
+        !recordedActivities(record.content).some((entry) =>
+          steps.some((step) => step.item.id === entry.id),
+        ),
     ),
   };
+}
+
+const RECENT_LIMIT = 3;
+type JourneyEvidence<R extends JourneyRecord> = R & {
+  content: R["content"] & {
+    planItemId: string;
+    planItemStatus: "PARTIAL" | "COMPLETED" | undefined;
+  };
+};
+type JourneyStep<I extends JourneyItem, R extends JourneyRecord> = {
+  item: I;
+  number: number;
+  evidence: JourneyEvidence<R>[];
+  state: StepState;
+};
+export type PlanningJourney<I extends JourneyItem, R extends JourneyRecord> = {
+  steps: JourneyStep<I, R>[];
+  groups: { date: string; steps: JourneyStep<I, R>[] }[];
+  current: JourneyStep<I, R> | undefined;
+  expected: JourneyStep<I, R> | undefined;
+  next: JourneyStep<I, R> | undefined;
+  difference: number | null;
+  latestLinked: R | undefined;
+  recent: R[];
+  completed: number;
+  unconfirmed: number;
+  unlinked: R[];
+};
+function stepState({
+  evidence,
+  item,
+  today,
+}: {
+  evidence: JourneyRecord[];
+  item: JourneyItem;
+  today: string;
+}): StepState {
+  if (evidence.some((record) => record.content.planItemStatus === "COMPLETED")) return "completed";
+  if (evidence.some((record) => record.content.planItemStatus === "PARTIAL")) return "partial";
+  if (evidence.length > 0) return "worked";
+  return item.plannedOn !== null && item.plannedOn <= today ? "unconfirmed" : "scheduled";
 }

@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { ToastAlert, Button } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";
-import { formatDateOnlyBR } from "~/lib/format";
+export { formatDateOnlyBR as dateLabel } from "~/lib/format";
 export type Planning = RouterOutputs["planning"]["detail"];
 export type PlannedItem = NonNullable<Planning["plan"]>["items"][number];
 export const KIND_LABELS = {
@@ -12,7 +12,6 @@ export const KIND_LABELS = {
   ASSESSMENT: "Avaliação",
   ACTIVITY: "Atividade",
 } as const;
-export const dateLabel = formatDateOnlyBR;
 export function targetFor(data: Planning): { progressId?: string; classId: string } {
   return {
     classId: data.scope.class.id,

@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 15:** 50 original errors under apps/web/src/features: academic-calendar/workshop.tsx (27), stage-planning/journey-model.ts (22), stage-planning/shared.tsx (1). Latest remaining: 50; edits not started.
-> **Baseline:** 168 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch14.json`.
-> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over all three files/helpers; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
-> **Next gate:** zero targeted/helper errors, types and relevant planning/calendar tests, then full comparison; preserve evidence ordering, labels, fixtures and layout. Mechanical caller changes permitted; no `--fix` or suppressions.
+> **Locked batch 16:** 50 original errors: apps/web/src/features/stage-planning/journey.tsx (22), outlook-model.ts (14), apps/web/test/features/planning-journey.unit.test.ts (12), apps/web/src/app/(app)/aulas/calendario-workshop/page.tsx (2). Latest remaining: 50; edits not started.
+> **Baseline:** 118 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch15.json`.
+> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over four recorded files/helpers; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
+> **Next gate:** zero target/helper errors, types and planning tests, full comparison. Preserve evidence/status precedence, grouping, test identifiers and assertions; no `--fix` or suppressions.
+
+> **Closed batch 15:** 168 → 118 errors, exactly 50 removed/zero added. Types 15/15 and 17 focused tests passed. Target zero errors/six existing warnings; duplication, format, whitespace and test-quality gates passed.
 
 > **Closed batch 14:** 218 → 168 errors, exactly 50 removed/zero added. Types 15/15 plus web rerun; 11 focused tests passed. Target zero errors/seven existing warnings; duplication, format, whitespace and test-quality gates passed.
 
@@ -275,3 +277,9 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Inventory: change-form 13, change-fields 9, processing 9, day-agenda 11, workshop-data 3, schedule-dialog-model 4, academic-exception-dialog 1. Mechanical workshop callers updated without new diagnostics.
 - Preserved period/interruption draft semantics, optimistic revisions and impact confirmation; retry visibility/timeouts and invalidation set unchanged. Daily event clipping tested at local midnight and year boundary. Appointment policy retains fetch/error/finally order and confirmation date; class-bound appointments keep their synchronous submission path.
 - Evidence: `pr253-after-batch14.json`, `pr253-lint-after-batch14.log`, `pr253-batch14-{target,types,web-types,tests}.log`. Published `8f41e3e` CI now completed: all builds/tests/integration/transport/Pullfrog passed; lint (268) and aggregate quality failed.
+
+## Batch 15 closure
+
+- Inventory: workshop.tsx 27, journey-model.ts 22, stage-planning/shared.tsx 1. Extracted workshop state/header/overview/detail/month content with unchanged sample data and boundaries. Journey now exposes explicit generic output and object arguments; preserves ordering, legacy evidence without completion status and all current/next/group calculations.
+- Mechanical outlook/test callers updated without changing fixtures or assertions. Evidence: `pr253-after-batch15.json`, `pr253-lint-after-batch15.log`, `pr253-batch15-{target,types,tests}.log`.
+- Published head `a535a8be7d39f5daface9a12207efb0fdb506fa6`: production and Pullfrog succeeded; other jobs still being followed.
