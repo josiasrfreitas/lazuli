@@ -9,7 +9,7 @@ async function handle(
     session: await auth.getSession({ headers: request.headers }),
     headers: request.headers,
   });
-  return teacherFileResource(ctx, request, (await params).id);
+  return teacherFileResource(ctx, { request, id: (await params).id });
 }
 export const GET = handle;
 export const DELETE = handle;

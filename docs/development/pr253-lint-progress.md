@@ -1,10 +1,12 @@
 # PR 253 lint progress
 
-> **Locked batch 4:** 50 original errors in the six teacher API files below; latest remaining: 50 (before edits).
-> **Baseline:** 718 errors, `/tmp/lazuli253-lint-after-batch3.json`; batch snapshot `/tmp/lazuli253-batch4-baseline.json`.
-> **Command:** `pnpm -F @lazuli/api exec lazuli-lint` over the six paths and every extracted helper/dependent caller.
-> **Next gate:** zero targeted errors, types and focused metric/file tests, then full serial lint and diagnostic comparison before batch 5.
-> **Paused by user:** publish the current state for testing. Batch 4 is locked but no source edits have started. Resume only when requested; keep batches at 50. No automatic merge.
+> **Locked batch 5:** 50 original errors in `packages/api/src/calendar/impact.ts` (16), `changes.ts` (14), `change-state.ts` (12), and `academic.ts` (8). No batch-5 source changes yet; latest remaining: 50.
+> **Baseline:** 668 full-repository errors, `/workspace/scratch/e19b55f99412/pr253-after-batch4.json` (cloud executor).
+> **Command:** `pnpm -F @lazuli/api exec lazuli-lint` over these four calendar paths and extracted helpers/dependent callers.
+> **Next gate:** zero targeted errors, relevant types and calendar tests, then full serial lint and diagnostic comparison before batch 6. Keep batches at 50; no rule weakening, suppressions, or lint `--fix`.
+
+> **Closed batch 4:** all 50 original errors removed from the six teacher API files below, with zero errors/warnings across their extracted helpers. Full comparison: 718 → 668, exactly 50 removed and zero added by file/rule/message.
+> **Cloud authorization:** resumed local work and push to this PR branch were authorized on 2026-11-14. No merge or PR comments authorized.
 
 > **Closed batch 3:** 50 original errors across the twelve planning/programming files below; latest remaining: 0 across all three targeted workspaces; all types and 22 focused tests passed. Full lint confirmed 718 remaining errors: exactly 50 removed, zero added.
 > **Baseline:** 768 errors, `/tmp/lazuli253-lint-after-batch2.json`; batch snapshot `/tmp/lazuli253-batch3-baseline.json`.
@@ -121,3 +123,14 @@ The third full lint completed across the overnight interruption. Its diagnostics
 | `packages/api/src/teachers/commands.ts`           |               1 |
 | `packages/api/src/teachers/metric-rules.ts`       |               6 |
 | `packages/api/src/teachers/metrics-attendance.ts` |              12 |
+
+## Batch 4 cloud validation
+
+- Environment: cloud-only checkout at `a0c5b22a63640cda7ccb577f4fc3c6dd3bcad62a`; Python 3.12.14, Node 24.22.1, pnpm 11.25.0 (repository pins pnpm 11.6.0 and CI Node 22). Frozen dependency installation completed; Prisma/Kysely clients generated locally.
+- Refactoring: extracted typed metric queries, grade evidence and summary helpers; preserved attendance/substitution resolution, file-access checks, response statuses and profile vacation rules. Updated the file-resource route to object arguments.
+- Targeted teacher source lint: zero errors/warnings. Full serial lint: 668 errors; 50 removed, zero added by file/rule/message. API 170 → 120; other workspace totals unchanged.
+- Types passed across all 15 workspaces. API types rerun after adding tests.
+- Focused tests: 12/12 passed (metric rules, attendance/substitutions, grade enrollment boundaries/cross-class ambiguity, router import/public health/auth seam). Used `node --import tsx --test` because this executor disallows the tsx CLI IPC socket.
+- No tracked generated files, fixture identifiers, migrations, rule settings, or suppressions changed.
+- Baseline CI: all builds, unit/scripts/styles, integration/transport and Pullfrog passed; lint and the aggregate Quality gates failed. CI cannot become green until the remaining backlog is resolved. Original Pullfrog attendance finding was addressed before this batch.
+- Evidence in the cloud workspace: `pr253-lint-prepared.log`, `pr253-lint-after-batch4.log`, `pr253-baseline.json`, `pr253-after-batch4.json`, `pr253-batch4-types-final.log`.

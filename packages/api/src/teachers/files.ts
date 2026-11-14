@@ -1,3 +1,4 @@
+import type { Prisma } from "@lazuli/db";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
@@ -6,6 +7,9 @@ import type { Context } from "../trpc/context.js";
 import { proofBytes, requireSameOrigin } from "../finance/payment-proof-transport.js";
 import { readTeacher } from "./read.js";
 
+const NOT_FOUND_MESSAGE = "Arquivo não encontrado.";
+const BAD_REQUEST_STATUS = 400;
+const SERVER_ERROR_STATUS = 500;
 const HEADERS = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
 const fileSelect = {
   id: true,
@@ -20,7 +24,10 @@ function requireAdmin(ctx: Context): void {
   if (!ctx.staffUser || !["ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
     throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito à administração." });
 }
-export async function listTeacherFiles(ctx: Context, teacherId: string) {
+export async function listTeacherFiles(
+  ctx: Context,
+  teacherId: string,
+): Promise<Prisma.TeacherFileGetPayload<{ select: typeof fileSelect }>[]> {
   requireAdmin(ctx);
   await readTeacher(ctx.db, teacherId);
   return ctx.db.teacherFile.findMany({
@@ -71,31 +78,20 @@ export async function receiveTeacherFile(ctx: Context, request: Request): Promis
       throw error;
     }
   } catch (error) {
-    return fileFailure(error);
+    return fileFailure(error instanceof Error ? error : null);
   }
 }
 export async function teacherFileResource(
   ctx: Context,
-  request: Request,
-  id: string,
+  { request, id }: { request: Request; id: string },
 ): Promise<Response> {
   try {
     requireAdmin(ctx);
     if (!z.string().uuid().safeParse(id).success)
-      throw new TRPCError({ code: "NOT_FOUND", message: "Arquivo não encontrado." });
+      throw new TRPCError({ code: "NOT_FOUND", message: NOT_FOUND_MESSAGE });
     const file = await ctx.db.teacherFile.findFirst({ where: { id, deletedAt: null } });
-    if (!file) throw new TRPCError({ code: "NOT_FOUND", message: "Arquivo não encontrado." });
-    if (file.teacherId) await readTeacher(ctx.db, file.teacherId);
-    else {
-      const session = await ctx.db.teacherUploadSession.findFirst({
-        where: {
-          id: file.uploadSessionId ?? "",
-          createdById: ctx.staffUser?.id ?? "",
-          deletedAt: null,
-        },
-      });
-      if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Arquivo não encontrado." });
-    }
+    if (!file) throw new TRPCError({ code: "NOT_FOUND", message: NOT_FOUND_MESSAGE });
+    await requireFileAccess(ctx, file);
     if (request.method === "DELETE") {
       requireSameOrigin(request);
       await ctx.db.teacherFile.update({ where: { id }, data: { deletedAt: new Date() } });
@@ -113,24 +109,44 @@ export async function teacherFileResource(
       },
     });
   } catch (error) {
-    return fileFailure(error);
+    return fileFailure(error instanceof Error ? error : null);
   }
 }
-function fileFailure(error: unknown): Response {
-  const statuses: Record<string, number> = { FORBIDDEN: 403, NOT_FOUND: 404, BAD_REQUEST: 400 };
-  const validation =
-    error instanceof z.ZodError || error instanceof SyntaxError || error instanceof URIError;
+function fileFailure(error: Error | null): Response {
+  const statuses: Record<string, number> = {
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    BAD_REQUEST: BAD_REQUEST_STATUS,
+  };
+  if (error instanceof z.ZodError || error instanceof SyntaxError || error instanceof URIError)
+    return Response.json(
+      { message: "Informe o nome e escolha um PDF, JPG ou PNG de até 5 MB." },
+      { status: BAD_REQUEST_STATUS, headers: HEADERS },
+    );
+  if (error instanceof TRPCError)
+    return Response.json(
+      { message: error.message },
+      { status: statuses[error.code] ?? SERVER_ERROR_STATUS, headers: HEADERS },
+    );
   return Response.json(
-    {
-      message: validation
-        ? "Informe o nome e escolha um PDF, JPG ou PNG de até 5 MB."
-        : error instanceof TRPCError
-          ? error.message
-          : "Não foi possível acessar o arquivo. Tente novamente.",
-    },
-    {
-      status: validation ? 400 : error instanceof TRPCError ? (statuses[error.code] ?? 500) : 500,
-      headers: HEADERS,
-    },
+    { message: "Não foi possível acessar o arquivo. Tente novamente." },
+    { status: SERVER_ERROR_STATUS, headers: HEADERS },
   );
+}
+
+async function requireFileAccess(
+  ctx: Context,
+  file: { teacherId: string | null; uploadSessionId: string | null },
+): Promise<void> {
+  if (file.teacherId) await readTeacher(ctx.db, file.teacherId);
+  else {
+    const session = await ctx.db.teacherUploadSession.findFirst({
+      where: {
+        id: file.uploadSessionId ?? "",
+        createdById: ctx.staffUser?.id ?? "",
+        deletedAt: null,
+      },
+    });
+    if (!session) throw new TRPCError({ code: "NOT_FOUND", message: NOT_FOUND_MESSAGE });
+  }
 }

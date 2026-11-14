@@ -355,13 +355,20 @@ function profileData(values: z.infer<typeof teacherCreateInputSchema>): ProfileD
   if (values.employmentType !== undefined) data.employmentType = values.employmentType;
   if (values.weeklyHours !== undefined) data.weeklyHours = values.weeklyHours;
   if (values.notes !== undefined) data.notes = values.notes;
-  if (values.vacationStart !== undefined)
-    data.vacationStart = values.vacationStart ? utcDate(values.vacationStart) : null;
-  if (values.vacationEnd !== undefined)
-    data.vacationEnd = values.vacationEnd ? utcDate(values.vacationEnd) : null;
+  setVacationDates(data, values);
   if (values.employmentType !== undefined && values.employmentType !== "CLT") {
     data.vacationStart = null;
     data.vacationEnd = null;
   }
   return data;
+}
+
+function setVacationDates(
+  data: ProfileData,
+  values: z.infer<typeof teacherCreateInputSchema>,
+): void {
+  if (values.vacationStart !== undefined)
+    data.vacationStart = values.vacationStart ? utcDate(values.vacationStart) : null;
+  if (values.vacationEnd !== undefined)
+    data.vacationEnd = values.vacationEnd ? utcDate(values.vacationEnd) : null;
 }

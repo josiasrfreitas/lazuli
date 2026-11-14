@@ -1,5 +1,7 @@
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
+const ISO_MONTH_LENGTH = 7;
+const MINUTE_MILLISECONDS = 60_000;
 type MonthlyHours = { plannedMinutes: number; completedMinutes: number };
 
 /** Class-linked appointments share the class slot and must not add teaching time twice. */
@@ -8,8 +10,8 @@ export async function teacherAppointmentHours(
   { teacherIds, now }: { teacherIds: string[]; now: Date },
 ): Promise<Map<string, MonthlyHours>> {
   const totals = new Map(teacherIds.map((id) => [id, { plannedMinutes: 0, completedMinutes: 0 }]));
-  if (!teacherIds.length) return totals;
-  const from = new Date(saoPauloDateOnly(now).slice(0, 7) + "-01");
+  if (teacherIds.length === 0) return totals;
+  const from = new Date(saoPauloDateOnly(now).slice(0, ISO_MONTH_LENGTH) + "-01");
   const until = new Date(from);
   until.setUTCMonth(until.getUTCMonth() + 1);
   const appointments = await database.pedagogicalAppointment.findMany({
@@ -31,7 +33,8 @@ export async function teacherAppointmentHours(
   for (const appointment of appointments) {
     const total = appointment.teacherId ? totals.get(appointment.teacherId) : undefined;
     if (!total) continue;
-    const planned = (appointment.endTime.getTime() - appointment.startTime.getTime()) / 60_000;
+    const planned =
+      (appointment.endTime.getTime() - appointment.startTime.getTime()) / MINUTE_MILLISECONDS;
     total.plannedMinutes += planned;
     if (appointment.status === "ATTENDED")
       total.completedMinutes += appointment.performedMinutes ?? planned;

@@ -1,8 +1,32 @@
 import type { Prisma } from "@lazuli/db";
 import { sessionEndInstant, teachingMinutes, saoPauloDateOnly } from "@lazuli/domain";
-import { inWindow } from "./metric-rules.js";
+import { inWindow, type AttendanceTotals } from "./metric-rules.js";
 import { teacherResponsibilityPeriods } from "./responsibility.js";
 
+const ISO_DATE_LENGTH = 10;
+const ISO_TIME_START = 11;
+const ISO_TIME_END = 16;
+export type AttendanceEvidence = {
+  students: (AttendanceTotals & { studentId: string; classId: string })[];
+  classes: { classId: string; due: number; confirmed: number }[];
+};
+type MetricInput = { classes: MetricClass[]; teacherId: string; now: Date };
+type AttendanceSession = {
+  id: string;
+  scheduleSlotId: string | null;
+  classId: string;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
+  attendanceConfirmedAt: Date | null;
+  classRecord: { deletedAt: Date | null; teachingTeacherId: string | null } | null;
+  attendanceRows: {
+    enrollmentId: string;
+    status: string;
+    makeupCoverages: { minutes: number }[];
+  }[];
+};
+type SubstitutionMaps = { bySession: Map<string | null, string>; bySlot: Map<string, string> };
 type MetricClass = Parameters<typeof teacherResponsibilityPeriods>[0] & {
   id: string;
   semester: { startDate: Date; endDate: Date };
@@ -11,13 +35,78 @@ type MetricClass = Parameters<typeof teacherResponsibilityPeriods>[0] & {
 /** Only small attendance facts are loaded; no lesson snapshots or file bodies. */
 export async function metricAttendance(
   database: Prisma.TransactionClient,
-  input: {
-    classes: MetricClass[];
-    teacherId: string;
-    now: Date;
-  },
-) {
-  if (!input.classes.length) return { students: [], classes: [] };
+  input: MetricInput,
+): Promise<AttendanceEvidence> {
+  if (input.classes.length === 0) return { students: [], classes: [] };
+  const { bySession, bySlot } = await readSubstitutions(database, input);
+  const sessions = await readSessions(database, input);
+  const classCalls: { classId: string; due: number; confirmed: number }[] = [];
+  const students = input.classes.flatMap((group) => {
+    const periods = teacherResponsibilityPeriods(group, input.teacherId);
+    const own = sessions.filter((session) => {
+      if (session.classId !== group.id) return false;
+      const date = session.date.toISOString().slice(0, ISO_DATE_LENGTH);
+      const endTime = session.endTime.toISOString().slice(ISO_TIME_START, ISO_TIME_END);
+      if (sessionEndInstant({ date, endTime }) > input.now) return false;
+      const actual = session.classRecord?.deletedAt ? null : session.classRecord?.teachingTeacherId;
+      const substitute =
+        bySession.get(session.id) ??
+        bySlot.get(`${session.classId}:${date}:${session.scheduleSlotId}`);
+      if (actual || substitute) return (actual ?? substitute) === input.teacherId;
+      return periods.some((period) => inWindow(session.date, period));
+    });
+    classCalls.push({
+      classId: group.id,
+      due: own.length,
+      confirmed: own.filter((session) => session.attendanceConfirmedAt).length,
+    });
+    return group.enrollments.map((enrollment) => {
+      const total = {
+        studentId: enrollment.studentId,
+        classId: group.id,
+        heldMinutes: 0,
+        absentMinutes: 0,
+        compensatedMinutes: 0,
+        missingRows: 0,
+        due: 0,
+        confirmed: 0,
+      };
+      for (const session of own) {
+        if (!inWindow(session.date, { start: enrollment.entryDate, end: enrollment.exitDate }))
+          continue;
+        total.due += 1;
+        if (!session.attendanceConfirmedAt) continue;
+        total.confirmed += 1;
+        const attendance = session.attendanceRows.find((row) => row.enrollmentId === enrollment.id);
+        if (!attendance) {
+          total.missingRows += 1;
+          continue;
+        }
+        const minutes = teachingMinutes({
+          startTime: session.startTime.toISOString().slice(ISO_TIME_START, ISO_TIME_END),
+          endTime: session.endTime.toISOString().slice(ISO_TIME_START, ISO_TIME_END),
+        });
+        total.heldMinutes += minutes;
+        if (attendance.status !== "ABSENT") continue;
+        total.absentMinutes += minutes;
+        total.compensatedMinutes += Math.min(
+          minutes,
+          Math.max(
+            0,
+            attendance.makeupCoverages.reduce((sum, row) => sum + row.minutes, 0),
+          ),
+        );
+      }
+      return total;
+    });
+  });
+  return { students, classes: classCalls };
+}
+
+async function readSubstitutions(
+  database: Prisma.TransactionClient,
+  input: MetricInput,
+): Promise<SubstitutionMaps> {
   const substitutions = await database.classSubstitution.findMany({
     where: {
       classId: { in: input.classes.map((group) => group.id) },
@@ -47,11 +136,18 @@ export async function metricAttendance(
     substitutions
       .filter((row) => row.classSessionId === null && row.scheduleSlotId !== null)
       .map((row) => [
-        `${row.classId}:${row.date.toISOString().slice(0, 10)}:${row.scheduleSlotId}`,
+        `${row.classId}:${row.date.toISOString().slice(0, ISO_DATE_LENGTH)}:${row.scheduleSlotId}`,
         row.teacherId,
       ]),
   );
-  const sessions = await database.classSession.findMany({
+  return { bySession, bySlot };
+}
+
+async function readSessions(
+  database: Prisma.TransactionClient,
+  input: MetricInput,
+): Promise<AttendanceSession[]> {
+  return database.classSession.findMany({
     where: {
       deletedAt: null,
       status: "SCHEDULED",
@@ -89,67 +185,4 @@ export async function metricAttendance(
       },
     },
   });
-  const classCalls: { classId: string; due: number; confirmed: number }[] = [];
-  const students = input.classes.flatMap((group) => {
-    const periods = teacherResponsibilityPeriods(group, input.teacherId);
-    const own = sessions.filter((session) => {
-      if (session.classId !== group.id) return false;
-      const date = session.date.toISOString().slice(0, 10);
-      const endTime = session.endTime.toISOString().slice(11, 16);
-      if (sessionEndInstant({ date, endTime }) > input.now) return false;
-      const actual = !session.classRecord?.deletedAt
-        ? session.classRecord?.teachingTeacherId
-        : null;
-      const substitute =
-        bySession.get(session.id) ??
-        bySlot.get(`${session.classId}:${date}:${session.scheduleSlotId}`);
-      if (actual || substitute) return (actual ?? substitute) === input.teacherId;
-      return periods.some((period) => inWindow(session.date, period));
-    });
-    classCalls.push({
-      classId: group.id,
-      due: own.length,
-      confirmed: own.filter((session) => session.attendanceConfirmedAt).length,
-    });
-    return group.enrollments.map((enrollment) => {
-      const total = {
-        studentId: enrollment.studentId,
-        classId: group.id,
-        heldMinutes: 0,
-        absentMinutes: 0,
-        compensatedMinutes: 0,
-        missingRows: 0,
-        due: 0,
-        confirmed: 0,
-      };
-      for (const session of own) {
-        if (!inWindow(session.date, { start: enrollment.entryDate, end: enrollment.exitDate }))
-          continue;
-        total.due += 1;
-        if (!session.attendanceConfirmedAt) continue;
-        total.confirmed += 1;
-        const attendance = session.attendanceRows.find((row) => row.enrollmentId === enrollment.id);
-        if (!attendance) {
-          total.missingRows += 1;
-          continue;
-        }
-        const minutes = teachingMinutes({
-          startTime: session.startTime.toISOString().slice(11, 16),
-          endTime: session.endTime.toISOString().slice(11, 16),
-        });
-        total.heldMinutes += minutes;
-        if (attendance.status !== "ABSENT") continue;
-        total.absentMinutes += minutes;
-        total.compensatedMinutes += Math.min(
-          minutes,
-          Math.max(
-            0,
-            attendance.makeupCoverages.reduce((sum, row) => sum + row.minutes, 0),
-          ),
-        );
-      }
-      return total;
-    });
-  });
-  return { students, classes: classCalls };
 }
