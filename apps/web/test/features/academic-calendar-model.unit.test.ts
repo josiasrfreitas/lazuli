@@ -100,6 +100,18 @@ void it("distinguishes unknown coverage, vacations between known periods, and bo
   assert.equal(calendarDay("2026-07-15", data).kind, "vacation");
   assert.equal(calendarDay("2026-12-20", data).kind, "unknown");
   assert.deepEqual(calendarDay("2026-06-30", data).markers, ["holiday", "boundary"]);
+  assert.deepEqual(calendarDay("2026-06-30", data), {
+    kind: "holiday",
+    label: "Manutenção · Fim · Primeiro semestre",
+    detail: "Dia inteiro · sem atividades acadêmicas",
+    markers: ["holiday", "boundary"],
+  });
+  assert.deepEqual(calendarDay("2026-02-02", data), {
+    kind: "boundary",
+    label: "Início · Primeiro semestre",
+    detail: "Primeiro semestre",
+    markers: ["boundary"],
+  });
 });
 
 void it("navigates leap dates and month or year edges as civil dates", () => {

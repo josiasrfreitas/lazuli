@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 9:** 50 original errors in academic-calendar day classification (16), navigation (15), motion/expansion (9), impact (6), and interruption details (4). Exact inventory below. No batch-9 edits yet; latest remaining: 50.
-> **Baseline:** 468 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch8.json`.
-> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over all six recorded files and any extracted helpers.
-> **Next gate:** zero targeted errors, types and focused calendar tests, then full serial lint and comparison. Preserve fixtures, identifiers, behavior and layout; no lint `--fix`.
+> **Locked batch 10:** 50 original errors in academic-calendar dates (15), periods (25), and calendar orchestration (10). Exact inventory below. No batch-10 edits yet; latest remaining: 50.
+> **Baseline:** 418 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch9.json`.
+> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over the three recorded files and extracted helpers. Signature changes require mechanical call-site updates and complete type checking; unrelated pre-existing call-site diagnostics remain in the full snapshot for later batches.
+> **Next gate:** zero errors in the locked area/helpers, types and focused period/calendar tests, then full serial lint and comparison. No new diagnostics anywhere; preserve fixtures, identifiers, behavior and layout; no lint `--fix`.
+
+> **Closed batch 9:** 468 → 418 errors, exactly 50 removed and zero added. All 15 workspace type checks and 11 calendar tests passed. Targeted lint: zero errors, seven existing style warnings. Duplication, formatting, whitespace and test-quality gates passed.
 
 > **Closed batch 8:** 518 → 468 errors, exactly 50 removed and zero added. All 15 workspace type checks passed; UI types rerun after two new tests. Eight focused tests, styles, formatting and test-quality gates passed. CSS rules/media were compared to HEAD and CSS Modules pure-mode compilation passed. Local full build is blocked by `os.networkInterfaces()` in `next.config.mjs` (`uv_interface_addresses`, executor restriction); production build must run in CI. Orca/browser validation remains unavailable.
 
@@ -217,3 +219,19 @@ The third full lint completed across the overnight interruption. Its diagnostics
 | `apps/web/src/features/academic-calendar/use-dialog-expansion.ts`  |               5 |
 | `apps/web/src/features/academic-calendar/impact.tsx`               |               6 |
 | `apps/web/src/features/academic-calendar/interruption-details.tsx` |               4 |
+
+## Batch 9 closure
+
+- Preserved closed-day, boundary, academic-period and vacation precedence while separating classification/labels/details. Added assertions for closure plus semester boundary and ordinary semester-start presentation.
+- Preserved URL navigation bounds/history, month fallback, reduced-motion timing and dialog observer cleanup, with explicit hook contracts and named constants.
+- Extracted impact summary, activity list, plan and capacity sections without moving command-id state, confirmation or pending callbacks.
+- Full lint: 418 (50 removed, zero added). Types 15/15; focused calendar tests 11/11; test quality zero errors/warnings; duplication and formatting passed.
+- Published baseline `d2721580be64a8fe03ab12a73969f0999cd133d8`: CI production build passed, confirming the build gate blocked by interface enumeration in this executor. Remaining jobs/Pullfrog still being followed.
+
+## Locked batch 10 inventory
+
+| File                                                      | Original errors |
+| --------------------------------------------------------- | --------------: |
+| `apps/web/src/features/academic-calendar/date-model.ts`   |              15 |
+| `apps/web/src/features/academic-calendar/period-model.ts` |              25 |
+| `apps/web/src/features/academic-calendar/calendar.tsx`    |              10 |

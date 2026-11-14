@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+
+const DEFAULT_DURATION_MS = 280;
 
 /** Resize only the surface; labels and controls never stretch with the dialog. */
-export function useDialogExpansion() {
+export function useDialogExpansion(): {
+  dialogRef: Dispatch<SetStateAction<HTMLDivElement | null>>;
+  surfaceRef: RefObject<HTMLSpanElement | null>;
+} {
   const [dialog, dialogRef] = useState<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -13,10 +25,10 @@ export function useDialogExpansion() {
     let animation: Animation | undefined;
     let reveal: Animation | undefined;
     let pointer = false;
-    const keyboard = () => {
+    const keyboard = (): void => {
       pointer = false;
     };
-    const pointing = () => {
+    const pointing = (): void => {
       pointer = true;
     };
     dialog.addEventListener("keydown", keyboard, true);
@@ -31,7 +43,8 @@ export function useDialogExpansion() {
         reveal?.cancel();
         if (pointer && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
           const tokens = getComputedStyle(dialog);
-          const duration = parseFloat(tokens.getPropertyValue("--lz-duration-slow")) || 280;
+          const duration =
+            Number.parseFloat(tokens.getPropertyValue("--lz-duration-slow")) || DEFAULT_DURATION_MS;
           const easing = tokens.getPropertyValue("--lz-ease-standard").trim();
           if (next.height > height)
             reveal = dialog.animate(
