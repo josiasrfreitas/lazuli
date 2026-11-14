@@ -52,18 +52,23 @@ export function AcademicMonthGrid({
   const count = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const outsideMonth = Boolean(
     period &&
-    (isoDay(year, month, count) < civilDate(period.startDate) ||
-      isoDay(year, month, 1) > civilDate(period.endDate)),
+    (isoDay({ year, month, day: count }) < civilDate(period.startDate) ||
+      isoDay({ year, month, day: 1 }) > civilDate(period.endDate)),
   );
-  const firstVacation = vacationAt(isoDay(year, month, 1), vacations);
+  const firstVacation = vacationAt(isoDay({ year, month, day: 1 }), vacations);
   const monthVacation =
-    firstVacation === vacationAt(isoDay(year, month, count), vacations) ? firstVacation : null;
-  const monthEntries = entriesInRange(entries, isoDay(year, month, 1), isoDay(year, month, count));
-  const focusDay = selected?.startsWith(isoDay(year, month, 1).slice(0, 7))
+    firstVacation === vacationAt(isoDay({ year, month, day: count }), vacations)
+      ? firstVacation
+      : null;
+  const monthEntries = entriesInRange(entries, {
+    from: isoDay({ year, month, day: 1 }),
+    through: isoDay({ year, month, day: count }),
+  });
+  const focusDay = selected?.startsWith(isoDay({ year, month, day: 1 }).slice(0, 7))
     ? selected
-    : today.startsWith(isoDay(year, month, 1).slice(0, 7))
+    : today.startsWith(isoDay({ year, month, day: 1 }).slice(0, 7))
       ? today
-      : isoDay(year, month, 1);
+      : isoDay({ year, month, day: 1 });
   function moveFocus(event: KeyboardEvent<HTMLButtonElement>, day: number) {
     const next =
       event.key === "ArrowRight"
@@ -83,7 +88,7 @@ export function AcademicMonthGrid({
     event.preventDefault();
     ref.current
       ?.querySelector<HTMLButtonElement>(
-        `[data-date="${isoDay(year, month, Math.max(1, Math.min(count, next)))}"]`,
+        `[data-date="${isoDay({ year, month, day: Math.max(1, Math.min(count, next)) })}"]`,
       )
       ?.focus();
   }
@@ -121,9 +126,9 @@ export function AcademicMonthGrid({
             <span className={styles.blankDay} key={`blank-${index}`} />
           ))}
           {Array.from({ length: count }, (_, index) => {
-            const date = isoDay(year, month, index + 1);
+            const date = isoDay({ year, month, day: index + 1 });
             const info = data ? calendarDay(date, data) : null;
-            const items = entriesInRange(monthEntries, date, date);
+            const items = entriesInRange(monthEntries, { from: date, through: date });
             const vacation = vacationAt(date, vacations);
             const vacationLabel =
               vacation === "before" ? "Férias anteriores" : "Férias após o período";

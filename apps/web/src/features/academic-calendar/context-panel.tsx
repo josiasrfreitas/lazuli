@@ -83,7 +83,7 @@ export function CalendarContextPanel({
     );
   if (date) {
     const info = calendarDay(date, data);
-    const items = entriesInRange(entries, date, date);
+    const items = entriesInRange(entries, { from: date, through: date });
     const outside = Boolean(
       period && (date < civilDate(period.startDate) || date > civilDate(period.endDate)),
     );
@@ -185,7 +185,9 @@ export function CalendarContextPanel({
   const upcoming = scoped.filter((row) => row.through >= today);
   const highlights = month === null ? (upcoming.length ? upcoming : scoped).slice(0, 5) : scoped;
   const scopeStart =
-    month === null && period ? civilDate(period.startDate) : isoDay(year, month ?? 0, 1);
+    month === null && period
+      ? civilDate(period.startDate)
+      : isoDay({ year, month: month ?? 0, day: 1 });
   return (
     <aside className={styles.context} aria-label="Contexto acadêmico">
       <div className={styles.contextHeading}>

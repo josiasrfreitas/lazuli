@@ -59,18 +59,21 @@ export function AcademicCalendarWorkspace({
   const previousPeriod = periods[periodIndex - 1];
   const nextPeriod = periods[periodIndex + 1];
   const months = useMemo(
-    () => periodCalendarMonths(period, year, periods),
+    () => periodCalendarMonths(period, { fallbackYear: year, periods }),
     [period, year, periods],
   );
   const vacations = useMemo(() => periodVacations(period, periods), [period, periods]);
   const entries = useMemo(() => (data ? calendarEntries(data) : []), [data]);
-  const from = month === null && period ? civilDate(period.startDate) : isoDay(year, month ?? 0, 1);
+  const from =
+    month === null && period
+      ? civilDate(period.startDate)
+      : isoDay({ year, month: month ?? 0, day: 1 });
   const through =
     month === null && period
       ? civilDate(period.endDate)
-      : isoDay(year, month === null ? 12 : month + 1, 0);
+      : isoDay({ year, month: month === null ? 12 : month + 1, day: 0 });
   const scopedEntries = useMemo(
-    () => entriesInRange(entries, from, through),
+    () => entriesInRange(entries, { from, through }),
     [entries, from, through],
   );
   const canvasRef = useCalendarMotion(

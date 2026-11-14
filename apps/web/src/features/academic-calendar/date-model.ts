@@ -1,5 +1,7 @@
 import type { AcademicYear } from "./model";
 
+const DATE_LENGTH = 10;
+
 export const MONTHS = [
   "Janeiro",
   "Fevereiro",
@@ -15,37 +17,44 @@ export const MONTHS = [
   "Dezembro",
 ];
 export const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-export const civilDate = (value: Date) => value.toISOString().slice(0, 10);
-export const dayDate = (value: string) => new Date(`${value}T12:00:00Z`);
-export const isoDay = (year: number, month: number, day: number) =>
-  civilDate(new Date(Date.UTC(year, month, day)));
-export const shiftDay = (value: string, amount: number) => {
+export const civilDate = (value: Date): string => value.toISOString().slice(0, DATE_LENGTH);
+export const dayDate = (value: string): Date => new Date(`${value}T12:00:00Z`);
+export const isoDay = ({
+  year,
+  month,
+  day,
+}: {
+  year: number;
+  month: number;
+  day: number;
+}): string => civilDate(new Date(Date.UTC(year, month, day)));
+export const shiftDay = (value: string, amount: number): string => {
   const date = dayDate(value);
   date.setUTCDate(date.getUTCDate() + amount);
   return civilDate(date);
 };
-export const shortDate = (value: string, includeYear = false) =>
+export const shortDate = (value: string, includeYear = false): string =>
   dayDate(value).toLocaleDateString("pt-BR", {
     timeZone: "UTC",
     day: "2-digit",
     month: "short",
     ...(includeYear ? { year: "numeric" as const } : {}),
   });
-export const fullDate = (value: string) =>
+export const fullDate = (value: string): string =>
   dayDate(value).toLocaleDateString("pt-BR", {
     timeZone: "UTC",
     weekday: "long",
     day: "numeric",
     month: "long",
   });
-export const schoolDate = (value: Date) =>
+export const schoolDate = (value: Date): string =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(value);
-export const schoolTime = (value: Date) =>
+export const schoolTime = (value: Date): string =>
   value.toLocaleTimeString("pt-BR", {
     timeZone: "America/Sao_Paulo",
     hour: "2-digit",
@@ -130,8 +139,12 @@ export function calendarEntries(data: AcademicYear): CalendarEntry[] {
       editor: "event",
     });
   }
-  return entries.sort((a, b) => a.from.localeCompare(b.from) || a.title.localeCompare(b.title));
+  return entries.toSorted(
+    (left, right) => left.from.localeCompare(right.from) || left.title.localeCompare(right.title),
+  );
 }
 
-export const entriesInRange = (entries: CalendarEntry[], from: string, through: string) =>
-  entries.filter((entry) => entry.from <= through && entry.through >= from);
+export const entriesInRange = (
+  entries: CalendarEntry[],
+  { from, through }: { from: string; through: string },
+): CalendarEntry[] => entries.filter((entry) => entry.from <= through && entry.through >= from);

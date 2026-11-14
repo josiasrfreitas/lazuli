@@ -1,6 +1,12 @@
 import { civilDate, isoDay, shiftDay } from "./date-model";
 import type { AcademicYear } from "./model";
 
+const MONTHS_PER_YEAR = 12;
+const YEAR_LENGTH = 4;
+const MONTH_START = 5;
+const MONTH_END = 7;
+type CalendarMonth = { year: number; month: number; from: string };
+
 export type CalendarPeriod = AcademicYear["periods"][number];
 export type CalendarVacations = {
   before: { from: string | null; through: string } | null;
@@ -14,7 +20,7 @@ export function periodVacations(
   if (!period) return { before: null, after: null };
   const index = periods.findIndex((row) => row.id === period.id);
   const previous = periods[index - 1];
-  const next = index >= 0 ? periods[index + 1] : undefined;
+  const next = index === -1 ? undefined : periods[index + 1];
   const before = {
     from: previous ? shiftDay(civilDate(previous.endDate), 1) : null,
     through: shiftDay(civilDate(period.startDate), -1),
@@ -24,16 +30,12 @@ export function periodVacations(
     through: next ? shiftDay(civilDate(next.startDate), -1) : null,
   };
   return {
-    before:
-      before.through < "2000-01-01" || (before.from && before.from > before.through)
-        ? null
-        : before,
-    after:
-      after.from > "2100-12-31" || (after.through && after.from > after.through) ? null : after,
+    before: validBefore(before),
+    after: validAfter(after),
   };
 }
 
-export function vacationAt(date: string, vacations: CalendarVacations) {
+export function vacationAt(date: string, vacations: CalendarVacations): "before" | "after" | null {
   if (
     vacations.before &&
     date <= vacations.before.through &&
@@ -51,10 +53,8 @@ export function vacationAt(date: string, vacations: CalendarVacations) {
 
 export function selectedCalendarPeriod(
   periods: CalendarPeriod[],
-  selectedId: string | null,
-  year: number,
-  today: string,
-) {
+  { selectedId, year, today }: { selectedId: string | null; year: number; today: string },
+): CalendarPeriod | null {
   const reference = today.startsWith(String(year)) ? today : `${year}-01-01`;
   return (
     periods.find((period) => period.id === selectedId) ??
@@ -71,47 +71,29 @@ export function selectedCalendarPeriod(
 /** Keep the surrounding months visible; a cross-year period uses a continuous calendar. */
 export function periodCalendarMonths(
   period: CalendarPeriod | null,
-  fallbackYear: number,
-  periods: CalendarPeriod[] = [],
-) {
-  const year = period?.startDate.getUTCFullYear() ?? fallbackYear;
-  const crossesYear = period && period.endDate.getUTCFullYear() !== year;
-  const firstMonth = crossesYear ? period.startDate.getUTCMonth() : 0;
-  const periodMonths = period
-    ? (period.endDate.getUTCFullYear() - year) * 12 + period.endDate.getUTCMonth() - firstMonth + 1
-    : 12;
-  // A 366-day interval can touch 13 civil months; never hide its final days.
-  const months = Array.from({ length: Math.max(12, periodMonths) }, (_, index) => {
-    const from = isoDay(year, firstMonth + index, 1);
-    return { year: Number(from.slice(0, 4)), month: Number(from.slice(5, 7)) - 1, from };
-  });
+  { fallbackYear, periods = [] }: { fallbackYear: number; periods?: CalendarPeriod[] },
+): CalendarMonth[] {
+  const months = baseCalendarMonths(period, fallbackYear);
   const vacations = periodVacations(period, periods);
   const first = months[0]!;
   const last = months.at(-1)!;
   const before = vacations.before?.through;
   const after = vacations.after?.from;
   if (before && before < first.from && before >= "2000-01-01") {
-    months.unshift({
-      year: Number(before.slice(0, 4)),
-      month: Number(before.slice(5, 7)) - 1,
-      from: `${before.slice(0, 7)}-01`,
-    });
+    months.unshift(monthFromDate(before));
   }
-  if (after && after > isoDay(last.year, last.month + 1, 0) && after <= "2100-12-31") {
-    months.push({
-      year: Number(after.slice(0, 4)),
-      month: Number(after.slice(5, 7)) - 1,
-      from: `${after.slice(0, 7)}-01`,
-    });
+  if (
+    after &&
+    after > isoDay({ year: last.year, month: last.month + 1, day: 0 }) &&
+    after <= "2100-12-31"
+  ) {
+    months.push(monthFromDate(after));
   }
   return months;
 }
 
 export function mergeCalendarYears(first: AcademicYear, second?: AcademicYear): AcademicYear {
   if (!second) return first;
-  const unique = <T extends { id: string }>(rows: T[]) => [
-    ...new Map(rows.map((row) => [row.id, row])).values(),
-  ];
   return {
     periods: first.periods,
     closedDays: unique([...first.closedDays, ...second.closedDays]),
@@ -120,4 +102,41 @@ export function mergeCalendarYears(first: AcademicYear, second?: AcademicYear): 
     requests: unique([...first.requests, ...second.requests]),
     planWarnings: unique([...first.planWarnings, ...second.planWarnings]),
   };
+}
+
+function validBefore(
+  before: NonNullable<CalendarVacations["before"]>,
+): CalendarVacations["before"] {
+  return before.through < "2000-01-01" || (before.from && before.from > before.through)
+    ? null
+    : before;
+}
+function validAfter(after: NonNullable<CalendarVacations["after"]>): CalendarVacations["after"] {
+  return after.from > "2100-12-31" || (after.through && after.from > after.through) ? null : after;
+}
+function baseCalendarMonths(period: CalendarPeriod | null, fallbackYear: number): CalendarMonth[] {
+  const year = period?.startDate.getUTCFullYear() ?? fallbackYear;
+  const crossesYear = period && period.endDate.getUTCFullYear() !== year;
+  const firstMonth = crossesYear ? period.startDate.getUTCMonth() : 0;
+  const periodMonths = period
+    ? (period.endDate.getUTCFullYear() - year) * MONTHS_PER_YEAR +
+      period.endDate.getUTCMonth() -
+      firstMonth +
+      1
+    : MONTHS_PER_YEAR;
+  // A 366-day interval can touch 13 civil months; never hide its final days.
+  return Array.from({ length: Math.max(MONTHS_PER_YEAR, periodMonths) }, (_value, index) => {
+    const from = isoDay({ year, month: firstMonth + index, day: 1 });
+    return monthFromDate(from);
+  });
+}
+function monthFromDate(date: string): CalendarMonth {
+  return {
+    year: Number(date.slice(0, YEAR_LENGTH)),
+    month: Number(date.slice(MONTH_START, MONTH_END)) - 1,
+    from: `${date.slice(0, MONTH_END)}-01`,
+  };
+}
+function unique<Row extends { id: string }>(rows: Row[]): Row[] {
+  return [...new Map(rows.map((row) => [row.id, row])).values()];
 }

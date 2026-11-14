@@ -22,12 +22,11 @@ export function useCalendarPeriodData(
     },
   );
   const periods = primary.data?.periods ?? [];
-  const period = selectedCalendarPeriod(
-    periods,
-    navigation.periodId,
-    navigation.year,
-    schoolToday(),
-  );
+  const period = selectedCalendarPeriod(periods, {
+    selectedId: navigation.periodId,
+    year: navigation.year,
+    today: schoolToday(),
+  });
   useEffect(() => {
     if (
       period &&
@@ -38,7 +37,7 @@ export function useCalendarPeriodData(
       navigation.setPeriod(period, true);
     }
   }, [period, navigation]);
-  const months = periodCalendarMonths(period, navigation.year, periods);
+  const months = periodCalendarMonths(period, { fallbackYear: navigation.year, periods });
   const firstYear = months[0]?.year ?? navigation.year;
   const lastYear = months.at(-1)?.year ?? navigation.year;
   const needsSecondYear = Boolean(

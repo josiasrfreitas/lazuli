@@ -36,8 +36,8 @@ void it("keeps midnight endings exclusive in São Paulo, including a year bounda
     entries.map(({ from, through, detail }) => ({ from, through, detail })),
     [{ from: "2026-12-31", through: "2026-12-31", detail: "22:00–00:00 · não suspende aulas" }],
   );
-  assert.equal(entriesInRange(entries, "2027-01-01", "2027-01-31").length, 0);
-  assert.equal(entriesInRange(entries, "2026-12-01", "2026-12-31").length, 1);
+  assert.equal(entriesInRange(entries, { from: "2027-01-01", through: "2027-01-31" }).length, 0);
+  assert.equal(entriesInRange(entries, { from: "2026-12-01", through: "2026-12-31" }).length, 1);
 });
 
 void it("shows one interruption across months without duplicating its daily closure records", () => {
@@ -70,7 +70,7 @@ void it("shows one interruption across months without duplicating its daily clos
     ["recess", "legacy"],
   );
   assert.deepEqual(
-    entriesInRange(entries, "2026-07-01", "2026-07-02").map(({ id }) => id),
+    entriesInRange(entries, { from: "2026-07-01", through: "2026-07-02" }).map(({ id }) => id),
     ["recess"],
   );
 });
@@ -117,6 +117,6 @@ void it("distinguishes unknown coverage, vacations between known periods, and bo
 void it("navigates leap dates and month or year edges as civil dates", () => {
   assert.equal(shiftDay("2028-02-28", 1), "2028-02-29");
   assert.equal(shiftDay("2028-02-29", 1), "2028-03-01");
-  assert.equal(isoDay(2026, 12, 1), "2027-01-01");
-  assert.equal(isoDay(2026, -1, 1), "2025-12-01");
+  assert.equal(isoDay({ year: 2026, month: 12, day: 1 }), "2027-01-01");
+  assert.equal(isoDay({ year: 2026, month: -1, day: 1 }), "2025-12-01");
 });
