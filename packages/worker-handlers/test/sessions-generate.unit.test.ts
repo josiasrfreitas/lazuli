@@ -98,7 +98,7 @@ void it("raises setup errors when a generated date has multiple semester buckets
 void it("returns zero counts when matching classes have no session rows", async () => {
   let createManyCalls = 0;
   const semester = semesterWindow();
-  const database = {
+  const database: Parameters<typeof generateClassSessions>[0]["database"] = {
     class: {
       findMany: () =>
         Promise.resolve([{ id: CLASS_ID, startDate: null, semester, scheduleSlots: [] }]),
@@ -111,7 +111,7 @@ void it("returns zero counts when matching classes have no session rows", async 
         return Promise.resolve({ count: 1 });
       },
     },
-  } as unknown as Parameters<typeof generateClassSessions>[0]["database"];
+  };
 
   const result = await generateClassSessions({
     database,
@@ -163,33 +163,34 @@ void it("keeps an early class start inside its assigned semester", () => {
 void it("reconciliation generates only unstarted lessons inside the affected dates", async () => {
   const semester = semesterWindow();
   let createdDates: string[] = [];
-  const database = {
+  const database: Parameters<typeof generateClassSessions>[0]["database"] = {
     class: {
-      findMany: async () => [
-        {
-          id: CLASS_ID,
-          startDate: null,
-          semester,
-          scheduleSlots: [
-            {
-              id: SLOT_ID,
-              weekday: "TUESDAY",
-              startTime: new Date("1970-01-01T14:00:00.000Z"),
-              endTime: new Date("1970-01-01T16:00:00.000Z"),
-            },
-          ],
-        },
-      ],
+      findMany: () =>
+        Promise.resolve([
+          {
+            id: CLASS_ID,
+            startDate: null,
+            semester,
+            scheduleSlots: [
+              {
+                id: SLOT_ID,
+                weekday: "TUESDAY",
+                startTime: new Date("1970-01-01T14:00:00.000Z"),
+                endTime: new Date("1970-01-01T16:00:00.000Z"),
+              },
+            ],
+          },
+        ]),
     },
-    period: { findMany: async () => [semester] },
-    schoolClosedDay: { findMany: async () => [] },
+    period: { findMany: () => Promise.resolve([semester]) },
+    schoolClosedDay: { findMany: () => Promise.resolve([]) },
     classSession: {
-      createMany: async ({ data }: { data: { date: Date }[] }) => {
+      createMany: ({ data }: { data: { date: Date }[] }) => {
         createdDates = data.map((row) => row.date.toISOString().slice(0, 10));
-        return { count: data.length };
+        return Promise.resolve({ count: data.length });
       },
     },
-  } as unknown as Parameters<typeof generateClassSessions>[0]["database"];
+  };
   const result = await generateClassSessions({
     database,
     payload: { semesterId: SEMESTER_ID },

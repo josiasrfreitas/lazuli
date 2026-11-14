@@ -18,27 +18,12 @@ export function PlanningBand({
   draft?: boolean;
 }): ReactElement | null {
   const band = planningBand(items, { date, actualItemId: actualId ?? null });
-  if (!band.items.length) return null;
+  if (band.items.length === 0) return null;
   const expected = band.items[band.expected];
   const actual = band.items[band.actual];
-  const dates = [...new Set(band.items.map((item) => item.plannedOn))];
-  const difference =
-    actual && expected ? dates.indexOf(actual.plannedOn) - dates.indexOf(expected.plannedOn) : null;
-  const magnitude = Math.abs(difference ?? 0);
-  const variant =
-    difference === null
-      ? "neutral"
-      : difference < 0
-        ? "warning"
-        : difference > 0
-          ? "info"
-          : "success";
-  const label =
-    difference === null
-      ? "Sem etapa registrada"
-      : difference === 0
-        ? "Em dia"
-        : `${magnitude} ${magnitude === 1 ? "aula" : "aulas"} ${difference > 0 ? "à frente" : "atrás"}`;
+  const difference = bandDifference(band);
+  const variant = bandVariant(difference);
+  const label = bandLabel(difference);
   return (
     <div className={styles.band}>
       <div className={styles.heading}>
@@ -76,4 +61,25 @@ export function PlanningBand({
       </dl>
     </div>
   );
+}
+
+function bandVariant(difference: number | null): "neutral" | "warning" | "info" | "success" {
+  if (difference === null) return "neutral";
+  if (difference < 0) return "warning";
+  if (difference > 0) return "info";
+  return "success";
+}
+function bandLabel(difference: number | null): string {
+  if (difference === null) return "Sem etapa registrada";
+  if (difference === 0) return "Em dia";
+  const magnitude = Math.abs(difference);
+  return `${magnitude} ${magnitude === 1 ? "aula" : "aulas"} ${difference > 0 ? "à frente" : "atrás"}`;
+}
+
+function bandDifference(band: ReturnType<typeof planningBand<Step>>): number | null {
+  const expected = band.items[band.expected];
+  const actual = band.items[band.actual];
+  if (!actual || !expected) return null;
+  const dates = [...new Set(band.items.map((item) => item.plannedOn))];
+  return dates.indexOf(actual.plannedOn) - dates.indexOf(expected.plannedOn);
 }

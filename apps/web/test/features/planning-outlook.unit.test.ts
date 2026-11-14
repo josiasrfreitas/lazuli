@@ -3,18 +3,18 @@ import { it } from "node:test";
 import { semesterOutlook } from "../../src/features/stage-planning/outlook-model.js";
 type Input = Parameters<typeof semesterOutlook>[0];
 function scenario(completed: number): Input {
-  const items = Array.from({ length: 40 }, (_, i) => ({
-    id: String(i + 1),
-    plannedOn: `2026-11-${String(Math.floor(i / 2) + 1).padStart(2, "0")}`,
-    title: `Conteúdo ${i + 1}`,
+  const items = Array.from({ length: 40 }, (_unused, item) => ({
+    id: String(item + 1),
+    plannedOn: `2026-11-${String(Math.floor(item / 2) + 1).padStart(2, "0")}`,
+    title: `Conteúdo ${item + 1}`,
     reference: null,
     kind: "CONTENT" as const,
     pageFrom: null,
     pageTo: null,
-    programActivityId: String(i + 1),
+    programActivityId: String(item + 1),
     curriculum: {
-      title: `Conteúdo ${i + 1}`,
-      sequence: i + 1,
+      title: `Conteúdo ${item + 1}`,
+      sequence: item + 1,
       durationMinutes: 60,
       unit: { id: "u", sequence: 1, title: "Unidade 1" },
       lessons: [],
@@ -36,7 +36,9 @@ function scenario(completed: number): Input {
           reference: null,
           pageFrom: null,
           pageTo: null,
-          planItems: items.slice(0, completed).map((i) => ({ id: i.id, status: "COMPLETED" })),
+          planItems: items
+            .slice(0, completed)
+            .map((item) => ({ id: item.id, status: "COMPLETED" })),
         },
       },
     ],

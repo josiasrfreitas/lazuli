@@ -5,10 +5,41 @@ import { sessionsGeneratePayloadSchema, type SessionsGeneratePayload } from "@la
 const DATE_ONLY_LENGTH = 10;
 const MILLISECONDS_PER_DAY = 86_400_000;
 
-type SessionGenerationDatabase = Pick<
-  Prisma.TransactionClient,
-  "class" | "period" | "schoolClosedDay" | "classSession"
->;
+const sessionClassSelect = {
+  id: true,
+  startDate: true,
+  semester: { select: { id: true, name: true, startDate: true, endDate: true } },
+  scheduleSlots: {
+    where: { deletedAt: null },
+    select: { id: true, weekday: true, startTime: true, endTime: true },
+  },
+} as const satisfies Prisma.ClassSelect;
+type SessionGenerationDatabase = {
+  class: {
+    findMany: (args: {
+      where: Prisma.ClassWhereInput;
+      select: typeof sessionClassSelect;
+    }) => Promise<SessionGenerationClass[]>;
+  };
+  period: {
+    findMany: (args: {
+      where: Prisma.PeriodWhereInput;
+      select: { id: true; name: true; startDate: true; endDate: true };
+    }) => Promise<SemesterWindow[]>;
+  };
+  schoolClosedDay: {
+    findMany: (args: {
+      where: Prisma.SchoolClosedDayWhereInput;
+      select: { date: true };
+    }) => Promise<{ date: Date }[]>;
+  };
+  classSession: {
+    createMany: (args: {
+      data: SessionRow[];
+      skipDuplicates: boolean;
+    }) => Promise<Prisma.BatchPayload>;
+  };
+};
 
 type SessionGenerationClass = {
   id: string;
@@ -105,15 +136,7 @@ async function loadSessionGenerationClasses(input: {
       deletedAt: null,
       ...scopeWhere(input.payload),
     },
-    select: {
-      id: true,
-      startDate: true,
-      semester: { select: { id: true, name: true, startDate: true, endDate: true } },
-      scheduleSlots: {
-        where: { deletedAt: null },
-        select: { id: true, weekday: true, startTime: true, endTime: true },
-      },
-    },
+    select: sessionClassSelect,
   });
 
   return rows;

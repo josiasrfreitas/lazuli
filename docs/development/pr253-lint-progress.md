@@ -1,9 +1,27 @@
 # PR 253 lint progress
 
-> **Locked batch 17:** 50 original errors: apps/web/src/features/mobile-upload/mobile-page.tsx (9), file-editor.tsx (7), apps/web/src/components/app-shell/app-breadcrumb.tsx (11), agenda-nav-group.tsx (3), apps/web/src/features/class-records/lesson-progress.tsx (6), stage-planning/planning-band.tsx (5), apps/web/test/features/planning-outlook.unit.test.ts (3), packages/worker-handlers/test/sessions-generate.unit.test.ts (6). Latest remaining: 50; edits not started.
-> **Baseline:** 68 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch16.json`.
-> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over recorded files/helpers, sequentially; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
-> **Next gate:** zero target/helper errors, types and upload/navigation/planning/session tests, then full comparison. Concrete session database seam may be narrowed to remove test double casts; preserve queries, fixture identifiers and assertions. No `--fix` or suppressions.
+> **Locked batch 18:** final 18 errors in the inventory below, plus the Pullfrog selected-unit regression in journey.tsx (helper/test allowed). Latest remaining: 18; edits not started.
+> **Baseline:** 18 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch17.json`.
+> **Command:** targeted `pnpm -F @lazuli/web exec lazuli-lint` over all inventory/helper/test paths; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
+> **Next gate:** zero target errors, types, focused contracts and selected-unit regression test, full lint zero and publication gates.
+
+- `apps/web/src/features/shared/task-form.tsx`: 1
+- `apps/web/src/app/(app)/aulas/page.tsx`: 1
+- `apps/web/src/features/class-records/shared.tsx`: 1
+- `apps/web/src/features/class-records/lesson-details.tsx`: 1
+- `apps/web/src/features/class-organization/period-create-form.tsx`: 1
+- `apps/web/test/features/class-capacity-form-contract.unit.test.ts`: 1
+- `apps/web/src/features/class-organization/calendar-holidays.tsx`: 1
+- `apps/web/src/features/class-organization/calendar-closure.tsx`: 1
+- `apps/web/src/features/class-organization/calendar-period.tsx`: 1
+- `apps/web/src/features/teachers/teacher-metric-loading.tsx`: 1
+- `apps/web/src/features/class-organization/calendar-sidebar.tsx`: 1
+- `apps/web/src/features/stage-planning/workspace.tsx`: 2
+- `apps/web/src/features/stage-planning/planning-loading.tsx`: 2
+- `apps/web/src/features/classes/capacity-dialog.tsx`: 1
+- `apps/web/src/app/api/mobile-upload-origin/route.ts`: 2
+
+> **Closed batch 17:** 68 → 18, exactly 50 removed/zero added. Types 15/15 plus web rerun; 23 focused tests passed. Target zero errors/13 existing warnings. Removed the now-unused session-test suppression; no rule weakened.
 
 > **Closed batch 16:** 118 → 68 errors; exactly 50 removed/zero added. Types 15/15; 13 planning tests passed. Target zero errors/warnings; duplication, format, whitespace and quality passed (five inherited contextual loop-assertion warnings).
 
@@ -291,3 +309,10 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Inventory: journey.tsx 22, outlook-model.ts 14, planning-journey tests 12, calendar-workshop route 2. Preserved unknown/partial/complete/shortfall/tight/margin precedence, first-occurrence lesson deduplication and metadata grouping. Extracted summary/moments/explorer presentation without changing markup or handlers.
 - Workshop route uses the existing development-only config with the same role check. Test helper arguments and local variables changed; fixture IDs, test names and assertions are unchanged.
 - Evidence: `pr253-after-batch16.json`, `pr253-lint-after-batch16.log`, `pr253-batch16-{target,types,tests}.log`.
+
+## Batch 17 closure
+
+- Preserved upload token, metadata, expiry, polling cleanup, busy and selection behavior; added two request-contract tests. Separated breadcrumb, agenda height, lesson selection and band helpers without changing markup or dates.
+- Narrowed session generation database contract to the actual projections; real Prisma callers typecheck and seven session tests pass without double casts.
+- Evidence: `pr253-after-batch17.json`, `pr253-lint-after-batch17.log`, `pr253-batch17-{target,handlers,types,web-types,tests,session-tests}.log`.
+- Pullfrog on `10cd450` found selected-unit filtering regression from a shadowed callback variable. Prioritized in final batch with a multi-unit test. Production/unit/styles/deployment passed; integration pending at last check.

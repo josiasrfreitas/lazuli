@@ -48,7 +48,7 @@ export function useTeacherDocuments(teacherId?: string): TeacherDocuments {
   }
   async function send(input: MobileFileInput): Promise<void> {
     const current = await ensureSession();
-    await sendCapture("/api/teacher-capture", current.token, input);
+    await sendCapture({ endpoint: "/api/teacher-capture", token: current.token }, input);
     await utils.teachers.uploads.status.fetch({ id: current.id });
     await utils.teachers.files.invalidate();
   }

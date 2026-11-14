@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useId, useState, useRef, useLayoutEffect } from "react";
+import {
+  useEffect,
+  useId,
+  useState,
+  useRef,
+  useLayoutEffect,
+  type ReactElement,
+  type RefObject,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
@@ -17,27 +25,14 @@ export function AgendaNavGroup({
   pathname: string;
   mobile?: boolean;
   onNavigate?: () => void;
-}) {
+}): ReactElement {
   const query = useSearchParams();
   const academic = query.get("visao") === "academico";
   const active = pathname === item.href;
   const [open, setOpen] = useState(active);
   const id = useId();
-  const panel = useRef<HTMLDivElement>(null);
-  const contents = useRef<HTMLDivElement>(null);
+  const { panel, contents } = usePanelHeight(open);
   const [instant, setInstant] = useState(false);
-  useLayoutEffect(() => {
-    const element = panel.current;
-    const inner = contents.current;
-    if (!element || !inner) return;
-    const resize = () => {
-      element.style.height = open ? `${inner.getBoundingClientRect().height}px` : "0px";
-    };
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(inner);
-    return () => observer.disconnect();
-  }, [open]);
   const Icon = item.icon;
   useEffect(() => {
     if (active) setOpen(true);
@@ -88,4 +83,25 @@ export function AgendaNavGroup({
       </div>
     </div>
   );
+}
+
+function usePanelHeight(open: boolean): {
+  panel: RefObject<HTMLDivElement | null>;
+  contents: RefObject<HTMLDivElement | null>;
+} {
+  const panel = useRef<HTMLDivElement>(null);
+  const contents = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = panel.current;
+    const inner = contents.current;
+    if (!element || !inner) return;
+    const resize = (): void => {
+      element.style.height = open ? `${inner.getBoundingClientRect().height}px` : "0px";
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [open]);
+  return { panel, contents };
 }

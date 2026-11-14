@@ -62,7 +62,7 @@ function LessonSelection({
   const previous = data.records.find(
     (record) =>
       (record.date < scope.date || (record.date === scope.date && record.time < scope.startTime)) &&
-      recordedActivities(record.content).length,
+      recordedActivities(record.content).length > 0,
   );
   const update = (next: typeof selected): void => {
     const planItems = next.map((item) => ({
@@ -93,7 +93,7 @@ function LessonSelection({
         choices={[
           { value: "none", label: "Selecione uma atividade…" },
           ...items
-            .filter((item) => !selected.some((s) => s.id === item.id))
+            .filter((item) => !selected.some((selection) => selection.id === item.id))
             .map((item) => ({
               value: item.id,
               label: `${formatDateOnlyBR(item.plannedOn)} · ${item.title}`,
@@ -104,6 +104,22 @@ function LessonSelection({
           if (item) update([...selected, { id, status: "PARTIAL", title: item.title }]);
         }}
       />
+      <SelectedActivities selected={selected} items={items} update={update} />
+    </div>
+  );
+}
+
+function SelectedActivities({
+  selected,
+  items,
+  update,
+}: {
+  selected: ReturnType<typeof recordedActivities>;
+  items: Step[];
+  update: (next: ReturnType<typeof recordedActivities>) => void;
+}): ReactElement {
+  return (
+    <>
       {selected.length > 0 && (
         <p className="text-caption text-muted-foreground">
           Marque o que foi concluído. Os demais conteúdos ficam em andamento.
@@ -116,13 +132,15 @@ function LessonSelection({
               checked={item.status === "COMPLETED"}
               onCheckedChange={(checked) =>
                 update(
-                  selected.map((s) =>
-                    s.id === item.id ? { ...s, status: checked ? "COMPLETED" : "PARTIAL" } : s,
+                  selected.map((selection) =>
+                    selection.id === item.id
+                      ? { ...selection, status: checked ? "COMPLETED" : "PARTIAL" }
+                      : selection,
                   ),
                 )
               }
             />
-            {items.find((s) => s.id === item.id)?.title ??
+            {items.find((selection) => selection.id === item.id)?.title ??
               item.title ??
               "Conteúdo registrado anteriormente"}
           </label>
@@ -130,12 +148,12 @@ function LessonSelection({
             size="icon-sm"
             variant="ghost"
             aria-label={`Remover ${item.title ?? "conteúdo"} deste registro`}
-            onClick={() => update(selected.filter((s) => s.id !== item.id))}
+            onClick={() => update(selected.filter((selection) => selection.id !== item.id))}
           >
             <X aria-hidden="true" />
           </Button>
         </div>
       ))}
-    </div>
+    </>
   );
 }

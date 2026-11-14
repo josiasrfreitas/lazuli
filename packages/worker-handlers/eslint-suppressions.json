@@ -1,7 +1,1 @@
-{
-  "test/sessions-generate.unit.test.ts": {
-    "@typescript-eslint/no-restricted-types": {
-      "count": 1
-    }
-  }
-}
+{}
