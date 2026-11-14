@@ -1,5 +1,5 @@
 import type { Planning } from "./shared";
-import { planningJourney } from "./journey-model";
+import { planningJourney, type PlanningJourney } from "./journey-model";
 type OutlookInput = {
   plan: Pick<NonNullable<Planning["plan"]>, "items"> | null;
   records: Planning["records"];
@@ -7,14 +7,28 @@ type OutlookInput = {
   calendar: Planning["calendar"];
   preview?: Planning["preview"];
 };
-export function semesterOutlook(data: OutlookInput) {
+type OutlookItem =
+  | NonNullable<OutlookInput["plan"]>["items"][number]
+  | NonNullable<OutlookInput["preview"]>["items"][number];
+type OutlookStatus = "unknown" | "partial" | "complete" | "shortfall" | "tight" | "margin";
+type SemesterOutlook = {
+  journey: PlanningJourney<OutlookItem, Planning["records"][number]>;
+  status: OutlookStatus;
+  gaps: number;
+  remainingMinutes: number;
+  partialMinutes: number;
+  margin: number;
+  availableMinutes: number;
+  unknownDurations: boolean;
+};
+export function semesterOutlook(data: OutlookInput): SemesterOutlook {
   const journey = planningJourney(data.plan?.items ?? data.preview?.items ?? [], {
     records: data.records,
     today: data.scope.today,
   });
   const frontier = journey.steps.findLast((step) => step.evidence.length > 0)?.number ?? 0;
   const gaps = journey.steps.filter(
-    (step) => step.number < frontier && !step.evidence.length,
+    (step) => step.number < frontier && step.evidence.length === 0,
   ).length;
   const unknownDurations = journey.steps.some((step) => !step.item.curriculum);
   const pending = journey.steps.filter((step) => step.state !== "completed");
@@ -25,24 +39,14 @@ export function semesterOutlook(data: OutlookInput) {
   const partialMinutes = pending
     .filter((step) => step.state === "partial" || step.state === "worked")
     .reduce((sum, step) => sum + (step.item.curriculum?.durationMinutes ?? 0), 0);
-  const uncertain =
-    gaps > 0 ||
-    journey.unlinked.length > 0 ||
-    data.calendar.unrecordedSessions > 0 ||
-    unknownDurations ||
-    !journey.steps.length;
+  const uncertain = uncertainOutlook({
+    journey,
+    gaps,
+    unknownDurations,
+    unrecordedSessions: data.calendar.unrecordedSessions,
+  });
   const margin = data.calendar.availableMinutes - remainingMinutes;
-  const status = uncertain
-    ? "unknown"
-    : partialMinutes > 0
-      ? "partial"
-      : pending.length === 0
-        ? "complete"
-        : margin < 0
-          ? "shortfall"
-          : margin < 1
-            ? "tight"
-            : "margin";
+  const status = outlookStatus({ uncertain, partialMinutes, pending: pending.length, margin });
   return {
     journey,
     status,
@@ -72,20 +76,65 @@ export function contentGroups(
     const lessons = curriculum?.lessons ?? [];
     const isAssessment = step.item.kind === "ASSESSMENT";
     const previous = groups.at(-1);
-    const title = lessons.length
-      ? lessons
-          .map((l) => `Lição ${l.sequence}`)
-          .filter((l, i, all) => all.indexOf(l) === i)
-          .join(" / ")
-      : isAssessment
-        ? "Avaliação"
-        : previous?.unit === unit && previous.title !== "Avaliação"
-          ? previous.title
-          : "Abertura";
+    const title = contentTitle({ lessons, isAssessment, previous, unit });
     const id = `${curriculum?.unit.id ?? "manual"}/${title}`;
-    const group = groups.find((g) => g.id === id);
+    const group = groups.find((group) => group.id === id);
     if (group) group.steps.push(step);
     else groups.push({ id, title, unit, steps: [step] });
   }
   return groups;
+}
+
+function outlookStatus({
+  uncertain,
+  partialMinutes,
+  pending,
+  margin,
+}: {
+  uncertain: boolean;
+  partialMinutes: number;
+  pending: number;
+  margin: number;
+}): OutlookStatus {
+  if (uncertain) return "unknown";
+  if (partialMinutes > 0) return "partial";
+  if (pending === 0) return "complete";
+  if (margin < 0) return "shortfall";
+  return margin < 1 ? "tight" : "margin";
+}
+function contentTitle({
+  lessons,
+  isAssessment,
+  previous,
+  unit,
+}: {
+  lessons: NonNullable<OutlookItem["curriculum"]>["lessons"];
+  isAssessment: boolean;
+  previous: ContentGroup | undefined;
+  unit: string;
+}): string {
+  if (lessons.length > 0)
+    return [...new Set(lessons.map((lesson) => `Lição ${lesson.sequence}`))].join(" / ");
+  if (isAssessment) return "Avaliação";
+  return previous?.unit === unit && previous.title !== "Avaliação" ? previous.title : "Abertura";
+}
+
+function uncertainOutlook({
+  journey,
+  gaps,
+  unknownDurations,
+  unrecordedSessions,
+}: {
+  journey: SemesterOutlook["journey"];
+  gaps: number;
+  unknownDurations: boolean;
+  unrecordedSessions: number;
+}): boolean {
+  return (
+    gaps > 0 ||
+    journey.unlinked.length > 0 ||
+    unrecordedSessions > 0 ||
+    unknownDurations ||
+    journey.steps.length === 0
+  );
 }

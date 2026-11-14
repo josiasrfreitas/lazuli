@@ -28,8 +28,9 @@ import { dateLabel, type Planning, type PlannedItem } from "./shared";
 import { semesterOutlook, contentGroups, type ContentGroup } from "./outlook-model";
 import styles from "./journey.module.css";
 
+const MINUTES_PER_HOUR = 60;
 const hours = (minutes: number): string =>
-  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / 60)}h`;
+  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / MINUTES_PER_HOUR)}h`;
 type Outlook = ReturnType<typeof semesterOutlook>;
 const STATES = {
   completed: { label: "Concluído", variant: "success" },
@@ -48,78 +49,28 @@ export function PlanningJourney({
   const outlook = semesterOutlook(data);
   const groups = contentGroups(outlook.journey);
   const [selected, setSelected] = useState<string | null>(null);
-  const current = groups.find((g) =>
-    g.steps.some((s) => s.item.id === outlook.journey.current?.item.id),
+  const current = groups.find((group) =>
+    group.steps.some((step) => step.item.id === outlook.journey.current?.item.id),
   );
-  const next = groups.find((g) => g.steps.some((s) => s.item.id === outlook.journey.next?.item.id));
+  const next = groups.find((group) =>
+    group.steps.some((step) => step.item.id === outlook.journey.next?.item.id),
+  );
   const previous = groups
     .slice(0, current ? groups.indexOf(current) : 0)
-    .findLast((g) => g.steps.every((s) => s.state === "completed"));
+    .findLast((group) => group.steps.every((step) => step.state === "completed"));
   return (
     <div className={styles.workspace}>
       <SemesterSummary data={data} outlook={outlook} />
-      <section className={styles.content} aria-label="Percurso do conteúdo">
-        <div className={styles.contentHeader}>
-          <h3>
-            <BookOpen size={18} aria-hidden="true" />
-            Conteúdo da turma
-          </h3>
-          {groups.length > 0 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelected(current?.id ?? groups[0]!.id)}
-            >
-              Explorar programação
-              <ArrowRight aria-hidden="true" />
-            </Button>
-          )}
-        </div>
-        <div className={styles.moments}>
-          <ContentMoment
-            label="Já trabalhado"
-            group={previous}
-            empty="O percurso começa com os primeiros registros."
-            detail={previous ? `${previous.steps.length} conteúdos concluídos` : null}
-            onOpen={setSelected}
-          />
-          <ContentMoment
-            label="Ponto atual"
-            group={current}
-            empty="Aguardando o primeiro registro de conteúdo."
-            detail={outlook.journey.current?.item.title ?? null}
-            current
-            onOpen={setSelected}
-          />
-          <ContentMoment
-            label={
-              outlook.journey.next?.item.id === outlook.journey.current?.item.id && current
-                ? "Para continuar"
-                : "A seguir"
-            }
-            group={next}
-            empty={current ? "Fim da sequência prevista." : "Programação ainda não disponível."}
-            detail={outlook.journey.next?.item.title ?? null}
-            onOpen={setSelected}
-          />
-        </div>
-        <p className={styles.contextLine}>
-          {data.preview
-            ? "Prévia da programação. Os conteúdos sem data precisam de tempo adicional no calendário."
-            : outlook.journey.latestLinked
-              ? `Última aula registrada em ${dateLabel(outlook.journey.latestLinked.date)}.`
-              : "As aulas registradas vão atualizar este percurso."}
-          {!data.preview &&
-            outlook.journey.expected &&
-            ` Pelo roteiro, até hoje estava previsto: ${outlook.journey.expected.item.title}.`}
-        </p>
-        {onEdit && (
-          <Button variant="ghost" size="sm" onClick={() => onEdit(null)}>
-            <Plus aria-hidden="true" />
-            Adicionar atividade
-          </Button>
-        )}
-      </section>
+      <JourneyContent
+        data={data}
+        outlook={outlook}
+        groups={groups}
+        current={current}
+        next={next}
+        previous={previous}
+        setSelected={setSelected}
+        onEdit={onEdit}
+      />
       {selected && (
         <ContentExplorer
           groups={groups}
@@ -134,22 +85,22 @@ export function PlanningJourney({
   );
 }
 
-function outlookCopy(o: Outlook): {
+function outlookCopy(outlook: Outlook): {
   title: string;
   explanation: string;
   label: string;
   variant: "success" | "warning" | "neutral" | "info";
 } {
-  if (o.status === "unknown")
+  if (outlook.status === "unknown")
     return {
       title: "Ainda falta confirmar o avanço da turma",
       label: "Dados incompletos",
       variant: "neutral",
-      explanation: o.unknownDurations
+      explanation: outlook.unknownDurations
         ? "A programação não informa a duração de todos os conteúdos. Não é possível comparar a carga restante com o calendário."
         : "Há aulas ou conteúdos anteriores sem cobertura confirmada. Confira os registros antes de avaliar a folga do semestre.",
     };
-  if (o.status === "complete")
+  if (outlook.status === "complete")
     return {
       title: "Programação concluída",
       label: "Concluída",
@@ -157,7 +108,7 @@ function outlookCopy(o: Outlook): {
       explanation:
         "Todos os conteúdos têm conclusão registrada. O tempo disponível pode apoiar revisões e consolidação.",
     };
-  if (o.status === "partial")
+  if (outlook.status === "partial")
     return {
       title: "Há conteúdo em andamento a confirmar",
       label: "Estimativa conservadora",
@@ -165,15 +116,15 @@ function outlookCopy(o: Outlook): {
       explanation:
         "A carga abaixo inclui o tempo integral das atividades parciais. A folga pode aumentar quando a conclusão for registrada.",
     };
-  if (o.status === "shortfall")
+  if (outlook.status === "shortfall")
     return {
-      title: `Faltam ${hours(-o.margin)} de aula para acomodar o conteúdo`,
+      title: `Faltam ${hours(-outlook.margin)} de aula para acomodar o conteúdo`,
       label: "Exige ajuste",
       variant: "warning",
       explanation:
         "A carga prevista restante supera o tempo disponível. Revise a distribuição do conteúdo ou a possibilidade de aulas adicionais antes do encerramento.",
     };
-  if (o.status === "tight")
+  if (outlook.status === "tight")
     return {
       title: "O conteúdo cabe, mas não há folga",
       label: "Sem margem",
@@ -182,16 +133,16 @@ function outlookCopy(o: Outlook): {
         "Todo o tempo restante está comprometido. Novas interrupções ou conteúdos que precisem de mais tempo exigirão ajuste.",
     };
   return {
-    title: `Há ${hours(o.margin)} de folga para concluir o conteúdo`,
+    title: `Há ${hours(outlook.margin)} de folga para concluir o conteúdo`,
     label: "Cabe no semestre",
     variant: "success",
     explanation:
       "A carga prevista restante cabe nas aulas disponíveis. A folga permite retomar conteúdos e acomodar ajustes de ritmo.",
   };
 }
-function SemesterSummary({ data, outlook: o }: { data: Planning; outlook: Outlook }): ReactElement {
-  const copy = outlookCopy(o);
-  const max = Math.max(1, o.availableMinutes, o.remainingMinutes);
+function SemesterSummary({ data, outlook }: { data: Planning; outlook: Outlook }): ReactElement {
+  const copy = outlookCopy(outlook);
+  const max = Math.max(1, outlook.availableMinutes, outlook.remainingMinutes);
   return (
     <section className={styles.outlook} aria-label="Conclusão do conteúdo no semestre">
       <header className={styles.outlookHeader}>
@@ -214,17 +165,17 @@ function SemesterSummary({ data, outlook: o }: { data: Planning; outlook: Outloo
             <div>
               <span>{data.preview ? "Carga da programação" : "Conteúdo restante"}</span>
               <strong>
-                {o.status === "unknown"
+                {outlook.status === "unknown"
                   ? "A confirmar"
-                  : `${o.partialMinutes ? "Até " : ""}${hours(o.remainingMinutes)}`}
+                  : `${outlook.partialMinutes ? "Até " : ""}${hours(outlook.remainingMinutes)}`}
               </strong>
             </div>
-            {o.status !== "unknown" && (
+            {outlook.status !== "unknown" && (
               <meter
                 min={0}
                 max={max}
-                value={o.remainingMinutes}
-                aria-label={`Carga prevista do conteúdo restante: ${hours(o.remainingMinutes)}`}
+                value={outlook.remainingMinutes}
+                aria-label={`Carga prevista do conteúdo restante: ${hours(outlook.remainingMinutes)}`}
                 className={styles.meter}
               />
             )}
@@ -232,13 +183,13 @@ function SemesterSummary({ data, outlook: o }: { data: Planning; outlook: Outloo
           <div className={styles.measure}>
             <div>
               <span>Aulas disponíveis</span>
-              <strong>{hours(o.availableMinutes)}</strong>
+              <strong>{hours(outlook.availableMinutes)}</strong>
             </div>
             <meter
               min={0}
               max={max}
-              value={o.availableMinutes}
-              aria-label={`Tempo de aula disponível: ${hours(o.availableMinutes)}`}
+              value={outlook.availableMinutes}
+              aria-label={`Tempo de aula disponível: ${hours(outlook.availableMinutes)}`}
               className={styles.meter}
               data-calendar
             />
@@ -250,18 +201,7 @@ function SemesterSummary({ data, outlook: o }: { data: Planning; outlook: Outloo
           </p>
         </div>
       </div>
-      <details className={styles.method}>
-        <summary>
-          <Info size={14} aria-hidden="true" />
-          Como essa comparação funciona
-        </summary>
-        <p>
-          Somamos a duração prevista dos conteúdos ainda não concluídos e comparamos com as aulas
-          disponíveis até {dateLabel(data.scope.semester.endOn)}, excluindo cancelamentos e dias sem
-          aula. É uma comparação com a carga da programação, não uma previsão baseada na velocidade
-          do professor. Conteúdos sem confirmação não são considerados concluídos.
-        </p>
-      </details>
+      <SummaryMethod data={data} />
     </section>
   );
 }
@@ -284,13 +224,7 @@ function ContentMoment({
   return (
     <div className={styles.moment} data-current={current || undefined}>
       <h4>
-        {current ? (
-          <Clock3 size={15} aria-hidden="true" />
-        ) : label === "Já trabalhado" ? (
-          <Check size={15} aria-hidden="true" />
-        ) : (
-          <ArrowRight size={15} aria-hidden="true" />
-        )}
+        {momentIcon(current, label)}
         {label}
       </h4>
       {group ? (
@@ -323,9 +257,9 @@ function ContentExplorer({
   onEdit?: ((item: PlannedItem) => void) | undefined;
   preview: boolean;
 }): ReactElement {
-  const group = groups.find((g) => g.id === selected) ?? groups[0];
+  const group = groups.find((group) => group.id === selected) ?? groups[0];
   if (!group) return <></>;
-  const units = [...new Set(groups.map((g) => g.unit))];
+  const units = [...new Set(groups.map((group) => group.unit))];
   return (
     <Dialog
       open
@@ -351,7 +285,7 @@ function ContentExplorer({
                   value={group.unit}
                   choices={units.map((unit) => ({ value: unit, label: unit }))}
                   onChange={(unit) => {
-                    const first = groups.find((g) => g.unit === unit);
+                    const first = groups.find((group) => group.unit === unit);
                     if (first) onSelect(first.id);
                   }}
                 />
@@ -360,64 +294,225 @@ function ContentExplorer({
                   label="Conteúdo"
                   value={group.id}
                   choices={groups
-                    .filter((g) => g.unit === group.unit)
-                    .map((g) => ({ value: g.id, label: g.title }))}
+                    .filter((group) => group.unit === group.unit)
+                    .map((group) => ({ value: group.id, label: group.title }))}
                   onChange={onSelect}
                 />
               </div>
-              <div className={styles.activities}>
-                {group.steps.map((step) => (
-                  <article key={step.item.id}>
-                    <div className={styles.activityTitle}>
-                      <h3>{step.item.title}</h3>
-                      <Badge variant={STATES[step.state].variant}>{STATES[step.state].label}</Badge>
-                    </div>
-                    <p>
-                      {step.item.plannedOn
-                        ? `${preview ? "Cabe no calendário em" : "Previsto para"} ${dateLabel(step.item.plannedOn)}`
-                        : "Sem data · falta tempo no calendário"}
-                      {step.item.curriculum
-                        ? ` · ${hours(step.item.curriculum.durationMinutes)} na programação`
-                        : ""}
-                    </p>
-                    {step.evidence.length ? (
-                      <div className={styles.evidence}>
-                        {step.evidence.map((r) => (
-                          <Link
-                            key={r.id}
-                            href={`/turmas/${r.classId}?secao=aulas&aula=${r.id}#aulas-da-turma`}
-                          >
-                            <ArrowUpRight size={13} aria-hidden="true" />
-                            {dateLabel(r.date)} ·{" "}
-                            {r.content.planItemStatus === "COMPLETED"
-                              ? "Conclusão registrada"
-                              : "Conteúdo trabalhado"}
-                          </Link>
-                        ))}
-                      </div>
-                    ) : (
-                      <p>Sem conclusão registrada.</p>
-                    )}
-                    {onEdit && step.item.plannedOn && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          onClose();
-                          if (step.item.plannedOn)
-                            onEdit({ ...step.item, plannedOn: step.item.plannedOn });
-                        }}
-                      >
-                        Editar atividade
-                      </Button>
-                    )}
-                  </article>
-                ))}
-              </div>
+              <ExplorerActivities
+                group={group}
+                preview={preview}
+                onEdit={onEdit}
+                onClose={onClose}
+              />
             </div>
           </DialogBody>
         </DialogContent>
       </DialogPortal>
     </Dialog>
   );
+}
+
+function JourneyContent({
+  data,
+  outlook,
+  groups,
+  current,
+  next,
+  previous,
+  setSelected,
+  onEdit,
+}: {
+  data: Planning;
+  outlook: Outlook;
+  groups: ContentGroup[];
+  current: ContentGroup | undefined;
+  next: ContentGroup | undefined;
+  previous: ContentGroup | undefined;
+  setSelected: (value: string) => void;
+  onEdit: ((item: PlannedItem | null) => void) | undefined;
+}): ReactElement {
+  return (
+    <section className={styles.content} aria-label="Percurso do conteúdo">
+      <div className={styles.contentHeader}>
+        <h3>
+          <BookOpen size={18} aria-hidden="true" />
+          Conteúdo da turma
+        </h3>
+        {groups.length > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSelected(current?.id ?? groups[0]!.id)}
+          >
+            Explorar programação
+            <ArrowRight aria-hidden="true" />
+          </Button>
+        )}
+      </div>
+      <JourneyMoments
+        outlook={outlook}
+        current={current}
+        next={next}
+        previous={previous}
+        setSelected={setSelected}
+      />
+      <p className={styles.contextLine}>
+        {journeyContext(data, outlook)}
+        {!data.preview &&
+          outlook.journey.expected &&
+          ` Pelo roteiro, até hoje estava previsto: ${outlook.journey.expected.item.title}.`}
+      </p>
+      {onEdit && (
+        <Button variant="ghost" size="sm" onClick={() => onEdit(null)}>
+          <Plus aria-hidden="true" />
+          Adicionar atividade
+        </Button>
+      )}
+    </section>
+  );
+}
+
+function journeyContext(data: Planning, outlook: Outlook): string {
+  if (data.preview)
+    return "Prévia da programação. Os conteúdos sem data precisam de tempo adicional no calendário.";
+  return outlook.journey.latestLinked
+    ? `Última aula registrada em ${dateLabel(outlook.journey.latestLinked.date)}.`
+    : "As aulas registradas vão atualizar este percurso.";
+}
+
+function SummaryMethod({ data }: { data: Planning }): ReactElement {
+  return (
+    <details className={styles.method}>
+      <summary>
+        <Info size={14} aria-hidden="true" />
+        Como essa comparação funciona
+      </summary>
+      <p>
+        Somamos a duração prevista dos conteúdos ainda não concluídos e comparamos com as aulas
+        disponíveis até {dateLabel(data.scope.semester.endOn)}, excluindo cancelamentos e dias sem
+        aula. É uma comparação com a carga da programação, não uma previsão baseada na velocidade do
+        professor. Conteúdos sem confirmação não são considerados concluídos.
+      </p>
+    </details>
+  );
+}
+
+function momentIcon(current: boolean | undefined, label: string): ReactElement {
+  if (current) return <Clock3 size={15} aria-hidden="true" />;
+  return label === "Já trabalhado" ? (
+    <Check size={15} aria-hidden="true" />
+  ) : (
+    <ArrowRight size={15} aria-hidden="true" />
+  );
+}
+
+function ExplorerActivities({
+  group,
+  preview,
+  onEdit,
+  onClose,
+}: {
+  group: ContentGroup;
+  preview: boolean;
+  onEdit: ((item: PlannedItem) => void) | undefined;
+  onClose: () => void;
+}): ReactElement {
+  return (
+    <div className={styles.activities}>
+      {group.steps.map((step) => (
+        <article key={step.item.id}>
+          <div className={styles.activityTitle}>
+            <h3>{step.item.title}</h3>
+            <Badge variant={STATES[step.state].variant}>{STATES[step.state].label}</Badge>
+          </div>
+          <p>
+            {step.item.plannedOn
+              ? `${preview ? "Cabe no calendário em" : "Previsto para"} ${dateLabel(step.item.plannedOn)}`
+              : "Sem data · falta tempo no calendário"}
+            {step.item.curriculum
+              ? ` · ${hours(step.item.curriculum.durationMinutes)} na programação`
+              : ""}
+          </p>
+          {step.evidence.length > 0 ? (
+            <div className={styles.evidence}>
+              {step.evidence.map((record) => (
+                <Link
+                  key={record.id}
+                  href={`/turmas/${record.classId}?secao=aulas&aula=${record.id}#aulas-da-turma`}
+                >
+                  <ArrowUpRight size={13} aria-hidden="true" />
+                  {dateLabel(record.date)} ·{" "}
+                  {record.content.planItemStatus === "COMPLETED"
+                    ? "Conclusão registrada"
+                    : "Conteúdo trabalhado"}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p>Sem conclusão registrada.</p>
+          )}
+          {onEdit && step.item.plannedOn && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                onClose();
+                if (step.item.plannedOn) onEdit({ ...step.item, plannedOn: step.item.plannedOn });
+              }}
+            >
+              Editar atividade
+            </Button>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function JourneyMoments({
+  outlook,
+  current,
+  next,
+  previous,
+  setSelected,
+}: {
+  outlook: Outlook;
+  current: ContentGroup | undefined;
+  next: ContentGroup | undefined;
+  previous: ContentGroup | undefined;
+  setSelected: (value: string) => void;
+}): ReactElement {
+  return (
+    <div className={styles.moments}>
+      <ContentMoment
+        label="Já trabalhado"
+        group={previous}
+        empty="O percurso começa com os primeiros registros."
+        detail={previous ? `${previous.steps.length} conteúdos concluídos` : null}
+        onOpen={setSelected}
+      />
+      <ContentMoment
+        label="Ponto atual"
+        group={current}
+        empty="Aguardando o primeiro registro de conteúdo."
+        detail={outlook.journey.current?.item.title ?? null}
+        current
+        onOpen={setSelected}
+      />
+      <ContentMoment
+        label={nextMomentLabel(outlook, current)}
+        group={next}
+        empty={current ? "Fim da sequência prevista." : "Programação ainda não disponível."}
+        detail={outlook.journey.next?.item.title ?? null}
+        onOpen={setSelected}
+      />
+    </div>
+  );
+}
+
+function nextMomentLabel(outlook: Outlook, current: ContentGroup | undefined): string {
+  return outlook.journey.next?.item.id === outlook.journey.current?.item.id && current
+    ? "Para continuar"
+    : "A seguir";
 }

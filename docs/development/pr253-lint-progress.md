@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 16:** 50 original errors: apps/web/src/features/stage-planning/journey.tsx (22), outlook-model.ts (14), apps/web/test/features/planning-journey.unit.test.ts (12), apps/web/src/app/(app)/aulas/calendario-workshop/page.tsx (2). Latest remaining: 50; edits not started.
-> **Baseline:** 118 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch15.json`.
-> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over four recorded files/helpers; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
-> **Next gate:** zero target/helper errors, types and planning tests, full comparison. Preserve evidence/status precedence, grouping, test identifiers and assertions; no `--fix` or suppressions.
+> **Locked batch 17:** 50 original errors: apps/web/src/features/mobile-upload/mobile-page.tsx (9), file-editor.tsx (7), apps/web/src/components/app-shell/app-breadcrumb.tsx (11), agenda-nav-group.tsx (3), apps/web/src/features/class-records/lesson-progress.tsx (6), stage-planning/planning-band.tsx (5), apps/web/test/features/planning-outlook.unit.test.ts (3), packages/worker-handlers/test/sessions-generate.unit.test.ts (6). Latest remaining: 50; edits not started.
+> **Baseline:** 68 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch16.json`.
+> **Command:** per-workspace `pnpm -F <workspace> exec lazuli-lint` over recorded files/helpers, sequentially; full `pnpm lint --concurrency=1 --continue=dependencies-successful`.
+> **Next gate:** zero target/helper errors, types and upload/navigation/planning/session tests, then full comparison. Concrete session database seam may be narrowed to remove test double casts; preserve queries, fixture identifiers and assertions. No `--fix` or suppressions.
+
+> **Closed batch 16:** 118 → 68 errors; exactly 50 removed/zero added. Types 15/15; 13 planning tests passed. Target zero errors/warnings; duplication, format, whitespace and quality passed (five inherited contextual loop-assertion warnings).
 
 > **Closed batch 15:** 168 → 118 errors, exactly 50 removed/zero added. Types 15/15 and 17 focused tests passed. Target zero errors/six existing warnings; duplication, format, whitespace and test-quality gates passed.
 
@@ -283,3 +285,9 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Inventory: workshop.tsx 27, journey-model.ts 22, stage-planning/shared.tsx 1. Extracted workshop state/header/overview/detail/month content with unchanged sample data and boundaries. Journey now exposes explicit generic output and object arguments; preserves ordering, legacy evidence without completion status and all current/next/group calculations.
 - Mechanical outlook/test callers updated without changing fixtures or assertions. Evidence: `pr253-after-batch15.json`, `pr253-lint-after-batch15.log`, `pr253-batch15-{target,types,tests}.log`.
 - Published head `a535a8be7d39f5daface9a12207efb0fdb506fa6`: production and Pullfrog succeeded; other jobs still being followed.
+
+## Batch 16 closure
+
+- Inventory: journey.tsx 22, outlook-model.ts 14, planning-journey tests 12, calendar-workshop route 2. Preserved unknown/partial/complete/shortfall/tight/margin precedence, first-occurrence lesson deduplication and metadata grouping. Extracted summary/moments/explorer presentation without changing markup or handlers.
+- Workshop route uses the existing development-only config with the same role check. Test helper arguments and local variables changed; fixture IDs, test names and assertions are unchanged.
+- Evidence: `pr253-after-batch16.json`, `pr253-lint-after-batch16.log`, `pr253-batch16-{target,types,tests}.log`.
