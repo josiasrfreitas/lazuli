@@ -42,12 +42,12 @@ type CloseState = {
   pending: boolean;
   submit: (event: FormEvent<HTMLFormElement>) => void;
 };
+const normalize = (value: string): string =>
+  value.normalize("NFC").trim().replaceAll(/\s+/gu, " ").toLocaleLowerCase("pt-BR");
 function useCloseState(input: CloseInput): CloseState {
   const [reason, setReason] = useState<CloseReason>("SUSPENDED");
   const [date, saveDate] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const normalize = (value: string): string =>
-    value.normalize("NFC").trim().replace(/\s+/gu, " ").toLocaleLowerCase("pt-BR");
   const confirmed = normalize(confirmation) === normalize(input.studentName);
   const [error, setError] = useState<string | null>(null);
   const popup = useRef<HTMLDivElement>(null);
@@ -109,7 +109,7 @@ function CloseFields({ state }: { state: CloseState }): ReactElement {
           <SegmentedControlItem value="DROPPED">Encerrar</SegmentedControlItem>
         </SegmentedControl>
       </Field>
-      <Field className={styles.date}>
+      <Field render={<div className={styles.date} />}>
         <Label htmlFor="effectiveDate">Data efetiva</Label>
         <Input
           id="effectiveDate"
@@ -155,7 +155,7 @@ function CloseForm(input: CloseInput): ReactElement {
               : "O vínculo com esta turma termina nessa data."}
           </p>
           <p className={styles.note}>Notas, plano e cobranças permanecem como estão.</p>
-          <Field className={styles.confirmation}>
+          <Field render={<div className={styles.confirmation} />}>
             <Label htmlFor="confirm-student">Digite o nome completo do aluno para confirmar</Label>
             <Input
               id="confirm-student"
@@ -187,11 +187,7 @@ function CloseForm(input: CloseInput): ReactElement {
           form="close-enrollment-form"
           disabled={state.pending || !state.confirmed}
         >
-          {state.pending
-            ? "Salvando…"
-            : state.reason === "SUSPENDED"
-              ? "Pausar vínculo"
-              : "Encerrar vínculo"}
+          {closeButtonLabel(state)}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -221,4 +217,9 @@ export function CloseMembershipDialog({
       </DialogPortal>
     </Dialog>
   );
+}
+
+function closeButtonLabel(state: CloseState): string {
+  if (state.pending) return "Salvando…";
+  return state.reason === "SUSPENDED" ? "Pausar vínculo" : "Encerrar vínculo";
 }

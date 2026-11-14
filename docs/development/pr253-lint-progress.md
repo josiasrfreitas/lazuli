@@ -1,9 +1,11 @@
 # PR 253 lint progress
 
-> **Locked batch 11:** 50 original errors: academic-calendar/month-grid.tsx (33), academic-calendar/use-period-data.ts (12), classes/close-dialog.tsx (5), all under apps/web/src/features. Latest remaining: 50; edits not started.
-> **Baseline:** 368 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch10.json`.
-> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over the three recorded files and extracted helpers; full comparison uses `pnpm lint --concurrency=1 --continue=dependencies-successful`.
-> **Next gate:** zero errors across locked area/helpers, types and focused tests, then full serial lint and diagnostic comparison. Preserve behavior/layout, fixtures and identifiers; no suppressions or `--fix`.
+> **Locked batch 12:** 50 original errors in apps/web/src/features/academic-calendar: context-panel.tsx (21), workspace.tsx (28), loading.tsx (1). Latest remaining: 50; edits not started.
+> **Baseline:** 318 errors, `/workspace/scratch/e19b55f99412/pr253-after-batch11.json`.
+> **Command:** `pnpm -F @lazuli/web exec lazuli-lint` over the three recorded files and helpers; full command `pnpm lint --concurrency=1 --continue=dependencies-successful`.
+> **Next gate:** zero target/helper errors, types and focused tests, full lint comparison. Preserve layout, hooks, navigation, identifiers and fixtures. No suppressions or `--fix`.
+
+> **Closed batch 11:** 368 → 318 errors, exactly 50 removed and zero added. Target zero errors/two existing object-injection warnings; types 15/15 and focused tests 16/16. Duplication, format, whitespace and test-quality gates passed. Month grid focus, vacation/holiday precedence and unavailable states covered by three new render tests. Native render slots keep existing CSS classes on the same button/field elements; no CSS changes.
 
 > **Closed batch 10:** 418 → 368 errors; 50 targeted violations resolved. Raw file/rule/message comparison: 54 removed, 4 added because pre-existing function-length messages changed after mechanical call-site updates (month-grid 219→224, context-panel 249→251, use-period-data 104→103, workspace 294→297). No new file/rule/function violation instances. Batch 11 addresses month-grid/use-period-data; prioritize context-panel/workspace next and group publication. All 15 type checks, 13 focused calendar tests, duplication, format, whitespace and test-quality gates passed.
 
@@ -243,3 +245,8 @@ The third full lint completed across the overnight interruption. Its diagnostics
 - Explicit date/period contracts and object arguments preserve inclusive date boundaries, vacation ranges and cross-year selection. Calendar orchestration split into a controller and render helpers without moving state lifetime or changing conditional editor presence.
 - Added four focused period tests. Full lint snapshot/log: `pr253-after-batch10.json`, `pr253-lint-after-batch10.log`. Target lint zero errors and one existing warning.
 - Published head `d2721580be64a8fe03ab12a73969f0999cd133d8`: CI 43642328715 completed; production/unit/scripts/styles/integration/transport passed, static lint and aggregate quality failed with 468 remaining errors. Deployment 43642328608 passed. Pullfrog review 5907221878 reported no new issues.
+
+## Batch 11 closure
+
+- Inventory: month-grid.tsx 33, use-period-data.ts 12, classes/close-dialog.tsx 5; all under apps/web/src/features. Split month presentation and focus controller while preserving date keys, keyboard handling, DOM structure and query polling intervals.
+- Evidence: `pr253-after-batch11.json`, `pr253-lint-after-batch11.log`, `pr253-batch11-{target,types,tests}.log`. No newly introduced diagnostics.
