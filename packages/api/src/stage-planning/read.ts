@@ -1,5 +1,5 @@
-import { readActivityContexts } from "../teaching-programs/labels.js";
-import { previewProgramSchedule } from "./program-schedule.js";
+import { readActivityContexts, type ActivityContext } from "../teaching-programs/labels.js";
+import { previewProgramSchedule, type ProgramPreview } from "./program-schedule.js";
 import { programActivityKind } from "./program-activity.js";
 import type { Prisma } from "@lazuli/db";
 import type { PlanningClassContext, PlanningDetail, PlanningRevision } from "./types.js";
@@ -16,6 +16,8 @@ import {
   stageSelect,
   dateOnly,
   type PlanningContext,
+  type PlanningScope,
+  type Plan,
 } from "./data.js";
 import { planningRecords } from "./records.js";
 const UPCOMING_DATES = 6;
@@ -114,6 +116,8 @@ function contextItem(row: ContextRow, today: Date): PlanningClassContext {
     students: row.scheduleType === "REGULAR" ? [] : students,
   };
 }
+const ISO_DATE_LENGTH = 10;
+const MILLISECONDS_PER_MINUTE = 60_000;
 export async function readPlanning(
   context: PlanningContext,
   target: StagePlanTarget,
@@ -123,14 +127,74 @@ export async function readPlanning(
   const startOn = plan
     ? dateOnly(plan.plannedStartOn)
     : (scope.progressStartOn ?? scope.classStartOn);
-  const candidate = !plan ? await previewProgramSchedule(context, scope, startOn, null) : null;
+  const candidate = plan
+    ? null
+    : await previewProgramSchedule(context, { scope, startOn, plan: null });
   const preview = candidate?.missingMinutes ? candidate : null;
-  const labels = await readActivityContexts(
-    context.database,
-    plan?.items.flatMap((item) => (item.programActivityId ? [item.programActivityId] : [])) ??
-      preview?.activities.map((item) => item.id) ??
-      [],
-  );
+  const labels = await readActivityContexts(context.database, planningActivityIds(plan, preview));
+  const calendar = await planningCalendar(context, { scope, startOn, hasPlan: Boolean(plan) });
+  return {
+    scope,
+    preview: planningPreview({ preview, startOn, labels }),
+    plan: planningSnapshot(plan, labels),
+    records: plan ? await planningRecords(context, { scope, plan }) : [],
+    ...calendar,
+  };
+}
+function planningPreview({
+  preview,
+  startOn,
+  labels,
+}: {
+  preview: ProgramPreview | null;
+  startOn: string;
+  labels: Map<string, ActivityContext>;
+}): PlanningDetail["preview"] {
+  return preview
+    ? {
+        plannedStartOn: startOn,
+        items: preview.activities.map((activity) => ({
+          id: `preview:${activity.id}`,
+          programActivityId: activity.id,
+          plannedOn:
+            preview.rows
+              .find((row) => row.programActivityId === activity.id)
+              ?.plannedOn.toISOString()
+              .slice(0, ISO_DATE_LENGTH) ?? null,
+          title: labels.get(activity.id)?.title ?? activity.title,
+          kind: programActivityKind(activity.kind),
+          reference: null,
+          pageFrom: null,
+          pageTo: null,
+          curriculum: labels.get(activity.id) ?? null,
+        })),
+      }
+    : null;
+}
+function planningSnapshot(
+  plan: Plan | null,
+  labels: Map<string, ActivityContext>,
+): PlanningDetail["plan"] {
+  const snapshot = plan ? planSnapshot(plan) : null;
+  return plan && snapshot
+    ? {
+        ...snapshot,
+        id: plan.id,
+        version: plan.version,
+        updatedAt: plan.updatedAt,
+        items: snapshot.items.map((item) => {
+          const curriculum = item.programActivityId
+            ? (labels.get(item.programActivityId) ?? null)
+            : null;
+          return { ...item, title: curriculum?.title ?? item.title, curriculum };
+        }),
+      }
+    : null;
+}
+async function planningCalendar(
+  context: PlanningContext,
+  { scope, startOn, hasPlan }: { scope: PlanningScope; startOn: string; hasPlan: boolean },
+): Promise<Pick<PlanningDetail, "calendar" | "upcoming">> {
   const [sessions, closures] = await Promise.all([
     context.database.classSession.findMany({
       where: {
@@ -162,45 +226,7 @@ export async function readPlanning(
   const closed = new Set(closures.map((day) => dateOnly(day.date)));
   const eligible = sessions.filter((session) => !closed.has(dateOnly(session.date)));
   const future = eligible.filter((session) => sessionEndInstant(session) > context.now);
-  const snapshot = plan ? planSnapshot(plan) : null;
   return {
-    scope,
-    preview: preview
-      ? {
-          plannedStartOn: startOn,
-          items: preview.activities.map((activity) => ({
-            id: `preview:${activity.id}`,
-            programActivityId: activity.id,
-            plannedOn:
-              preview.rows
-                .find((row) => row.programActivityId === activity.id)
-                ?.plannedOn.toISOString()
-                .slice(0, 10) ?? null,
-            title: labels.get(activity.id)?.title ?? activity.title,
-            kind: programActivityKind(activity.kind),
-            reference: null,
-            pageFrom: null,
-            pageTo: null,
-            curriculum: labels.get(activity.id) ?? null,
-          })),
-        }
-      : null,
-    plan:
-      plan && snapshot
-        ? {
-            ...snapshot,
-            id: plan.id,
-            version: plan.version,
-            updatedAt: plan.updatedAt,
-            items: snapshot.items.map((item) => {
-              const curriculum = item.programActivityId
-                ? (labels.get(item.programActivityId) ?? null)
-                : null;
-              return { ...item, title: curriculum?.title ?? item.title, curriculum };
-            }),
-          }
-        : null,
-    records: plan ? await planningRecords(context, { scope, plan }) : [],
     calendar: {
       availableMinutes: future.reduce(
         (sum, session) =>
@@ -208,8 +234,9 @@ export async function readPlanning(
           Math.max(
             0,
             Math.min(
-              (session.endTime.getTime() - session.startTime.getTime()) / 60_000,
-              (sessionEndInstant(session).getTime() - context.now.getTime()) / 60_000,
+              (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
+              (sessionEndInstant(session).getTime() - context.now.getTime()) /
+                MILLISECONDS_PER_MINUTE,
             ),
           ),
         0,
@@ -219,7 +246,7 @@ export async function readPlanning(
         ? 0
         : eligible.filter(
             (session) =>
-              sessionEndInstant(session) <= context.now && (!plan || !session.classRecord),
+              sessionEndInstant(session) <= context.now && (!hasPlan || !session.classRecord),
           ).length,
     },
     upcoming: future.slice(0, UPCOMING_DATES).map((session) => ({
@@ -251,4 +278,12 @@ export async function planningHistory(
     snapshot: stagePlanSnapshotSchema.parse(row.snapshot),
   }));
   return { items, nextCursor: rows.length > HISTORY_PAGE_SIZE ? items.at(-1)?.version : undefined };
+}
+
+function planningActivityIds(plan: Plan | null, preview: ProgramPreview | null): string[] {
+  return (
+    plan?.items.flatMap((item) => (item.programActivityId ? [item.programActivityId] : [])) ??
+    preview?.activities.map((item) => item.id) ??
+    []
+  );
 }

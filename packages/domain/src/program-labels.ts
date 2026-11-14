@@ -7,37 +7,40 @@ type Activity = {
 };
 /** Describe position in the source curriculum without inventing unknown activity content. */
 export function programActivityLabels(activities: readonly Activity[]): Map<string, string> {
-  const ordered = activities.toSorted((a, b) => a.sequence - b.sequence);
+  const ordered = activities.toSorted((left, right) => left.sequence - right.sequence);
   const result = new Map<string, string>();
   for (const [index, activity] of ordered.entries()) {
-    if (activity.kind === "LESSON") {
-      result.set(activity.id, activity.title);
-      continue;
-    }
-    if (activity.lessons.length) {
-      const numbers = [...new Set(activity.lessons.map((l) => l.lesson.sequence))].toSorted(
-        (a, b) => a - b,
-      );
-      const context =
-        numbers.length === 1 ? `lição ${numbers[0]}` : `lições ${numbers.join(" e ")}`;
-      result.set(activity.id, `${activity.title} · ${context}`);
-      continue;
-    }
-    const previous = ordered.slice(0, index).findLast((a) => a.lessons.length);
-    const next = ordered.slice(index + 1).find((a) => a.lessons.length);
-    const from = previous ? Math.max(...previous.lessons.map((l) => l.lesson.sequence)) : null;
-    const to = next ? Math.min(...next.lessons.map((l) => l.lesson.sequence)) : null;
-    const transition =
-      from !== null && to !== null
-        ? from === to
-          ? `durante a lição ${from}`
-          : `entre as lições ${from} e ${to}`
-        : from !== null
-          ? `após a lição ${from}`
-          : to !== null
-            ? `antes da lição ${to}`
-            : null;
-    result.set(activity.id, transition ? `${activity.title} · ${transition}` : activity.title);
+    result.set(activity.id, activityLabel({ activity, index, ordered }));
   }
   return result;
+}
+function activityLabel({
+  activity,
+  index,
+  ordered,
+}: {
+  activity: Activity;
+  index: number;
+  ordered: readonly Activity[];
+}): string {
+  if (activity.kind === "LESSON") return activity.title;
+  if (activity.lessons.length > 0) {
+    const numbers = [...new Set(activity.lessons.map((link) => link.lesson.sequence))].toSorted(
+      (left, right) => left - right,
+    );
+    const context = numbers.length === 1 ? `lição ${numbers[0]}` : `lições ${numbers.join(" e ")}`;
+    return `${activity.title} · ${context}`;
+  }
+  const previous = ordered.slice(0, index).findLast((item) => item.lessons.length > 0);
+  const next = ordered.slice(index + 1).find((item) => item.lessons.length > 0);
+  const from = previous ? Math.max(...previous.lessons.map((link) => link.lesson.sequence)) : null;
+  const to = next ? Math.min(...next.lessons.map((link) => link.lesson.sequence)) : null;
+  const transition = transitionLabel({ from, to });
+  return transition ? `${activity.title} · ${transition}` : activity.title;
+}
+function transitionLabel({ from, to }: { from: number | null; to: number | null }): string | null {
+  if (from !== null && to !== null)
+    return from === to ? `durante a lição ${from}` : `entre as lições ${from} e ${to}`;
+  if (from !== null) return `após a lição ${from}`;
+  return to === null ? null : `antes da lição ${to}`;
 }

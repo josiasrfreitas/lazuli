@@ -9,6 +9,7 @@ const MAX_PAGE = 10_000;
 const MAX_TITLE_LENGTH = 500;
 const MAX_ROSTER_SIZE = 500;
 const MAX_REASON_LENGTH = 1000;
+const MAX_LINKED_ACTIVITIES = 100;
 const MAX_QUERY_DAYS = 31;
 const MILLISECONDS_PER_DAY = 86_400_000;
 const dateOnly = civilDateSchema;
@@ -33,7 +34,7 @@ export const classRecordContentSchema = z
           })
           .strict(),
       )
-      .max(100)
+      .max(MAX_LINKED_ACTIVITIES)
       .refine(
         (items) => new Set(items.map((item) => item.id)).size === items.length,
         "Não repita atividades no registro.",

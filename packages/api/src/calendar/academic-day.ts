@@ -1,7 +1,15 @@
 import type { Prisma } from "@lazuli/db";
 
 /** Academic activity policy, independent from administrative opening hours. */
-export async function academicDayPolicy(database: Prisma.TransactionClient, date: string) {
+export async function academicDayPolicy(
+  database: Prisma.TransactionClient,
+  date: string,
+): Promise<{
+  date: string;
+  outsidePeriod: boolean;
+  period: { id: string; name: string } | null;
+  suspension: string | null;
+}> {
   const civilDate = new Date(`${date}T00:00:00Z`);
   const [period, suspension] = await Promise.all([
     database.period.findFirst({

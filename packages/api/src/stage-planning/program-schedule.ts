@@ -1,8 +1,10 @@
+import type { Prisma } from "@lazuli/db";
 import { scheduleProgram } from "@lazuli/domain";
 import { programActivityKind } from "./program-activity.js";
 import { badRequest } from "../trpc/errors.js";
 import { dateOnly, type PlanningContext, type PlanningScope, type Plan } from "./data.js";
 
+const MINUTES_PER_HOUR = 60;
 const MILLISECONDS_PER_MINUTE = 60_000;
 type ProgramRow = {
   programActivityId: string;
@@ -14,17 +16,21 @@ type ProgramRow = {
   pageTo: null;
 };
 
+type ScheduleInput = { scope: PlanningScope; startOn: string; plan: Plan | null };
+export type ProgramPreview = {
+  rows: ProgramRow[];
+  activities: Prisma.ProgramActivityGetPayload<{ include: { unit: true; teachingHour: true } }>[];
+  missingMinutes: number;
+};
 export async function programSchedule(
   context: PlanningContext,
-  scope: PlanningScope,
-  startOn: string,
-  plan: Plan | null,
+  { scope, startOn, plan }: ScheduleInput,
 ): Promise<ProgramRow[] | null> {
-  const result = await previewProgramSchedule(context, scope, startOn, plan);
+  const result = await previewProgramSchedule(context, { scope, startOn, plan });
   if (!result) return null;
   if (result.missingMinutes)
     throw badRequest(
-      `A programação não cabe até ${scope.semester.endOn.split("-").reverse().join("/")}: faltam ${result.missingMinutes / 60} horas de aula. Revise o início ou os horários da turma.`,
+      `A programação não cabe até ${scope.semester.endOn.split("-").toReversed().join("/")}: faltam ${result.missingMinutes / MINUTES_PER_HOUR} horas de aula. Revise o início ou os horários da turma.`,
     );
   return result.rows;
 }
@@ -32,10 +38,8 @@ export async function programSchedule(
 /** A read can expose unscheduled curriculum without persisting invented dates. */
 export async function previewProgramSchedule(
   context: PlanningContext,
-  scope: PlanningScope,
-  startOn: string,
-  plan: Plan | null,
-) {
+  { scope, startOn, plan }: ScheduleInput,
+): Promise<ProgramPreview | null> {
   const linked = plan?.items.find((item) => item.programActivityId)?.programActivityId;
   const previous = linked
     ? await context.database.programActivity.findUnique({
@@ -105,17 +109,15 @@ export async function previewProgramSchedule(
 
 export async function persistProgramSchedule(
   context: PlanningContext,
-  planId: string,
-  rows: NonNullable<Awaited<ReturnType<typeof programSchedule>>>,
-  plan: Plan | null,
+  { planId, rows, plan }: { planId: string; rows: ProgramRow[]; plan: Plan | null },
 ): Promise<void> {
   for (const row of rows) {
     const existing = plan?.items.find((item) => item.programActivityId === row.programActivityId);
-    if (existing)
-      await context.database.stagePlanItem.update({
-        where: { id: existing.id },
-        data: { plannedOn: row.plannedOn },
-      });
-    else await context.database.stagePlanItem.create({ data: { ...row, planId } });
+    await (existing
+      ? context.database.stagePlanItem.update({
+          where: { id: existing.id },
+          data: { plannedOn: row.plannedOn },
+        })
+      : context.database.stagePlanItem.create({ data: { ...row, planId } }));
   }
 }

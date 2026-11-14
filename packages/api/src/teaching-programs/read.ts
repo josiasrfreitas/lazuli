@@ -122,12 +122,15 @@ function projectStageProgram(stage: StageRow): StageProgramView {
 }
 
 function projectProgram(program: ProgramRow): ProgramView {
-  const labels = programActivityLabels(program.teachingHours.flatMap((h) => h.activities));
+  const labels = programActivityLabels(program.teachingHours.flatMap((hour) => hour.activities));
   program = {
     ...program,
-    teachingHours: program.teachingHours.map((h) => ({
-      ...h,
-      activities: h.activities.map((a) => ({ ...a, title: labels.get(a.id) ?? a.title })),
+    teachingHours: program.teachingHours.map((hour) => ({
+      ...hour,
+      activities: hour.activities.map((activity) => ({
+        ...activity,
+        title: labels.get(activity.id) ?? activity.title,
+      })),
     })),
   };
   return {

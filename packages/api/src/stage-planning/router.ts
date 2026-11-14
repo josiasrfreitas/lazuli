@@ -28,7 +28,7 @@ const context = (ctx: {
 export const planningRouter = router({
   prepare: staffProcedure.input(stagePlanTargetSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) => prepareProgramPlan({ ...context(ctx), database }, input), {
-      timeout: 30000,
+      timeout: 30_000,
     }),
   ),
   contexts: staffProcedure.query(({ ctx }) => planningContexts(context(ctx))),
@@ -45,7 +45,7 @@ export const planningRouter = router({
     .query(({ ctx, input }) => planningHistory(context(ctx), input)),
   saveStart: staffProcedure.input(stagePlanWindowSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) => saveProgramStart({ ...context(ctx), database }, input), {
-      timeout: 30000,
+      timeout: 30_000,
     }),
   ),
   saveWindow: staffProcedure

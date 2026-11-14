@@ -11,19 +11,22 @@ export async function readActivityContexts(
   database: Prisma.TransactionClient,
   activityIds: string[],
 ): Promise<Map<string, ActivityContext>> {
-  if (!activityIds.length) return new Map();
+  if (activityIds.length === 0) return new Map();
   const selected = await database.programActivity.findMany({
     where: { id: { in: activityIds }, deletedAt: {} },
     select: { programId: true },
   });
   const activities = await database.programActivity.findMany({
-    where: { programId: { in: [...new Set(selected.map((a) => a.programId))] }, deletedAt: null },
+    where: {
+      programId: { in: [...new Set(selected.map((activity) => activity.programId))] },
+      deletedAt: null,
+    },
     include: { unit: true, lessons: { where: { deletedAt: null }, include: { lesson: true } } },
     orderBy: { sequence: "asc" },
   });
   const result = new Map<string, ActivityContext>();
-  for (const programId of new Set(activities.map((a) => a.programId))) {
-    const source = activities.filter((a) => a.programId === programId);
+  for (const programId of new Set(activities.map((activity) => activity.programId))) {
+    const source = activities.filter((activity) => activity.programId === programId);
     const labels = programActivityLabels(source);
     for (const item of source)
       result.set(item.id, {

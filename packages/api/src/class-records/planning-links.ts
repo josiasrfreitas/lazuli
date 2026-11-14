@@ -50,9 +50,12 @@ async function resolve(context: RecordContext, input: LinkInput): Promise<void> 
     delete content.planItemTitle;
     return;
   }
-  const regular = session.class.scheduleType === "REGULAR";
-  if (!regular && !progressId)
-    throw badRequest("Selecione o estágio do aluno antes de vincular uma etapa.");
+  assertProgressForLink({
+    session,
+    progressId,
+    hasLinks: true,
+    message: "Selecione o estágio do aluno antes de vincular uma etapa.",
+  });
   const unchanged = content.planItemId === before?.planItemId;
   const plan = stepPlanScope(session, progressId);
   const item = await context.database.stagePlanItem.findFirst({
@@ -87,24 +90,29 @@ async function resolveCoverage(
   { content, before, progressId, session }: LinkInput,
 ): Promise<void> {
   const coverage = content.planItems ?? [];
-  if (session.class.scheduleType !== "REGULAR" && !progressId && coverage.length)
-    throw badRequest("Selecione o estágio do aluno antes de vincular atividades.");
+  assertProgressForLink({
+    session,
+    progressId,
+    hasLinks: coverage.length > 0,
+    message: "Selecione o estágio do aluno antes de vincular atividades.",
+  });
   const previous = new Map(before ? recordedActivities(before).map((item) => [item.id, item]) : []);
-  const items = coverage.length
-    ? await context.database.stagePlanItem.findMany({
-        where: {
-          id: { in: coverage.map((item) => item.id) },
-          deletedAt: {},
-          plan: stepPlanScope(session, progressId),
-        },
-        orderBy: [
-          { plannedOn: "asc" },
-          { programActivity: { sequence: "asc" } },
-          { createdAt: "asc" },
-        ],
-        select: { id: true, title: true, programActivityId: true, deletedAt: true },
-      })
-    : [];
+  const items =
+    coverage.length > 0
+      ? await context.database.stagePlanItem.findMany({
+          where: {
+            id: { in: coverage.map((item) => item.id) },
+            deletedAt: {},
+            plan: stepPlanScope(session, progressId),
+          },
+          orderBy: [
+            { plannedOn: "asc" },
+            { programActivity: { sequence: "asc" } },
+            { createdAt: "asc" },
+          ],
+          select: { id: true, title: true, programActivityId: true, deletedAt: true },
+        })
+      : [];
   if (
     items.length !== coverage.length ||
     items.some((item) => item.deletedAt && !previous.has(item.id))
@@ -131,4 +139,19 @@ async function resolveCoverage(
     delete content.planItemStatus;
     delete content.planItemTitle;
   }
+}
+
+function assertProgressForLink({
+  session,
+  progressId,
+  hasLinks,
+  message,
+}: {
+  session: RecordSession;
+  progressId: string | null;
+  hasLinks: boolean;
+  message: string;
+}): void {
+  if (session.class.scheduleType !== "REGULAR" && !progressId && hasLinks)
+    throw badRequest(message);
 }

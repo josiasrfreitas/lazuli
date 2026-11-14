@@ -1,14 +1,21 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { programActivityLabels } from "../src/program-labels.js";
-const lesson = (id: string, sequence: number, number: number) => ({
+type ActivityFixture = Parameters<typeof programActivityLabels>[0][number];
+const lesson = (
+  id: string,
+  { sequence, number }: { sequence: number; number: number },
+): ActivityFixture => ({
   id,
   sequence,
   kind: "LESSON",
   title: `Lição ${number}`,
   lessons: [{ lesson: { sequence: number }, part: "A" }],
 });
-const activity = (id: string, sequence: number, title = "Vídeo") => ({
+const activity = (
+  id: string,
+  { sequence, title = "Vídeo" }: { sequence: number; title?: string },
+): ActivityFixture => ({
   id,
   sequence,
   kind: "VIDEO",
@@ -17,11 +24,11 @@ const activity = (id: string, sequence: number, title = "Vídeo") => ({
 });
 void it("labels intermediate activities by adjacent canonical lessons, including boundaries", () => {
   const labels = programActivityLabels([
-    activity("intro", 1, "Atividade da programação"),
-    lesson("a", 2, 4),
-    activity("v", 3),
-    lesson("b", 4, 5),
-    activity("r", 5, "Revisão"),
+    activity("intro", { sequence: 1, title: "Atividade da programação" }),
+    lesson("a", { sequence: 2, number: 4 }),
+    activity("v", { sequence: 3 }),
+    lesson("b", { sequence: 4, number: 5 }),
+    activity("r", { sequence: 5, title: "Revisão" }),
   ]);
   assert.equal(labels.get("intro"), "Atividade da programação · antes da lição 4");
   assert.equal(labels.get("v"), "Vídeo · entre as lições 4 e 5");
@@ -29,13 +36,17 @@ void it("labels intermediate activities by adjacent canonical lessons, including
   assert.equal(labels.get("a"), "Lição 4");
 });
 void it("does not invent lesson context without relationships", () => {
-  assert.equal(programActivityLabels([activity("x", 1)]).get("x"), "Vídeo");
+  assert.equal(programActivityLabels([activity("x", { sequence: 1 })]).get("x"), "Vídeo");
   assert.equal(
-    programActivityLabels([lesson("a", 1, 2), activity("v", 2), lesson("b", 3, 2)]).get("v"),
+    programActivityLabels([
+      lesson("a", { sequence: 1, number: 2 }),
+      activity("v", { sequence: 2 }),
+      lesson("b", { sequence: 3, number: 2 }),
+    ]).get("v"),
     "Vídeo · durante a lição 2",
   );
 });
 void it("keeps explicit lesson relationships visible for videos", () => {
-  const video = { ...activity("video", 1), lessons: [{ lesson: { sequence: 4 } }] };
+  const video = { ...activity("video", { sequence: 1 }), lessons: [{ lesson: { sequence: 4 } }] };
   assert.equal(programActivityLabels([video]).get("video"), "Vídeo · lição 4");
 });

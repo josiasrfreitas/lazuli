@@ -85,12 +85,13 @@ export const classIdInputSchema = z
   })
   .strict();
 
+const MAX_CLASS_CAPACITY = 500;
 export const classCapacityInputSchema = classIdInputSchema.extend({
   capacity: z
     .number({ invalid_type_error: "Informe um número inteiro de vagas." })
     .int("Informe um número inteiro de vagas.")
     .min(1, "Informe ao menos uma vaga.")
-    .max(500, "Informe até 500 vagas."),
+    .max(MAX_CLASS_CAPACITY, "Informe até 500 vagas."),
 });
 
 export const classCloneForNextPeriodInputSchema = z
