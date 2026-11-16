@@ -50,7 +50,9 @@ export function notifyFileJob(input: {
   label: string;
   retry?: (() => void) | undefined;
   start?: boolean;
+  onlyTracked?: boolean;
 }): void {
+  if (input.onlyTracked && !notifier.has(input.key)) return;
   if (!notifier.has(input.key) && input.state === "READY" && !input.start) return;
   let outcome: "working" | "success" | "error" = "working";
   if (failures.has(input.state)) outcome = "error";

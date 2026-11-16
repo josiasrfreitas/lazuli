@@ -7,10 +7,12 @@ import { notifyHealthRefresh } from "./health-refresh-notice";
 import { trpc } from "~/lib/trpc";
 
 const STATUS_POLL_MS = 3000;
+const STATUS_DISCOVERY_GRACE_MS = 10_000;
 const TERMINAL = new Set(["COMPLETED", "FAILED", "CANCELLED"]);
 
 export function StudentHealthRefresh({ studentId }: { studentId: string }): ReactElement {
   const [runId, setRunId] = useState<string | null>(null);
+  const queuedAt = useRef(0);
   const restart = useRef<() => void>(() => {});
   const utils = trpc.useUtils();
   const status = trpc.students.healthRefreshStatus.useQuery(
@@ -25,12 +27,17 @@ export function StudentHealthRefresh({ studentId }: { studentId: string }): Reac
   );
   const mutation = trpc.students.refreshHealth.useMutation({
     onSuccess: ({ runId: id }) => {
+      queuedAt.current = Date.now();
       setRunId(id);
       notify("QUEUED");
     },
     onError: (error) => notify("FAILED", error.message),
   });
-  const state = status.error ? "UNAVAILABLE" : status.data?.status;
+  const state = healthRefreshState({
+    state: status.error ? "UNAVAILABLE" : status.data?.status,
+    queuedAt: queuedAt.current,
+    observedAt: status.error ? status.errorUpdatedAt : status.dataUpdatedAt,
+  });
   const busy = mutation.isPending || isHealthRefreshActive({ runId, state });
 
   function start(): void {
@@ -68,6 +75,20 @@ export function StudentHealthRefresh({ studentId }: { studentId: string }): Reac
       <RefreshCw aria-hidden="true" className={busy ? "animate-spin" : undefined} />
     </Button>
   );
+}
+
+/** Hatchet can acknowledge dispatch before the new run is visible to its read API. */
+function healthRefreshState(input: {
+  state: string | undefined;
+  queuedAt: number;
+  observedAt: number;
+}): string | undefined {
+  if (
+    input.state === "UNAVAILABLE" &&
+    input.observedAt - input.queuedAt < STATUS_DISCOVERY_GRACE_MS
+  )
+    return "QUEUED";
+  return input.state;
 }
 
 function isHealthRefreshActive(input: {
