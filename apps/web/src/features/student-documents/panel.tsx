@@ -1,3 +1,4 @@
+import { isFileProcessingStale } from "~/features/shared/file-job-toast";
 import { useState, type ReactElement } from "react";
 import {
   AttachmentPanel,
@@ -273,7 +274,9 @@ function PanelRow({
   setSelection: (selection: Selection | null) => void;
   prepare: () => void;
 }): ReactElement {
-  const processing = file?.status === "RECEIVED" || file?.status === "PROCESSING";
+  const processing = Boolean(
+    file && ["RECEIVED", "PROCESSING"].includes(file.status) && !isFileProcessingStale(file),
+  );
   return (
     <AttachmentUploadRow
       title={document.title}

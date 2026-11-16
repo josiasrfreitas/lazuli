@@ -19,6 +19,7 @@ import {
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
+import { StudentHealthRefresh } from "./health-refresh";
 import { ProfileError } from "./profile-shared";
 import styles from "./student-overview.module.css";
 import loading from "./student-loading.module.css";
@@ -42,7 +43,7 @@ export function StudentHealth({ studentId }: { studentId: string }): ReactElemen
   const query = trpc.students.health.useQuery({ id: studentId }, { staleTime: 0 });
   return (
     <section className={styles.health} aria-labelledby="student-health-title">
-      <HealthHeader health={query.data} />
+      <HealthHeader health={query.data} studentId={studentId} />
       {query.isError && (
         <ProfileError message="Score indisponível." onRetry={() => void query.refetch()} />
       )}
@@ -61,11 +62,18 @@ export function StudentHealthLoading(): ReactElement {
   );
 }
 
-function HealthHeader({ health }: { health?: Health | undefined }): ReactElement {
+function HealthHeader({
+  health,
+  studentId,
+}: {
+  health?: Health | undefined;
+  studentId?: string;
+}): ReactElement {
   return (
     <header className={styles.sectionHeading}>
       <h2 id="student-health-title">
         <Activity aria-hidden="true" /> Saúde do vínculo
+        {studentId && <StudentHealthRefresh key={studentId} studentId={studentId} />}
       </h2>
       {health ? (
         <HealthExplanation health={health} />

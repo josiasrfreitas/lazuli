@@ -5,10 +5,12 @@ const RECONCILIATION_RETRY_MILLISECONDS = 300_000;
 /** Poll one durable request at a time. A failed transaction leaves no partial cancellations. */
 export async function processCalendarReconciliation(
   database: DatabaseClient,
+  requestId?: string,
 ): Promise<string | null> {
   const request = await database.calendarReconciliationRequest.findFirst({
     where: {
       deletedAt: null,
+      ...(requestId ? { id: requestId } : {}),
       OR: [
         { status: "PENDING" },
         {
@@ -66,4 +68,42 @@ export async function processCalendarReconciliation(
     throw new Error("CALENDAR_RECONCILIATION_FAILED");
   }
   return request.id;
+}
+
+/** Snapshot the backlog so one daily run handles more than the oldest request. */
+export async function recoverCalendarReconciliations(database: DatabaseClient): Promise<void> {
+  const requests = await database.calendarReconciliationRequest.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { status: "PENDING" },
+        {
+          status: "RUNNING",
+          startedAt: { lt: new Date(Date.now() - RECONCILIATION_RETRY_MILLISECONDS) },
+        },
+      ],
+    },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+  await recoverCalendarRequests({
+    requests,
+    process: (requestId) => processCalendarReconciliation(database, requestId),
+  });
+}
+
+/** Continue the backlog after one failed request, then expose a failed recovery run to Hatchet. */
+export async function recoverCalendarRequests(input: {
+  requests: { id: string }[];
+  process: (requestId: string) => Promise<string | null>;
+}): Promise<void> {
+  let failed = 0;
+  for (const request of input.requests) {
+    try {
+      await input.process(request.id);
+    } catch {
+      failed += 1;
+    }
+  }
+  if (failed) throw new Error("CALENDAR_RECOVERY_FAILED");
 }

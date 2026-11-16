@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, type ReactElement } from "react";
+import { useEffect, useMemo, type ReactElement } from "react";
+import { documentToastKey, fileJobState, notifyFileJob } from "~/features/shared/file-job-toast";
 import { Button, FileUpload, ToastAlert } from "@lazuli/ui";
 import { ArrowLeft } from "lucide-react";
 import type { CapturedDocument, DocumentDefinition } from "./model";
@@ -29,6 +30,24 @@ export function DocumentCapture(
 ): ReactElement {
   const state = useCapture(props);
   const tracking = useCaptureSession(props.token, state.sent && props.pollResult !== false);
+  const latest = currentCaptureResult(
+    props.result ?? tracking.session?.documents[props.document.id],
+    state.receipt,
+  );
+  useEffect(() => {
+    if (!state.sent || state.busy || !latest) return;
+    const failed = latest.status === "error" || latest.status === "FAILED";
+    notifyFileJob({
+      key: documentToastKey(props.token, props.document.id),
+      state: fileJobState(latest),
+      label: props.document.title,
+      retry: failed
+        ? () => {
+            void state.send();
+          }
+        : undefined,
+    });
+  }, [latest, state.sent, state.busy, state.send, props.token, props.document]);
   const previews = useMemo(
     () => state.pages.map((page) => page.toDataURL("image/jpeg", PREVIEW_QUALITY)),
     [state.pages],

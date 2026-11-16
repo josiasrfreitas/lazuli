@@ -1,4 +1,4 @@
-import type { Prisma, TransactionClient } from "@lazuli/db";
+import type { DatabaseClient, Prisma, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 
 import { reconcileDueSemesterPlacements } from "./semester-placements.js";
@@ -87,4 +87,23 @@ export async function processDueEnrollmentActions(input: {
 function exitReason(action: DueAction): "SUSPENDED" | "TRANSFERRED" | "DROPPED" {
   if (action.kind === "PAUSE") return "SUSPENDED";
   return action.exitReason === "TRANSFERRED" ? "TRANSFERRED" : "DROPPED";
+}
+
+/** Daily processing drains the backlog in atomic batches instead of leaving action 101 for tomorrow. */
+export async function processAllDueEnrollmentActions(input: {
+  database: DatabaseClient;
+  now: Date;
+}): Promise<void> {
+  const today = new Date(saoPauloDateOnly(input.now));
+  for (;;) {
+    const pending = await input.database.enrollmentAction.findFirst({
+      where: { status: "SCHEDULED", effectiveDate: { lte: today } },
+      select: { id: true },
+    });
+    if (!pending) return;
+    await input.database.$transaction(
+      (database) => processDueEnrollmentActions({ database, now: input.now }),
+      { timeout: 30_000 },
+    );
+  }
 }

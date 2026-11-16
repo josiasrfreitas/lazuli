@@ -1,10 +1,13 @@
 import { db } from "@lazuli/db";
 import { ConcurrencyLimitStrategy, type getHatchetClient } from "@lazuli/integrations/hatchet";
 import { PERIODIC_WORKFLOWS } from "@lazuli/job-contracts";
-import { processDueEnrollmentActions, refreshStudentHealthPending } from "@lazuli/worker-handlers";
+import {
+  processAllDueEnrollmentActions,
+  refreshStudentHealthPending,
+} from "@lazuli/worker-handlers";
 import { recoverAssessmentFiles } from "@lazuli/worker-handlers/assessment-files";
 import { recoverStudentDocuments } from "@lazuli/worker-handlers/student-documents";
-import { processCalendarReconciliation } from "@lazuli/worker-handlers/calendar";
+import { recoverCalendarReconciliations } from "@lazuli/worker-handlers/calendar";
 import { runJob } from "./run-job.js";
 
 type Hatchet = Awaited<ReturnType<typeof getHatchetClient>>;
@@ -16,12 +19,7 @@ export function createPeriodicTasks<Task>(hatchet: {
 }): Task[] {
   const actions: Record<keyof typeof PERIODIC_WORKFLOWS, () => Promise<void>> = {
     enrollment: async () => {
-      await db.$transaction(
-        (database) => processDueEnrollmentActions({ database, now: new Date() }),
-        {
-          timeout: 30_000,
-        },
-      );
+      await processAllDueEnrollmentActions({ database: db, now: new Date() });
     },
     recovery: async () => {
       await recoverAssessmentFiles(db);
@@ -31,7 +29,7 @@ export function createPeriodicTasks<Task>(hatchet: {
       await refreshStudentHealthPending(db);
     },
     calendar: async () => {
-      await processCalendarReconciliation(db);
+      await recoverCalendarReconciliations(db);
     },
   };
   return Object.entries(PERIODIC_WORKFLOWS).map(([key, schedule]) =>

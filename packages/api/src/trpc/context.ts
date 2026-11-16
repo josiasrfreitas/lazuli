@@ -8,8 +8,14 @@ import {
   createLocalReportGenerateQueue,
   type ReportGenerateQueue,
   type SessionsGenerateQueue,
+  type CalendarReconciliationQueue,
+  type StudentHealthRefreshQueue,
 } from "@lazuli/job-contracts";
-import { createHatchetSessionsGenerateQueue } from "@lazuli/integrations/hatchet";
+import {
+  createHatchetCalendarReconciliationQueue,
+  createHatchetStudentHealthRefreshQueue,
+  createHatchetSessionsGenerateQueue,
+} from "@lazuli/integrations/hatchet";
 import { createServiceLogger, requestIdFromHeaders, safeError } from "@lazuli/logging";
 
 const logger = createServiceLogger("web");
@@ -27,6 +33,8 @@ export type Context = {
   now?: Date | undefined;
   reportGenerateQueue?: ReportGenerateQueue | undefined;
   sessionGenerationQueue?: SessionsGenerateQueue | undefined;
+  calendarReconciliationQueue?: CalendarReconciliationQueue | undefined;
+  studentHealthRefreshQueue?: StudentHealthRefreshQueue | undefined;
   staffUser: StaffUser | null;
   requestId?: string | undefined;
 };
@@ -37,6 +45,8 @@ type CreateTRPCContextInput = {
   now?: Date | undefined;
   reportGenerateQueue?: ReportGenerateQueue | undefined;
   sessionGenerationQueue?: SessionsGenerateQueue | undefined;
+  calendarReconciliationQueue?: CalendarReconciliationQueue | undefined;
+  studentHealthRefreshQueue?: StudentHealthRefreshQueue | undefined;
   session: StaffSession | null;
   requestId?: string;
 };
@@ -71,6 +81,10 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
       ...(input.now === undefined ? {} : { now: input.now }),
       reportGenerateQueue: input.reportGenerateQueue ?? createLocalReportGenerateQueue(),
       sessionGenerationQueue: input.sessionGenerationQueue ?? createHatchetSessionsGenerateQueue(),
+      calendarReconciliationQueue:
+        input.calendarReconciliationQueue ?? createHatchetCalendarReconciliationQueue(),
+      studentHealthRefreshQueue:
+        input.studentHealthRefreshQueue ?? createHatchetStudentHealthRefreshQueue(),
       staffUser,
       requestId,
     };

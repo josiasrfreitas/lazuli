@@ -33,6 +33,7 @@ import { readStudentPedagogy } from "./pedagogy.js";
 import { readStudentAttendanceHistory } from "./attendance-history.js";
 import { completeStudent } from "./completion.js";
 import { readStudentHealth, readStudentHealthBatch } from "./health.js";
+import { TRPCError } from "@trpc/server";
 import { readStudentAgenda } from "./agenda.js";
 
 const FILTER_OPTION_LIMIT = 50;
@@ -53,6 +54,36 @@ function currentIntakeDescription(hasClass: boolean): string {
 }
 
 export const studentsRouter = router({
+  refreshHealth: adminProcedure.input(studentIdInputSchema).mutation(async ({ ctx, input }) => {
+    const student = await ctx.db.student.findFirst({
+      where: { id: input.id, deletedAt: null },
+      select: { id: true },
+    });
+    if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado." });
+    if (!ctx.studentHealthRefreshQueue)
+      throw new TRPCError({
+        code: "SERVICE_UNAVAILABLE",
+        message: "Não foi possível iniciar a atualização. Tente novamente.",
+      });
+    try {
+      return { runId: await ctx.studentHealthRefreshQueue.enqueue(input.id, ctx.staffUser.id) };
+    } catch {
+      throw new TRPCError({
+        code: "SERVICE_UNAVAILABLE",
+        message: "Não foi possível iniciar a atualização. Os dados foram preservados.",
+      });
+    }
+  }),
+  healthRefreshStatus: adminProcedure
+    .input(studentIdInputSchema.extend({ runId: z.string().uuid() }).strict())
+    .query(async ({ ctx, input }) => {
+      const status = await ctx.studentHealthRefreshQueue?.status({
+        runId: input.runId,
+        studentId: input.id,
+        actorId: ctx.staffUser.id,
+      });
+      return { status: status ?? "UNAVAILABLE" };
+    }),
   healthBatch: adminProcedure
     .input(z.object({ ids: z.array(z.string().uuid()).max(HEALTH_PAGE_LIMIT) }).strict())
     .query(({ ctx, input }) =>

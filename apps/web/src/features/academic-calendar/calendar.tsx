@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef, useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
+import { useQueryState } from "nuqs";
 import { RotateCcw } from "lucide-react";
 import { Alert, Button } from "@lazuli/ui";
 import { CalendarManagement } from "./management";
+import { CalendarExecutionNotifications } from "./execution-notifications";
 import { CalendarProcessing } from "./processing";
 import { AcademicEventForm } from "./event-form";
 import { CalendarChangeForm } from "./change-form";
@@ -23,12 +25,15 @@ export function AcademicCalendar(): ReactElement {
   const { managing, query, navigation, pending, configure, openEditor, editEntry } = controller;
   return (
     <>
+      <CalendarExecutionNotifications requests={query.data?.requests ?? []} />
       {renderChangeEditor(controller)}
       {managing && query.data ? (
         <CalendarManagement
           data={query.data}
           year={navigation.year}
           onClose={() => configure(false)}
+          section={controller.section ?? "semestres"}
+          onSectionChange={(section) => configure(true, section)}
         />
       ) : (
         <AcademicCalendarWorkspace
@@ -39,7 +44,7 @@ export function AcademicCalendar(): ReactElement {
           refreshing={query.isFetching}
           unavailable={Boolean(query.error && !query.data)}
           disabled={pending}
-          onConfigure={() => configure(true)}
+          onConfigure={(section) => configure(true, section)}
           onCreate={(date) => openEditor({ kind: "event", date })}
           onEdit={editEntry}
           onInterruption={(date) => openEditor({ kind: "interruption", date })}
@@ -63,14 +68,16 @@ type CalendarController = {
   query: ReturnType<typeof useCalendarPeriodData>;
   openEditor: (value: Editor) => void;
   closeEditor: () => void;
-  configure: (open: boolean) => void;
+  configure: (open: boolean, section?: string) => void;
+  section: string | null;
   editEntry: (entry: CalendarEntry) => void;
   date: string | null;
   daily: boolean;
   day: DayInfo | null;
 };
 function useCalendarController(): CalendarController {
-  const [managing, setManaging] = useState(false);
+  const [section, setSection] = useQueryState("configurar");
+  const managing = section !== null;
   const [editor, setEditor] = useState<Editor | null>(null);
   const [pending, setPending] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -90,10 +97,10 @@ function useCalendarController(): CalendarController {
       if (restoreFocus.current?.isConnected) restoreFocus.current.focus();
     });
   }
-  function configure(open: boolean): void {
+  function configure(open: boolean, nextSection = "semestres"): void {
     const main = document.querySelector("main");
     if (open) calendarScroll.current = main?.scrollTop ?? 0;
-    setManaging(open);
+    void setSection(open ? nextSection : null);
     requestAnimationFrame(() => {
       if (main) main.scrollTop = open ? 0 : calendarScroll.current;
     });
@@ -109,6 +116,7 @@ function useCalendarController(): CalendarController {
   const day = date && query.data ? calendarDay(date, query.data) : null;
   return {
     managing,
+    section,
     editor,
     pending,
     announcement,

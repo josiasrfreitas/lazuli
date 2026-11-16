@@ -1,7 +1,13 @@
+import { refreshStudentHealthPending } from "@lazuli/worker-handlers";
 import { processAssessmentFile } from "@lazuli/worker-handlers/assessment-files";
 import { processStudentDocument } from "@lazuli/worker-handlers/student-documents";
+import { processCalendarReconciliation } from "@lazuli/worker-handlers/calendar";
 import { processSessionGeneration } from "@lazuli/worker-handlers/sessions";
 import {
+  STUDENT_HEALTH_REFRESH_WORKFLOW,
+  studentHealthRefreshPayloadSchema,
+  CALENDAR_RECONCILE_WORKFLOW,
+  calendarReconciliationPayloadSchema,
   ASSESSMENT_FILE_WORKFLOW,
   type AssessmentFilePayload,
   STUDENT_DOCUMENT_WORKFLOW,
@@ -63,10 +69,34 @@ async function createWorker(
     fn: (payload) =>
       runJob(STUDENT_DOCUMENT_WORKFLOW, () => processStudentDocumentPayload(payload)),
   });
+  const calendar = hatchet.task<{ requestId: string }, { status: string }>({
+    name: CALENDAR_RECONCILE_WORKFLOW,
+    retries: 0,
+    executionTimeout: "2m",
+    scheduleTimeout: "5m",
+    fn: (input) =>
+      runJob(CALENDAR_RECONCILE_WORKFLOW, async () => {
+        const { requestId } = calendarReconciliationPayloadSchema.parse(input);
+        await processCalendarReconciliation(db, requestId);
+        return { status: "COMPLETED" };
+      }),
+  });
+  const health = hatchet.task<{ studentId: string }, { status: string }>({
+    name: STUDENT_HEALTH_REFRESH_WORKFLOW,
+    retries: 0,
+    executionTimeout: "2m",
+    scheduleTimeout: "5m",
+    fn: (input) =>
+      runJob(STUDENT_HEALTH_REFRESH_WORKFLOW, async () => {
+        const { studentId } = studentHealthRefreshPayloadSchema.parse(input);
+        await refreshStudentHealthPending(db, studentId);
+        return { status: "COMPLETED" };
+      }),
+  });
   const worker = await hatchet.worker("school", {
     slots: 1,
     durableSlots: 1,
-    workflows: [sessions, files, documents, ...createPeriodicTasks(hatchet)],
+    workflows: [sessions, files, documents, calendar, health, ...createPeriodicTasks(hatchet)],
     handleKill: false,
   });
   return worker;

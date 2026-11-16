@@ -1,4 +1,4 @@
-import { toastManager } from "@lazuli/ui";
+import { documentToastKey, notifyFileJob } from "~/features/shared/file-job-toast";
 import {
   useEffect,
   useRef,
@@ -73,12 +73,6 @@ function createChooseCapture(
   };
 }
 
-function captureDescription(options: CaptureOptions, pdf: File | null): string {
-  if (pdf) return "PDF salvo. Confira os dados cadastrais manualmente.";
-  if (options.document.extracts) return "Você pode continuar enviando os outros documentos.";
-  return "O arquivo foi salvo no cadastro.";
-}
-
 function createSendCapture({
   options,
   pdf,
@@ -94,20 +88,30 @@ function createSendCapture({
   setReceipt: Dispatch<SetStateAction<CapturedDocument | null>>;
   setSent: Dispatch<SetStateAction<boolean>>;
 }): CaptureState["send"] {
-  return async () => {
+  const send = async (): Promise<void> => {
     setters.setBusy(true);
     setters.setError("");
+    const key = documentToastKey(options.token, options.document.id);
+    notifyFileJob({ key: key, state: "UPLOADING", label: options.document.title });
     try {
       const body = pdf ?? (await combinePages(pages));
       setReceipt(await sendCapture(options, body));
       setSent(true);
-      toastManager.add({
-        title: options.document.extracts && !pdf ? "Processamento iniciado" : "Arquivo enviado",
-        description: captureDescription(options, pdf),
-        priority: "low",
+      notifyFileJob({
+        key: key,
+        state: options.document.extracts && !pdf ? "WAITING" : "READY",
+        label: options.document.title,
       });
       options.onSent();
     } catch {
+      notifyFileJob({
+        key: key,
+        state: "FAILED",
+        label: options.document.title,
+        retry: () => {
+          void send();
+        },
+      });
       setters.setError(
         "Não foi possível enviar. Verifique a conexão e o limite de 5 MB. Se a sessão foi encerrada, abra um novo link no cadastro.",
       );
@@ -115,6 +119,7 @@ function createSendCapture({
       setters.setBusy(false);
     }
   };
+  return send;
 }
 export type CaptureOptions = {
   document: DocumentDefinition;

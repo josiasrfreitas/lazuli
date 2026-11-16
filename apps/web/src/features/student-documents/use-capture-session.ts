@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { captureRequest, type CaptureSession } from "./model";
+import { documentToastKey, fileJobState, notifyFileJob } from "~/features/shared/file-job-toast";
+import { captureRequest, DOCUMENTS, type CaptureSession } from "./model";
 
 const CAPTURE_POLL_MS = 2000;
 
@@ -15,6 +16,18 @@ export function useCaptureSession(
   const [error, setError] = useState("");
   const generation = useRef(0);
   const closed = useRef(false);
+  useEffect(() => {
+    if (!session || !enabled) return;
+    for (const [kind, file] of Object.entries(session.documents)) {
+      if (!file) continue;
+      notifyFileJob({
+        key: documentToastKey(token, kind),
+        state: fileJobState(file),
+        label: DOCUMENTS.find((document) => document.id === kind)?.title ?? "Documento",
+        onlyTracked: true,
+      });
+    }
+  }, [session, enabled, token]);
   const refresh = useCallback(async (): Promise<void> => {
     if (!token || !enabled) return;
     const current = generation.current;

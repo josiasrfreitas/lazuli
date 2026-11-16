@@ -74,3 +74,17 @@ void it("legacy mutation paths cannot bypass the preview", async () => {
     assert.equal(response.status, 404);
   }
 });
+
+void it("manual reconciliation dispatch is restricted to administrators", async () => {
+  for (const [staffUser, status] of [
+    [TEACHER, HTTP_FORBIDDEN],
+    [null, HTTP_UNAUTHORIZED],
+  ] as const) {
+    const response = await callHttpMutation({
+      path: "calendar.academic.changes.runPending",
+      body: { year: 2033 },
+      staffUser,
+    });
+    assert.equal(response.status, status);
+  }
+});

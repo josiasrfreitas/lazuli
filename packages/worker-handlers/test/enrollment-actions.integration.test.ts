@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { after, before, it } from "node:test";
 import { db } from "@lazuli/db";
-import { processDueEnrollmentActions } from "../src/enrollment/process-due-actions.js";
+import {
+  processAllDueEnrollmentActions,
+  processDueEnrollmentActions,
+} from "../src/enrollment/process-due-actions.js";
 
 const PREFIX = "Issue 157 worker ";
 const TEACHER_ID = "00000000-0000-0000-0000-000000015701";
@@ -47,6 +50,42 @@ void it("applies a scheduled pause on its São Paulo date once, preserving the r
   assert.equal(progress.endDate?.toISOString().slice(0, 10), "2026-10-08");
   assert.equal(action.status, "APPLIED");
   assert.equal(action.recordedById, ADMIN_ID);
+});
+
+void it("drains more than one due batch on the same date and leaves tomorrow untouched", async () => {
+  await clean();
+  const fixtures = await seed();
+  await db.enrollmentAction.update({
+    where: { id: fixtures.actionId },
+    data: { status: "CANCELLED" },
+  });
+  await db.enrollmentAction.createMany({
+    data: Array.from({ length: 201 }, () => ({
+      enrollmentId: fixtures.enrollmentId,
+      kind: "ENTRY" as const,
+      status: "SCHEDULED" as const,
+      effectiveDate: new Date("2026-10-08"),
+      recordedById: ADMIN_ID,
+    })),
+  });
+  const future = await db.enrollmentAction.create({
+    data: {
+      enrollmentId: fixtures.enrollmentId,
+      kind: "ENTRY",
+      status: "SCHEDULED",
+      effectiveDate: new Date("2026-10-09"),
+      recordedById: ADMIN_ID,
+    },
+  });
+  await processAllDueEnrollmentActions({ database: db, now: new Date("2026-10-08T03:05:00Z") });
+  assert.equal(
+    await db.enrollmentAction.count({
+      where: { enrollmentId: fixtures.enrollmentId, status: "APPLIED" },
+    }),
+    201,
+  );
+  const tomorrow = await db.enrollmentAction.findUniqueOrThrow({ where: { id: future.id } });
+  assert.equal(tomorrow.status, "SCHEDULED");
 });
 
 async function seed(): Promise<{ enrollmentId: string; progressId: string; actionId: string }> {

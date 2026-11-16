@@ -219,10 +219,37 @@ function buildLocalJobId(workflowName: string, id: string): string {
   return `${workflowName}:${id}`;
 }
 
+export const calendarReconciliationPayloadSchema = z
+  .object({ requestId: z.string().uuid() })
+  .strict();
+export const CALENDAR_RECONCILE_WORKFLOW = "calendar-reconcile-request";
+export type CalendarExecutionStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "CANCELLED" | "FAILED";
+export type CalendarExecutionSnapshot = {
+  available: boolean;
+  statuses: Record<string, CalendarExecutionStatus>;
+};
+export type CalendarReconciliationQueue = {
+  statuses?(requestIds: string[], since: Date): Promise<CalendarExecutionSnapshot>;
+  enqueue(requestId: string): Promise<void>;
+};
+
 /** UTC intervals; handlers calculate business dates in America/Sao_Paulo. */
+export const STUDENT_HEALTH_REFRESH_WORKFLOW = "student-health-refresh-request";
+export const studentHealthRefreshPayloadSchema = z
+  .object({ studentId: z.string().uuid() })
+  .strict();
+export type StudentHealthRefreshQueue = {
+  enqueue(studentId: string, actorId: string): Promise<string>;
+  status(input: {
+    runId: string;
+    studentId: string;
+    actorId: string;
+  }): Promise<CalendarExecutionStatus | "UNAVAILABLE">;
+};
+
 export const PERIODIC_WORKFLOWS = {
-  enrollment: { name: "enrollment-actions-process", cron: "0 * * * * *", timeout: "2m" },
-  recovery: { name: "files-recover", cron: "*/15 * * * * *", timeout: "10m" },
-  health: { name: "student-health-refresh", cron: "0 * * * * *", timeout: "10m" },
-  calendar: { name: "calendar-reconcile", cron: "*/5 * * * * *", timeout: "2m" },
+  enrollment: { name: "enrollment-actions-process", cron: "0 5 3 * * *", timeout: "10m" },
+  recovery: { name: "files-recover", cron: "0 10 6 * * *", timeout: "10m" },
+  health: { name: "student-health-refresh", cron: "0 20 6 * * *", timeout: "10m" },
+  calendar: { name: "calendar-reconcile", cron: "0 0 6 * * *", timeout: "10m" },
 } as const;

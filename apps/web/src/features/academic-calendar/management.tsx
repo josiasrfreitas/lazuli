@@ -25,13 +25,17 @@ export function CalendarManagement({
   data,
   year,
   onClose,
+  section,
+  onSectionChange,
 }: {
   data: AcademicYear;
   year: number;
   onClose: () => void;
+  section: string;
+  onSectionChange: (section: string) => void;
 }): ReactElement {
   const [editor, setEditor] = useState<CalendarEditor | null>(null);
-  const [section, setSection] = useState("periods");
+
   const periods = data.periods.filter(
     (row) => row.startDate.getUTCFullYear() <= year && row.endDate.getUTCFullYear() >= year,
   );
@@ -47,8 +51,10 @@ export function CalendarManagement({
         <p>Defina até quando as aulas acontecem e quais datas interrompem as atividades.</p>
       </header>
       <Tabs
-        value={section}
-        onValueChange={(value) => setSection(String(value))}
+        value={section === "semestres" ? "periods" : "interruptions"}
+        onValueChange={(value) =>
+          onSectionChange(value === "periods" ? "semestres" : "interrupcoes")
+        }
         variant="underline"
       >
         <TabsList aria-label="Configuração do calendário">

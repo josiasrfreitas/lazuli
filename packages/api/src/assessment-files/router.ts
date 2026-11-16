@@ -6,6 +6,7 @@ import { authorizedFile, filesForProgress, fileView } from "./data.js";
 import { badRequest } from "../trpc/errors.js";
 import { loadAppointment } from "../appointments/data.js";
 
+const PROCESSING_STALE_MS = 300_000;
 const MIN_REMOVAL_REASON_LENGTH = 3;
 const MAX_REMOVAL_REASON_LENGTH = 500;
 const byId = z.object({ id: z.string().uuid() }).strict();
@@ -61,10 +62,23 @@ export const assessmentFilesRouter = router({
     );
     if (!row.receivedAt || !row.bucket || !row.key || row.status === "REJECTED")
       throw badRequest("Selecione novamente o arquivo original para reenviar.");
-    await ctx.db.assessmentFile.updateMany({
-      where: { id: row.id, status: "FAILED" },
-      data: { status: "RECEIVED", failureCode: null },
+    const claimedAt = ctx.now ?? new Date();
+    const reset = await ctx.db.assessmentFile.updateMany({
+      where: {
+        id: row.id,
+        removedAt: null,
+        OR: [
+          { status: "FAILED" },
+          {
+            status: { in: ["RECEIVED", "PROCESSING"] },
+            updatedAt: { lt: new Date((ctx.now ?? new Date()).getTime() - PROCESSING_STALE_MS) },
+          },
+        ],
+      },
+      data: { status: "RECEIVED", failureCode: null, updatedAt: claimedAt },
     });
+    if (!reset.count)
+      throw badRequest("O arquivo já está em processamento ou foi concluído. Atualize a fila.");
     const enqueueStarted = performance.now();
     try {
       await enqueueAssessmentFile({ fileId: row.id });
@@ -77,6 +91,10 @@ export const assessmentFilesRouter = router({
         durationMs: Math.round(performance.now() - enqueueStarted),
       });
     } catch (error) {
+      await ctx.db.assessmentFile.updateMany({
+        where: { id: row.id, status: "RECEIVED", updatedAt: claimedAt, removedAt: null },
+        data: { status: "FAILED", failureCode: "DISPATCH" },
+      });
       processLogger.warn(
         {
           request_id: ctx.requestId,
@@ -87,6 +105,9 @@ export const assessmentFilesRouter = router({
           ...safeError(error),
         },
         "Assessment file marked for retry, but queue submission failed",
+      );
+      throw badRequest(
+        "Não foi possível iniciar o processamento. O arquivo foi preservado; tente novamente.",
       );
     }
     return { id: row.id };

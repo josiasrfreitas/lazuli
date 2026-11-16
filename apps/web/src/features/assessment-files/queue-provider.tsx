@@ -5,6 +5,8 @@ import { Button } from "@lazuli/ui";
 import { MAX_UPLOAD_FILE_BYTES, MAX_UPLOAD_FILE_MB } from "@lazuli/validators";
 import type { RouterOutputs } from "@lazuli/api";
 import { ListChecks, RefreshCw, Trash2, UploadCloud } from "lucide-react";
+import { useAssessmentFileNotices } from "./job-notices";
+import { isFileProcessingStale, notifyFileJob } from "~/features/shared/file-job-toast";
 import { trpc } from "~/lib/trpc";
 import {
   readPendingFiles,
@@ -34,6 +36,7 @@ type QueueItem = {
   pending?: PendingFile | undefined;
   message?: string | undefined;
   received?: boolean;
+  updatedAt?: Date;
 };
 type QueueTarget = Omit<PendingFile, "id" | "file" | "createdAt">;
 type QueueSetter = Dispatch<SetStateAction<QueueItem[]>>;
@@ -121,6 +124,7 @@ function mergeRecentItems(
           status: row.status as QueueStatus,
           progress: COMPLETE_UPLOAD_PERCENT,
           received: true,
+          updatedAt: row.updatedAt,
         }
       : item;
   });
@@ -136,6 +140,7 @@ function mergeRecentItems(
         status: row.status as QueueStatus,
         progress: COMPLETE_UPLOAD_PERCENT,
         received: true,
+        updatedAt: row.updatedAt,
       });
   }
   return next;
@@ -276,6 +281,13 @@ function useQueueController(userId: string): QueueController {
   });
   const retry = trpc.assessmentFiles.retry.useMutation({
     onSuccess: () => utils.assessmentFiles.invalidate(),
+    onError: (error, input) =>
+      notifyFileJob({
+        key: `assessment:${input.id}`,
+        state: "FAILED",
+        label: error.message,
+        retry: () => retry.mutate(input),
+      }),
   });
   const refresh = useCallback(() => {
     void Promise.all([utils.assessmentFiles.invalidate(), utils.assessments.invalidate()]);
@@ -288,6 +300,12 @@ function useQueueController(userId: string): QueueController {
   function resume(id: string): void {
     patchQueueItem(setItems, { id, patch: { status: "QUEUED" } });
   }
+  useAssessmentFileNotices({
+    items,
+    pendingId: retry.isPending ? retry.variables?.id : undefined,
+    retry: (id) => retry.mutate({ id }),
+    resume,
+  });
   function discard(id: string): void {
     void removePendingFile(userId, id).then(() =>
       setItems((current) => current.filter((item) => item.id !== id)),
@@ -363,7 +381,7 @@ function QueueItemActions({
         </Button>
       </div>
     );
-  if (item.status === "FAILED" && item.received)
+  if ((item.status === "FAILED" || isFileProcessingStale(item)) && item.received)
     return (
       <Button
         size="sm"

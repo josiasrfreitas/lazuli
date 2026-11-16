@@ -1,7 +1,13 @@
+import { z } from "zod";
 import { readHatchetEnvironment } from "./hatchet/env.js";
 import { createHash } from "node:crypto";
 import type { HatchetClient } from "@hatchet-dev/typescript-sdk";
 import {
+  STUDENT_HEALTH_REFRESH_WORKFLOW,
+  type StudentHealthRefreshQueue,
+  CALENDAR_RECONCILE_WORKFLOW,
+  type CalendarReconciliationQueue,
+  type CalendarExecutionStatus,
   ASSESSMENT_FILE_WORKFLOW,
   assessmentFilePayloadSchema,
   type AssessmentFilePayload,
@@ -15,6 +21,13 @@ import {
 
 const DISPATCH_TIMEOUT_MS = 5000;
 const NAMESPACE_HASH_LENGTH = 16;
+const calendarMetadata = z.object({ calendarRequestId: z.string().uuid() });
+const healthMetadata = z.object({
+  studentId: z.string().uuid(),
+  actorId: z.string().uuid(),
+  jobKind: z.literal("student-health"),
+  namespace: z.string(),
+});
 export async function enqueueStudentDocument(input: StudentDocumentPayload): Promise<void> {
   const payload = studentDocumentPayloadSchema.parse(input);
   await boundedDispatch(async () => {
@@ -98,3 +111,91 @@ async function boundedDispatch<T>(dispatch: () => Promise<T>): Promise<T> {
 }
 
 export { ConcurrencyLimitStrategy } from "@hatchet-dev/typescript-sdk";
+
+export function createHatchetCalendarReconciliationQueue(): CalendarReconciliationQueue {
+  return {
+    statuses: async (requestIds, since) => {
+      try {
+        const statuses = await boundedDispatch(async () => {
+          const hatchet = await getHatchetClient();
+          const result = await hatchet.runs.list({
+            since,
+            limit: 100,
+            includePayloads: false,
+            additionalMetadata: {
+              calendarNamespace: sessionWorkflowNamespace(readHatchetEnvironment()),
+            },
+          });
+          const statuses: Record<string, CalendarExecutionStatus> = {};
+          const allowed = new Set(requestIds);
+          for (const row of result.rows.toSorted((left, right) =>
+            right.createdAt.localeCompare(left.createdAt),
+          )) {
+            const metadata = calendarMetadata.safeParse(row.additionalMetadata);
+            const id = metadata.success ? metadata.data.calendarRequestId : undefined;
+            if (id && allowed.has(id) && !statuses[id]) statuses[id] = row.status;
+          }
+          return statuses;
+        });
+        return { available: true, statuses };
+      } catch {
+        return { available: false, statuses: {} };
+      }
+    },
+    enqueue: (requestId) =>
+      boundedDispatch(async () => {
+        const hatchet = await getHatchetClient();
+        await hatchet.runNoWait(
+          CALENDAR_RECONCILE_WORKFLOW,
+          { requestId },
+          {
+            additionalMetadata: {
+              calendarRequestId: requestId,
+              calendarNamespace: sessionWorkflowNamespace(readHatchetEnvironment()),
+            },
+          },
+        );
+      }),
+  };
+}
+
+export function createHatchetStudentHealthRefreshQueue(): StudentHealthRefreshQueue {
+  return {
+    enqueue: (studentId, actorId) =>
+      boundedDispatch(async () => {
+        const hatchet = await getHatchetClient();
+        const run = await hatchet.runNoWait(
+          STUDENT_HEALTH_REFRESH_WORKFLOW,
+          { studentId },
+          {
+            additionalMetadata: {
+              studentId,
+              actorId,
+              jobKind: "student-health",
+              namespace: sessionWorkflowNamespace(readHatchetEnvironment()),
+            },
+          },
+        );
+        return run.runId;
+      }),
+    status: async ({ runId, studentId, actorId }) => {
+      try {
+        return await boundedDispatch(async () => {
+          const hatchet = await getHatchetClient();
+          const { run } = await hatchet.runs.get(runId);
+          const metadata = healthMetadata.safeParse(run.additionalMetadata);
+          if (
+            !metadata.success ||
+            metadata.data.studentId !== studentId ||
+            metadata.data.actorId !== actorId ||
+            metadata.data.namespace !== sessionWorkflowNamespace(readHatchetEnvironment())
+          )
+            return "UNAVAILABLE";
+          return run.status;
+        });
+      } catch {
+        return "UNAVAILABLE";
+      }
+    },
+  };
+}

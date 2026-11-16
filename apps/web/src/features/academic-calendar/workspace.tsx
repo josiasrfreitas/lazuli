@@ -8,7 +8,8 @@ import {
   type ReactNode,
   type ReactElement,
 } from "react";
-import { ChevronLeft, ChevronRight, Plus, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarActions } from "./actions";
 import { Button } from "@lazuli/ui";
 import { schoolToday } from "~/features/class-records/calendar-model";
 import { AcademicMonthGrid } from "./month-grid";
@@ -44,7 +45,7 @@ type WorkspaceProps = {
   dailyAgenda?: ReactNode;
   onCreate: (date: string) => void;
   onEdit: (entry: CalendarEntry) => void;
-  onConfigure: () => void;
+  onConfigure: (section?: string) => void;
   onInterruption: (date: string) => void;
   disabled?: boolean;
   unavailable?: boolean;
@@ -320,9 +321,11 @@ function WorkspaceButtons({ props, controller }: ViewProps): ReactElement {
           Hoje
         </Button>
       )}
-      <Button size="sm" variant="ghost" disabled={!data || disabled} onClick={onConfigure}>
-        <Settings2 aria-hidden="true" /> Configurar
-      </Button>
+      <CalendarActions
+        year={props.navigation.year}
+        disabled={!data || disabled}
+        onConfigure={onConfigure}
+      />
       <Button size="sm" disabled={!data || disabled || Boolean(editor)} onClick={create}>
         <Plus aria-hidden="true" /> Novo evento
       </Button>

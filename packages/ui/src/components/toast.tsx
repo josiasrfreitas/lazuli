@@ -1,7 +1,8 @@
 "use client";
 import type { ReactNode } from "react";
+import { Button } from "./button";
 import { Toast } from "@base-ui/react/toast";
-import { CircleAlert, X } from "lucide-react";
+import { CircleAlert, CircleCheck, LoaderCircle, X } from "lucide-react";
 
 export const toastManager = Toast.createToastManager();
 export function ToastProvider({ children }: { children: ReactNode }): ReactNode {
@@ -29,6 +30,15 @@ function ToastList(): ReactNode {
           >
             <Toast.Content>
               <div className="flex items-start gap-3">
+                {toast.type === "job-running" && (
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="mt-0.5 size-5 shrink-0 animate-spin text-interactive"
+                  />
+                )}
+                {toast.type === "job-success" && (
+                  <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-success" />
+                )}
                 {(toast.type === "error" || toast.type === "warning") && (
                   <CircleAlert
                     aria-hidden="true"
@@ -43,6 +53,14 @@ function ToastList(): ReactNode {
                   <Toast.Title render={<div />} className="text-sm font-medium" />
                   {toast.description && (
                     <Toast.Description className="mt-1 text-sm leading-relaxed text-muted-foreground" />
+                  )}
+                  {toast.actionProps && (
+                    <div className="mt-2">
+                      <Toast.Action
+                        render={<Button variant="secondary" size="sm" />}
+                        {...toast.actionProps}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
