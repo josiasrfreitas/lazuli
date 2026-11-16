@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
 import { cn } from "../lib/utils";
 import { PencilLoader } from "./pencil-loader";
 import { CalendarSurface } from "./schedule-calendar/surface";
@@ -27,6 +27,7 @@ export type {
   CalendarEvent,
   CalendarInterval,
   CalendarBlockedInterval,
+  CalendarBackgroundInterval,
   CalendarRangeSelection,
   CalendarEventRenderContext,
   ScheduleCalendarProps,
@@ -56,12 +57,8 @@ function adaptEvents<Event extends CalendarEvent>(
 export function ScheduleCalendar<Event extends CalendarEvent>(
   props: ScheduleCalendarProps<Event>,
 ): ReactElement {
-  const [message, setMessage] = useState<string>();
+  const [message, setMessage] = useCalendarMessage(props);
   const selected = props.rangeSelection?.value;
-  useEffect(
-    () => setMessage(undefined),
-    [props.date, props.view, selected?.date, selected?.startTime, selected?.endTime],
-  );
   const status = props.status ?? "ready";
   const range = getScheduleCalendarRange(props);
   const selection = boundedSelection(props);
@@ -78,25 +75,29 @@ export function ScheduleCalendar<Event extends CalendarEvent>(
     if (!error) selection.onSelect(range);
   }
   const feedback = selectionFeedback(message, selected);
+  const emptyMessageOnly = showEmptyMessage(props, range);
   return (
     <div
       className={cn("lz-schedule-calendar", props.className)}
       data-density={props.density ?? "comfortable"}
+      data-empty-display={emptyMessageOnly ? "message" : undefined}
     >
       {props.toolbar !== false && <CalendarToolbar {...surface} />}
-      <div className="lz-calendar-frame">
-        <CalendarSurface
-          key={`${props.view}:${range.from}:${range.through}`}
-          {...surface}
-          onSelectRange={select}
-          onRejected={setMessage}
-        />
-        {status === "loading" && (
-          <div className="lz-calendar-loading">
-            <PencilLoader label="Carregando agenda" />
-          </div>
-        )}
-      </div>
+      {!emptyMessageOnly && (
+        <div className="lz-calendar-frame">
+          <CalendarSurface
+            key={`${props.view}:${range.from}:${range.through}`}
+            {...surface}
+            onSelectRange={select}
+            onRejected={setMessage}
+          />
+          {status === "loading" && (
+            <div className="lz-calendar-loading">
+              <PencilLoader label="Carregando agenda" />
+            </div>
+          )}
+        </div>
+      )}
       <CalendarFooter props={surface} message={feedback} onSelect={select} />
     </div>
   );
@@ -123,4 +124,28 @@ function selectionFeedback(
       ? `Selecionado: ${selected.date.split("-").toReversed().join("/")}, ${selected.startTime}–${selected.endTime}.`
       : undefined)
   );
+}
+
+function showEmptyMessage<Event extends CalendarEvent>(
+  props: ScheduleCalendarProps<Event>,
+  range: ReturnType<typeof getScheduleCalendarRange>,
+): boolean {
+  return (
+    props.emptyDisplay === "message" &&
+    !props.rangeSelection &&
+    (props.status ?? "ready") === "ready" &&
+    !props.events.some((event) => event.date >= range.from && event.date <= range.through)
+  );
+}
+
+function useCalendarMessage<Event extends CalendarEvent>(
+  props: ScheduleCalendarProps<Event>,
+): [string | undefined, Dispatch<SetStateAction<string | undefined>>] {
+  const [message, setMessage] = useState<string>();
+  const selected = props.rangeSelection?.value;
+  useEffect(
+    () => setMessage(undefined),
+    [props.date, props.view, selected?.date, selected?.startTime, selected?.endTime],
+  );
+  return [message, setMessage];
 }

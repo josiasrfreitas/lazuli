@@ -1,15 +1,6 @@
 import { assignLeadInterest, leadInterestSchema } from "./lead-interest.js";
 import { prepareSemester } from "./prepare.js";
-import {
-  moveSchema,
-  declineSchema,
-  closedRangeSchema,
-  periodSchema,
-  updatePeriod,
-  movePlacements,
-  declinePlacements,
-  closeRange,
-} from "./commands.js";
+import { moveSchema, declineSchema, movePlacements, declinePlacements } from "./commands.js";
 import {
   z,
   semesterScopeSchema,
@@ -101,11 +92,6 @@ export const semesterOrganizationRouter = router({
       });
       return placements.map((placement) => ({ semester: placement.semester, placement }));
     }),
-  updatePeriod: adminProcedure
-    .input(periodSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => updatePeriod({ ...context(ctx), database }, input)),
-    ),
   prepare: adminProcedure
     .input(semesterScopeSchema)
     .mutation(({ ctx, input }) =>
@@ -124,11 +110,6 @@ export const semesterOrganizationRouter = router({
       timeout: 30_000,
     }),
   ),
-  closeRange: adminProcedure
-    .input(closedRangeSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => closeRange({ ...context(ctx), database }, input)),
-    ),
   holidays: adminProcedure
     .input(z.object({ year: z.number().int().min(MIN_HOLIDAY_YEAR).max(MAX_HOLIDAY_YEAR) }))
     .query(async ({ input }) => {

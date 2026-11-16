@@ -258,6 +258,7 @@ export type {
   CalendarEvent,
   CalendarInterval,
   CalendarBlockedInterval,
+  CalendarBackgroundInterval,
   CalendarRangeSelection,
   CalendarEventRenderContext,
 } from "./components/schedule-calendar";
@@ -274,3 +275,10 @@ export type {
 
 export { ToastProvider, toastManager } from "./components/toast";
 export { ToastAlert, type ToastAlertProps } from "./components/toast-alert";
+
+export {
+  AttachmentPanel,
+  AttachmentRow,
+  AttachmentAdd,
+  AttachmentUploadRow,
+} from "./components/attachment-panel";

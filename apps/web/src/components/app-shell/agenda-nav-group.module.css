@@ -1,0 +1,195 @@
+.group {
+  color: var(--navigation-muted);
+  font-size: var(--lz-text-control);
+}
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.4375rem;
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+}
+.trigger > svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--navigation-icon);
+}
+.trigger span {
+  flex: 1;
+}
+.trigger .chevron {
+  transition: transform var(--lz-duration-base) var(--lz-ease-standard);
+}
+.trigger[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+.trigger:hover,
+.trigger[data-active="true"] {
+  background: var(--navigation-active);
+  color: var(--navigation-foreground);
+}
+.children {
+  position: relative;
+  margin: 0.25rem 0 0.25rem calc(0.875rem * 0.85);
+  padding-left: 0.125rem;
+  border-left: 1px solid var(--navigation-border);
+}
+.children a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--lz-text-caption);
+}
+.children a svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+.children a:hover,
+.children a[aria-current="page"] {
+  background: var(--navigation-active);
+  color: var(--navigation-foreground);
+}
+.children a[aria-current="page"] {
+  font-weight: 600;
+}
+.trigger:focus-visible,
+.children a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.group[data-mobile="true"] {
+  color: var(--muted-foreground);
+}
+.group[data-mobile="true"] .trigger {
+  min-height: 2.75rem;
+  padding-inline: 0.625rem;
+}
+.group[data-mobile="true"] .trigger svg {
+  color: inherit;
+}
+.group[data-mobile="true"] .children a {
+  min-height: 2.75rem;
+}
+.group[data-mobile="true"] .trigger:hover,
+.group[data-mobile="true"] .trigger[data-active="true"],
+.group[data-mobile="true"] .children a:hover,
+.group[data-mobile="true"] .children a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+@media (min-width: 640px) {
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .panel {
+    display: none;
+  }
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .trigger
+    span,
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .chevron {
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trigger .chevron {
+    transition: none;
+  }
+}
+
+.panel {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    height var(--lz-duration-base) var(--lz-ease-standard),
+    opacity var(--lz-duration-base) var(--lz-ease-standard);
+}
+.panel[data-open="true"] {
+  opacity: 1;
+}
+.contents {
+  display: flow-root;
+}
+.group[data-instant="true"] .panel,
+.group[data-instant="true"] .chevron {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: opacity var(--lz-duration-fast) var(--lz-ease-standard);
+  }
+}
+
+.group .children a[aria-current="page"] {
+  color: var(--selection-indicator);
+}
+
+/* Follow the branch only as far as the selected destination. */
+.children a:has(~ a[aria-current="page"])::before,
+.children a[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: calc(-0.125rem - 1px);
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--selection-indicator);
+}
+.children a[aria-current="page"]::before {
+  bottom: 50%;
+}
+.children a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: calc(-0.125rem - 1px);
+  top: 50%;
+  width: calc(0.625rem + 1px);
+  border-top: 1px solid var(--selection-indicator);
+}
+
+.group .trigger[data-active="true"],
+.group .trigger[data-active="true"] > svg {
+  color: var(--selection-indicator);
+}
+
+.trigger {
+  position: relative;
+}
+.trigger[data-active="true"][aria-expanded="true"]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: calc(0.875rem * 0.85);
+  top: calc(50% + 0.5rem);
+  bottom: -0.25rem;
+  width: calc(0.9375rem - 0.875rem * 0.85);
+  border-left: 1px solid var(--selection-indicator);
+  border-top: 1px solid var(--selection-indicator);
+}
+@media (min-width: 640px) {
+  :global(
+      [data-slot="app-sidebar"]:not(:hover):not(:has(:focus-visible)):not(:has([data-popup-open]))
+    )
+    .trigger::after {
+    display: none;
+  }
+}
+.group[data-mobile="true"] .trigger::after {
+  width: calc(1.125rem - 0.875rem * 0.85);
+}

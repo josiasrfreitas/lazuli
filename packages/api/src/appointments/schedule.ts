@@ -72,7 +72,7 @@ async function recordScheduleActivity(
   await appointmentActivity(context, {
     row,
     action: "appointments.schedule",
-    description: `${row.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} · ${timeOnly(row.startTime)}–${timeOnly(row.endTime)}. ${input.coverages.length > 0 ? `${input.coverages.reduce((sum, item) => sum + item.minutes, 0)} minutos reservados para reposição.` : "Acompanhamento pedagógico agendado."}`,
+    description: `${input.meeting.kind === "INDEPENDENT" && input.meeting.academicExceptionDate ? "Atendimento extra fora do período acadêmico confirmado. " : ""}${row.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} · ${timeOnly(row.startTime)}–${timeOnly(row.endTime)}. ${input.coverages.length > 0 ? `${input.coverages.reduce((sum, item) => sum + item.minutes, 0)} minutos reservados para reposição.` : "Acompanhamento pedagógico agendado."}`,
   });
 }
 

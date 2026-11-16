@@ -1,6 +1,6 @@
 import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
-import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
+import { saoPauloDateOnly } from "@lazuli/domain";
 import type { admissionSaveSchema, admissionListSchema, z } from "@lazuli/validators";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { databaseSlotToCandidate } from "../teachers/availability.js";
@@ -179,7 +179,7 @@ export async function matchingClasses(
     scheduleType: row.scheduleType,
     slots: row.scheduleSlots.map((slot) => databaseSlotToCandidate(slot)),
     enrolled: row._count.enrollments,
-    capacity: CLASS_REFERENCE_CAPACITY,
+    capacity: row.capacity,
   }));
 }
 

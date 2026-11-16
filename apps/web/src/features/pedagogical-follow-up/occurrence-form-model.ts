@@ -13,7 +13,9 @@ import type { RouterInputs, RouterOutputs } from "@lazuli/api";
 import { occurrenceCreateSchema } from "@lazuli/validators";
 import { monday, schoolToday, shiftDate } from "~/features/class-records/calendar-model";
 import { useValidation } from "~/features/shared/task-form";
+import { parseDateBR } from "~/lib/masks";
 import { trpc } from "~/lib/trpc";
+import { useOccurrenceResize } from "./occurrence-resize";
 import { occurrenceCalendarHours } from "./occurrence-calendar-hours";
 import { studentFollowUpHref } from "./student-navigation";
 
@@ -25,6 +27,8 @@ export type OccurrenceFormProps = {
   onCreated?: ((id: string) => void) | undefined;
 };
 export type OccurrenceValues = {
+  occurredOn: string;
+  occurredTime: string;
   classSessionId: string;
   studentId: string;
   category: string;
@@ -46,6 +50,8 @@ type SaveModel = {
   reset: () => void;
 };
 export type OccurrenceFormModel = {
+  outside: boolean;
+  setOutside: (value: boolean) => void;
   student: OccurrenceStudent | undefined;
   mobileList: boolean;
   date: string;
@@ -75,11 +81,13 @@ export function useOccurrenceFormModel({
   student,
   onCreated,
 }: OccurrenceFormProps): OccurrenceFormModel {
+  const [outside, setOutside] = useState(false);
   const mobileList = useTeacherMobileList();
   const [date, setDate] = useState(schoolToday);
   const [view, setView] = useState<CalendarView>("day");
   const [values, setValues] = useState<OccurrenceValues>(() => initialValues(student));
   const validation = useValidation();
+  const prepareResize = useOccurrenceResize(outside, validation.body);
   const data = useOccurrenceData({ student, date, view, values, mobileList });
   const save = useOccurrenceSave({ onClose, onCreated });
   function change(name: keyof OccurrenceValues, value: string): void {
@@ -95,11 +103,25 @@ export function useOccurrenceFormModel({
   }
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (save.isPending || !data.canSubmit) return;
-    const parsed = validation.validate(occurrenceCreateSchema, values);
+    if (save.isPending || !(outside ? Boolean(student) : data.canSubmit)) return;
+    const { occurredOn, occurredTime, classSessionId, ...common } = values;
+    const input = outside
+      ? {
+          ...common,
+          occurredOn: parseDateBR(occurredOn) ?? "",
+          occurredTime,
+        }
+      : { ...common, classSessionId };
+    const parsed = validation.validate(occurrenceCreateSchema, input);
     if (parsed) save.mutate(parsed);
   }
   return {
+    outside,
+    setOutside: (value) => {
+      if (value === outside) return;
+      prepareResize();
+      setOutside(value);
+    },
     student,
     mobileList,
     date,
@@ -109,6 +131,7 @@ export function useOccurrenceFormModel({
     values,
     validation,
     ...data,
+    canSubmit: outside ? Boolean(student) : data.canSubmit,
     save,
     change,
     submit,
@@ -117,6 +140,8 @@ export function useOccurrenceFormModel({
 
 function initialValues(student: OccurrenceStudent | undefined): OccurrenceValues {
   return {
+    occurredOn: schoolToday().split("-").toReversed().join("/"),
+    occurredTime: "",
     classSessionId: "",
     studentId: student?.id ?? "",
     category: "LEARNING",

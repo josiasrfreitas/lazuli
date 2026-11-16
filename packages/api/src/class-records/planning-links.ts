@@ -1,3 +1,5 @@
+import { recordedActivities } from "@lazuli/domain";
+import { readActivityLabels } from "../teaching-programs/labels.js";
 import type { Prisma } from "@lazuli/db";
 import type { ClassRecordContent, ClassRecordSnapshot } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
@@ -39,14 +41,21 @@ export async function resolveRecordedSteps(
 }
 async function resolve(context: RecordContext, input: LinkInput): Promise<void> {
   const { content, before, progressId, session } = input;
+  if (content.planItems !== undefined) {
+    await resolveCoverage(context, input);
+    return;
+  }
   if (!content.planItemId) {
     delete content.planItemStatus;
     delete content.planItemTitle;
     return;
   }
-  const regular = session.class.scheduleType === "REGULAR";
-  if (!regular && !progressId)
-    throw badRequest("Selecione o estágio do aluno antes de vincular uma etapa.");
+  assertProgressForLink({
+    session,
+    progressId,
+    hasLinks: true,
+    message: "Selecione o estágio do aluno antes de vincular uma etapa.",
+  });
   const unchanged = content.planItemId === before?.planItemId;
   const plan = stepPlanScope(session, progressId);
   const item = await context.database.stagePlanItem.findFirst({
@@ -74,4 +83,75 @@ function stepPlanScope(
           some: { id: progressId ?? "", enrollment: { classId: session.classId } },
         },
       };
+}
+
+async function resolveCoverage(
+  context: RecordContext,
+  { content, before, progressId, session }: LinkInput,
+): Promise<void> {
+  const coverage = content.planItems ?? [];
+  assertProgressForLink({
+    session,
+    progressId,
+    hasLinks: coverage.length > 0,
+    message: "Selecione o estágio do aluno antes de vincular atividades.",
+  });
+  const previous = new Map(before ? recordedActivities(before).map((item) => [item.id, item]) : []);
+  const items =
+    coverage.length > 0
+      ? await context.database.stagePlanItem.findMany({
+          where: {
+            id: { in: coverage.map((item) => item.id) },
+            deletedAt: {},
+            plan: stepPlanScope(session, progressId),
+          },
+          orderBy: [
+            { plannedOn: "asc" },
+            { programActivity: { sequence: "asc" } },
+            { createdAt: "asc" },
+          ],
+          select: { id: true, title: true, programActivityId: true, deletedAt: true },
+        })
+      : [];
+  if (
+    items.length !== coverage.length ||
+    items.some((item) => item.deletedAt && !previous.has(item.id))
+  )
+    throw badRequest("Uma das atividades não pertence ao planejamento desta aula.");
+  const labels = await readActivityLabels(
+    context.database,
+    items.flatMap((item) => (item.programActivityId ? [item.programActivityId] : [])),
+  );
+  content.planItems = items.map((item) => ({
+    id: item.id,
+    status: coverage.find((entry) => entry.id === item.id)?.status ?? "PARTIAL",
+    title:
+      previous.get(item.id)?.title ??
+      (item.programActivityId ? labels.get(item.programActivityId) : null) ??
+      item.title,
+  }));
+  const last = content.planItems.at(-1);
+  content.planItemId = last?.id ?? null;
+  if (last) {
+    content.planItemStatus = last.status;
+    content.planItemTitle = last.title;
+  } else {
+    delete content.planItemStatus;
+    delete content.planItemTitle;
+  }
+}
+
+function assertProgressForLink({
+  session,
+  progressId,
+  hasLinks,
+  message,
+}: {
+  session: RecordSession;
+  progressId: string | null;
+  hasLinks: boolean;
+  message: string;
+}): void {
+  if (session.class.scheduleType !== "REGULAR" && !progressId && hasLinks)
+    throw badRequest(message);
 }

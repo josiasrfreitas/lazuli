@@ -16,7 +16,7 @@ export type DataTableColumn<Row> = {
   header: ReactNode;
   cell: (row: Row) => ReactNode;
   numeric?: boolean;
-  width?: "wide" | "medium" | "standard" | "narrow" | "selection";
+  width?: "wide" | "medium" | "standard" | "narrow" | "selection" | "actions";
 };
 
 export type DataTableState<Row> =
@@ -47,6 +47,8 @@ const COLUMN_WIDTHS = {
   standard: 144,
   narrow: 112,
   selection: 40,
+  // A 32px icon button plus the standard cell horizontal padding.
+  actions: 72,
 } as const;
 const SKELETON_ROWS = 10;
 

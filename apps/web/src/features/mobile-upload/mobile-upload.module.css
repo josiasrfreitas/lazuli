@@ -1,0 +1,47 @@
+.stack {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.qr {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 192px;
+}
+.qrPending {
+  display: grid;
+  place-items: center;
+  width: 192px;
+  height: 192px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.qr svg {
+  background: white;
+  border-radius: var(--radius-md);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.qrActions {
+  justify-content: center;
+}
+.mobile {
+  width: min(100%, 36rem);
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+.mobile h1 {
+  font-size: var(--lz-text-h2);
+  font-weight: 600;
+}
+.mobile p {
+  font-size: var(--lz-text-body);
+  color: var(--muted-foreground);
+}

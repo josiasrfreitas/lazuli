@@ -71,6 +71,7 @@ export type ScheduleSubmission = {
   pending: boolean;
   error: string | undefined;
   submit: () => void;
+  exception: { date: string; confirm: () => void; cancel: () => void } | null;
 };
 export type ScheduleModel = {
   input: ScheduleDialogProps;
@@ -434,24 +435,16 @@ function useScheduleSubmission(
   detailsStep: "complete" | "nature",
 ): ScheduleSubmission {
   const refresh = useAppointmentRefresh();
+  const policy = useSchedulePolicy();
+  const { checking, policyError, exceptionDate, setExceptionDate } = policy;
   const saved = async (): Promise<void> => {
     await refresh();
     input.onClose();
   };
   const schedule = trpc.appointments.schedule.useMutation({ onSuccess: saved });
   const reschedule = trpc.appointments.reschedule.useMutation({ onSuccess: saved });
-  const pending = schedule.isPending || reschedule.isPending;
-  function submit(): void {
-    if (pending || data.unavailable) return;
-    const values = appointmentDraft({ input, draft, data });
-    if (draft.values.step === "details") {
-      if (!validateDetails({ input, draft, values, detailsStep })) return;
-      draft.update((current) => ({ ...current, selectionReady: false, step: "schedule" }));
-      return;
-    }
-    if (data.enrollmentDateError || !draft.values.selectionReady) return;
-    const parsed = draft.validation.validate(appointmentScheduleSchema, values);
-    if (!parsed) return;
+  const pending = checking || schedule.isPending || reschedule.isPending;
+  function persist(parsed: z.output<typeof appointmentScheduleSchema>): void {
     if (input.previous) {
       const replacement = draft.validation.validate(appointmentRescheduleSchema, {
         id: input.previous.id,
@@ -462,7 +455,34 @@ function useScheduleSubmission(
       if (replacement) reschedule.mutate(replacement);
     } else schedule.mutate(parsed);
   }
-  return { pending, error: schedule.error?.message ?? reschedule.error?.message, submit };
+  async function submit(confirmedDate?: string): Promise<void> {
+    if (pending || data.unavailable) return;
+    const values = appointmentDraft({ input, draft, data });
+    if (draft.values.step === "details") {
+      if (!validateDetails({ input, draft, values, detailsStep })) return;
+      draft.update((current) => ({ ...current, selectionReady: false, step: "schedule" }));
+      return;
+    }
+    if (data.enrollmentDateError || !draft.values.selectionReady) return;
+    const parsed = draft.validation.validate(appointmentScheduleSchema, values);
+    if (!parsed) return;
+    if (parsed.meeting.kind === "INDEPENDENT" && !(await policy.check(parsed, confirmedDate)))
+      return;
+    setExceptionDate(null);
+    persist(parsed);
+  }
+  return {
+    pending,
+    error: policyError ?? schedule.error?.message ?? reschedule.error?.message,
+    submit: () => void submit(),
+    exception: exceptionDate
+      ? {
+          date: exceptionDate,
+          confirm: () => void submit(exceptionDate),
+          cancel: () => setExceptionDate(null),
+        }
+      : null,
+  };
 }
 
 export function useScheduleModel(
@@ -473,4 +493,52 @@ export function useScheduleModel(
   const data = useScheduleData(input, draft);
   const submission = useScheduleSubmission({ input, draft, data }, detailsStep);
   return { input, draft, data, submission };
+}
+
+type SchedulePolicy = {
+  checking: boolean;
+  policyError: string | undefined;
+  exceptionDate: string | null;
+  setExceptionDate: Dispatch<SetStateAction<string | null>>;
+  check: (
+    parsed: z.output<typeof appointmentScheduleSchema>,
+    confirmedDate?: string,
+  ) => Promise<boolean>;
+};
+function useSchedulePolicy(): SchedulePolicy {
+  const utils = trpc.useUtils();
+  const [checking, setChecking] = useState(false);
+  const [policyError, setPolicyError] = useState<string>();
+  const [exceptionDate, setExceptionDate] = useState<string | null>(null);
+  async function check(
+    parsed: z.output<typeof appointmentScheduleSchema>,
+    confirmedDate?: string,
+  ): Promise<boolean> {
+    if (parsed.meeting.kind !== "INDEPENDENT") return true;
+    setChecking(true);
+    setPolicyError(undefined);
+    try {
+      const policy = await utils.appointments.academicDay.fetch({ date: parsed.meeting.date });
+      if (policy.suspension) {
+        setPolicyError(`Sem atividades acadêmicas nesta data: ${policy.suspension}.`);
+        return false;
+      }
+      if (policy.outsidePeriod && confirmedDate !== parsed.meeting.date) {
+        setExceptionDate(parsed.meeting.date);
+        return false;
+      }
+      if (policy.outsidePeriod) parsed.meeting.academicExceptionDate = parsed.meeting.date;
+    } catch (error) {
+      setPolicyError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível conferir o calendário. Tente novamente.",
+      );
+      return false;
+    } finally {
+      setChecking(false);
+    }
+    return true;
+  }
+  return { checking, policyError, exceptionDate, setExceptionDate, check };
 }

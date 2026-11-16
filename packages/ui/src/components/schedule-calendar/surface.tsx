@@ -80,6 +80,7 @@ export function CalendarSurface(props: SurfaceProps): ReactElement {
         ref={layout.timelineRef}
         onPointerMove={layout.hover.onPointerMove}
         onPointerLeave={layout.hover.onPointerLeave}
+        data-scroll-chaining={props.scrollChaining || undefined}
         data-calendar-layout={scope}
         data-view={view}
         data-density={density}

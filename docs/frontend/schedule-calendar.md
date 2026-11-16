@@ -114,6 +114,13 @@ that omit `through` keep the Monday–Sunday interpretation of `week`.
 
 ## Selection is not availability
 
+`backgroundIntervals` supplies read-only annotations behind events, independently of selection.
+Each interval has `id`, `date`, `startTime`, `endTime`, `label`, and optional `tone` (`neutral`
+or `warning`). A full-day academic suspension uses `00:00`–`24:00` with `warning`; existing
+records remain visible and interactive above it. An annotation does not enable range selection,
+block a mutation, or change displayed hours. Server scheduling rules still own availability.
+See the **AcademicSuspension** story; its background data is editable through Controls.
+
 An event's `disabled` flag prevents activation; `disabledReason` explains why in its accessible
 label. It does not decide whether a new interval can be created at that time.
 
@@ -224,3 +231,5 @@ overlap lanes remain unchanged.
 
 Import the normal `@lazuli/ui/styles.css` stylesheet. Consumers never import react-big-calendar
 or use its event/slot types; that dependency and its geometry remain implementation details.
+
+Personal read-only agendas can set `scrollChaining` to let vertical gestures continue into the page at the grid limits. The default retains containment for dialogs. Set `emptyDisplay="message"` to retain navigation but omit an empty time grid (ignored with range selection). Use `hours` based on the visible events to trim unused hours at either edge of the day.

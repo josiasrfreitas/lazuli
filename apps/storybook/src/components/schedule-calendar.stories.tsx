@@ -97,6 +97,7 @@ const meta = {
     expandedEventWidth: { control: { type: "number", min: 160, max: 640, step: 20 } },
     status: { control: "radio", options: ["ready", "loading", "error"] },
     events: { control: false },
+    backgroundIntervals: { control: "object" },
     rangeSelection: { control: false },
     renderEvent: { control: false },
     onDateChange: { control: false },
@@ -133,6 +134,22 @@ function Example(props: ScheduleCalendarProps): ReactElement {
 }
 export const Weekly: Story = {
   render: (args) => <Example key={`${args.view}:${args.date}`} {...args} />,
+};
+export const AcademicSuspension: Story = {
+  args: {
+    view: "day",
+    backgroundIntervals: [
+      {
+        id: "academic-suspension",
+        date: MONDAY,
+        startTime: "00:00",
+        endTime: "24:00",
+        label: "Feriado · sem atividades acadêmicas",
+        tone: "warning",
+      },
+    ],
+  },
+  render: (args) => <Example {...args} />,
 };
 export const TuesdayToMonday: Story = {
   args: {

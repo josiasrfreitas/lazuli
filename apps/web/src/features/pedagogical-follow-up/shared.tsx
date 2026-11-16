@@ -93,7 +93,8 @@ export function OccurrenceLink({ row }: { row: OccurrenceRow }): ReactElement {
         <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
       </div>
       <p className="text-caption text-muted-foreground">
-        {dateLabel(row.classSession.date)} · {row.classSession.class.portalClassName}
+        {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)} ·{" "}
+        {row.classSession?.class.portalClassName ?? "Fora de Aula"}
       </p>
       <p className="text-caption text-muted-foreground">
         {CATEGORY[row.category]} · {row.recordedBy.name}

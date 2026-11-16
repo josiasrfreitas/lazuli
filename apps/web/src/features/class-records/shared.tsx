@@ -1,3 +1,4 @@
+import { recordedActivities } from "@lazuli/domain";
 import { RefreshCw } from "lucide-react";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
@@ -76,12 +77,11 @@ export function PerformedContent({ value }: { value: ClassRecordContent }): Reac
   return (
     <div className="grid gap-2">
       <Badge variant="neutral">{kindLabels[value.kind]}</Badge>
-      {value.planItemId && (
-        <p className="text-caption">
-          {value.planItemTitle ?? "Etapa do planejamento"} ·{" "}
-          {value.planItemStatus === "COMPLETED" ? "Concluída" : "Em andamento"}
+      {recordedActivities(value).map((item) => (
+        <p key={item.id} className="text-caption">
+          {item.title ?? "Conteúdo do planejamento"} · {activityStatusLabel(item.status)}
         </p>
-      )}
+      ))}
       <p className="whitespace-pre-wrap text-sm leading-relaxed">{value.account}</p>
       {(value.reference || value.pageFrom !== null) && (
         <p className="text-caption text-muted-foreground">
@@ -158,4 +158,12 @@ function SnapshotAttendance({
       {status === "PRESENT" ? "Presente" : "Falta"}
     </Badge>
   );
+}
+
+export function activityStatusLabel(
+  status: ReturnType<typeof recordedActivities>[number]["status"],
+): string {
+  if (status === "COMPLETED") return "Concluído";
+  if (status === "PARTIAL") return "Em andamento";
+  return "Sem conclusão informada";
 }

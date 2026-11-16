@@ -104,7 +104,7 @@ function filterOccurrences(rows: OccurrenceRow[], search: string): OccurrenceRow
       [
         row.title,
         row.account,
-        row.classSession.class.portalClassName,
+        row.classSession?.class.portalClassName ?? "Fora de Aula",
         row.recordedBy.name,
         CATEGORY[row.category],
       ].join(" "),

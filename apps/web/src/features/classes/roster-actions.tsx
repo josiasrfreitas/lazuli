@@ -1,13 +1,6 @@
 import type { ReactElement } from "react";
-import { MoreHorizontal } from "lucide-react";
-import {
-  Button,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  PopoverClose,
-  PopoverTitle,
-} from "@lazuli/ui";
+import { MoreHorizontal, PauseCircle, Play } from "lucide-react";
+import { Button, Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@lazuli/ui";
 import type { RosterRow } from "./roster-status";
 function StudentMembershipDates({ row }: { row: RosterRow }): ReactElement {
   return (
@@ -42,21 +35,19 @@ export function StudentActions({
     <Popover>
       <PopoverTrigger
         render={
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label={`Detalhes de ${row.student.fullName}`}
-          />
+          <Button size="icon-sm" variant="ghost" aria-label={`Ações de ${row.student.fullName}`} />
         }
       >
         <MoreHorizontal aria-hidden="true" />
       </PopoverTrigger>
-      <PopoverContent align="end">
-        <PopoverTitle>{row.student.fullName}</PopoverTitle>
-        <p className="mt-2 text-caption text-muted-foreground">
-          Entrada em {row.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-        </p>
-        <StudentMembershipDates row={row} />
+      <PopoverContent align="end" size="menu" showArrow={false}>
+        <div className="grid max-w-64 gap-1 border-b border-border px-2 py-2">
+          <p className="text-caption font-medium">{row.student.fullName}</p>
+          <p className="text-caption text-muted-foreground">
+            Entrada em {row.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+          </p>
+          <StudentMembershipDates row={row} />
+        </div>
         <StudentActionButtons row={row} close={close} resume={resume} canClose={canClose} />
       </PopoverContent>
     </Popover>
@@ -77,20 +68,16 @@ function StudentActionButtons({
   return (
     <>
       {resume && (
-        <div className="mt-3">
-          <PopoverClose
-            render={<Button size="sm" variant="secondary" onClick={() => resume(row)} />}
-          >
-            Retomar matrícula
+        <div className="grid pt-1">
+          <PopoverClose render={<Button size="sm" variant="ghost" onClick={() => resume(row)} />}>
+            <Play aria-hidden="true" /> Retomar matrícula
           </PopoverClose>
         </div>
       )}
       {canClose && (
-        <div className="mt-3">
-          <PopoverClose
-            render={<Button size="sm" variant="secondary" onClick={() => close(row)} />}
-          >
-            Pausar ou encerrar vínculo
+        <div className="grid pt-1">
+          <PopoverClose render={<Button size="sm" variant="ghost" onClick={() => close(row)} />}>
+            <PauseCircle aria-hidden="true" /> Pausar ou encerrar vínculo
           </PopoverClose>
         </div>
       )}

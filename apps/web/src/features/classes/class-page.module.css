@@ -337,3 +337,8 @@
     animation: none;
   }
 }
+
+/* Overlay scrollbars on macOS do not reserve scrollbar-gutter space. */
+.sections[data-planning] > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) {
+  padding-inline-end: 1rem;
+}

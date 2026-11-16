@@ -34,6 +34,7 @@ export const appointmentMeetingSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("INDEPENDENT"),
+      academicExceptionDate: civilDateSchema.optional(),
       teacherId: id,
       date: civilDateSchema,
       startTime: timeOfDaySchema,

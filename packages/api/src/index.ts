@@ -43,3 +43,7 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type { RouterInputs, RouterOutputs };
 
 export { studentDocumentCapture, downloadStudentDocument } from "./student-documents/transport.js";
+
+export { receiveTeacherFile, teacherFileResource } from "./teachers/files.js";
+
+export { teacherMobileCapture } from "./teachers/upload-sessions.js";

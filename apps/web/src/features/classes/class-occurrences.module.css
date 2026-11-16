@@ -316,3 +316,12 @@
     border: 1px solid var(--academic-panel-divider);
   }
 }
+
+.empty {
+  align-items: center;
+  text-align: center;
+}
+.empty p {
+  max-width: 34ch;
+  text-wrap: pretty;
+}

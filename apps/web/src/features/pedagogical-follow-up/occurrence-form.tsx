@@ -30,12 +30,12 @@ function OccurrenceDialog({
       description={
         model.student ? model.student.name : "Escolha a aula e registre o que aconteceu."
       }
-      size="extra-wide"
-      layout="occurrence"
+      size={model.outside ? "default" : "extra-wide"}
+      {...(model.outside ? {} : { layout: "occurrence" as const })}
       compactHeader
       onClose={onClose}
       pending={model.save.isPending}
-      firstField="classSessionId"
+      firstField={model.outside ? "occurredOn" : "classSessionId"}
       formId="occurrence-form"
       submitLabel="Registrar ocorrência"
       submitDisabled={!model.canSubmit}
@@ -46,10 +46,13 @@ function OccurrenceDialog({
       error={model.save.error?.message}
     >
       <form id="occurrence-form" noValidate onSubmit={model.submit}>
-        <fieldset disabled={model.save.isPending} className={styles.layout}>
+        <fieldset
+          disabled={model.save.isPending}
+          className={model.outside ? styles.outsideLayout : styles.layout}
+        >
           <legend className="sr-only">Registro de ocorrência</legend>
           <OccurrenceCalendar model={model} />
-          <OccurrenceFields model={model} />
+          {!model.outside && <OccurrenceFields model={model} />}
         </fieldset>
       </form>
     </TaskDialog>

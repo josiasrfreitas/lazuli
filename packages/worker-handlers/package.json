@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./calendar": "./src/calendar/process.ts",
     "./sessions": "./src/sessions/process-generation.ts",
     "./enrollment": "./src/enrollment/process-due-actions.ts",
     "./assessment-files": "./src/assessments/process-file.ts",

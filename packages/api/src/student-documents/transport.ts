@@ -1,9 +1,12 @@
+import { createServiceLogger, safeError } from "@lazuli/logging";
+import { z } from "@lazuli/validators";
 import { getStorage } from "@lazuli/storage";
 import { enqueueStudentDocument } from "@lazuli/integrations/hatchet";
 import type { Context } from "../trpc/context.js";
 import { tokenHash } from "./router.js";
 import { JPEG, PDF, documentFormat, readDocumentImage, storeDocument } from "./upload.js";
 import { deleteStudentDocument } from "./delete.js";
+const logger = createServiceLogger("web");
 const HEADERS = {
   "Cache-Control": "private, no-store",
   "Referrer-Policy": "no-referrer",
@@ -18,8 +21,11 @@ const HTTP = {
   notFound: 404,
   conflict: 409,
   gone: 410,
+  internalError: 500,
 };
 const TOKEN_LENGTH = 43;
+const MAX_TITLE_LENGTH = 100;
+const MAX_SUBTITLE_LENGTH = 240;
 function json<Value>(value: Value, status: number = HTTP.ok): Response {
   return Response.json(value, { status, headers: HEADERS });
 }
@@ -35,7 +41,8 @@ export async function studentDocumentCapture(
   const session = await captureSession(ctx, request);
   if (!session) return json({ code: "EXPIRED" }, HTTP.gone);
   if (request.method === "GET" && !kind) return readCaptureStatus(ctx, session.id);
-  if (!kind || !KINDS.has(kind)) return json({ code: "NOT_FOUND" }, HTTP.notFound);
+  if (!kind || (!KINDS.has(kind) && !/^custom_[0-9a-f-]{36}$/.test(kind)))
+    return json({ code: "NOT_FOUND" }, HTTP.notFound);
   switch (request.method) {
     case "DELETE": {
       return deleteCapture(ctx, { sessionId: session.id, kind });
@@ -108,7 +115,21 @@ async function uploadCapture(
     return json({ code: "INVALID_IMAGE" }, HTTP.badRequest);
   }
   try {
+    const metadata = z
+      .object({
+        title: z.string().trim().min(1).max(MAX_TITLE_LENGTH),
+        subtitle: z.string().trim().max(MAX_SUBTITLE_LENGTH),
+      })
+      .parse(
+        JSON.parse(
+          decodeURIComponent(
+            request.headers.get("x-document-metadata") ??
+              "%7B%22title%22%3A%22Documento%22%2C%22subtitle%22%3A%22%22%7D",
+          ),
+        ),
+      );
     const file = await storeDocument(ctx.db, {
+      ...metadata,
       sessionId: session.id,
       tokenHash: session.tokenHash,
       kind,
@@ -117,7 +138,17 @@ async function uploadCapture(
     });
     // A dispatch outage must not undo a durable upload; the recovery loop claims it.
     if (file.status === "RECEIVED")
-      await enqueueStudentDocument({ fileId: file.id }).catch(() => {});
+      await enqueueStudentDocument({ fileId: file.id }).catch((error) => {
+        logger.error(
+          {
+            request_id: ctx.requestId,
+            resource: "studentDocuments.dispatch",
+            status: "error",
+            ...safeError(error),
+          },
+          "Document processing dispatch failed; durable upload retained for recovery",
+        );
+      });
     return json(
       {
         status: publicStatus(file.status),
@@ -126,8 +157,8 @@ async function uploadCapture(
       },
       HTTP.created,
     );
-  } catch {
-    return json({ code: "BUSY_OR_CLOSED" }, HTTP.conflict);
+  } catch (error) {
+    return uploadFailure(ctx, error);
   }
 }
 async function readCaptureStatus(ctx: Context, sessionId: string): Promise<Response> {
@@ -176,4 +207,31 @@ export async function downloadStudentDocument(ctx: Context, id: string): Promise
 
 function readToken(request: Request): string | undefined {
   return request.headers.get("authorization")?.replace(/^Bearer /u, "");
+}
+
+function uploadFailure<Failure>(ctx: Context, error: Failure): Response {
+  const conflict = error instanceof Error && ["BUSY", "CLOSED"].includes(error.message);
+  const invalid =
+    error instanceof z.ZodError || error instanceof SyntaxError || error instanceof URIError;
+  const fields = {
+    request_id: ctx.requestId,
+    resource: "studentDocuments.upload",
+    operation: "POST",
+    status: "error",
+    ...safeError(error),
+  };
+  if (conflict || invalid) {
+    logger.warn(
+      fields,
+      conflict
+        ? "Document upload rejected: session busy or closed"
+        : "Document upload rejected: invalid metadata",
+    );
+    return json(
+      { code: conflict ? "BUSY_OR_CLOSED" : "INVALID_METADATA" },
+      conflict ? HTTP.conflict : HTTP.badRequest,
+    );
+  }
+  logger.error(fields, "Document upload failed while storing file or metadata");
+  return json({ code: "UPLOAD_FAILED" }, HTTP.internalError);
 }

@@ -1,45 +1,35 @@
-import type { ReactElement } from "react";
-import { BookOpen, Clock3, Pencil, MoreHorizontal } from "lucide-react";
+import type { ReactElement, ReactNode } from "react";
+import { BookOpen, Clock3, Mail, Pencil, MoreHorizontal } from "lucide-react";
 import { Button, InlineSkeleton } from "@lazuli/ui";
+
+import styles from "./teacher-overview.module.css";
 
 const SKELETON_ROW_COUNT = 4;
 
-export function TeacherHeaderLoading(): ReactElement {
+export function TeacherHeaderLoading({ navigation }: { navigation?: ReactNode }): ReactElement {
   return (
-    <header
-      className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4"
-      aria-busy="true"
-      aria-label="Carregando professor"
-    >
-      <div className="grid min-w-0 gap-1.5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <InlineSkeleton className="size-8" />
-          <InlineSkeleton className="h-8 w-56 max-w-full" />
-          <InlineSkeleton className="h-5 w-16" />
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <InlineSkeleton className="h-4 w-48" />
-          <InlineSkeleton className="h-4 w-40" />
-        </div>
+    <header className={styles.teacherHeader} aria-label="Carregando professor" aria-busy="true">
+      <div className={styles.teacherIdentity}>
+        <InlineSkeleton className="size-10 shrink-0" />
+        <InlineSkeleton shape="block" className="h-6 w-48 max-w-full" />
       </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon-compact-responsive"
-          aria-label="Editar cadastro"
-          disabled
-        >
+      <div className={styles.teacherActions}>
+        <InlineSkeleton shape="block" className="h-5 w-12" />
+        <Button variant="ghost" size="icon-sm" aria-label="Editar cadastro" disabled>
           <Pencil />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon-compact-responsive"
-          aria-label="Mais ações do professor"
-          disabled
-        >
+        <Button variant="ghost" size="icon-sm" aria-label="Mais ações do professor" disabled>
           <MoreHorizontal />
         </Button>
       </div>
+      <span className={styles.email}>
+        <Mail aria-hidden="true" />
+        <InlineSkeleton className="w-40 max-w-full" />
+      </span>
+      <span className={styles.loadingAccess}>
+        <InlineSkeleton shape="block" className="h-5 w-full" />
+      </span>
+      <div className={styles.navigation}>{navigation}</div>
     </header>
   );
 }

@@ -159,6 +159,8 @@ model User {
   substitutionsRecorded         ClassSubstitution[] @relation("ClassSubstitutionRecorder")
   substitutionsRevoked          ClassSubstitution[] @relation("ClassSubstitutionRevoker")
   closedDays                    SchoolClosedDay[]       @relation("SchoolClosedDayCreator")
+  academicInterruptions AcademicInterruption[]
+  calendarReconciliationRequests CalendarReconciliationRequest[]
   attendanceConfirmedSessions   ClassSession[]          @relation("ClassSessionAttendanceConfirmer")
   cancelledClassSessions        ClassSession[]          @relation("ClassSessionCanceller")
   attendanceRecords             Attendance[]            @relation("AttendanceRecorder")
@@ -364,10 +366,25 @@ model Period {
   endDate   DateTime  @map("end_date") @db.Date
   classes Class[]
   sessionGenerationRequests SessionGenerationRequest[]
+  calendarReconciliationRequests CalendarReconciliationRequest[]
   classPlans SemesterClassPlan[]
   placements SemesterPlacement[]
 
   @@map("Semester")
+}
+
+/// A school calendar event. Scheduling suspensions are managed separately.
+model AcademicEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+  title       String
+  description String?
+  startsAt    DateTime  @map("starts_at") @db.Timestamptz
+  endsAt      DateTime  @map("ends_at") @db.Timestamptz
+
+  @@index([startsAt, endsAt])
 }
 
 model SchoolClosedDay {
@@ -377,11 +394,70 @@ model SchoolClosedDay {
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
   date        DateTime  @unique @db.Date
   reason      String
+  calendarManaged Boolean @default(false) @map("calendar_managed")
   createdById String?   @map("created_by_id") @db.Uuid
 
   createdBy User? @relation("SchoolClosedDayCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([createdById])
+}
+
+enum AcademicInterruptionKind {
+  HOLIDAY
+  RECESS
+  MAINTENANCE
+  OTHER
+}
+
+/// School-wide suspension of academic activities, independent of administrative opening hours.
+model AcademicInterruption {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  fromDate DateTime @map("from_date") @db.Date
+  throughDate DateTime @map("through_date") @db.Date
+  kind AcademicInterruptionKind
+  title String
+  description String?
+  sourceKey String? @unique @map("source_key")
+  createdById String? @map("created_by_id") @db.Uuid
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  @@index([fromDate, throughDate])
+  @@index([createdById])
+}
+
+enum CalendarReconciliationStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+/// Durable work request. Calendar writes take effect immediately; the worker reconciles future records.
+model CalendarReconciliationRequest {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  fromDate DateTime @map("from_date") @db.Date
+  throughDate DateTime @map("through_date") @db.Date
+  semesterId String? @map("semester_id") @db.Uuid
+  reason String
+  confirmationFingerprint String? @map("confirmation_fingerprint") @db.VarChar(64)
+  semester Period? @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  requestedById String @map("requested_by_id") @db.Uuid
+  requestedBy User @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+  status CalendarReconciliationStatus @default(PENDING)
+  startedAt DateTime? @map("started_at") @db.Timestamptz
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  failureCode String? @map("failure_code")
+  cancelledSessions Int @default(0) @map("cancelled_sessions")
+  cancelledAppointments Int @default(0) @map("cancelled_appointments")
+  cancelledVisits Int @default(0) @map("cancelled_visits")
+  generatedSessions Int @default(0) @map("generated_sessions")
+  @@index([status, createdAt])
+  @@index([requestedById])
 }
 
 model ProductLine {
@@ -589,6 +665,14 @@ model TeacherProfile {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   userId        String    @id @map("user_id") @db.Uuid
   cpf           String?   @unique @db.VarChar(11)
+  phone String?
+  employmentType String? @map("employment_type") @db.VarChar(20)
+  weeklyHours Float? @map("weekly_hours")
+  notes String?
+  vacationStart DateTime? @map("vacation_start") @db.Date
+  vacationEnd DateTime? @map("vacation_end") @db.Date
+  files TeacherFile[]
+  uploadSessions TeacherUploadSession[]
   departureDate DateTime? @map("departure_date") @db.Date
   departureRecordedAt DateTime? @map("departure_recorded_at") @db.Timestamptz
   departureRecordedById String? @map("departure_recorded_by_id") @db.Uuid
@@ -1625,7 +1709,9 @@ model PedagogicalOccurrence {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   studentId String @map("student_id") @db.Uuid
-  classSessionId String @map("class_session_id") @db.Uuid
+  classSessionId String? @map("class_session_id") @db.Uuid
+  occurredOn DateTime? @map("occurred_on") @db.Date
+  occurredTime String? @map("occurred_time") @db.VarChar(5)
   status OccurrenceStatus @default(OPEN)
   statusVersion Int @default(0) @map("status_version")
   statusChanges OccurrenceStatusChange[]
@@ -1635,7 +1721,7 @@ model PedagogicalOccurrence {
   initialResponse String? @map("initial_response")
   recordedById String @map("recorded_by_id") @db.Uuid
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  classSession ClassSession? @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
   recordedBy User @relation("OccurrenceAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
   relationsFrom OccurrenceRelation[] @relation("OccurrenceFrom")
   relationsTo OccurrenceRelation[] @relation("OccurrenceTo")
@@ -2245,6 +2331,8 @@ model StudentDocumentSession {
 }
 
 model StudentDocumentFile {
+  title String? @db.VarChar(100)
+  subtitle String? @db.VarChar(240)
   deletedAt DateTime? @db.Timestamptz
   id String @id @default(uuid()) @db.Uuid
   sessionId String @db.Uuid
@@ -2273,4 +2361,39 @@ model StudentHealthPending {
   evaluatedAt DateTime @map("evaluated_at") @db.Timestamptz
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
   @@index([openedAt, recoveredAt])
+}
+
+model TeacherFile {
+  subtitle String? @db.VarChar(240)
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  teacherId String? @map("teacher_id") @db.Uuid
+  uploadSessionId String? @map("upload_session_id") @db.Uuid
+  uploadSession TeacherUploadSession? @relation(fields: [uploadSessionId], references: [id], onDelete: Restrict)
+  kind String @db.VarChar(20)
+  label String @db.VarChar(100)
+  fileName String @map("file_name") @db.VarChar(255)
+  contentType String @map("content_type") @db.VarChar(100)
+  byteLength Int @map("byte_length")
+  bucket String
+  key String @unique
+  teacher TeacherProfile? @relation(fields: [teacherId], references: [userId], onDelete: Restrict)
+  @@index([teacherId, deletedAt])
+}
+
+model TeacherUploadSession {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  tokenHash String @unique @map("token_hash")
+  createdById String @map("created_by_id") @db.Uuid
+  teacherId String? @map("teacher_id") @db.Uuid
+  teacher TeacherProfile? @relation(fields: [teacherId], references: [userId], onDelete: Restrict)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  closedAt DateTime? @map("closed_at") @db.Timestamptz
+  files TeacherFile[]
+  @@index([teacherId])
 }

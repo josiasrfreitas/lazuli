@@ -1,3 +1,4 @@
+import { academicDayPolicy } from "../calendar/academic-day.js";
 import {
   z,
   civilDateSchema,
@@ -29,6 +30,9 @@ const MAX_AVAILABILITY_DAY_OFFSET = 6;
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 export const appointmentsRouter = router({
+  academicDay: adminProcedure
+    .input(z.object({ date: civilDateSchema }).strict())
+    .query(({ ctx, input }) => academicDayPolicy(ctx.db, input.date)),
   forStudent: staffProcedure
     .input(z.object({ studentId: z.string().uuid() }).strict())
     .query(({ ctx, input }) =>

@@ -34,7 +34,7 @@ main:has(> [data-page-scroll="internal"]) {
   }
 }
 
-.student-photo-viewer {
+.profile-photo-viewer {
   width: min(22rem, calc(100dvw - 2rem));
   max-width: min(22rem, calc(100dvw - 2rem));
   aspect-ratio: 1;
@@ -43,7 +43,7 @@ main:has(> [data-page-scroll="internal"]) {
   overflow: hidden;
   background: var(--muted);
 }
-.student-photo-viewer[data-empty="true"] {
+.profile-photo-viewer[data-empty="true"] {
   color: var(--muted-foreground);
 }
 .student-photo-file-upload .file-upload__error {
@@ -62,9 +62,9 @@ main:has(> [data-page-scroll="internal"]) {
   opacity: 0;
   transition: opacity var(--lz-duration-fast);
 }
-.student-photo-viewer:hover .student-photo-upload-button,
+.profile-photo-viewer:hover .student-photo-upload-button,
 .student-photo-upload-button:focus-visible,
-.student-photo-viewer[data-empty="true"] .student-photo-upload-button {
+.profile-photo-viewer[data-empty="true"] .student-photo-upload-button {
   opacity: 1;
 }
 @media (hover: none) {

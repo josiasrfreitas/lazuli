@@ -23,6 +23,7 @@ export type CalendarEvent = CalendarInterval & {
   disabledReason?: string;
 };
 export type CalendarBlockedInterval = CalendarInterval & { id: string; label: string };
+export type CalendarBackgroundInterval = CalendarBlockedInterval & { tone?: "neutral" | "warning" };
 export type CalendarEventRenderContext = {
   view: CalendarView;
   expanded: boolean;
@@ -51,6 +52,8 @@ export type CalendarRangeSelection = {
 export type ScheduleCalendarProps<Event extends CalendarEvent = CalendarEvent> =
   CalendarDateWindow & {
     events: readonly Event[];
+    /** Read-only context behind events. Does not enable selection or enforce availability. */
+    backgroundIntervals?: readonly CalendarBackgroundInterval[];
     onDateChange: (date: string) => void;
     onViewChange: (view: CalendarView) => void;
     /** Presentation and clock only: input civil dates/times are not converted. */
@@ -58,6 +61,10 @@ export type ScheduleCalendarProps<Event extends CalendarEvent = CalendarEvent> =
     /** Fixed window stays usable when there are no events. End can be 24:00. */
     hours?: { start: string; end: string };
     density?: "comfortable" | "compact";
+    /** Allow vertical scrolling to continue into the containing page at the grid limits. */
+    scrollChaining?: boolean;
+    /** Read-only agendas can omit the empty time grid while retaining navigation. */
+    emptyDisplay?: "grid" | "message";
     /** Fit every day and overlap lane within the container, or retain readable scrolling lanes. */
     widthBehavior?: "scroll" | "fit";
     status?: "ready" | "loading" | "error";
@@ -79,6 +86,8 @@ export type ScheduleCalendarProps<Event extends CalendarEvent = CalendarEvent> =
     /** Domain filters/actions stay outside the calendar's data model. */
     filters?: ReactNode;
     actions?: ReactNode;
+    /** Replaces the day/week selector with a domain-specific view control. */
+    viewControl?: ReactNode;
     toolbar?: boolean;
     className?: string;
     label?: string;

@@ -4,9 +4,14 @@ import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, DataTable, type DataTableColumn, type DataTableState } from "@lazuli/ui";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
+import { hoursLabel } from "./format";
+import styles from "./teacher-table.module.css";
 import { TeacherStatus } from "./teacher-status";
 
 const ISO_DATE_LENGTH = 10;
+const MONTH_START = 5;
+const MONTH_END = 7;
+const YEAR_END = 4;
 
 export function TeacherTable({
   data,
@@ -57,9 +62,13 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
     {
       id: "name",
       header: "Professor",
-      width: "wide",
+      width: "medium",
       cell: (row) => (
-        <Link href={href(row.id)} className="font-medium underline-offset-4 hover:underline">
+        <Link
+          href={href(row.id)}
+          title={row.name}
+          className="block truncate font-medium underline-offset-4 hover:underline"
+        >
           {row.name}
         </Link>
       ),
@@ -68,12 +77,16 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
       id: "email",
       header: "E-mail",
       width: "wide",
-      cell: (row) => <span className="break-all text-muted-foreground">{row.email}</span>,
+      cell: (row) => (
+        <span title={row.email} className="block truncate text-muted-foreground">
+          {row.email}
+        </span>
+      ),
     },
     {
       id: "classes",
       header: "Turmas",
-      width: "standard",
+      width: "narrow",
       numeric: true,
       cell: (row) => (
         <span
@@ -84,16 +97,33 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
         </span>
       ),
     },
+    monthlyHoursColumn(today),
+    {
+      id: "appointmentHours",
+      header: <span className="whitespace-nowrap">Horas de atendimento</span>,
+      width: "wide",
+      cell: (row) => (
+        <div
+          className="grid gap-1"
+          title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
+        >
+          <span className="font-numeric tabular-nums">
+            {hoursLabel(row.appointmentHours.completedMinutes)} /{" "}
+            {hoursLabel(row.appointmentHours.plannedMinutes)} h
+          </span>
+        </div>
+      ),
+    },
     {
       id: "activity",
       header: "Atuação",
-      width: "wide",
+      width: "narrow",
       cell: (row) => <TeacherStatus departure={row.teacherProfile?.departureDate} today={today} />,
     },
     {
       id: "access",
       header: "Acesso ao sistema",
-      width: "standard",
+      width: "medium",
       cell: (row) => <TeacherAccess row={row} today={today} />,
     },
   ];
@@ -130,3 +160,32 @@ type TeacherColumnsInput = {
   today: string;
 };
 type TeacherAccessInput = { row: TeacherRow; today: string };
+
+function monthlyHoursColumn(today: string): DataTableColumn<TeacherRow> {
+  return {
+    id: "monthlyHours",
+    header: (
+      <span className={styles.hoursHeader}>
+        Horas · {today.slice(MONTH_START, MONTH_END)}/{today.slice(0, YEAR_END)}
+      </span>
+    ),
+    width: "standard",
+    cell: (row) => (
+      <div
+        className={styles.hours}
+        title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
+      >
+        <span className="font-numeric tabular-nums">
+          {hoursLabel(row.monthlyHours.completedMinutes)} /{" "}
+          {hoursLabel(row.monthlyHours.plannedMinutes)} h
+        </span>
+        <progress
+          className={styles.progress}
+          aria-label="Progresso das horas realizadas no mês"
+          max={row.monthlyHours.plannedMinutes || 1}
+          value={Math.min(row.monthlyHours.completedMinutes, row.monthlyHours.plannedMinutes)}
+        />
+      </div>
+    ),
+  };
+}

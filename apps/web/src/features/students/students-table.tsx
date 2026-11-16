@@ -1,10 +1,10 @@
+import { StudentAvatar } from "~/components/student-avatar";
 import type { ReactElement, ReactNode } from "react";
 
 import { ClipboardList, MessageCircle, SearchX, UserRoundPlus } from "lucide-react";
 
 import type { StudentListRow } from "@lazuli/validators";
 import {
-  Avatar,
   Badge,
   Button,
   cn,
@@ -148,7 +148,7 @@ export function StudentsTableRow({
     >
       <TableCell>
         <div className="flex flex-wrap items-center gap-3">
-          <Avatar colorKey={row.id} name={row.fullName} size="sm" />
+          <StudentAvatar colorKey={row.id} name={row.fullName} size="sm" />
           <span className="font-medium text-foreground">{firstTwoNames(row.fullName)}</span>
           {row.isScholarshipStudent && <Badge variant="info">Bolsista</Badge>}
           {row.isMinor ? <Badge variant="neutral">menor</Badge> : null}

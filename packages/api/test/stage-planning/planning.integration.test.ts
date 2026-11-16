@@ -120,6 +120,7 @@ void it("bounds a regular plan to the semester and allows page-free review witho
     caller().planning.saveWindow({
       ...fixtureData.target,
       ...dates,
+      plannedStartOn: "2075-07-01",
       plannedEndOn: "2076-01-10",
       version: 0,
     }),
@@ -148,6 +149,7 @@ void it("bounds a regular plan to the semester and allows page-free review witho
   );
   const detail = await caller().planning.detail(fixtureData.target);
   assert.equal(detail.plan?.items.length, 1);
+  assert.equal(detail.plan?.plannedEndOn, "2075-06-30");
   assert.deepEqual(
     [detail.plan?.items[0]?.kind, detail.plan?.items[0]?.pageFrom, detail.plan?.items[0]?.pageTo],
     ["REVIEW", null, null],
@@ -248,7 +250,7 @@ void it("carries the same individual plan through transfer, pause and return, wi
     progressId: returned.progress.id,
   });
   assert.equal(resumed.plan?.id, plan.id);
-  assert.equal(resumed.plan?.plannedEndOn, "2075-06-20");
+  assert.equal(resumed.plan?.plannedEndOn, "2075-06-30");
   assert.equal(resumed.plan?.items[0]?.title, "Revisão oral em duplas");
   const nextStageClass = await createRegularClassFor(config, {
     code: "next",
@@ -307,7 +309,7 @@ void it("closes the old plan for editing on the actual advance day and starts th
   });
   const previous = await caller().planning.detail(fixtureData.target);
   assert.equal(previous.scope.readOnly, true);
-  assert.equal(previous.plan?.plannedEndOn, "2075-06-20");
+  assert.equal(previous.plan?.plannedEndOn, "2075-06-30");
   await assert.rejects(
     caller().planning.saveWindow({
       ...fixtureData.target,

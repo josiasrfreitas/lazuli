@@ -86,7 +86,7 @@ export function WindowFields({
   change: (key: keyof WindowDraft, value: string) => void;
 }): ReactElement {
   return (
-    <FormSection title="Período e objetivo">
+    <FormSection title="Calendário da programação">
       <FormRow columns={2} className="w-fit">
         <PlanDateField
           name="plannedStartOn"
@@ -95,22 +95,11 @@ export function WindowFields({
           onChange={(value) => change("plannedStartOn", value)}
           error={errors.plannedStartOn}
         />
-        <PlanDateField
-          name="plannedEndOn"
-          label="Prazo do estágio"
-          value={values.plannedEndOn}
-          onChange={(value) => change("plannedEndOn", value)}
-          error={errors.plannedEndOn}
-        />
+        <div className="grid content-center gap-1 text-caption text-muted-foreground">
+          <span>Término do semestre</span>
+          <strong>{values.plannedEndOn}</strong>
+        </div>
       </FormRow>
-      <NarrativeField
-        name="objective"
-        label="Objetivo do plano · opcional"
-        value={values.objective}
-        onChange={(value) => change("objective", value)}
-        error={errors.objective}
-        placeholder="Ex.: ampliar a autonomia em conversas sobre o dia a dia"
-      />
       {editing && (
         <RevisionReason
           value={values.reason}

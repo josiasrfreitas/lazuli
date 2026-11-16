@@ -7,6 +7,8 @@ export type { DB as KyselyDatabase } from "./generated/kysely/types.js";
 export { Prisma } from "./generated/prisma/client.js";
 export { COURSE_CATALOG, seedCourseCatalog } from "./seed-course-catalog.js";
 export type {
+  AcademicInterruption,
+  CalendarReconciliationRequest,
   Address,
   Enrollment,
   FinanceSettings,

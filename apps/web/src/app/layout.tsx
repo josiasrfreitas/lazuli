@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { THEME_BOOTSTRAP } from "~/lib/theme";
-
 import { Providers } from "./providers";
 
 import "./globals.css";
@@ -33,10 +31,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
-      </head>
+    <html lang="pt-BR" className="dark" data-theme="dark">
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -1,4 +1,4 @@
-import { z, calendarDateSchema, closedDayReasonSchema } from "@lazuli/validators";
+import { z, calendarDateSchema } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   assertVersion,
@@ -10,17 +10,12 @@ import {
 import { savePlacement } from "./write.js";
 import { withdrawPlacement } from "./publish.js";
 import { badRequest, notFound } from "../trpc/errors.js";
-import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 import type { Prisma } from "@lazuli/db";
 
 const MAX_SELECTIONS = 100;
 const MAX_REASON_LENGTH = 1200;
 const MIN_REASON_LENGTH = 3;
-const MAX_CLOSED_RANGE_DAYS = 366;
-const MAX_SEMESTER_NAME_LENGTH = 80;
-
-const MILLISECONDS_PER_DAY = 86_400_000;
 
 const selection = z
   .array(z.object({ id: z.string().uuid(), version: z.number().int() }))
@@ -226,125 +221,4 @@ export async function declinePlacements(
     });
   }
   return { count: input.selections.length };
-}
-export const closedRangeSchema = z
-  .object({ from: calendarDateSchema, through: calendarDateSchema, reason: closedDayReasonSchema })
-  .refine(
-    (value) =>
-      value.from <= value.through &&
-      new Date(value.through).getTime() - new Date(value.from).getTime() <=
-        MAX_CLOSED_RANGE_DAYS * MILLISECONDS_PER_DAY,
-    "Escolha um intervalo de até um ano.",
-  );
-export async function closeRange(
-  context: OrganizationContext,
-  input: z.infer<typeof closedRangeSchema>,
-): Promise<{ added: number; affected: number }> {
-  const dates: Date[] = [];
-  for (
-    let date = new Date(input.from);
-    date <= new Date(input.through);
-    date = new Date(date.getTime() + MILLISECONDS_PER_DAY)
-  )
-    dates.push(date);
-  const result = await context.database.schoolClosedDay.createMany({
-    data: dates.map((date) => ({ date, reason: input.reason, createdById: context.staffUser.id })),
-    skipDuplicates: true,
-  });
-  const affected = await context.database.classSession.count({
-    where: { deletedAt: null, date: { gte: new Date(input.from), lte: new Date(input.through) } },
-  });
-  await recordActivity(context.database, {
-    context,
-    action: "calendar.addClosedDay",
-    details: {
-      subject: { type: "school", name: "Calendário letivo" },
-      description: `${input.reason} · ${input.from} a ${input.through}`,
-    },
-  });
-  return { added: result.count, affected };
-}
-
-export const periodSchema = z
-  .object({
-    semesterId: z.string().uuid(),
-    name: z.string().trim().min(1).max(MAX_SEMESTER_NAME_LENGTH),
-    startDate: calendarDateSchema,
-    endDate: calendarDateSchema,
-    previousStart: calendarDateSchema,
-    previousEnd: calendarDateSchema,
-  })
-  .refine((value) => value.startDate <= value.endDate, {
-    path: ["endDate"],
-    message: "O encerramento deve ser posterior ao início.",
-  });
-export async function updatePeriod(
-  context: OrganizationContext,
-  input: z.infer<typeof periodSchema>,
-): Promise<{ affected: number }> {
-  const startDate = new Date(input.startDate),
-    endDate = new Date(input.endDate);
-  await assertPeriodChange(context, { input, startDate, endDate });
-  await context.database.period.update({
-    where: { id: input.semesterId },
-    data: { name: input.name, startDate, endDate },
-  });
-  const affected = await context.database.classSession.count({
-    where: {
-      class: { semesterId: input.semesterId },
-      deletedAt: null,
-      OR: [{ date: { lt: startDate } }, { date: { gt: endDate } }],
-    },
-  });
-  await recordActivity(context.database, {
-    context,
-    action: "semesterOrganization.updatePeriod",
-    details: {
-      subject: { type: "school", name: input.name },
-      description: `Período revisado: ${input.startDate} a ${input.endDate}.`,
-    },
-  });
-  return { affected };
-}
-
-async function assertPeriodChange(
-  context: OrganizationContext,
-  {
-    input,
-    startDate,
-    endDate,
-  }: {
-    input: z.infer<typeof periodSchema>;
-    startDate: Date;
-    endDate: Date;
-  },
-): Promise<void> {
-  const previous = await lockSemester(context, input.semesterId);
-  if (
-    dateOnly(previous.startDate) !== input.previousStart ||
-    dateOnly(previous.endDate) !== input.previousEnd
-  )
-    throw badRequest("O período mudou. Atualize a página antes de salvar.");
-  const overlap = await context.database.period.findFirst({
-    where: {
-      id: { not: input.semesterId },
-      deletedAt: null,
-      startDate: { lte: endDate },
-      endDate: { gte: startDate },
-    },
-  });
-  if (overlap) throw badRequest(`O período coincide com ${overlap.name}. Ajuste as datas.`);
-  const outside = await context.database.semesterPlacement.count({
-    where: {
-      semesterId: input.semesterId,
-      deletedAt: null,
-      declinedAt: null,
-      publishedAt: { not: null },
-      OR: [{ effectiveDate: { lt: startDate } }, { effectiveDate: { gt: endDate } }],
-    },
-  });
-  if (outside)
-    throw badRequest(
-      `${outside} alocações confirmadas ficariam fora do período. Revise suas vigências antes de mudar estas datas.`,
-    );
 }

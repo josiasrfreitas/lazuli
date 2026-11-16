@@ -142,8 +142,8 @@ function searchChoices(choices: OccurrenceRow[], search: string): OccurrenceRow[
         row.title,
         row.account,
         CATEGORY[row.category],
-        dateLabel(row.classSession.date),
-        row.classSession.class.portalClassName,
+        dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt),
+        row.classSession?.class.portalClassName ?? "Fora de Aula",
         row.recordedBy.name,
       ].join(" "),
     ).includes(query),
@@ -263,8 +263,12 @@ function LinkResultRow({
         />
         <span className={styles.content}>
           <span className={styles.metadata}>
-            <time dateTime={new Date(row.classSession.date).toISOString()}>
-              {dateLabel(row.classSession.date)}
+            <time
+              dateTime={new Date(
+                row.classSession?.date ?? row.occurredOn ?? row.createdAt,
+              ).toISOString()}
+            >
+              {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)}
             </time>
             <span>{CATEGORY[row.category]}</span>
           </span>
@@ -273,7 +277,7 @@ function LinkResultRow({
             {row.account}
           </span>
           <span className={styles.metadata}>
-            <span>{row.classSession.class.portalClassName}</span>
+            <span>{row.classSession?.class.portalClassName ?? "Fora de Aula"}</span>
             {selected === row.id && <span>Registrado por {row.recordedBy.name}</span>}
           </span>
         </span>

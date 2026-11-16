@@ -59,21 +59,23 @@ export function CalendarToolbar(props: ScheduleCalendarProps): ReactElement {
       {props.filters}
       <div className="lz-calendar-actions">
         {props.actions}
-        <SegmentedControl
-          size="sm"
-          aria-label="Visualização da agenda"
-          value={props.view}
-          onValueChange={(view) => {
-            if (view === "day" || view === "week") props.onViewChange(view);
-          }}
-        >
-          <SegmentedControlItem value="day">Dia</SegmentedControlItem>
-          <SegmentedControlItem value="week">
-            {props.dayCount === undefined
-              ? "Semana"
-              : `${props.dayCount} ${props.dayCount === 1 ? "dia" : "dias"}`}
-          </SegmentedControlItem>
-        </SegmentedControl>
+        {props.viewControl ?? (
+          <SegmentedControl
+            size="sm"
+            aria-label="Visualização da agenda"
+            value={props.view}
+            onValueChange={(view) => {
+              if (view === "day" || view === "week") props.onViewChange(view);
+            }}
+          >
+            <SegmentedControlItem value="day">Dia</SegmentedControlItem>
+            <SegmentedControlItem value="week">
+              {props.dayCount === undefined
+                ? "Semana"
+                : `${props.dayCount} ${props.dayCount === 1 ? "dia" : "dias"}`}
+            </SegmentedControlItem>
+          </SegmentedControl>
+        )}
       </div>
     </div>
   );

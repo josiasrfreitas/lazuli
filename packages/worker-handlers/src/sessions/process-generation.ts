@@ -51,6 +51,7 @@ async function executeGeneration({
           sessionsCreated: request.sessionsCreated ?? 0,
           sessionsPlanned: request.sessionsPlanned ?? 0,
         };
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('lazuli:teaching-schedule',158))`;
       const result = await generateClassSessions({ database: transaction, payload });
       await transaction.sessionGenerationRequest.update({
         where: { id: payload.requestId },

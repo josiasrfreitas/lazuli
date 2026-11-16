@@ -1,0 +1,43 @@
+{
+  "title": "Calendário acadêmico",
+  "question": "Três formas de organizar o módulo inteiro. Cada opção inclui ano, mês, dia, criação contextual e revisão de impactos.",
+  "options": [
+    {
+      "id": "academic-month",
+      "label": "Mês em foco",
+      "kicker": "COMPOSIÇÃO 1",
+      "thesis": "O mês ocupa a tela; próximos marcos e edição ficam ao lado.",
+      "palette": ["#0f1e3d", "#eaf0f8", "#faf1db", "#ffffff"],
+      "materials": ["Sistema Lazuli", "Calendário mensal amplo"],
+      "viewport": "Navegação anual compacta, mês central com eventos escritos nos dias e painel contextual à direita.",
+      "risk": "É ótimo para operar a semana, mas comparar dois semestres exige abrir a visão anual.",
+      "html": ".impeccable/mocks/decision/academic-month.html",
+      "comp": ".impeccable/mocks/decision/academic-month.png"
+    },
+    {
+      "id": "academic-year",
+      "label": "Ano e contexto",
+      "thesis": "Os doze meses permanecem visíveis com eventos e limites explicados em um painel lateral.",
+      "palette": ["#0f1e3d", "#eaf0f8", "#faf1db", "#ffffff"],
+      "materials": ["Sistema Lazuli", "Mapa anual compacto"],
+      "viewport": "Calendário anual à esquerda; semestres, próximas datas e criação pelo dia à direita. O mês expande na mesma área.",
+      "risk": "Os dias têm menos espaço; o painel precisa ser recolhido em telas menores.",
+      "html": ".impeccable/mocks/decision/academic-year.html",
+      "comp": ".impeccable/mocks/decision/academic-year.png"
+    },
+    {
+      "id": "academic-semesters",
+      "label": "Semestres em sequência",
+      "thesis": "Cada semestre reúne seus meses, limites e interrupções no mesmo bloco.",
+      "palette": ["#0f1e3d", "#eaf0f8", "#faf1db", "#ffffff"],
+      "materials": ["Sistema Lazuli", "Dois blocos acadêmicos"],
+      "viewport": "Primeiro semestre seguido do segundo; faixa de datas integrada a cada bloco, com eventos próximos dos meses.",
+      "risk": "Explica melhor as fronteiras acadêmicas, mas usa mais rolagem ao comparar meses distantes.",
+      "html": ".impeccable/mocks/decision/academic-semesters.html",
+      "comp": ".impeccable/mocks/decision/academic-semesters.png"
+    }
+  ],
+  "buildPath": { "value": "code", "toggle": true },
+  "reroll": true,
+  "steer": true
+}

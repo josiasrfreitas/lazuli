@@ -1,14 +1,12 @@
 "use client";
+import type { RouterOutputs } from "@lazuli/api";
+import { TeacherSections } from "./teacher-sections";
 import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
 import { type ClientError, trpc } from "~/lib/trpc";
 import { useSearchParams } from "next/navigation";
 import { ToastAlert, Button } from "@lazuli/ui";
 import { TeacherDialog } from "./teacher-dialog";
 import { DepartureDialog } from "./departure-dialog";
-import { TeacherClasses } from "./teacher-classes";
-import { TeacherHeaderLoading } from "./teacher-loading";
-import { TeacherHeader } from "./teacher-header";
-import { TeacherWeek } from "./teacher-week";
 
 export function TeacherPage({ id }: TeacherPageInput): ReactElement {
   const params = useSearchParams();
@@ -18,14 +16,14 @@ export function TeacherPage({ id }: TeacherPageInput): ReactElement {
   const detail = teacher.data;
   const back = `/professores/${id}?${params.toString()}`;
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-5 overflow-y-auto p-4 sm:p-6">
-      {teacher.isError && (
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-5 p-4 sm:p-6">
+      {teacher.isError && !detail && (
         <TeacherLoadError
           teacherError={teacher.error}
           teacherRefetch={() => void teacher.refetch()}
         />
       )}
-      {!teacher.isError && (
+      {(!teacher.isError || detail) && (
         <TeacherDetails
           detail={detail}
           setEditing={setEditing}
@@ -62,17 +60,7 @@ function TeacherLoadError(props: TeacherLoadErrorProps): ReactElement {
 type TeacherPageInput = { id: string };
 
 type TeacherDetailsProps = {
-  detail?:
-    | {
-        today: string;
-        studentCount: number;
-        teacherProfile: { cpf: string | null; departureDate: Date | null } | null;
-        id: string;
-        email: string;
-        name: string;
-        isEnabled: boolean;
-      }
-    | undefined;
+  detail?: RouterOutputs["teachers"]["byId"] | undefined;
   setEditing: Dispatch<SetStateAction<boolean>>;
   setDeparting: Dispatch<SetStateAction<boolean>>;
   id: string;
@@ -83,17 +71,13 @@ type TeacherDetailsProps = {
 function TeacherDetails(props: TeacherDetailsProps): ReactElement {
   return (
     <>
-      {props.detail ? (
-        <TeacherHeader
-          teacher={props.detail}
-          onEdit={() => props.setEditing(true)}
-          onDepart={() => props.setDeparting(true)}
-        />
-      ) : (
-        <TeacherHeaderLoading />
-      )}
-      <TeacherWeek id={props.id} back={props.back} studentCount={props.detail?.studentCount} />
-      <TeacherClasses teacherId={props.id} back={props.back} />
+      <TeacherSections
+        id={props.id}
+        teacher={props.detail}
+        onEdit={() => props.setEditing(true)}
+        onDepart={() => props.setDeparting(true)}
+        back={props.back}
+      />
       {props.editing && props.detail && (
         <TeacherDialog teacher={props.detail} onClose={() => props.setEditing(false)} />
       )}

@@ -1,0 +1,504 @@
+.page {
+  padding: 1rem;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-width: 0;
+  color: var(--foreground);
+}
+.workshop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.header h1 {
+  margin: 0;
+  font-size: var(--lz-text-h1);
+  line-height: var(--lz-leading-h1);
+}
+.header p {
+  margin: 0.25rem 0;
+}
+.eyebrow {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.muted {
+  color: var(--muted-foreground);
+}
+.year {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-h2);
+}
+.periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  padding: 0.75rem 0;
+  border-block: 1px solid var(--border);
+  font-size: var(--lz-text-control);
+}
+.periods span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.legend {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--lz-radius-lg);
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.legend i {
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--lz-radius-sm);
+  background: var(--background);
+}
+.legend i[data-kind="vacation"] {
+  background: var(--muted-foreground);
+  border-color: var(--muted-foreground);
+}
+.legend i[data-kind="holiday"] {
+  background: var(--warning);
+}
+.legend i[data-kind="boundary"] {
+  background: var(--interactive);
+}
+.legend i[data-kind="event"] {
+  background: var(--info);
+  border-radius: var(--lz-radius-full);
+}
+.overview,
+.months,
+.monthDetail {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.monthBlock {
+  display: flex;
+  min-width: 0;
+}
+.month {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--lz-radius-lg);
+  background: var(--card);
+  color: var(--foreground);
+  min-width: 0;
+}
+button.month {
+  cursor: pointer;
+  transition: border-color var(--lz-duration-fast);
+}
+button.month:hover {
+  border-color: var(--interactive);
+}
+.month:focus-visible,
+.day:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.monthHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.monthHeading h3 {
+  margin: 0;
+  font-size: var(--lz-text-body);
+}
+.monthHeading svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+}
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+  font-family: var(--lz-font-numeric);
+}
+.weekday {
+  font-size: var(--lz-text-micro);
+  color: var(--muted-foreground);
+  text-align: center;
+  padding-bottom: 0.25rem;
+}
+.day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+  min-height: 2rem;
+  border-radius: var(--lz-radius-sm);
+  color: var(--foreground);
+  font-size: var(--lz-text-control);
+}
+.day[data-kind="vacation"] {
+  background: var(--muted-foreground);
+  color: var(--card);
+  font-weight: 600;
+}
+.day[data-kind="holiday"] {
+  background: var(--warning-muted);
+  color: var(--warning);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.day[data-kind="boundary"] {
+  box-shadow: inset 0 0 0 1px var(--interactive);
+  color: var(--interactive);
+  font-weight: 700;
+}
+.day[data-kind="event"]::after {
+  content: "";
+  width: 0.25rem;
+  height: 0.25rem;
+  background: var(--info);
+  border-radius: 50%;
+  position: absolute;
+  bottom: 0.125rem;
+}
+.day[aria-pressed="true"] {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+div.day {
+  min-height: 3rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.day small {
+  display: none;
+  font-family: var(--lz-font-body);
+  font-size: var(--lz-text-caption);
+}
+.aside {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--lz-radius-lg);
+  background: var(--card);
+  align-self: start;
+}
+.aside h2 {
+  font-size: var(--lz-text-h3);
+  margin: 0.5rem 0;
+}
+.aside h3 {
+  font-size: var(--lz-text-body);
+  margin: 1.5rem 0 0.5rem;
+}
+.aside p {
+  margin: 0.5rem 0 1rem;
+  line-height: var(--lz-leading-body);
+}
+.groupTitle {
+  grid-column: 1 / -1;
+  font-size: var(--lz-text-h2);
+  margin: 0.5rem 0 1rem;
+}
+.detail {
+  display: grid;
+  gap: 1rem;
+}
+.detailToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.monthNav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.monthNav h2 {
+  font-size: var(--lz-text-h3);
+  margin: 0;
+}
+.dates {
+  display: grid;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1.5rem;
+}
+.dates button {
+  justify-content: start;
+  white-space: normal;
+  height: auto;
+  min-height: 2.5rem;
+  text-align: left;
+}
+.dayView {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.dayView > button {
+  justify-self: start;
+}
+.agendaGrid {
+  height: min(38rem, 75dvh);
+  min-width: 0;
+}
+.academicEvent {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem;
+  overflow: hidden;
+  text-align: left;
+  background: var(--info-muted);
+  color: var(--info);
+  border: 1px solid var(--info);
+  border-radius: var(--lz-radius-sm);
+  cursor: pointer;
+}
+.academicEvent:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.academicEvent:hover {
+  filter: brightness(0.95);
+}
+.holidayGrid {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--lz-radius-lg);
+  overflow: hidden;
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+.holidayTitle {
+  position: absolute;
+  inset: 0 0 auto 3rem;
+  padding: 2rem 1rem;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+.holidayTitle h2 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: var(--lz-text-h2);
+}
+.hour {
+  height: 2.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--warning) 12%, transparent);
+}
+.hour span {
+  display: block;
+  width: 3rem;
+  height: 100%;
+  border-right: 1px solid var(--border);
+  padding: 0.25rem;
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-caption);
+}
+@media (min-width: 640px) {
+  .page {
+    padding: 1.5rem 2rem;
+  }
+  .months {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  div.day {
+    min-height: 5rem;
+  }
+  .day small {
+    display: block;
+    text-align: center;
+    overflow-wrap: anywhere;
+    padding: 0.25rem;
+  }
+}
+@media (min-width: 1024px) {
+  .months {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .overview[data-direction="atlas"] {
+    grid-template-columns: minmax(0, 1fr) 16rem;
+  }
+  .months[data-direction="atlas"],
+  .months[data-direction="semesters"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .monthDetail {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+  }
+  .monthDetail[data-direction="semesters"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .monthDetail[data-direction="semesters"] .aside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 2rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button.month {
+    transition: none;
+  }
+}
+
+.month[data-compact="true"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.month[data-compact="true"] .monthHeading,
+.month[data-compact="true"] .days {
+  width: 100%;
+}
+
+/* The calendar owns the viewport; its toolbar is a single compact row. */
+.header {
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+}
+.header h1 {
+  font-size: var(--lz-text-h3);
+  white-space: nowrap;
+}
+.sample {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+  margin-left: auto;
+}
+.year {
+  gap: 0.25rem;
+  font-size: var(--lz-text-h3);
+  flex-shrink: 0;
+}
+.groupTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0.5rem 0 0;
+  font-size: var(--lz-text-h3);
+}
+.groupTitle small {
+  font-size: var(--lz-text-caption);
+  font-weight: normal;
+  color: var(--muted-foreground);
+}
+.page {
+  gap: 0.75rem;
+}
+@media (max-width: 639px) {
+  .header {
+    gap: 0.25rem;
+  }
+  .header h1 {
+    font-size: var(--lz-text-body);
+  }
+  .sample {
+    display: none;
+  }
+  .year {
+    margin-left: auto;
+    font-size: var(--lz-text-body);
+  }
+}
+.markers {
+  position: absolute;
+  bottom: 0.125rem;
+  display: flex;
+  gap: 0.125rem;
+}
+.markers i {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: var(--interactive);
+}
+.markers i[data-kind="holiday"] {
+  background: var(--warning);
+}
+.markers i[data-kind="event"] {
+  background: var(--info);
+}
+.day[data-kind="unknown"] {
+  color: var(--muted-foreground);
+}
+.titleShort {
+  display: none;
+}
+@media (max-width: 639px) {
+  .titleFull {
+    display: none;
+  }
+  .titleShort {
+    display: inline;
+  }
+}
+.header {
+  justify-content: flex-start;
+}
+.header h1 {
+  margin-right: auto;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.page {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 639px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .headerActions {
+    order: 2;
+    flex-basis: 100%;
+  }
+  .groupTitle {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+  }
+}

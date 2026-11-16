@@ -36,13 +36,33 @@ export const pedagogicalListSchema = z
 export const occurrenceCreateSchema = z
   .object({
     studentId: id,
-    classSessionId: id,
+    classSessionId: id.optional(),
+    occurredOn: civilDateSchema.optional(),
+    occurredTime: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Informe um horário válido (HH:mm).")
+      .optional(),
     category: occurrenceCategorySchema,
     title,
     account: body,
     initialResponse: z.string().trim().max(MAX_ACCOUNT_LENGTH).default(""),
   })
-  .strict();
+  .strict()
+  .superRefine((input, ctx) => {
+    if (input.classSessionId) {
+      if (input.occurredOn || input.occurredTime)
+        ctx.addIssue({
+          code: "custom",
+          path: ["classSessionId"],
+          message: "Escolha uma aula ou um horário fora de aula.",
+        });
+    } else {
+      if (!input.occurredOn)
+        ctx.addIssue({ code: "custom", path: ["occurredOn"], message: "Informe a data." });
+      if (!input.occurredTime)
+        ctx.addIssue({ code: "custom", path: ["occurredTime"], message: "Informe o horário." });
+    }
+  });
 export const occurrenceLinkSchema = z.object({ occurrenceId: id, relatedId: id }).strict();
 export const occurrenceUpdateSchema = z
   .object({ id, account: body, expectedUpdatedAt: z.date() })

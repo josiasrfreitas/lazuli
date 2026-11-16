@@ -10,6 +10,8 @@ const POLL_MS = 2000;
 type Session = { id: string; token: string };
 export type DocumentSelection = { document: DocumentDefinition; file?: File };
 export type EnrollmentDocuments = {
+  extras: DocumentDefinition[];
+  setExtras: Dispatch<SetStateAction<DocumentDefinition[]>>;
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   selection: DocumentSelection | null;
@@ -36,6 +38,7 @@ export function useEnrollmentDocuments({
   studentId: string | undefined;
 }): EnrollmentDocuments {
   const [open, setOpen] = useState(false);
+  const [extras, setExtras] = useState<DocumentDefinition[]>([]);
   const [selection, setSelection] = useState<DocumentSelection | null>(null);
   const [captureBusy, setCaptureBusy] = useState(false);
   const { session, create, ensureSession } = useDocumentSession(studentId);
@@ -51,6 +54,8 @@ export function useEnrollmentDocuments({
   const { touched, dispatch } = useDocumentDraftDispatch(identity);
   useDocumentPrefill({ identity, flow, files: query.data?.files, touched });
   return {
+    extras,
+    setExtras,
     open,
     setOpen,
     selection,

@@ -98,7 +98,7 @@ void it("raises setup errors when a generated date has multiple semester buckets
 void it("returns zero counts when matching classes have no session rows", async () => {
   let createManyCalls = 0;
   const semester = semesterWindow();
-  const database = {
+  const database: Parameters<typeof generateClassSessions>[0]["database"] = {
     class: {
       findMany: () =>
         Promise.resolve([{ id: CLASS_ID, startDate: null, semester, scheduleSlots: [] }]),
@@ -111,7 +111,7 @@ void it("returns zero counts when matching classes have no session rows", async 
         return Promise.resolve({ count: 1 });
       },
     },
-  } as unknown as Parameters<typeof generateClassSessions>[0]["database"];
+  };
 
   const result = await generateClassSessions({
     database,
@@ -124,6 +124,85 @@ void it("returns zero counts when matching classes have no session rows", async 
     sessionsPlanned: 0,
   });
   assert.equal(createManyCalls, 0);
+});
+
+void it("keeps an early class start inside its assigned semester", () => {
+  const rows = planClassSessionRows({
+    classes: [
+      {
+        id: CLASS_ID,
+        startDate: new Date("2026-02-01T00:00:00.000Z"),
+        semester: semesterWindow(),
+        scheduleSlots: [
+          {
+            id: SLOT_ID,
+            weekday: "TUESDAY",
+            startTime: new Date("1970-01-01T14:00:00.000Z"),
+            endTime: new Date("1970-01-01T16:00:00.000Z"),
+          },
+        ],
+      },
+    ],
+    closedDates: new Set(),
+    semesters: [
+      semesterWindow(),
+      {
+        id: "00000000-0000-0000-0000-000000000465",
+        name: "Earlier period",
+        startDate: new Date("2026-02-01T00:00:00.000Z"),
+        endDate: new Date("2026-02-28T00:00:00.000Z"),
+      },
+    ],
+  });
+  assert.deepEqual(
+    rows.map((row) => row.date.toISOString().slice(0, 10)),
+    ["2026-03-03", "2026-03-10", "2026-03-17"],
+  );
+});
+
+void it("reconciliation generates only unstarted lessons inside the affected dates", async () => {
+  const semester = semesterWindow();
+  let createdDates: string[] = [];
+  const database: Parameters<typeof generateClassSessions>[0]["database"] = {
+    class: {
+      findMany: () =>
+        Promise.resolve([
+          {
+            id: CLASS_ID,
+            startDate: null,
+            semester,
+            scheduleSlots: [
+              {
+                id: SLOT_ID,
+                weekday: "TUESDAY",
+                startTime: new Date("1970-01-01T14:00:00.000Z"),
+                endTime: new Date("1970-01-01T16:00:00.000Z"),
+              },
+            ],
+          },
+        ]),
+    },
+    period: { findMany: () => Promise.resolve([semester]) },
+    schoolClosedDay: { findMany: () => Promise.resolve([]) },
+    classSession: {
+      createMany: ({ data }: { data: { date: Date }[] }) => {
+        createdDates = data.map((row) => row.date.toISOString().slice(0, 10));
+        return Promise.resolve({ count: data.length });
+      },
+    },
+  };
+  const result = await generateClassSessions({
+    database,
+    payload: { semesterId: SEMESTER_ID },
+    // The March 3 lesson has started at 14:00 in São Paulo, even though it has not ended.
+    notBefore: new Date("2026-03-03T17:30:00.000Z"),
+    dateWindow: {
+      from: new Date("2026-03-01T00:00:00.000Z"),
+      through: new Date("2026-03-10T00:00:00.000Z"),
+    },
+  });
+  assert.deepEqual(createdDates, ["2026-03-10"]);
+  assert.deepEqual(result, { classesMatched: 1, sessionsCreated: 1, sessionsPlanned: 1 });
 });
 
 function classWithNoSlots(): {

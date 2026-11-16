@@ -70,7 +70,7 @@ void it("shows identity, age, phone and placement without a redundant current st
   assert.match(markup, />A2</u);
   assert.match(markup, />Adultos \/ English</u);
   assert.doesNotMatch(markup, />Vigente</u);
-  assert.match(markup, /aria-label="Detalhes de Ana Beatriz"/u);
+  assert.match(markup, /aria-label="Ações de Ana Beatriz"/u);
 });
 
 void it("shows overdue scheduled closure in the roster", () => {
@@ -85,7 +85,7 @@ void it("shows overdue scheduled closure in the roster", () => {
     }),
   );
   assert.match(markup, /Aguardando execução/u);
-  assert.match(markup, /aria-label="Detalhes de Ana Beatriz"/u);
+  assert.match(markup, /aria-label="Ações de Ana Beatriz"/u);
 });
 
 void it("updates age on the birthday using the school's civil date", () => {

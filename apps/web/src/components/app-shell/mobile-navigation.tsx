@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactElement } from "react";
 import Link from "next/link";
+import { AgendaNavGroup } from "./agenda-nav-group";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import type { StaffIdentity } from "@lazuli/auth/server";
@@ -69,19 +70,30 @@ function NavigationItems({
         <div key={section.id} className={styles.section}>
           {section.label && <p className={styles.sectionTitle}>{section.label}</p>}
           <div>
-            {section.items.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={styles.link}
-                data-menu-item
-                aria-current={matchesNavHref({ href, pathname }) ? "page" : undefined}
-                onClick={onNavigate}
-              >
-                <Icon aria-hidden="true" />
-                <span>{label}</span>
-              </Link>
-            ))}
+            {section.items.map((item) => {
+              const { href, label, icon: Icon } = item;
+              return item.children ? (
+                <AgendaNavGroup
+                  key={href}
+                  item={item}
+                  pathname={pathname}
+                  mobile
+                  onNavigate={onNavigate}
+                />
+              ) : (
+                <Link
+                  key={href}
+                  href={href}
+                  className={styles.link}
+                  data-menu-item
+                  aria-current={matchesNavHref({ href, pathname }) ? "page" : undefined}
+                  onClick={onNavigate}
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       ))}

@@ -13,27 +13,46 @@ import { teacherCreateInputSchema } from "@lazuli/validators";
 import { useScrollToError } from "~/lib/scroll-to-error";
 import { trpc, type ClientError } from "~/lib/trpc";
 
+import { parseDateBR } from "~/lib/masks";
 const ISO_DATE_LENGTH = 10;
+export type TeacherDraft = {
+  name: string;
+  email: string;
+  phone: string;
+  cpf: string;
+  isEnabled: boolean;
+  employmentType: "CLT" | "PJ" | "AUTONOMOUS" | "OTHER" | null;
+  notes: string;
+  vacationStart: string;
+  vacationEnd: string;
+};
+export type TeacherFieldProps = {
+  draft: TeacherDraft;
+  errors: Record<string, string>;
+  change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
+};
 type UseTeacherFormResult = {
   departed: boolean;
-  draft: { name: string; email: string; cpf: string; isEnabled: boolean };
+  draft: TeacherDraft;
   errors: Record<string, string>;
   failure: string | null;
   body: RefObject<HTMLDivElement | null>;
   first: RefObject<HTMLInputElement | null>;
   pending: boolean;
-  change: <Key extends "email" | "name" | "isEnabled" | "cpf">(
-    key: Key,
-    value: { name: string; email: string; cpf: string; isEnabled: boolean }[Key],
-  ) => void;
+  change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
   submit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
 type Teacher = RouterOutputs["teachers"]["byId"];
-export function useTeacherForm(
-  teacher: Teacher | undefined,
-  onClose: () => void,
-): UseTeacherFormResult {
+export function useTeacherForm({
+  teacher,
+  onClose,
+  documentSessionId,
+}: {
+  teacher: Teacher | undefined;
+  onClose: () => void;
+  documentSessionId?: string | undefined;
+}): UseTeacherFormResult {
   const departed = teacherDeparted(teacher);
   const [draft, setDraft] = useState(teacherDraft(teacher));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -57,13 +76,20 @@ export function useTeacherForm(
   const update = trpc.teachers.update.useMutation({ onSuccess, onError });
   const pending = create.isPending || update.isPending;
   function change<Key extends keyof typeof draft>(key: Key, value: (typeof draft)[Key]): void {
-    setDraft((previous) => ({ ...previous, [key]: value }));
+    setDraft((previous) => ({
+      ...previous,
+      [key]: value,
+      ...(key === "employmentType" && value !== "CLT"
+        ? { vacationStart: "", vacationEnd: "" }
+        : {}),
+    }));
     setErrors((previous) => ({ ...previous, [key]: "" }));
     setFailure(null);
   }
   const submit = (event: FormEvent<HTMLFormElement>): void =>
     submitTeacherForm(event, {
       pending,
+      documentSessionId,
       draft,
       setErrors,
       setRevision,
@@ -75,8 +101,9 @@ export function useTeacherForm(
 }
 
 type SubmitTeacherFormContext = {
+  documentSessionId: string | undefined;
   pending: boolean;
-  draft: { name: string; email: string; cpf: string; isEnabled: boolean };
+  draft: TeacherDraft;
   setErrors: Dispatch<SetStateAction<Record<string, string>>>;
   setRevision: Dispatch<SetStateAction<number>>;
   teacher: Teacher | undefined;
@@ -85,11 +112,26 @@ type SubmitTeacherFormContext = {
 };
 function submitTeacherForm(
   event: FormEvent<HTMLFormElement>,
-  { pending, draft, setErrors, setRevision, teacher, update, create }: SubmitTeacherFormContext,
+  {
+    pending,
+    draft,
+    setErrors,
+    setRevision,
+    teacher,
+    update,
+    create,
+    documentSessionId,
+  }: SubmitTeacherFormContext,
 ): void {
   event.preventDefault();
   if (pending) return;
-  const parsed = teacherCreateInputSchema.safeParse(draft);
+  const parsed = teacherCreateInputSchema.safeParse({
+    ...draft,
+    ...(documentSessionId ? { documentSessionId } : {}),
+    notes: draft.notes.trim() || null,
+    vacationStart: draft.vacationStart ? (parseDateBR(draft.vacationStart) ?? "invalid") : null,
+    vacationEnd: draft.vacationEnd ? (parseDateBR(draft.vacationEnd) ?? "invalid") : null,
+  });
   if (!parsed.success) {
     setErrors(
       Object.fromEntries(
@@ -103,12 +145,40 @@ function submitTeacherForm(
   else create.mutate(parsed.data);
 }
 
-function teacherDraft(teacher: Teacher | undefined): UseTeacherFormResult["draft"] {
+function teacherDraft(teacher: Teacher | undefined): TeacherDraft {
+  if (!teacher)
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      cpf: "",
+      isEnabled: false,
+      employmentType: "CLT",
+      notes: "",
+      vacationStart: "",
+      vacationEnd: "",
+    };
+  return { ...draftIdentity(teacher), ...draftEmployment(teacher.teacherProfile) };
+}
+function draftIdentity(
+  teacher: Teacher,
+): Pick<TeacherDraft, "name" | "email" | "phone" | "cpf" | "isEnabled"> {
   return {
-    name: teacher?.name ?? "",
-    email: teacher?.email ?? "",
-    cpf: teacher?.teacherProfile?.cpf ?? "",
-    isEnabled: teacher?.isEnabled ?? false,
+    name: teacher.name,
+    email: teacher.email,
+    phone: teacher.teacherProfile?.phone ?? "",
+    cpf: teacher.teacherProfile?.cpf ?? "",
+    isEnabled: teacher.isEnabled,
+  };
+}
+function draftEmployment(
+  profile: Teacher["teacherProfile"],
+): Pick<TeacherDraft, "employmentType" | "notes" | "vacationStart" | "vacationEnd"> {
+  return {
+    employmentType: (profile?.employmentType as TeacherDraft["employmentType"]) ?? null,
+    notes: profile?.notes ?? "",
+    vacationStart: displayDate(profile?.vacationStart),
+    vacationEnd: displayDate(profile?.vacationEnd),
   };
 }
 function teacherDeparted(teacher: Teacher | undefined): boolean {
@@ -124,4 +194,8 @@ function teacherFieldErrors(error: ClientError): Record<string, string> {
       values?.[0] ?? "",
     ]),
   );
+}
+
+function displayDate(value: Date | null | undefined): string {
+  return value?.toISOString().slice(0, ISO_DATE_LENGTH).split("-").toReversed().join("/") ?? "";
 }

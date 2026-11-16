@@ -1,3 +1,4 @@
+import { networkInterfaces } from "node:os";
 const DEFAULT_IMAGE_QUALITY = 75;
 const LOGIN_IMAGE_QUALITY = 90;
 const REFERRER_POLICY = "Referrer-Policy";
@@ -10,7 +11,13 @@ const config = {
   devIndicators: false,
   logging: { incomingRequests: false },
   serverExternalPackages: ["@hatchet-dev/typescript-sdk"],
-  allowedDevOrigins: ["*.lazuli.localhost"],
+  allowedDevOrigins: [
+    "*.lazuli.localhost",
+    ...Object.values(networkInterfaces())
+      .flat()
+      .filter((entry) => entry?.family === "IPv4" && !entry.internal)
+      .map((entry) => entry.address),
+  ],
   async headers() {
     return [
       {

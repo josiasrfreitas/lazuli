@@ -9,7 +9,8 @@
     "build": "echo \"[later] worker bundle/image build\" && exit 0",
     "lint": "lazuli-lint .",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .turbo dist"
+    "clean": "rm -rf .turbo dist",
+    "test": "node ../../scripts/run-test-tier.mjs unit"
   },
   "dependencies": {
     "@lazuli/db": "workspace:*",

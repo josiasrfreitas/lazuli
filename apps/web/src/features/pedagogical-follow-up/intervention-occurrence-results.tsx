@@ -92,7 +92,8 @@ function OccurrenceChoice({
           <strong>{row.title}</strong>
           <span className={styles.metadata}>
             <span>
-              {dateLabel(row.classSession.date)} · {row.classSession.class.portalClassName}
+              {dateLabel(row.classSession?.date ?? row.occurredOn ?? row.createdAt)} ·{" "}
+              {row.classSession?.class.portalClassName ?? "Fora de Aula"}
             </span>
             <span>
               {CATEGORY[row.category]} · {row.recordedBy.name}

@@ -1,4 +1,5 @@
 "use client";
+import { AcademicExceptionDialog } from "./academic-exception-dialog";
 import type { JSX as ReactJSX, ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { ArrowRight, CalendarCheck, CalendarClock, CheckCircle2, X } from "lucide-react";
@@ -501,5 +502,11 @@ function ScheduleDialogFrame(model: ScheduleModel): ReactJSX.Element {
 }
 
 export function ScheduleAppointmentDialog(input: ScheduleDialogProps): ReactJSX.Element {
-  return <ScheduleDialogFrame {...useScheduleModel(input)} />;
+  const model = useScheduleModel(input);
+  return (
+    <>
+      <ScheduleDialogFrame {...model} />
+      <AcademicExceptionDialog model={model} />
+    </>
+  );
 }

@@ -220,3 +220,39 @@
   z-index: 2;
   background: var(--card);
 }
+
+.outside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  min-width: 0;
+}
+.outsideDateTime {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 7rem) minmax(0, 1fr);
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .outsideDateTime {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .outsideDateTime > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.outsideLayout {
+  min-width: 0;
+  border: 0;
+  padding: 12px 0 0;
+}
+.outside > fieldset {
+  width: 100%;
+}
+
+.calendar :global(.lz-calendar-toolbar),
+.calendar :global(.lz-calendar-navigation) {
+  flex-wrap: wrap;
+}

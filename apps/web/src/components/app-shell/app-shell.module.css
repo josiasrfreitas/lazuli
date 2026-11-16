@@ -1,0 +1,17 @@
+.shell {
+  position: relative;
+}
+
+/* Keep the dashboard width stable while the desktop navigation expands.
+   Other routes retain the sidebar's normal place in the flex layout. */
+@media (min-width: 640px) {
+  .shell:has([data-home-content]) > :global([data-slot="app-sidebar"]) {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 30;
+  }
+  .shell:has([data-home-content]) > :global([data-slot="app-sidebar"]) + div {
+    margin-inline-start: 2.9375rem;
+  }
+}

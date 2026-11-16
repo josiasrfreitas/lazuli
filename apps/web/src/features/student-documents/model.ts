@@ -36,7 +36,12 @@ export const ENROLLMENT_DOCUMENTS = DOCUMENTS.filter(
     document.id === "student" || document.id === "guardian" || document.id === "residence",
 );
 export type DocumentKind = (typeof DOCUMENTS)[number]["id"];
-export type DocumentDefinition = (typeof DOCUMENTS)[number];
+export type DocumentDefinition = {
+  id: DocumentKind | `custom_${string}`;
+  title: string;
+  detail: string;
+  extracts: boolean;
+};
 export type DocumentJson =
   | string
   | number
@@ -56,7 +61,7 @@ export const DOCUMENT_SIZE_LIMITS = { "application/pdf": 5_242_880 };
 export const DOCUMENT_SIZE_LABEL = "imagens até 25 MB; PDF até 5 MB";
 export type CaptureSession = {
   status: string;
-  documents: Partial<Record<DocumentKind, CapturedDocument>>;
+  documents: Partial<Record<string, CapturedDocument>>;
 };
 export async function captureRequest<T>(
   token: string,

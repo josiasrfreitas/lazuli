@@ -20,6 +20,7 @@ export type WeeklyBlock = {
   columns: number;
   lessons: CalendarEvent[];
   revealed?: boolean;
+  backgroundTone?: "neutral" | "warning";
 };
 
 function clockTime(minutes: number): string {

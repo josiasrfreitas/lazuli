@@ -1,4 +1,5 @@
 "use client";
+import { recordedActivities } from "@lazuli/domain";
 
 import type { JSX as ReactJSX } from "react";
 import {
@@ -14,7 +15,7 @@ import { StudentAppointmentDialog } from "~/features/appointments/student-appoin
 import { CalendarExperimentalDialog } from "./calendar-experimental-dialog";
 import { RecordAttendance } from "./record-attendance";
 import type { ClassRecord } from "./shared";
-import { kindLabels } from "./shared";
+import { kindLabels, activityStatusLabel } from "./shared";
 import type { ClassRecordContent } from "@lazuli/validators";
 import styles from "./class-record-dialog.module.css";
 
@@ -147,12 +148,11 @@ function PerformedContent({
           ? ""
           : ` · Pág. ${content.pageFrom}${content.pageTo !== null && content.pageTo !== content.pageFrom ? `–${content.pageTo}` : ""}`}
       </p>
-      {content.planItemId && (
-        <p className="text-caption">
-          {content.planItemTitle ?? "Etapa do planejamento"} ·{" "}
-          {content.planItemStatus === "COMPLETED" ? "Concluída" : "Em andamento"}
+      {recordedActivities(content).map((item) => (
+        <p key={item.id} className="text-caption">
+          {item.title ?? "Conteúdo do planejamento"} · {activityStatusLabel(item.status)}
         </p>
-      )}
+      ))}
       <p className="whitespace-pre-wrap text-sm">{content.account}</p>
     </div>
   );

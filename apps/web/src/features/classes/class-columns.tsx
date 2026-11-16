@@ -102,9 +102,9 @@ function scheduleCell(row: ClassRow): ReactElement {
   );
 }
 
-function occupancyCell({ occupancy }: ClassRow): ReactElement {
-  const indicator = classOccupancyIndicator(occupancy);
-  const detail = `${indicator.label}. 25 alunos é a referência global e não bloqueia matrículas.`;
+function occupancyCell({ occupancy, capacity }: ClassRow): ReactElement {
+  const indicator = classOccupancyIndicator(occupancy, capacity);
+  const detail = `${indicator.label}. Capacidade máxima: ${capacity} alunos.`;
   return (
     <Tooltip>
       <TooltipTrigger render={<span tabIndex={0} />} aria-label={`${occupancy} alunos. ${detail}`}>

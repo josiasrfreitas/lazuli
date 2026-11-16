@@ -195,16 +195,16 @@ void it("finds classes by teacher name while preserving selected filters", async
   assert.deepEqual(excluded.rows, []);
 });
 
-void it("uses the global reference for existing classes without rewriting their identity", async () => {
+void it("updates per-class capacity without rewriting class identity", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
   const created = await createRegularFixture(fixtures);
-  await db.class.update({ where: { id: created.id }, data: { capacity: 18 } });
+  await caller().classes.updateCapacity({ id: created.id, capacity: 18 });
   const detail = await caller().classes.byId({ id: created.id });
   const list = await caller().classes.list({ search: created.internalCode });
-  assert.equal(detail.capacity, 25);
-  assert.equal(list.rows[0]?.capacity, 25);
+  assert.equal(detail.capacity, 18);
+  assert.equal(list.rows[0]?.capacity, 18);
   assert.equal(detail.internalCode, created.internalCode);
   assert.equal(detail.sharedStageId, fixtures.stageId);
   assert.equal(detail.scheduleSlots[0]?.weekday, "TUESDAY");
