@@ -4,11 +4,14 @@ import { nextHealthPendingState } from "@lazuli/domain";
 const BATCH_SIZE = 50;
 
 /** Run outside web requests. Each student's read and state transition are serialized. */
-export async function refreshStudentHealthPending(database: DatabaseClient): Promise<void> {
+export async function refreshStudentHealthPending(
+  database: DatabaseClient,
+  studentId?: string,
+): Promise<void> {
   let cursor: string | undefined;
   for (;;) {
     const students = await database.student.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: null, ...(studentId ? { id: studentId } : {}) },
       select: { id: true },
       orderBy: { id: "asc" },
       take: BATCH_SIZE,

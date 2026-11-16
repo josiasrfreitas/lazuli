@@ -3,6 +3,7 @@ import { useEffect, type ReactElement } from "react";
 import Link from "next/link";
 import { formatDateOnlyBR } from "~/lib/format";
 import { Alert, Button } from "@lazuli/ui";
+import { notifyCalendarExecution } from "./execution-notifications";
 import { trpc } from "~/lib/trpc";
 import type { AcademicYear } from "./model";
 const COMPLETION_NOTICE_MS = 600_000;
@@ -35,7 +36,10 @@ export function CalendarProcessing({
     ]);
   }, [completionKey, utils]);
   const retry = trpc.calendar.academic.changes.retry.useMutation({
-    onSuccess: () => utils.calendar.academic.invalidate(),
+    onSuccess: async ({ id, dispatched }) => {
+      notifyCalendarExecution({ id: id, state: dispatched ? "QUEUED" : "UNAVAILABLE" });
+      await utils.calendar.academic.invalidate();
+    },
   });
   const active = requests.filter((row) => row.status !== "SUCCEEDED");
   const completed = requests.find(
@@ -106,14 +110,16 @@ function ActiveRequest({
     (row.status === "RUNNING" &&
       row.startedAt &&
       Date.now() - row.startedAt.getTime() > RETRY_TIMEOUT_MS);
+  const pendingMessage =
+    row.status === "PENDING"
+      ? "Calendário salvo. Aguardando atualização das atividades."
+      : "Atualizando as atividades…";
   return (
     <Alert key={row.id}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span>
           {row.reason} ·{" "}
-          {recoverable
-            ? "A atualização das atividades não foi concluída."
-            : "Calendário salvo. Atualizando as atividades…"}
+          {recoverable ? "A atualização das atividades não foi concluída." : pendingMessage}
         </span>
         {recoverable && (
           <Button

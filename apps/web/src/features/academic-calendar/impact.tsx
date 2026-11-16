@@ -2,6 +2,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
+import { notifyCalendarExecution } from "./execution-notifications";
 import { Alert } from "@lazuli/ui";
 import { CalendarX2, ShieldCheck, CalendarCheck2 } from "lucide-react";
 import { TaskDialog } from "~/features/shared/task-form";
@@ -35,6 +36,11 @@ export function CalendarImpact({
   const utils = trpc.useUtils();
   const confirm = trpc.calendar.academic.changes.confirm.useMutation({
     onSuccess: async (result) => {
+      notifyCalendarExecution({
+        id: result.id,
+        state: result.dispatched ? "QUEUED" : "UNAVAILABLE",
+        reason: result.reason,
+      });
       await Promise.all([utils.calendar.invalidate(), utils.semesterOrganization.invalidate()]);
       if (result.semesterId) onSaved?.(result.semesterId);
       onClose();
@@ -74,18 +80,26 @@ export function CalendarImpact({
         <AffectedActivities preview={preview} />
         <AffectedPlans preview={preview} />
         <CapacityImpact preview={preview} />
-        {preview.releasedDates.length > 0 && (
-          <Alert>
-            {preview.releasedDates.length} dias serão liberados. Aulas já canceladas não serão
-            reativadas; confira o plano e reagende o que for necessário.
-          </Alert>
-        )}
-        <p className="text-caption text-muted-foreground">
-          O calendário passa a valer ao confirmar. A atualização das atividades aparece na Agenda;
-          eventos e registros realizados permanecem disponíveis.
-        </p>
+        <CalendarChangeNotice preview={preview} />
       </form>
     </TaskDialog>
+  );
+}
+
+function CalendarChangeNotice({ preview }: { preview: Preview }): ReactElement {
+  return (
+    <>
+      {preview.releasedDates.length > 0 && (
+        <Alert>
+          {preview.releasedDates.length} dias serão liberados. Aulas já canceladas não serão
+          reativadas; confira o plano e reagende o que for necessário.
+        </Alert>
+      )}
+      <p className="text-caption text-muted-foreground">
+        O calendário passa a valer ao confirmar. A atualização das atividades aparece na Agenda;
+        eventos e registros realizados permanecem disponíveis.
+      </p>
+    </>
   );
 }
 

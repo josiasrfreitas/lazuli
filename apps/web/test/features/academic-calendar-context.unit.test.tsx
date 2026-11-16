@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { renderWithQueries } from "../support/query-render.js";
 import { CalendarContextPanel } from "../../src/features/academic-calendar/context-panel.js";
 import { AcademicCalendarWorkspace } from "../../src/features/academic-calendar/workspace.js";
 import type { AcademicYear } from "../../src/features/academic-calendar/model.js";
@@ -84,7 +85,7 @@ void it("distinguishes unavailable context from loading and empty periods", () =
 });
 
 void it("keeps an open editor in the context slot and disables new-event creation", () => {
-  const html = renderToStaticMarkup(
+  const html = renderWithQueries(
     <AcademicCalendarWorkspace {...workspace} editor={<p>Editor aberto</p>} />,
   );
   assert.match(html, /<aside[^>]*data-editing="true"[^>]*><p>Editor aberto<\/p><\/aside>/u);
@@ -100,7 +101,7 @@ void it("uses the supplied daily agenda instead of month cells", () => {
     ...navigation,
     location: { month: 6, date: "2026-07-14", daily: true },
   };
-  const html = renderToStaticMarkup(
+  const html = renderWithQueries(
     <AcademicCalendarWorkspace
       {...workspace}
       navigation={dailyNavigation}

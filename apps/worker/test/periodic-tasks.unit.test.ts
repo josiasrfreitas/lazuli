@@ -16,10 +16,10 @@ void test("registers recurring business work with stable schedules and replica-w
   assert.deepEqual(
     definitions.map(({ name, onCrons }) => ({ name, onCrons })),
     [
-      { name: "enrollment-actions-process", onCrons: ["0 * * * * *"] },
-      { name: "files-recover", onCrons: ["*/15 * * * * *"] },
-      { name: "student-health-refresh", onCrons: ["0 * * * * *"] },
-      { name: "calendar-reconcile", onCrons: ["*/5 * * * * *"] },
+      { name: "enrollment-actions-process", onCrons: ["0 5 3 * * *"] },
+      { name: "files-recover", onCrons: ["0 10 6 * * *"] },
+      { name: "student-health-refresh", onCrons: ["0 20 6 * * *"] },
+      { name: "calendar-reconcile", onCrons: ["0 0 6 * * *"] },
     ],
   );
   for (const definition of definitions) {

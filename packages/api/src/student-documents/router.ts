@@ -5,8 +5,10 @@ import type { TransactionClient } from "@lazuli/db";
 import { adminProcedure, router } from "../trpc/init.js";
 import { badRequest } from "../trpc/errors.js";
 import { documentFormat } from "./upload.js";
+import { enqueueStudentDocument } from "@lazuli/integrations/hatchet";
 import { deleteStudentDocument } from "./delete.js";
 
+const PROCESSING_STALE_MS = 300_000;
 const TOKEN_BYTES = 32;
 const MAX_PHOTO_STUDENTS = 500;
 const processLogger = createServiceLogger("web");
@@ -60,6 +62,59 @@ export const studentDocumentsRouter = router({
         orderBy: { updatedAt: "desc" },
       });
       return files.map(({ key, ...file }) => ({ ...file, format: documentFormat(key) }));
+    }),
+  retry: adminProcedure
+    .input(z.object({ id: z.string().uuid() }).strict())
+    .mutation(async ({ ctx, input }) => {
+      const file = await ctx.db.studentDocumentFile.findFirst({
+        where: {
+          id: input.id,
+          deletedAt: null,
+          session: {
+            deletedAt: null,
+            OR: [
+              { createdById: ctx.staffUser.id },
+              { studentId: { not: null }, student: { deletedAt: null } },
+            ],
+          },
+        },
+        select: { id: true, key: true, kind: true },
+      });
+      if (
+        !file ||
+        !["student", "guardian"].includes(file.kind) ||
+        documentFormat(file.key) === "pdf"
+      )
+        throw badRequest("Documento indisponível para leitura automática.");
+      const claimedAt = ctx.now ?? new Date();
+      const reset = await ctx.db.studentDocumentFile.updateMany({
+        where: {
+          id: file.id,
+          deletedAt: null,
+          OR: [
+            { status: "FAILED" },
+            {
+              status: { in: ["RECEIVED", "PROCESSING"] },
+              updatedAt: { lt: new Date((ctx.now ?? new Date()).getTime() - PROCESSING_STALE_MS) },
+            },
+          ],
+        },
+        data: { status: "RECEIVED", updatedAt: claimedAt },
+      });
+      if (!reset.count)
+        throw badRequest("A leitura já está em andamento ou foi concluída. Atualize o documento.");
+      try {
+        await enqueueStudentDocument({ fileId: file.id });
+      } catch {
+        await ctx.db.studentDocumentFile.updateMany({
+          where: { id: file.id, status: "RECEIVED", updatedAt: claimedAt, deletedAt: null },
+          data: { status: "FAILED" },
+        });
+        throw badRequest(
+          "O documento foi preservado, mas não foi possível iniciar a leitura. Tente novamente mais tarde.",
+        );
+      }
+      return { id: file.id };
     }),
   remove: adminProcedure
     .input(z.object({ id: z.string().uuid() }).strict())

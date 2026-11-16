@@ -11,7 +11,10 @@ export {
   type SessionGenerationResult,
 } from "./sessions/generate.js";
 export { processSessionGeneration } from "./sessions/process-generation.js";
-export { processDueEnrollmentActions } from "./enrollment/process-due-actions.js";
+export {
+  processDueEnrollmentActions,
+  processAllDueEnrollmentActions,
+} from "./enrollment/process-due-actions.js";
 export { processReportGenerate } from "./reports/process-report-generate.js";
 export type { ProcessReportGenerateResult } from "./reports/process-report-generate.js";
 export { sendOverdueD30 } from "./email/send-overdue-d30.js";

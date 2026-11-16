@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RouterOutputs } from "@lazuli/api";
+import { useDocumentFileNotices } from "./use-document-file-notices";
 import { documentPrefill } from "./prefill";
 import type { Dispatch, SetStateAction } from "react";
 import { trpc } from "~/lib/trpc";
@@ -46,6 +47,7 @@ export function useEnrollmentDocuments({
     { id: session?.id ?? "00000000-0000-0000-0000-000000000000" },
     { enabled: Boolean(session), refetchInterval: POLL_MS },
   );
+  useDocumentFileNotices({ files: query.data?.files, token: session?.token });
   useDocumentSessionLifecycle({
     sessionId: session?.id,
     files: query.data?.files,

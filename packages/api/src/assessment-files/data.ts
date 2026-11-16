@@ -44,6 +44,7 @@ export const fileView = {
   failureCode: true,
   receivedAt: true,
   processedAt: true,
+  updatedAt: true,
   createdAt: true,
   uploadedById: true,
 } as const;
