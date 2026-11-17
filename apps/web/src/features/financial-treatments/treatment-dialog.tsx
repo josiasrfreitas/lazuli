@@ -23,17 +23,19 @@ import { useTreatment, type TreatmentState } from "./use-treatment";
 export const TREATMENT_FORM_ID = "financial-treatment";
 export type TreatmentDialogProps = {
   studentId?: string;
+  overdueOnly?: boolean;
   initialIds?: string[];
   onClose: () => void;
   onConfirmed?: () => void;
 };
 export function TreatmentDialog({
   studentId,
+  overdueOnly = false,
   initialIds = [],
   onClose,
   onConfirmed,
 }: TreatmentDialogProps): ReactElement {
-  const state = useTreatment({ studentId, initialIds, onClose, onConfirmed });
+  const state = useTreatment({ overdueOnly, studentId, initialIds, onClose, onConfirmed });
   const content = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const firstField = (): HTMLElement | null =>

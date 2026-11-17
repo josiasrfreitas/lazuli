@@ -10,6 +10,7 @@ export const financialTreatmentInstallmentsSchema = z
   .object({
     studentId: z.string().uuid().optional(),
     installmentIds: z.array(z.string().uuid()).min(1).max(MAX_SELECTION).optional(),
+    overdueOnly: z.boolean().optional(),
     direction: z.literal("forward").optional(),
     cursor: z.number().int().min(1).max(MAX_CURSOR).nullish(),
   })
