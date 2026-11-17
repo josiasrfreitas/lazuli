@@ -184,6 +184,16 @@ function renewalMaterialFields(data: RenewalTerms): Partial<ContractFields> {
   const material = data.material;
   if (!material) return { materialPayment: "NONE" };
   return {
+    ...(material.acquisitionSemesters.length
+      ? {
+          materialBooks: JSON.stringify(
+            material.stageIds.map((stageId, index) => ({
+              stageId: stageId || null,
+              acquisitionSemester: material.acquisitionSemesters[index] ?? null,
+            })),
+          ),
+        }
+      : {}),
     materialStageIds: material.stageIds.join(","),
     materialCategory: material.category,
     materialPayment: material.payment,

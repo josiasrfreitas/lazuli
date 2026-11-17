@@ -45,6 +45,7 @@ export async function renewalMaterials(database: FinanceDatabase, contractId: st
   const terms = sales[0];
   return {
     stageIds,
+    acquisitionSemesters: planned.map((slot) => slot.acquisitionSemester),
     missingCount: stageIds.filter((id) => !id).length,
     category: terms?.category ?? "ADULT",
     payment: terms?.payment ?? "CASH",
