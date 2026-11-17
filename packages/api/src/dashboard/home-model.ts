@@ -120,8 +120,8 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: false,
   },
   renewals: {
-    title: "Renovações a conversar",
-    description: "Contratos que terminam nos próximos 30 dias, ainda sem renovação.",
+    title: "Rematrículas a acompanhar",
+    description: "Contratos que terminam nos próximos 60 dias, ainda sem rematrícula.",
     area: "finance",
     attention: false,
   },

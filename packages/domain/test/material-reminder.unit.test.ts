@@ -3,8 +3,8 @@ import { it } from "node:test";
 import { materialReminderState, stageMaterialAttention } from "../src/material-reminder.js";
 void it("shows attention only within thirty civil days of the academic plan end", () => {
   assert.equal(materialReminderState(null, "2026-10-19"), null);
-  assert.equal(materialReminderState("2026-11-19", "2026-10-19"), null);
-  assert.equal(materialReminderState("2026-11-18", "2026-10-19"), "soon");
+  assert.equal(materialReminderState("2026-12-19", "2026-10-19"), null);
+  assert.equal(materialReminderState("2026-12-18", "2026-10-19"), "soon");
   assert.equal(materialReminderState("2026-10-19", "2026-10-19"), "due");
   assert.equal(materialReminderState("2026-10-18", "2026-10-19"), "due");
 });

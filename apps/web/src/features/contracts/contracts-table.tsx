@@ -1,5 +1,6 @@
 "use client";
 
+import { saoPauloDateOnly } from "@lazuli/domain";
 import { StudentAvatar } from "~/components/student-avatar";
 import type { CSSProperties, ReactElement } from "react";
 import { useRouter } from "next/navigation";
@@ -112,6 +113,13 @@ const COLUMN_WIDTHS = {
   payer: "narrow",
 } as const satisfies Record<string, NonNullable<DataTableColumn<ContractRow>["width"]>>;
 
+function termHint(end: string): string {
+  const days = (Date.parse(end) - Date.parse(saoPauloDateOnly(new Date()))) / 86_400_000;
+  if (days === 0) return "A vigência termina hoje";
+  const duration = Math.abs(days) === 1 ? "1 dia" : `${Math.abs(days)} dias`;
+  return days > 0 ? `Termina em ${duration}` : `Terminou há ${duration}`;
+}
+
 export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   {
     id: "student",
@@ -137,7 +145,12 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
     header: "Vigência",
     width: COLUMN_WIDTHS.term,
     cell: (row) => (
-      <span className="font-numeric whitespace-nowrap text-muted-foreground">
+      <span
+        title={termHint(row.endsOn)}
+        tabIndex={0}
+        aria-label={`${shortCivilDate(row.startsOn)} a ${shortCivilDate(row.endsOn)}. ${termHint(row.endsOn)}`}
+        className="font-numeric whitespace-nowrap text-muted-foreground"
+      >
         <time dateTime={row.startsOn}>{shortCivilDate(row.startsOn)}</time>
         {" → "}
         <time dateTime={row.endsOn}>{shortCivilDate(row.endsOn)}</time>
@@ -214,13 +227,16 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
   const list = trpc.finance.listContracts.useQuery({
     page,
     query: search.trim(),
+    scheduleType: filters.scheduleType,
     payerId,
     studentId,
     startsFrom,
     endsTo,
     status,
   });
-  const filtered = Boolean(search.trim() || payerId || studentId || startsFrom || endsTo || status);
+  const filtered = Boolean(
+    filters.scheduleType || search.trim() || payerId || studentId || startsFrom || endsTo || status,
+  );
   return (
     <DataTable
       label="Contratos mensais"

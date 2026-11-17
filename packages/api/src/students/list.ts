@@ -96,6 +96,7 @@ function hasAdditionalStudentFilters(values: StudentListInput): boolean {
       values.classIds,
       values.teacherIds,
     ].some((selection) => selection?.length) ||
+    values.scheduleType ||
     values.registeredFrom ||
     values.registeredTo,
   );

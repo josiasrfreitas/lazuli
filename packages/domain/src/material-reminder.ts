@@ -1,7 +1,7 @@
 const CIVIL_DAY_MILLISECONDS = 86_400_000;
-const MATERIAL_REMINDER_DAYS = 30;
+const MATERIAL_REMINDER_DAYS = 60;
 
-/** Only the final thirty civil days of an academic plan call for attention. */
+/** Only the final sixty civil days of an academic plan call for attention. */
 export function materialReminderState(date: string | null, asOf: string): "soon" | "due" | null {
   if (!date) return null;
   const days =

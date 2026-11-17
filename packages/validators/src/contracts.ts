@@ -208,6 +208,7 @@ export const listContractsInputSchema = z
     query: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
     payerId: z.string().uuid().optional(),
     studentId: z.string().uuid().optional(),
+    scheduleType: z.enum(["REGULAR", "PERSONALIZED"]).optional(),
     startsFrom: civilDateSchema.optional(),
     endsTo: civilDateSchema.optional(),
     status: z.enum(["INADIMPLENTE", "EM_DIA", "QUITADO", "SEM_SALDO", "CANCELADO"]).optional(),

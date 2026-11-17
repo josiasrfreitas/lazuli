@@ -31,6 +31,7 @@ const searchParamsConfig = {
   status: parseAsString,
   busca: parseAsString.withDefault(""),
   situacoes: parseAsString,
+  modalidade: parseAsString,
   bolsa: parseAsString,
   faixaEtaria: parseAsString,
   turmas: parseAsString,
@@ -41,6 +42,7 @@ const searchParamsConfig = {
 
 export type StudentFilterPatch = Partial<{
   situations: string | null;
+  scheduleType: string | null;
   scholarship: string | null;
   ageRanges: string | null;
   classIds: string | null;
@@ -81,6 +83,7 @@ function studentSituations(
 function studentFilterUrlPatch(patch: StudentFilterPatch): Record<string, string | null> {
   const params: Record<string, string | null> = {};
   if (patch.situations !== undefined) params.situacoes = patch.situations;
+  if (patch.scheduleType !== undefined) params.modalidade = patch.scheduleType;
   if (patch.scholarship !== undefined) params.bolsa = patch.scholarship;
   if (patch.ageRanges !== undefined) params.faixaEtaria = patch.ageRanges;
   if (patch.classIds !== undefined) params.turmas = patch.classIds;
@@ -106,6 +109,7 @@ function filterValues<const T extends string>(value: string | null, allowed: rea
 
 export type StudentsFilters = {
   situations: Array<"active" | "inactive">;
+  scheduleType: "REGULAR" | "PERSONALIZED" | undefined;
   scholarship: Array<"scholarship" | "regular">;
   ageRanges: Array<"under13" | "teen" | "adult">;
   classIds: string[];
@@ -145,6 +149,10 @@ export function useStudentsFilters(): StudentsFilters {
 
   return {
     situations: studentSituations(params.status, params.situacoes),
+    scheduleType:
+      params.modalidade === "REGULAR" || params.modalidade === "PERSONALIZED"
+        ? params.modalidade
+        : undefined,
     scholarship: filterValues(params.bolsa, ["scholarship", "regular"]),
     ageRanges: filterValues(params.faixaEtaria, ["under13", "teen", "adult"]),
     classIds: filterIdsFromUrl(params.turmas),
@@ -167,6 +175,7 @@ export function useStudentsFilters(): StudentsFilters {
 type StudentsListQueryInput = Pick<
   StudentsFilters,
   | "situations"
+  | "scheduleType"
   | "scholarship"
   | "ageRanges"
   | "classIds"
@@ -300,6 +309,7 @@ export function useStudentsList(
       page: filters.page,
       pageSize: filters.pageSize,
       status: "all",
+      scheduleType: filters.scheduleType,
       search: filters.search === "" ? undefined : filters.search,
       ...(filters.situations.length > 0 ? { situations: filters.situations } : {}),
       ...(filters.scholarship.length > 0 ? { scholarship: filters.scholarship } : {}),

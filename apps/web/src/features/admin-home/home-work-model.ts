@@ -86,7 +86,7 @@ export const WORK_COPY: Record<
     scope: "Primeiros contratos",
   },
   renewals: {
-    action: "Revisar renovações",
+    action: "Conferir rematrículas",
     outcome: "Conversar sobre a continuidade do contrato.",
     scope: "Terminam nos próximos 30 dias",
   },

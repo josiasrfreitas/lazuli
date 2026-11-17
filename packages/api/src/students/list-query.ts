@@ -96,6 +96,7 @@ type StudentListWhereInput = {
   situations?: StudentListInput["situations"];
   scholarship?: StudentListInput["scholarship"];
   ageRanges?: StudentListInput["ageRanges"];
+  scheduleType?: StudentListInput["scheduleType"];
   classIds?: string[] | undefined;
   teacherIds?: string[] | undefined;
   registeredFrom?: string | undefined;
@@ -141,13 +142,16 @@ function pageSelect(now: Date): typeof studentPageSelect {
   } as typeof studentPageSelect;
 }
 function enrollmentFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
-  if (!input.classIds?.length && !input.teacherIds?.length) return {};
+  if (!input.scheduleType && !input.classIds?.length && !input.teacherIds?.length) return {};
   return {
     enrollments: {
       some: {
         ...currentEnrollmentFilter(input.now ?? new Date()),
         ...(input.classIds?.length ? { classId: { in: input.classIds } } : {}),
-        ...(input.teacherIds?.length ? { class: { teacherId: { in: input.teacherIds } } } : {}),
+        class: {
+          ...(input.scheduleType ? { scheduleType: input.scheduleType } : {}),
+          ...(input.teacherIds?.length ? { teacherId: { in: input.teacherIds } } : {}),
+        },
       },
     },
   };

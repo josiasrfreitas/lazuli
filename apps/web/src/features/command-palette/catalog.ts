@@ -9,7 +9,7 @@ const ALIASES: Record<string, string[]> = {
   "/professores": ["professor", "docentes", "equipe"],
   "/turmas": ["turma", "classes", "grupos"],
   "/aulas": ["aula", "calendario", "atendimentos", "agenda", "horarios"],
-  "/proximo-semestre": ["rematricula", "organizar semestre", "alocacao"],
+  "/proximo-semestre": ["organizar semestre", "alocacao"],
   "/financeiro": ["financeiro", "financas", "visao geral", "financeira"],
   "/recebiveis": [
     "receber",
@@ -20,7 +20,7 @@ const ALIASES: Record<string, string[]> = {
     "dividas",
     "parcelas",
   ],
-  "/contratos": ["contrato", "contratos", "acordos", "matricula financeira"],
+  "/contratos": ["rematricula", "contrato", "contratos", "acordos", "matricula financeira"],
   "/interessados": ["lead", "interessados", "comercial", "captacao", "prospectos"],
   "/atividades": ["historico", "auditoria", "log"],
   "/ajustes": ["configuracoes", "usuarios", "permissoes"],

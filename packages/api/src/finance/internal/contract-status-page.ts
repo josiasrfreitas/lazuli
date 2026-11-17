@@ -67,6 +67,7 @@ export type ContractStatusPageOptions = {
   query?: string | undefined;
   payerId?: string | undefined;
   studentId?: string | undefined;
+  scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
   startsFrom?: string | undefined;
   endsTo?: string | undefined;
   status: ContractFinancialStatus;
@@ -79,6 +80,13 @@ function candidateConditions(options: ContractStatusPageOptions): Prisma.Sql {
   if (options.studentId) conditions.push(Prisma.sql`c.student_id = ${options.studentId}::uuid`);
   if (options.startsFrom) conditions.push(Prisma.sql`c.ends_on >= ${options.startsFrom}::date`);
   if (options.endsTo) conditions.push(Prisma.sql`c.starts_on <= ${options.endsTo}::date`);
+  if (options.scheduleType)
+    conditions.push(Prisma.sql`EXISTS (
+    SELECT 1 FROM "Enrollment" e JOIN "Class" cl ON cl.id = e.class_id
+    WHERE e.student_id = c.student_id AND e.deleted_at IS NULL AND cl.deleted_at IS NULL
+      AND e.entry_date <= (SELECT today FROM params) AND (e.exit_date IS NULL OR e.exit_date > (SELECT today FROM params))
+      AND cl.schedule_type = ${options.scheduleType}::"ClassScheduleType"
+  )`);
   const query = normalizeSearch(options.query ?? "");
   if (query) {
     conditions.push(Prisma.sql`(

@@ -311,7 +311,7 @@ function MaterialBooks({
   material,
 }: MaterialProps & { material: SetupMaterial }): ReactElement {
   return (
-    <FormSection title="Livros da compra">
+    <FormSection title="Livros desta aquisição">
       <div
         aria-invalid={Boolean(errors.materialStageIds)}
         tabIndex={-1}
@@ -367,14 +367,14 @@ function MaterialPayment({
 }: Pick<MaterialProps, "fields" | "change">): ReactElement {
   return (
     <Field name="materialPayment" className="w-fit">
-      <Label>Forma de pagamento</Label>
+      <Label>Condição de pagamento combinada</Label>
       <SegmentedControl
         size="sm"
         value={fields.materialPayment}
         onValueChange={(value) => {
           if (value) change("materialPayment", value);
         }}
-        aria-label="Forma de pagamento"
+        aria-label="Condição de pagamento combinada"
       >
         <SegmentedControlItem value="CASH">À vista</SegmentedControlItem>
         <SegmentedControlItem value="INSTALLMENTS">Cartão</SegmentedControlItem>

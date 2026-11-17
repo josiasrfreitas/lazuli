@@ -225,6 +225,7 @@ export type FinanceModule = {
     query?: string;
     payerId?: string | undefined;
     studentId?: string | undefined;
+    scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
     startsFrom?: string | undefined;
     endsTo?: string | undefined;
     status?: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "SEM_SALDO" | "CANCELADO" | undefined;

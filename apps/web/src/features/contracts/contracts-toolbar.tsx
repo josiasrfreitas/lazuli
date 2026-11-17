@@ -190,6 +190,19 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
     }),
     contractTermFilterField(filters),
     contractStatusFilterField(filters),
+    {
+      id: "scheduleType",
+      label: "Modalidade",
+      kind: "options",
+      promoted: true,
+      options: [
+        { id: "REGULAR", label: "Regular" },
+        { id: "PERSONALIZED", label: "PPT" },
+      ],
+      selected: filters.scheduleType ? [filters.scheduleType] : [],
+      onChange: (ids) => filters.setFilters({ modalidade: ids.at(-1) ?? null }),
+      onClear: () => filters.setFilters({ modalidade: null }),
+    },
   ];
 }
 
@@ -238,6 +251,7 @@ export function ContractsToolbar({
             beneficiario: null,
             vigenciaDe: null,
             vigenciaAte: null,
+            modalidade: null,
             situacao: null,
           })
         }

@@ -274,7 +274,7 @@ function MaterialActions({
         <ArrowLeft aria-hidden="true" /> Voltar
       </Button>
       <Button type="submit" form="contract-material-form" size="sm" disabled={pending}>
-        {pending ? "Salvando…" : "Adicionar material"}
+        {pending ? "Salvando…" : "Registrar aquisição"}
       </Button>
     </DialogFooter>
   );

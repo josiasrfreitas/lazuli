@@ -2,7 +2,11 @@ import { materialOrderData } from "./contract-materials.js";
 import { searchIds } from "../../search.js";
 import { createHash } from "node:crypto";
 
-import { previewMonthlyContract, type ContractFinancialStatus } from "@lazuli/domain";
+import {
+  saoPauloDateOnly,
+  previewMonthlyContract,
+  type ContractFinancialStatus,
+} from "@lazuli/domain";
 import type { FinanceSettings, Prisma } from "@lazuli/db";
 import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
@@ -367,6 +371,7 @@ type ContractListOptions = {
   query?: string;
   payerId?: string | undefined;
   studentId?: string | undefined;
+  scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
   startsFrom?: string | undefined;
   endsTo?: string | undefined;
   status?: ContractFinancialStatus | undefined;
@@ -374,7 +379,22 @@ type ContractListOptions = {
 };
 
 function contractListWhere(options: ContractListOptions): Prisma.ContractWhereInput {
+  const today = new Date(saoPauloDateOnly(options.now ?? new Date()));
   return {
+    ...(options.scheduleType
+      ? {
+          student: {
+            enrollments: {
+              some: {
+                deletedAt: null,
+                entryDate: { lte: today },
+                OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+                class: { scheduleType: options.scheduleType, deletedAt: null },
+              },
+            },
+          },
+        }
+      : {}),
     commandId: { not: null },
     deletedAt: null,
     ...(options.payerId ? { payerId: options.payerId } : {}),

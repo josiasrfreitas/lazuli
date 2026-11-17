@@ -6,7 +6,6 @@ import {
   ToastAlert,
   Badge,
   Button,
-  DataTable,
   Dialog,
   DialogBackdrop,
   DialogBody,
@@ -19,7 +18,6 @@ import {
   DialogTitle,
   DialogTrigger,
   InlineSkeleton,
-  type DataTableColumn,
 } from "@lazuli/ui";
 import { BookOpen, Plus } from "lucide-react";
 import { trpc } from "~/lib/trpc";
@@ -113,7 +111,7 @@ function MaterialContents(props: MaterialContentsProps): ReactElement {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{adding ? "Adquirir material" : "Material didático"}</DialogTitle>
+        <DialogTitle>{adding ? "Registrar aquisição" : "Material didático"}</DialogTitle>
         <DialogDescription>{studentName}</DialogDescription>
       </DialogHeader>
       {adding && contract && dueDate ? (
@@ -146,7 +144,7 @@ function MaterialList(props: MaterialContentsProps): ReactElement {
         <DialogClose render={<Button variant="secondary" size="sm" />}>Fechar</DialogClose>
         {contract && dueDate && (
           <Button size="sm" onClick={() => onAddingChange(true)} disabled={!data}>
-            <Plus aria-hidden="true" /> Adquirir material
+            <Plus aria-hidden="true" /> Registrar aquisição
           </Button>
         )}
       </DialogFooter>
@@ -190,7 +188,7 @@ function MaterialDetails({ data }: { data: Materials }): ReactElement {
             {data.acquiredCount === 1 ? "livro adquirido" : "livros adquiridos"}
           </span>
         </div>
-        <AcquisitionTable acquisitions={data.acquisitions} />
+        <AcquisitionHistory acquisitions={data.acquisitions} />
       </section>
     </>
   );
@@ -252,57 +250,26 @@ function NextMaterial({ data }: { data: Materials }): ReactElement {
   );
 }
 
-function AcquisitionTable({ acquisitions }: { acquisitions: Acquisition[] }): ReactElement {
+function AcquisitionHistory({ acquisitions }: { acquisitions: Acquisition[] }): ReactElement {
+  if (!acquisitions.length) return <p className={styles.note}>Nenhuma aquisição registrada.</p>;
   return (
-    <DataTable
-      label="Aquisições de material"
-      columns={acquisitionColumns}
-      state={acquisitions.length > 0 ? { kind: "data", rows: acquisitions } : { kind: "empty" }}
-      empty={{
-        title: "Nenhum material adquirido",
-        description: "Registre os livros e as condições combinadas em Adquirir material.",
-      }}
-      errorTitle="Não foi possível carregar as aquisições"
-      onRetry={() => null}
-    />
+    <ol className="divide-y divide-border">
+      {acquisitions.map((sale) => (
+        <li key={sale.id} className="grid grid-cols-[auto_1fr_auto] items-start gap-3 py-3">
+          <BookOpen aria-hidden="true" className="mt-1 size-4 text-muted-foreground" />
+          <div>
+            <strong>{sale.books.map((book) => book.name).join(" + ")}</strong>
+            <p className={styles.note}>Aquisição em {formatDateOnlyBR(sale.acquiredOn)}</p>
+          </div>
+          <div className="text-right">
+            <strong className="font-numeric">{money(sale.chargedCents)}</strong>
+            <p className={styles.note}>{acquisitionTerms(sale)}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
-
-const acquisitionColumns: DataTableColumn<Acquisition>[] = [
-  {
-    id: "books",
-    header: "Livros",
-    width: "wide",
-    cell: (sale) => (
-      <div className="grid gap-1">
-        <span className="font-medium">{sale.books.map((book) => book.name).join(" + ")}</span>
-        <span className="text-caption text-muted-foreground">
-          {formatDateOnlyBR(sale.acquiredOn)}
-        </span>
-      </div>
-    ),
-  },
-  {
-    id: "total",
-    header: "Valor cobrado",
-    width: "standard",
-    numeric: true,
-    cell: (sale) => <span className="font-numeric">{money(sale.chargedCents)}</span>,
-  },
-  {
-    id: "terms",
-    header: "Pagamento do aluno",
-    width: "wide",
-    cell: (sale) => (
-      <div className="grid gap-1">
-        <span>{acquisitionTerms(sale)}</span>
-        {sale.payment === "INSTALLMENTS" && sale.installmentCount > 1 && (
-          <span className="text-caption text-muted-foreground">Parcelado por terceiros</span>
-        )}
-      </div>
-    ),
-  },
-];
 
 function acquisitionTerms(sale: Acquisition): string {
   if (sale.chargedCents === 0) return "Bolsa integral";
@@ -325,15 +292,7 @@ function MaterialLoading(): ReactElement {
       </div>
       <div className={styles.history}>
         <InlineSkeleton className="h-5 w-28" aria-hidden="true" />
-        <DataTable
-          label="Carregando aquisições"
-          columns={acquisitionColumns}
-          state={{ kind: "loading" }}
-          loadingRows={1}
-          empty={{ title: "Nenhuma aquisição", description: "Ainda não há aquisições." }}
-          errorTitle="Não foi possível carregar as aquisições"
-          onRetry={() => null}
-        />
+        <InlineSkeleton className="h-12 w-full" />
       </div>
     </div>
   );

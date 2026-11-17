@@ -36,6 +36,7 @@ export const studentListInputSchema = z
       .array(studentAgeRangeFilterSchema)
       .max(studentAgeRangeFilterSchema.options.length)
       .optional(),
+    scheduleType: z.enum(["REGULAR", "PERSONALIZED"]).optional(),
     classIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
     teacherIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
     registeredFrom: civilDateSchema.optional(),
