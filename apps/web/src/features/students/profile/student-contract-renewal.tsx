@@ -19,6 +19,7 @@ import {
 } from "@lazuli/ui";
 import { RenewalDialog } from "~/features/contracts/contract-renewal-dialog";
 import { formatDateOnlyBR, formatBRLFromCents } from "~/lib/format";
+import { ContractRenegotiationDialog } from "./contract-renegotiation-dialog";
 import styles from "./student-contract-renewal.module.css";
 
 export function StudentContractRenewal({
@@ -40,6 +41,7 @@ export function StudentContractRenewal({
     setAcknowledged(null);
     void setRequestedContractId(null);
   };
+  const [negotiatingId, setNegotiatingId] = useState<string | null>(null);
   const [choosing, setChoosing] = useState(false);
   if (contracts.length === 0) return null;
   return (
@@ -51,11 +53,22 @@ export function StudentContractRenewal({
       ) : (
         <RenewalChooser {...{ contracts, choosing, setChoosing, setContractId }} />
       )}
-      {activeContractId &&
+      {negotiatingId && (
+        <ContractRenegotiationDialog
+          contractId={negotiatingId}
+          onClose={() => setNegotiatingId(null)}
+        />
+      )}
+      {!negotiatingId &&
+        activeContractId &&
         (overdueCents > 0 && acknowledged !== activeContractId ? (
           <RenewalDebtNotice
             overdueCents={overdueCents}
             onClose={closeRenewal}
+            onReview={() => {
+              setNegotiatingId(activeContractId);
+              closeRenewal();
+            }}
             onContinue={() => setAcknowledged(activeContractId)}
           />
         ) : (
@@ -109,10 +122,12 @@ function RenewalChooser({
 function RenewalDebtNotice({
   overdueCents,
   onClose,
+  onReview,
   onContinue,
 }: {
   overdueCents: number;
   onClose: () => void;
+  onReview: () => void;
   onContinue: () => void;
 }): ReactElement {
   return (
@@ -143,7 +158,7 @@ function RenewalDebtNotice({
             <Button variant="secondary" onClick={onContinue}>
               Continuar com a rematrícula
             </Button>
-            <Button onClick={onClose}>Conferir pendências</Button>
+            <Button onClick={onReview}>Conferir pendências</Button>
           </div>
         </DialogContent>
       </DialogPortal>
