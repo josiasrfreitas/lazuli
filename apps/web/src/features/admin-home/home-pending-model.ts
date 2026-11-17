@@ -14,7 +14,7 @@ export type PendingWork = {
 const DAY_MS = 86_400_000;
 const STUDENT_DESTINATION = "Alunos";
 const ACTIVE_STUDENTS_URL = "/alunos?status=ativos";
-const LINKED_GROUPS = new Set<HomeGroup["kind"]>(["semester", "occurrences", "health"]);
+const LINKED_GROUPS = new Set<HomeGroup["kind"]>(["semester", "occurrences", "health", "planning"]);
 const AGED_DAYS = 7;
 const RECENT_SCORE = 4;
 const URGENT_SCORE = 7;
@@ -42,6 +42,12 @@ const GROUPS: Record<
     destination: "Acompanhamento",
   },
   coverage: { title: "Turmas sem professor", score: 7, href: "/turmas", destination: "Turmas" },
+  planning: {
+    title: "Turmas com planejamento a revisar",
+    score: 4,
+    href: "/turmas",
+    destination: "Planejamento da turma",
+  },
   lessons: { title: "Aulas sem registro", score: 4, href: "/aulas", destination: "Agenda" },
   appointments: {
     title: "Atendimentos sem registro",

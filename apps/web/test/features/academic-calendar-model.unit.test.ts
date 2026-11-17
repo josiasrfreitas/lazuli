@@ -15,7 +15,6 @@ const empty: AcademicYear = {
   events: [],
   closedDays: [],
   requests: [],
-  planWarnings: [],
 };
 
 void it("keeps midnight endings exclusive in São Paulo, including a year boundary", () => {

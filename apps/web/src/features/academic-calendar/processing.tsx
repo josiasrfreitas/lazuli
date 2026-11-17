@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, type ReactElement } from "react";
 import Link from "next/link";
-import { formatDateOnlyBR } from "~/lib/format";
 import { Alert, Button } from "@lazuli/ui";
 import { notifyCalendarExecution } from "./execution-notifications";
 import { trpc } from "~/lib/trpc";
@@ -10,8 +9,7 @@ const COMPLETION_NOTICE_MS = 600_000;
 const RETRY_TIMEOUT_MS = 300_000;
 export function CalendarProcessing({
   requests,
-  planWarnings,
-}: Pick<AcademicYear, "requests" | "planWarnings">): ReactElement | null {
+}: Pick<AcademicYear, "requests">): ReactElement | null {
   const utils = trpc.useUtils();
   const completionKey = requests
     .filter((row) => row.status === "SUCCEEDED")
@@ -48,7 +46,7 @@ export function CalendarProcessing({
       row.completedAt &&
       Date.now() - row.completedAt.getTime() < COMPLETION_NOTICE_MS,
   );
-  if (active.length === 0 && !completed && planWarnings.length === 0) return null;
+  if (active.length === 0 && !completed) return null;
   return (
     <div className="grid gap-2" role="status">
       {completed && (
@@ -61,40 +59,11 @@ export function CalendarProcessing({
           </Link>
         </p>
       )}
-      <PlanWarnings planWarnings={planWarnings} />
       {active.map((row) => (
         <ActiveRequest key={row.id} row={row} retry={retry} />
       ))}
       {retry.error && <Alert>{retry.error.message}</Alert>}
     </div>
-  );
-}
-
-function PlanWarnings({ planWarnings }: Pick<AcademicYear, "planWarnings">): ReactElement | null {
-  if (planWarnings.length === 0) return null;
-  return (
-    <details>
-      <summary className="cursor-pointer text-caption">
-        Revisar datas de {planWarnings.length} itens do plano fora do período letivo
-      </summary>
-      <ul className="mt-2 grid gap-2 text-caption">
-        {planWarnings.map((row) => (
-          <li key={row.id}>
-            {row.classId ? (
-              <Link
-                className="text-interactive underline"
-                href={`/turmas/${row.classId}?secao=planejamento`}
-              >
-                {row.name}
-              </Link>
-            ) : (
-              row.name
-            )}{" "}
-            · {row.title} · {formatDateOnlyBR(row.date)}
-          </li>
-        ))}
-      </ul>
-    </details>
   );
 }
 

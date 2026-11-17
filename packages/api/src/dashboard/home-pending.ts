@@ -1,5 +1,6 @@
 import { readHealthPending } from "./home-health.js";
 import { readOccurrencePending } from "./home-occurrences.js";
+import { readPlanningPending } from "./home-planning.js";
 import { adultCutoffDateOnly } from "../students/date-rules.js";
 import { pendingRenewalWhere } from "../finance/internal/renewal-pending.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
@@ -68,6 +69,9 @@ function readGroup(database: Database, input: Scope & { pagination: Page }): Pro
     }
     case "coverage": {
       return coveragePage(database, { now: input.now, page });
+    }
+    case "planning": {
+      return readPlanningPending(database, page);
     }
     case "students":
     case "contracts": {

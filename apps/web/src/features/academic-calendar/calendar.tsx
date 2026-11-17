@@ -196,7 +196,7 @@ function renderNotice({ announcement, query }: CalendarController): ReactElement
         </Alert>
       )}
       {query.data && (
-        <CalendarProcessing requests={query.data.requests} planWarnings={query.data.planWarnings} />
+        <CalendarProcessing requests={query.data.requests} />
       )}
     </>
   );

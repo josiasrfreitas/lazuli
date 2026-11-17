@@ -21,7 +21,6 @@ const data: AcademicYear = {
   closedDays: [],
   interruptions: [],
   requests: [],
-  planWarnings: [],
 };
 const context = {
   data,

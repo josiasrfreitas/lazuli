@@ -4,6 +4,7 @@ export const HOME_GROUPS = [
   "health",
   "occurrences",
   "coverage",
+  "planning",
   "lessons",
   "appointments",
   "placement",
@@ -73,6 +74,12 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
   lessons: {
     title: "Aulas por registrar",
     description: "Encontros encerrados sem registro de aula.",
+    area: "school",
+    attention: true,
+  },
+  planning: {
+    title: "Turmas com planejamento a revisar",
+    description: "Turmas com itens do planejamento fora do período letivo.",
     area: "school",
     attention: true,
   },

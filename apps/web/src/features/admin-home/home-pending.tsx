@@ -13,6 +13,7 @@ import { PendingStudents } from "./home-pending-students";
 import { PendingPlacement } from "./home-pending-placement";
 import { PendingLessons } from "./home-pending-lessons";
 import { PendingCoverage } from "./home-pending-coverage";
+import { PendingPlanning } from "./home-pending-planning";
 import styles from "./home-pending.module.css";
 
 export function HomePending({
@@ -108,6 +109,7 @@ function PendingRows({
 }
 
 type PendingGroups = {
+  planning: HomeGroup | undefined;
   group: HomeGroup | undefined;
   appointments: HomeGroup | undefined;
   renewals: HomeGroup | undefined;
@@ -123,6 +125,7 @@ function pendingGroups(data: HomeData | undefined): PendingGroups {
   const groups = data?.groups ?? [];
   const finance = Boolean(data?.canViewFinance);
   return {
+    planning: groups.find((item) => item.kind === "planning"),
     health: groups.find((item) => item.kind === "health"),
     occurrences: groups.find((item) => item.kind === "occurrences"),
     group: groups.find((item) => item.kind === "coverage"),
@@ -156,6 +159,7 @@ function PendingActionRows({
       <PendingOccurrences group={groups.occurrences} />
       <PendingOccurrences group={groups.health} kind="health" />
       <PendingCoverage group={groups.group} today={today} />
+      <PendingPlanning group={groups.planning} />
       {finance && <PendingRenewals group={groups.renewals} today={today} />}
       <PendingAppointments group={groups.appointments} today={today} />
       <PendingPlacement group={groups.placement} today={today} />
@@ -175,6 +179,7 @@ type PendingFeedbackProps = PendingGroups & {
 };
 
 function PendingFeedback({
+  planning,
   group,
   hasFinance,
   placement,
@@ -190,6 +195,7 @@ function PendingFeedback({
   financeUnavailable,
 }: PendingFeedbackProps): ReactElement {
   const empty = pendingIsEmpty({
+    planning,
     group,
     hasFinance,
     placement,
@@ -223,6 +229,7 @@ function PendingFeedback({
 }
 
 function pendingIsEmpty({
+  planning,
   group,
   hasFinance,
   placement,
@@ -237,6 +244,7 @@ function pendingIsEmpty({
 }: Pick<
   PendingFeedbackProps,
   | "group"
+  | "planning"
   | "hasFinance"
   | "placement"
   | "students"
@@ -249,6 +257,7 @@ function pendingIsEmpty({
   | "lessons"
 >): boolean {
   const totals = [
+    planning,
     group,
     placement,
     students,

@@ -1,4 +1,3 @@
-import { calendarPlanWarnings } from "./follow-up.js";
 import { holidaySuggestions } from "./holidays.js";
 import { calendarChangesRouter } from "./changes.js";
 import { z } from "@lazuli/validators";
@@ -122,7 +121,6 @@ export const academicCalendarRouter = router({
         events,
         interruptions,
         requests,
-        planWarnings: await calendarPlanWarnings(ctx.db, input.year),
       };
     }),
   saveEvent: adminProcedure.input(eventInput).mutation(async ({ ctx, input }) => {

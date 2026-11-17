@@ -8,7 +8,6 @@ const data: AcademicYear = {
   interruptions: [],
   closedDays: [],
   requests: [],
-  planWarnings: [],
   events: [
     {
       id: "overnight",

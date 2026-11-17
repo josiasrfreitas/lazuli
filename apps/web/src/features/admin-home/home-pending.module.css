@@ -540,6 +540,22 @@
   .disclosureHeader {
     flex-wrap: wrap;
   }
+  .summary .identity {
+    display: grid;
+  }
+  .summary .identity > strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .planningCase {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+  .planningCase > .caseName {
+    overflow: visible;
+    white-space: normal;
+  }
 }
 
 .appointmentCase {
