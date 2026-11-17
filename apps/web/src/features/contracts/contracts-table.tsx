@@ -203,6 +203,7 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
 function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
   const first = rows[0]!;
   const renewal = rows.find((row) => row.renewalPending);
+  const dueBook = rows.find((row) => row.materialDue)?.materialDue;
   const href = `/alunos/${first.student.id}?secao=financeiro`;
   return (
     <details className="group py-1">
@@ -223,7 +224,7 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
         {renewal && (
           <Badge variant="warning">Rematrícula até {shortCivilDate(renewal.endsOn)}</Badge>
         )}
-        {first.materialDue && <Badge variant="info">A adquirir · {first.materialDue}</Badge>}
+        {dueBook && <Badge variant="info">A adquirir · {dueBook}</Badge>}
       </summary>
       <div className="mt-3 grid gap-3 border-t border-border pt-3">
         {rows.map((row) => (
@@ -259,7 +260,7 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
             </div>
             {row.materialDue && (
               <Link className="underline" href={href + "&material=1"}>
-                Conferir material
+                Conferir {row.materialDue}
               </Link>
             )}
             <Link

@@ -180,7 +180,9 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
       label: "Rematrículas e materiais",
       kind: "options",
       promoted: true,
-      options: [{ id: "rematriculas-e-materiais", label: "Rematrículas e materiais a conferir" }],
+      options: [
+        { id: "rematriculas-e-materiais", label: "Rematrículas e materiais · até 60 dias" },
+      ],
       selected: filters.followUp ? ["rematriculas-e-materiais"] : [],
       onChange: (ids) => filters.setFilters({ acompanhamento: ids.at(-1) ?? null }),
       onClear: () => filters.setFilters({ acompanhamento: null }),
