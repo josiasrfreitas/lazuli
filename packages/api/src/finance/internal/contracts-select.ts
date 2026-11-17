@@ -39,6 +39,7 @@ export type ContractListRow = {
   materials: Array<{
     id: string;
     name: string;
+    stageIds?: string[];
     paymentLabel?: string;
     totalCents: number;
     count: number;
@@ -277,6 +278,11 @@ function contractAmounts(
       ),
     materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
     materials: materialOrders.map((entry) => ({
+      stageIds: entry.material?.items.length
+        ? entry.material.items.map((item) => item.stageId)
+        : entry.material
+          ? [entry.material.stageId]
+          : [],
       id: entry.id,
       name:
         entry.material?.items.map((item) => item.name).join(" + ") ||

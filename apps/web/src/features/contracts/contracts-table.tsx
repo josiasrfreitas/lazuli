@@ -281,22 +281,35 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
                     <strong>{row.materialDue}</strong> <Badge variant="info">A adquirir</Badge>
                   </p>
                 )}
-                {row.plannedBooks?.map((book) => (
-                  <p key={book.semester}>
-                    <span className="text-muted-foreground">{book.semester}º semestre · </span>
-                    {book.name ?? "Livro a definir"} ·{" "}
-                    {book.acquired
-                      ? "Adquirido"
-                      : book.acquisitionSemester
-                        ? `Aquisição no ${book.acquisitionSemester}º semestre`
-                        : "Aquisição em aberto"}
-                  </p>
-                ))}
-                {row.materials.map((material) => (
-                  <p key={material.id}>
-                    {material.name} · {material.paymentLabel}
-                  </p>
-                ))}
+                {row.plannedBooks?.map((book) => {
+                  const sale = book.stageId
+                    ? row.materials.find((material) => material.stageIds?.includes(book.stageId!))
+                    : undefined;
+                  return (
+                    <p key={book.semester}>
+                      <span className="text-muted-foreground">{book.semester}º semestre · </span>
+                      {book.name ?? "Livro a definir"} ·{" "}
+                      {book.acquired
+                        ? ["Adquirido", sale?.paymentLabel].filter(Boolean).join(" · ")
+                        : book.acquisitionSemester
+                          ? `Aquisição no ${book.acquisitionSemester}º semestre`
+                          : "Aquisição em aberto"}
+                    </p>
+                  );
+                })}
+                {row.materials
+                  .filter(
+                    (material) =>
+                      !material.stageIds?.length ||
+                      !material.stageIds.every((id) =>
+                        row.plannedBooks?.some((book) => book.stageId === id),
+                      ),
+                  )
+                  .map((material) => (
+                    <p key={material.id}>
+                      {material.name} · {material.paymentLabel}
+                    </p>
+                  ))}
                 {!row.plannedBooks?.length && !row.materials.length && (
                   <p className="text-muted-foreground">Nenhuma aquisição registrada</p>
                 )}
