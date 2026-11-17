@@ -210,7 +210,10 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
 ];
 
 const contractLine =
-  "grid gap-2 px-4 py-3 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center sm:gap-4 [&>a]:justify-self-start sm:[&>a]:justify-self-end";
+  "grid gap-3 px-4 py-3 @min-[46rem]:grid-cols-[7rem_minmax(0,1fr)_10rem] @min-[46rem]:items-center @min-[46rem]:gap-5 [&>a]:justify-self-start @min-[46rem]:[&>a]:justify-self-end";
+const facts =
+  "grid min-w-0 gap-3 @min-[30rem]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] @min-[46rem]:gap-x-6";
+const caption = "mb-1 block text-xs text-muted-foreground";
 const contractLabel = "flex items-center gap-2 text-sm font-semibold text-muted-foreground";
 
 function ContractGroup({
@@ -226,11 +229,11 @@ function ContractGroup({
   return (
     <section
       aria-labelledby={`contract-group-${first.student.id}`}
-      className="overflow-hidden rounded-lg border border-border bg-card"
+      className="@container overflow-hidden rounded-lg border border-border bg-card"
     >
       <header className="flex flex-wrap items-center gap-3 border-b border-border bg-muted px-4 py-2">
         <StudentAvatar colorKey={first.student.id} name={first.student.fullName} size="sm" />
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4">
           <h2 id={`contract-group-${first.student.id}`} className="font-display font-semibold">
             {first.student.fullName}
           </h2>
@@ -252,20 +255,29 @@ function ContractGroup({
                     <FileText aria-hidden="true" size={16} />
                     Contrato
                   </h3>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <strong title={termHint(row.endsOn)}>
-                        {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
-                      </strong>
-                      {row.renewalPending && (
-                        <Badge variant="warning">{termHint(row.endsOn)}</Badge>
-                      )}
+                  <div className={facts}>
+                    <div>
+                      <span className={caption}>Vigência</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <strong title={termHint(row.endsOn)}>
+                          {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
+                        </strong>
+                        {row.renewalPending && (
+                          <Badge variant="warning">{termHint(row.endsOn)}</Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="whitespace-nowrap text-sm text-muted-foreground">
-                        {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
-                      </span>
-                      {row.status !== "INADIMPLENTE" && <ContractFinancialStatus row={row} />}
+                    <div>
+                      <span className={caption}>Mensalidades</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="whitespace-nowrap text-sm">
+                          {paymentPlanLabel(
+                            row.installmentCount,
+                            row.uniformInstallmentAmountCents,
+                          )}
+                        </span>
+                        {row.status !== "INADIMPLENTE" && <ContractFinancialStatus row={row} />}
+                      </div>
                     </div>
                   </div>
                   <Link
@@ -290,42 +302,49 @@ function ContractGroup({
                     <BookOpen aria-hidden="true" size={16} />
                     Material
                   </h3>
-                  <div className="min-w-0 space-y-1 text-sm">
-                    {row.materialDue && (
-                      <p>
-                        <span className="text-muted-foreground">Próximo livro · </span>
-                        <strong>{row.materialDue}</strong> <Badge variant="info">A adquirir</Badge>
-                      </p>
-                    )}
-                    {(followUp ? history : row.materials).length > 0 && (
-                      <div className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="text-muted-foreground">Livros anteriores</span>
-                        {(followUp ? history : row.materials).map((material) => (
-                          <span key={material.id}>
-                            {material.name} · {material.paymentLabel}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {!followUp &&
-                      row.plannedBooks
-                        ?.filter((book) => !book.acquired)
-                        .map((book) => {
-                          return (
+                  <div className={facts}>
+                    <div className="min-w-0 text-sm">
+                      {row.materialDue && (
+                        <>
+                          <span className={caption}>Próximo livro</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <strong>{row.materialDue}</strong>
+                            <Badge variant="info">A adquirir</Badge>
+                          </div>
+                        </>
+                      )}
+                      {!followUp &&
+                        row.plannedBooks
+                          ?.filter(
+                            (book) =>
+                              !book.acquired && (!row.materialDue || book.name !== row.materialDue),
+                          )
+                          .map((book) => (
                             <p key={book.semester}>
                               {book.name ?? "Livro a definir"} ·{" "}
                               {book.acquisitionSemester
                                 ? `Aquisição no ${book.acquisitionSemester}º semestre`
                                 : "Aquisição em aberto"}
                             </p>
-                          );
-                        })}
-                    {!followUp &&
-                      !row.materialDue &&
-                      !row.plannedBooks?.length &&
-                      !row.materials.length && (
+                          ))}
+                      {!row.materialDue && !row.plannedBooks?.some((book) => !book.acquired) && (
+                        <>
+                          <span className={caption}>Próximo livro</span>
+                          <p className="text-muted-foreground">Sem aquisição prevista</p>
+                        </>
+                      )}
+                    </div>
+                    <div className="min-w-0 text-sm">
+                      <span className={caption}>Livros anteriores</span>
+                      {(followUp ? history : row.materials).map((material) => (
+                        <p key={material.id}>
+                          {material.name} · {material.paymentLabel}
+                        </p>
+                      ))}
+                      {!(followUp ? history : row.materials).length && (
                         <p className="text-muted-foreground">Nenhuma aquisição registrada</p>
                       )}
+                    </div>
                   </div>
                   <Link
                     className={buttonVariants({ variant: "secondary", size: "sm" })}
