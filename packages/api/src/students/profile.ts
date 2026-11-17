@@ -27,6 +27,7 @@ type GuardianProfile = {
 };
 
 type StudentRecord = Student & {
+  enrollments?: { id: string }[];
   contracts?: { id: string }[];
   _count?: { enrollments: number };
   address: Address | null;
@@ -35,6 +36,7 @@ type StudentRecord = Student & {
 
 export type StudentProfile = {
   isScholarshipStudent?: boolean;
+  hasPptEnrollment?: boolean;
   hasCurrentEnrollment?: boolean;
   address: AddressProfile | null;
   attendanceSummary: { semesters: [] };
@@ -58,6 +60,7 @@ export type StudentProfile = {
 export function toStudentProfile(student: StudentRecord): StudentProfile {
   return {
     id: student.id,
+    hasPptEnrollment: Boolean(student.enrollments?.length),
     hasCurrentEnrollment: (student._count?.enrollments ?? 0) > 0,
     isScholarshipStudent: Boolean(student.contracts?.length),
     contact: {

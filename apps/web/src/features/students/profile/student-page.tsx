@@ -9,8 +9,6 @@ import {
   Button,
   DetailHeader,
   InlineSkeleton,
-  SegmentedControl,
-  SegmentedControlItem,
   Tabs,
   TabsList,
   TabsPanel,
@@ -162,7 +160,7 @@ function StudentSectionsView({
   activeTab: StudentSection;
   entranceComplete: boolean;
   navigate: ReturnType<typeof useStudentSectionNavigation>["navigate"];
-  header: Parameters<typeof SectionsHeader>[0];
+  header: Omit<Parameters<typeof SectionsHeader>[0], "showPlanning">;
   content: Parameters<typeof SectionContent>[0];
 }): ReactElement {
   return (
@@ -181,7 +179,14 @@ function StudentSectionsView({
           if (next) navigate(next);
         }}
       >
-        <SectionsHeader {...header} />
+        <SectionsHeader
+          {...header}
+          showPlanning={
+            content.hasPpt ||
+            Boolean(profile?.hasPptEnrollment) ||
+            activeSection === PLANNING_SECTION
+          }
+        />
         <TabsPanel key={activeSection} value={activeTab}>
           <SectionContent {...content} />
         </TabsPanel>
@@ -210,7 +215,7 @@ function studentHeaderProps({
   financePending: boolean;
   pendingRenewals: RouterOutputs["finance"]["studentSummary"]["pendingRenewals"] | undefined;
   overdueCents: number;
-}): Parameters<typeof SectionsHeader>[0] {
+}): Omit<Parameters<typeof SectionsHeader>[0], "showPlanning"> {
   return {
     id,
     profile,
@@ -244,7 +249,7 @@ function useStudentSectionNavigation({
 } {
   const switchSection = useSectionCarousel();
   const activeSection = resolveSection(section, { pedagogyReady, hasPpt });
-  const activeTab = activeSection === PLANNING_SECTION ? PEDAGOGY_SECTION : activeSection;
+  const activeTab = activeSection;
   const navigate = (next: StudentSection): void => {
     if (registrationBusy) return;
     switchSection(activeSection, { next, update: () => void setSection(next) });
@@ -271,6 +276,7 @@ function resolveSection(
 }
 
 function SectionsHeader({
+  showPlanning,
   id,
   profile,
   canSchedule,
@@ -282,6 +288,7 @@ function SectionsHeader({
 }: {
   id: string;
   profile: StudentProfile | undefined;
+  showPlanning: boolean;
   canSchedule: boolean;
   registrationBusy: boolean;
   financeActive: boolean;
@@ -304,7 +311,9 @@ function SectionsHeader({
             />
           ) : undefined
         }
-        navigation={<StudentTabsNavigation disabled={registrationBusy} />}
+        navigation={
+          <StudentTabsNavigation showPlanning={showPlanning} disabled={registrationBusy} />
+        }
       />
     </div>
   );
@@ -344,48 +353,11 @@ function SectionContent(props: SectionContentProps): ReactElement {
           <StudentRegistrationLoading />
         ))}
       {(section === PEDAGOGY_SECTION || section === PLANNING_SECTION) && (
-        <PedagogyContent {...props} />
+        <PedagogySection {...props} />
       )}
       {section === "financeiro" && (
         <StudentFinanceSection id={id} profile={profile} summary={props.finance} />
       )}
-    </div>
-  );
-}
-
-function PedagogyContent({
-  section,
-  id,
-  profile,
-  pedagogy,
-  hasPpt,
-  latestTermination,
-  pedagogyWorkspacePreview,
-  navigate,
-}: SectionContentProps): ReactElement {
-  return (
-    <div className={styles.pedagogyContent}>
-      {(hasPpt || section === PLANNING_SECTION) && (
-        <SegmentedControl
-          size="sm"
-          aria-label="Área pedagógica"
-          value={section}
-          onValueChange={(value) => {
-            if (value === PEDAGOGY_SECTION || value === PLANNING_SECTION) navigate(value);
-          }}
-        >
-          <SegmentedControlItem value={PEDAGOGY_SECTION}>Acompanhamento</SegmentedControlItem>
-          <SegmentedControlItem value={PLANNING_SECTION}>Plano de ensino PPT</SegmentedControlItem>
-        </SegmentedControl>
-      )}
-      <PedagogySection
-        section={section}
-        id={id}
-        profile={profile}
-        pedagogy={pedagogy}
-        latestTermination={latestTermination}
-        pedagogyWorkspacePreview={pedagogyWorkspacePreview}
-      />
     </div>
   );
 }
@@ -398,8 +370,7 @@ function PedagogySection({
   latestTermination,
   pedagogyWorkspacePreview,
 }: PedagogySectionProps): ReactElement {
-  if (section === PLANNING_SECTION)
-    return <StudentPlanning studentId={id} />;
+  if (section === PLANNING_SECTION) return <StudentPlanning studentId={id} />;
   if (profile)
     return (
       <StudentPedagogySection
@@ -488,7 +459,13 @@ function StudentHeaderActions({
   );
 }
 
-function StudentTabsNavigation({ disabled }: { disabled: boolean }): ReactElement {
+function StudentTabsNavigation({
+  disabled,
+  showPlanning,
+}: {
+  disabled: boolean;
+  showPlanning: boolean;
+}): ReactElement {
   return (
     <div className={styles.tabNavigation}>
       <TabsList aria-label="Seções do aluno" className="min-w-full">
@@ -501,6 +478,11 @@ function StudentTabsNavigation({ disabled }: { disabled: boolean }): ReactElemen
         <TabsTab value={PEDAGOGY_SECTION} disabled={disabled}>
           <BookOpen aria-hidden="true" /> Pedagógico
         </TabsTab>
+        {showPlanning && (
+          <TabsTab value={PLANNING_SECTION} disabled={disabled}>
+            <CalendarDays aria-hidden="true" /> Planejamento
+          </TabsTab>
+        )}
         <TabsTab value="financeiro" disabled={disabled}>
           <Wallet aria-hidden="true" /> Financeiro
         </TabsTab>

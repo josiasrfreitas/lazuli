@@ -231,7 +231,7 @@ async function planningCalendar(
   context: PlanningContext,
   { scope, startOn, hasPlan }: { scope: PlanningScope; startOn: string; hasPlan: boolean },
 ): Promise<Pick<PlanningDetail, "calendar" | "upcoming" | "availableSessions">> {
-  const [sessions, closures] = await Promise.all([
+  const [sessions, closures, complements] = await Promise.all([
     context.database.classSession.findMany({
       where: {
         classId: scope.class.id,
@@ -259,9 +259,28 @@ async function planningCalendar(
       },
       select: { date: true },
     }),
+    scope.student && scope.progressId
+      ? context.database.pedagogicalAppointment.findMany({
+          where: {
+            studentId: scope.student.id,
+            enrollment: { progressRecords: { some: { id: scope.progressId } } },
+            date: { gte: new Date(startOn) },
+            purpose: "PPT_COMPLEMENT",
+            status: "SCHEDULED",
+            deletedAt: null,
+            targetClassSessionId: null,
+          },
+          select: { id: true, date: true, startTime: true, endTime: true },
+        })
+      : [],
   ]);
   const closed = new Set(closures.map((day) => dateOnly(day.date)));
-  const eligible = sessions.filter((session) => !closed.has(dateOnly(session.date)));
+  const eligible = [
+    ...sessions.filter((session) => !closed.has(dateOnly(session.date))),
+    ...complements.map((row) => ({ ...row, classRecord: null })),
+  ].sort(
+    (a, b) => a.date.getTime() - b.date.getTime() || a.startTime.getTime() - b.startTime.getTime(),
+  );
   const future = eligible.filter((session) => sessionEndInstant(session) > context.now);
   return {
     availableSessions: future.map((session) => ({

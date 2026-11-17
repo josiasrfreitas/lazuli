@@ -55,6 +55,11 @@ export async function readStudentProfile(input: {
         },
       },
       ...studentProfileInclude,
+      enrollments: {
+        where: { deletedAt: null, class: { deletedAt: null, scheduleType: "PERSONALIZED" } },
+        select: { id: true },
+        take: 1,
+      },
       contracts: {
         where: currentScholarshipContractWhere(now),
         select: { id: true },
