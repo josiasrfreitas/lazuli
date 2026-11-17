@@ -11,6 +11,7 @@ const MAX_CALENDAR_YEAR = 2100;
 const RECONCILIATION_RETRY_MILLISECONDS = 300_000;
 import { dispatchCalendarReconciliation } from "./dispatch.js";
 import { previewCalendarChange } from "./impact.js";
+import { requireCalendarConfirmation } from "./confirmation.js";
 
 export const calendarChangesRouter = router({
   preview: adminProcedure
@@ -51,6 +52,7 @@ export const calendarChangesRouter = router({
             code: "CONFLICT",
             message: "A agenda mudou desde a prévia. Volte e confira os impactos novamente.",
           });
+        requireCalendarConfirmation(preview.confirmationPhrase, input.confirmationText);
         const data = await applyCalendarChange(database, {
           change: input.change,
           actorId: ctx.staffUser.id,

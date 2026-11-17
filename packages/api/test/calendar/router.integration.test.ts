@@ -28,6 +28,7 @@ async function confirm(
     change,
     fingerprint: preview.fingerprint,
     commandId: randomUUID(),
+    confirmationText: preview.confirmationPhrase ?? undefined,
   });
 }
 void it("requires a fresh preview and deduplicates the same confirmed command", async () => {

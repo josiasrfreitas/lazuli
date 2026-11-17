@@ -1,9 +1,10 @@
 import type { Prisma } from "@lazuli/db";
 import { day } from "./change-dates.js";
+import { evidenceSessionInclude } from "@lazuli/db/appointment-evidence";
 import type { CalendarChangeState } from "./change-state.js";
 const sessionInclude = {
-  class: { select: { id: true, portalClassName: true, semesterId: true } },
-  classRecord: { select: { id: true } },
+  ...evidenceSessionInclude,
+  class: { select: { ...evidenceSessionInclude.class.select, semesterId: true } },
   _count: {
     select: { attendanceRows: true, attendanceDeclarations: true, attendanceWindows: true },
   },

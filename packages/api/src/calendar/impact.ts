@@ -5,6 +5,8 @@ import { civil } from "./change-dates.js";
 import type { CalendarChange } from "./change-schema.js";
 import { readCalendarImpact } from "./impact-read.js";
 import { selectImpactCandidates } from "./impact-selection.js";
+import { groupCalendarImpact } from "./impact-groups.js";
+import { calendarConfirmationPhrase } from "./confirmation.js";
 import {
   impactEntry,
   impactSubject,
@@ -30,6 +32,7 @@ export async function previewCalendarChange(
     plans,
   } = candidates;
   const capacity = await calendarCapacity(database, state);
+  const teachers = await groupCalendarImpact(database, { candidates, capacity, from: state.from, through: state.through });
   const releasedDates = state.closedDays
     .filter(
       (row) =>
@@ -40,7 +43,7 @@ export async function previewCalendarChange(
     .map((row) => civil(row.date));
   return {
     subject: impactSubject(change, state),
-    fingerprint: impactFingerprint({ rows, state, change, capacity }, candidates),
+    fingerprint: impactFingerprint({ rows, state, change, capacity, teachers }, candidates),
     from: state.from,
     through: state.through,
     sessions: cancellableSessions.map((row) => ({
@@ -65,5 +68,11 @@ export async function previewCalendarChange(
     })),
     releasedDates,
     capacity,
+    teachers,
+    confirmationPhrase: calendarConfirmationPhrase(cancellableSessions.length + cancellableAppointments.length + cancellableVisits.length),
+    periodChange: change.action === "period" && state.period ? {
+      before: { from: civil(state.period.startDate), through: civil(state.period.endDate) },
+      after: { from: change.from, through: change.through },
+    } : null,
   };
 }

@@ -1,6 +1,14 @@
 import type { Period, AcademicInterruption, SchoolClosedDay } from "@lazuli/db/prisma";
 import type { CalendarChange } from "./change-schema.js";
 import { civil, day, datesBetween } from "./change-dates.js";
+export function currentClosedDays(
+  input: { interruptions: Pick<AcademicInterruption, "fromDate" | "throughDate">[]; closedDays: SchoolClosedDay[] },
+): Set<string> {
+  const closed = new Set(input.closedDays.filter((item) => !item.calendarManaged).map((item) => civil(item.date)));
+  for (const item of input.interruptions)
+    for (const date of datesBetween(civil(item.fromDate), civil(item.throughDate))) closed.add(date);
+  return closed;
+}
 export function projectedClosedDays(
   change: CalendarChange,
   input: { interruptions: AcademicInterruption[]; closedDays: SchoolClosedDay[] },
@@ -14,13 +22,7 @@ export function projectedClosedDays(
       ),
   );
   const additions = interruptionAdditions(change, interruptions);
-  const closed = new Set(
-    closedDays.filter((item) => !item.calendarManaged).map((item) => civil(item.date)),
-  );
-  for (const item of [...proposedInterruptions, ...additions])
-    for (const date of datesBetween(civil(item.fromDate), civil(item.throughDate)))
-      closed.add(date);
-  return closed;
+  return currentClosedDays({ interruptions: [...proposedInterruptions, ...additions], closedDays });
 }
 function interruptionAdditions(
   change: CalendarChange,

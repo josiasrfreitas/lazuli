@@ -5,6 +5,7 @@ import type { CalendarChangeState } from "./change-state.js";
 import { civil } from "./change-dates.js";
 import type { ImpactRows } from "./impact-read.js";
 import type { ImpactCandidates } from "./impact-selection.js";
+import type { TeacherImpact } from "./impact-groups.js";
 const ISO_TIME_START = 11;
 const ISO_TIME_END = 16;
 export type PreviewEntry = {
@@ -26,6 +27,9 @@ export type CalendarChangePreview = {
   plans: { id: string; title: string; date: string; classId: string | null; name: string }[];
   releasedDates: string[];
   capacity: Awaited<ReturnType<typeof calendarCapacity>>;
+  teachers: TeacherImpact[];
+  confirmationPhrase: string | null;
+  periodChange: { before: { from: string; through: string }; after: { from: string; through: string } } | null;
 };
 export function impactFingerprint(
   input: {
@@ -33,6 +37,7 @@ export function impactFingerprint(
     state: CalendarChangeState;
     change: CalendarChange;
     capacity: CalendarChangePreview["capacity"];
+    teachers: TeacherImpact[];
   },
   candidates: ImpactCandidates,
 ): string {
@@ -41,6 +46,7 @@ export function impactFingerprint(
   const { cancellableSessions, cancellableAppointments, cancellableVisits } = candidates;
   const evidence = {
     capacity,
+    teachers: input.teachers,
     change,
     state: {
       periods: state.periods,

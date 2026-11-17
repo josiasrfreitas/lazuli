@@ -100,5 +100,6 @@ export const confirmCalendarChangeSchema = z
     change: calendarChangeSchema,
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
     commandId: z.string().uuid(),
+    confirmationText: z.string().trim().max(160).optional(),
   })
   .strict();
