@@ -1,4 +1,5 @@
 "use client";
+import { CurrencyInput, Field, Label } from "@lazuli/ui";
 import { MaterialBookSelection, materialBookOptions } from "./material-book-fields";
 import { BookReceiptTerms, initialBookTerms } from "./book-receipt-terms";
 import { SelectControl } from "~/features/classes/form-controls";
@@ -11,7 +12,7 @@ import type { SetupMaterial } from "./contract-setup-material";
 type Book = {
   stageId: string | null;
   acquisitionSemester: number | null;
-  agreedPriceCents?: number | undefined;
+  agreedPriceCents?: number | null | undefined;
   acquisition?: ContractMaterialInput;
 };
 export function contractBooks(value: string | undefined): Book[] {
@@ -32,7 +33,7 @@ export function SemesterBooks({
   const rows: Book[] = Array.from({ length: count }, (_, i) => {
     const book = stored[i] ?? { stageId: suggestions[i] || null, acquisitionSemester: null };
     const stage = catalog.find((s) => s.id === book.stageId);
-    if (!stage || !prices || book.acquisition || book.agreedPriceCents) return book;
+    if (!stage || !prices || book.acquisition || book.agreedPriceCents !== undefined) return book;
     const reference = initialBookTerms(stage, prices).expectedTotalCents;
     return reference > 0 ? { ...book, agreedPriceCents: reference } : book;
   });
@@ -81,7 +82,7 @@ export function SemesterBooks({
                   acquisitionSemester: null,
                   acquisition: {
                     ...initialBookTerms(stage, prices),
-                    priceOverrideCents: book.agreedPriceCents,
+                    priceOverrideCents: book.agreedPriceCents ?? undefined,
                   },
                 });
               else
@@ -93,20 +94,14 @@ export function SemesterBooks({
             }}
           />
           {!book.acquisition && book.stageId && (
-            <label className="grid max-w-48 gap-1">
-              Valor combinado (R$)
-              <input
-                className="h-9 rounded-sm border border-input bg-field px-2"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={book.agreedPriceCents === undefined ? "" : book.agreedPriceCents / 100}
-                onChange={(e) => {
-                  const n = e.target.valueAsNumber;
-                  if (n > 0) update(i, { ...book, agreedPriceCents: Math.round(n * 100) });
-                }}
+            <Field name={`book-price-${i}`} className="max-w-48">
+              <Label>Valor combinado</Label>
+              <CurrencyInput
+                name={`book-price-${i}`}
+                value={book.agreedPriceCents ?? null}
+                onValueChange={(value) => update(i, { ...book, agreedPriceCents: value })}
               />
-            </label>
+            </Field>
           )}
           {book.acquisition && prices && (
             <BookReceiptTerms

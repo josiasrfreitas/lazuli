@@ -9,16 +9,14 @@ import {
   Dialog,
   DialogBackdrop,
   DialogBody,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogPortal,
   DialogTitle,
   InlineSkeleton,
 } from "@lazuli/ui";
-import { BookOpen } from "lucide-react";
+import { BookOpen, CheckCircle2, Wallet } from "lucide-react";
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { PaymentDialog } from "~/features/installments/payment/payment-dialog";
@@ -74,7 +72,13 @@ export function StudentMaterials({
         <DialogPortal>
           <div className={styles.dialogScope}>
             <DialogBackdrop data-student-materials-backdrop="" />
-            <DialogContent data-student-materials-dialog="" showCloseButton={!pending}>
+            <DialogContent
+              data-student-materials-dialog=""
+              showCloseButton={!pending}
+              finalFocus={() =>
+                rows.length ? null : document.getElementById("student-finance-actions")
+              }
+            >
               <DialogHeader>
                 <DialogTitle>{target ? "Pagamento do material" : "Material didático"}</DialogTitle>
                 <DialogDescription>{studentName}</DialogDescription>
@@ -87,34 +91,27 @@ export function StudentMaterials({
                   onSaved={saved}
                 />
               ) : (
-                <>
-                  <DialogBody>
-                    <div className={styles.body}>
-                      {query.isError ? (
-                        <ToastAlert variant="destructive">
-                          Falha ao carregar os livros.{" "}
-                          <Button variant="link" onClick={() => void query.refetch()}>
-                            Tentar novamente
-                          </Button>
-                        </ToastAlert>
-                      ) : query.data ? (
-                        <BookList
-                          data={query.data}
-                          onPay={setTarget}
-                          onReceive={setRows}
-                          contractId={contract?.id}
-                        />
-                      ) : (
-                        <InlineSkeleton className="h-24 w-full" aria-label="Carregando livros" />
-                      )}
-                    </div>
-                  </DialogBody>
-                  <DialogFooter>
-                    <DialogClose render={<Button size="sm" variant="secondary" />}>
-                      Fechar
-                    </DialogClose>
-                  </DialogFooter>
-                </>
+                <DialogBody>
+                  <div className={styles.body}>
+                    {query.isError ? (
+                      <ToastAlert variant="destructive">
+                        Falha ao carregar os livros.{" "}
+                        <Button variant="link" onClick={() => void query.refetch()}>
+                          Tentar novamente
+                        </Button>
+                      </ToastAlert>
+                    ) : query.data ? (
+                      <BookList
+                        data={query.data}
+                        onPay={setTarget}
+                        onReceive={setRows}
+                        contractId={contract?.id}
+                      />
+                    ) : (
+                      <InlineSkeleton className="h-24 w-full" aria-label="Carregando livros" />
+                    )}
+                  </div>
+                </DialogBody>
               )}
             </DialogContent>
           </div>
@@ -151,26 +148,45 @@ function BookList({
       (sale) =>
         sale.contractId === contractId && sale.books.some((book) => book.stageId === stageId),
     );
+  function receiptAction(name: string, action: () => void) {
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        aria-label={`Registrar pagamento de ${name}`}
+        onClick={action}
+      >
+        <Wallet aria-hidden />
+        Registrar pagamento
+      </Button>
+    );
+  }
   function payment(sale: Sale) {
     const rows = data.openMaterialRows.filter((row) => row.orderId === sale.id);
+    if (rows.length)
+      return (
+        <>
+          <div className={styles.payment}>
+            <strong>{money(sale.balanceCents)}</strong>
+            <span>A pagar</span>
+          </div>
+          {receiptAction(sale.books.map((b) => b.name).join(" + "), () => onReceive(rows))}
+        </>
+      );
     return (
-      <div className="flex flex-wrap items-center gap-3">
-        <span>
-          {sale.balanceCents > 0
-            ? `Falta pagar ${money(sale.balanceCents)}`
-            : sale.chargedCents
-              ? sale.lastReceipt
-                ? `Pago em ${formatDateOnlyBR(sale.lastReceipt.date)} · ${sale.lastReceipt.method}`
-                : "Sem saldo a receber"
-              : "Bolsa integral"}
-        </span>
-        {sale.balanceCents === 0 && sale.chargedCents > 0 && (
-          <strong>{money(sale.chargedCents)}</strong>
-        )}
-        {rows.length > 0 && (
-          <Button size="sm" variant="secondary" onClick={() => onReceive(rows)}>
-            Registrar pagamento
-          </Button>
+      <div className={styles.settled}>
+        <strong>
+          {sale.lastReceipt && <CheckCircle2 aria-hidden />}
+          {sale.chargedCents ? money(sale.chargedCents) : "Bolsa integral"}
+        </strong>
+        {sale.lastReceipt ? (
+          <span>
+            Pago em {formatDateOnlyBR(sale.lastReceipt.date)} · {sale.lastReceipt.method}
+          </span>
+        ) : (
+          sale.chargedCents > 0 && (
+            <span>{sale.balanceCents > 0 ? "A pagar" : "Sem saldo a receber"}</span>
+          )
         )}
       </div>
     );
@@ -178,25 +194,27 @@ function BookList({
   const slots = data.plannedBooks.map((book) => {
     const sale = saleFor(book.contractId, book.stageId);
     if (sale) shownOrders.add(sale.id);
+    const name = book.name ?? "Livro a definir";
     return (
       <li key={book.contractId + book.semester}>
-        <div>
+        <div className={styles.identity}>
+          <strong>{name}</strong>
           <span>{book.semester}º semestre</span>
-          <strong>{book.name ?? "Livro a definir"}</strong>
         </div>
         {sale ? (
           payment(sale)
         ) : (
-          <div className="flex flex-wrap items-center gap-3">
-            <span>
-              {book.acquisitionSemester
-                ? `Pagamento no ${book.acquisitionSemester}º semestre`
-                : "Data em aberto"}
-            </span>
-            <Button size="sm" variant="secondary" onClick={() => onPay(book)}>
-              Registrar pagamento
-            </Button>
-          </div>
+          <>
+            <div className={styles.payment}>
+              {book.agreedPriceCents && <strong>{money(book.agreedPriceCents)}</strong>}
+              <span>
+                {book.acquisitionSemester
+                  ? `Pagamento no ${book.acquisitionSemester}º semestre`
+                  : "Pagamento sem data definida"}
+              </span>
+            </div>
+            {receiptAction(name, () => onPay(book))}
+          </>
         )}
       </li>
     );
@@ -223,7 +241,9 @@ function BookList({
           <ul className={styles.books}>
             {history.map((sale) => (
               <li key={sale.id}>
-                <strong>{sale.books.map((book) => book.name).join(" + ")}</strong>
+                <div className={styles.identity}>
+                  <strong>{sale.books.map((book) => book.name).join(" + ")}</strong>
+                </div>
                 {payment(sale)}
               </li>
             ))}

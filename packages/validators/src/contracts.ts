@@ -126,12 +126,7 @@ export const createMonthlyContractInputSchema = z
         z
           .object({
             stageId: z.string().uuid().nullable(),
-            agreedPriceCents: z
-              .number()
-              .int()
-              .positive()
-              .max(MAX_PERSISTED_AMOUNT_CENTS)
-              .optional(),
+            agreedPriceCents: z.number().int().positive().max(MAX_PERSISTED_AMOUNT_CENTS).nullish(),
             acquisitionSemester: z.number().int().positive().nullable(),
             acquisition: contractMaterialInputSchema.optional(),
           })

@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { Button, DialogBody, DialogFooter, Field, Input, Label } from "@lazuli/ui";
+import { Button, CurrencyInput, DialogBody, DialogFooter, Field, Input, Label } from "@lazuli/ui";
 import { addContractMaterialInputSchema, type ContractMaterialInput } from "@lazuli/validators";
 import { BookReceiptTerms, initialBookTerms } from "~/features/contracts/book-receipt-terms";
 import { SemesterBookSearch } from "~/features/contracts/semester-books";
@@ -35,8 +35,8 @@ export function MaterialReceipt({
   const prices = trpc.finance.readMaterialPrice.useQuery();
   const mutation = trpc.finance.addContractMaterial.useMutation();
   const stage = catalog.data?.find((s) => s.id === stageId);
-  const [manualPrice, setManualPrice] = useState("");
-  const base = target.agreedPriceCents ?? Math.round(Number(manualPrice) * 100);
+  const [manualPrice, setManualPrice] = useState<number | null>(null);
+  const base = target.agreedPriceCents ?? manualPrice ?? 0;
   const agreed = { cashCents: base, version: "AGREED_PRICE" };
   const priceList =
     prices.data ??
@@ -79,6 +79,7 @@ export function MaterialReceipt({
             <Label>Data do pagamento</Label>
             <Input
               name="material-paid-on"
+              autoFocus={Boolean(target.stageId)}
               type="date"
               max={today}
               value={date}
@@ -88,14 +89,11 @@ export function MaterialReceipt({
           {prices.data === null && !target.agreedPriceCents && (
             <Field name="material-price">
               <Label>Valor combinado (R$)</Label>
-              <Input
+              <CurrencyInput
                 name="material-price"
-                type="number"
-                min="0.01"
-                step="0.01"
                 value={manualPrice}
-                onChange={(e) => {
-                  setManualPrice(e.target.value);
+                onValueChange={(value) => {
+                  setManualPrice(value);
                   setEdited(undefined);
                 }}
               />

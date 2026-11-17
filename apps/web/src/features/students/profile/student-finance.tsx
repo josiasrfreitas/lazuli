@@ -287,7 +287,10 @@ function FinanceManagementActions({
   const showNegotiate = installmentColumnMode(state.situations) !== "paid";
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
+      <PopoverTrigger
+        id="student-finance-actions"
+        render={<Button variant="secondary" size="sm" />}
+      >
         <Ellipsis aria-hidden="true" /> Outras ações
       </PopoverTrigger>
       <PopoverContent align="end" size="menu">
