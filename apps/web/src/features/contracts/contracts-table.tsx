@@ -171,7 +171,7 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
               key={`${placement.classCode}-${placement.stageCode}`}
               className="block break-words"
             >
-              {placement.stageCode} · {placement.classCode}
+              {placement.description ?? placement.stageCode}
             </span>
           ))
         : "—",
@@ -239,7 +239,7 @@ function ContractGroup({
           </h2>
           <span className="text-xs text-muted-foreground">
             {first.student.placements
-              .map((p) => [p.modality, p.classCode, p.stageCode].filter(Boolean).join(" · "))
+              .map((p) => [p.modality, p.description ?? p.stageCode].filter(Boolean).join(" · "))
               .join(" · ")}
           </span>
         </div>

@@ -25,7 +25,12 @@ export type ContractListRow = {
   student: {
     id: string;
     fullName: string;
-    placements: Array<{ stageCode: string; classCode: string; modality?: string }>;
+    placements: Array<{
+      stageCode: string;
+      classCode: string;
+      description?: string;
+      modality?: string;
+    }>;
   };
   agreedOn: string;
   startsOn: string;
@@ -84,10 +89,21 @@ export const contractSelect = {
         select: {
           entryDate: true,
           exitDate: true,
-          class: { select: { portalClassName: true, scheduleType: true } },
+          class: {
+            select: {
+              portalClassName: true,
+              scheduleType: true,
+              teacher: { select: { name: true } },
+              scheduleSlots: {
+                where: { deletedAt: null },
+                orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+                select: { weekday: true, startTime: true, endTime: true },
+              },
+            },
+          },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
-            select: { stage: { select: { internalCode: true } } },
+            select: { stage: { select: { internalCode: true, name: true } } },
           },
         },
       },
@@ -134,6 +150,32 @@ export const contractSelect = {
 
 export type SelectedContract = Prisma.ContractGetPayload<{ select: typeof contractSelect }>;
 
+const weekdays = {
+  MONDAY: "segunda-feira",
+  TUESDAY: "terça-feira",
+  WEDNESDAY: "quarta-feira",
+  THURSDAY: "quinta-feira",
+  FRIDAY: "sexta-feira",
+  SATURDAY: "sábado",
+  SUNDAY: "domingo",
+};
+const dayList = new Intl.ListFormat("pt-BR", { type: "conjunction" });
+
+function classSchedule(
+  slots: SelectedContract["student"]["enrollments"][number]["class"]["scheduleSlots"],
+): string {
+  const daysByTime = new Map<string, string[]>();
+  for (const slot of slots) {
+    const hours = `${slot.startTime.toISOString().slice(11, 16)} às ${slot.endTime.toISOString().slice(11, 16)}`;
+    const days = daysByTime.get(hours) ?? [];
+    days.push(weekdays[slot.weekday]);
+    daysByTime.set(hours, days);
+  }
+  return Array.from(daysByTime, ([hours, days]) => `${dayList.format(days)}, das ${hours}`).join(
+    " / ",
+  );
+}
+
 function academicPlacements(
   student: SelectedContract["student"],
   now: Date,
@@ -147,6 +189,13 @@ function academicPlacements(
     )
     .flatMap((enrollment) =>
       enrollment.progressRecords.map((progress) => ({
+        description: [
+          progress.stage.name,
+          classSchedule(enrollment.class.scheduleSlots),
+          enrollment.class.teacher.name,
+        ]
+          .filter(Boolean)
+          .join(" · "),
         stageCode: progress.stage.internalCode,
         classCode: enrollment.class.portalClassName,
         modality: enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
