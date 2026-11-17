@@ -1,6 +1,6 @@
 import { searchIds } from "../search.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
-import { saoPauloDateOnly } from "@lazuli/domain";
+import { findNextStageInTrack, saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
 import {
   assignedTeacherIdOn,
@@ -114,6 +114,10 @@ export async function readClass(input: ReadClassInput): Promise<
     occupancy: number;
     scheduledEntries: number;
     currentTeacher: { id: string; name: string } | null;
+    books: {
+      current: { id: string; name: string } | null;
+      next: { id: string; name: string } | null;
+    };
   }
 > {
   const row = await input.database.class.findFirst({
@@ -124,19 +128,38 @@ export async function readClass(input: ReadClassInput): Promise<
   });
   if (row === null) throw notFound(CLASS_NOT_FOUND_MESSAGE);
   const today = new Date(saoPauloDateOnly(input.now));
-  const [occupancy, scheduledEntries] = await Promise.all([
+  const [occupancy, scheduledEntries, books] = await Promise.all([
     input.database.enrollment.count({
       where: { classId: input.id, ...currentEnrollmentWhere(today) },
     }),
     input.database.enrollment.count({
       where: { classId: input.id, deletedAt: null, entryDate: { gt: today } },
     }),
+    classBooks(input.database, row),
   ]);
   return {
     ...row,
     currentTeacher: usualTeacherOn(row, today),
     occupancy,
     scheduledEntries,
+    books,
+  };
+}
+
+async function classBooks(database: Database, row: ClassBase) {
+  if (row.scheduleType === "PERSONALIZED" || !row.sharedStage) {
+    return { current: null, next: null };
+  }
+  const stages = await database.stage.findMany({
+    where: { deletedAt: null, track: { stages: { some: { id: row.sharedStage.id } } } },
+    select: { id: true, name: true, internalCode: true, sequence: true },
+    orderBy: { sequence: "asc" },
+  });
+  const next = findNextStageInTrack({ stages, currentStageId: row.sharedStage.id });
+  const following = stages.find((stage) => stage.id === next?.id);
+  return {
+    current: { id: row.sharedStage.id, name: row.sharedStage.name },
+    next: following ? { id: following.id, name: following.name } : null,
   };
 }
 
