@@ -85,7 +85,7 @@
   color: var(--over-capacity);
 }
 .healthIcon,
-.missingIcon,
+.markedIcon,
 .contractIcon {
   position: relative;
 }
@@ -106,7 +106,7 @@
   color: var(--warning);
 }
 .healthIcon > .iconAttention,
-.missingIcon > .iconAttention {
+.markedIcon > .iconAttention {
   position: absolute;
   right: -0.125rem;
   bottom: -0.125rem;

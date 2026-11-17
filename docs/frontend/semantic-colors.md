@@ -125,5 +125,6 @@ recording a lesson does not change its modality color. Selection uses an outline
 time line uses `selection-indicator` rather than a warning role.
 
 Home pending contract icons use `contract-surface` / `contract-foreground` (orange). A question
-mark accompanies icons for missing records, documents, contracts, or assignments; its shape
-identifies missing information independently of the category color.
+mark accompanies icons for missing records, documents, or assignments; its shape identifies
+missing information independently of the category color. Pending contracts and class planning
+reviews use an exclamation mark to call attention to the action required.

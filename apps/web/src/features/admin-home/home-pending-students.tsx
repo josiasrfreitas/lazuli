@@ -76,7 +76,8 @@ function StudentsSummary({
       <PendingIcon
         icon={Icon}
         className={financial ? styles.contractIcon : ""}
-        missing
+        missing={!financial}
+        attention={financial}
       >
         {financial && <DollarSign className={styles.contractCurrency} aria-hidden="true" />}
       </PendingIcon>

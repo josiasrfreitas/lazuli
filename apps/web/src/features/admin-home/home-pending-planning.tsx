@@ -4,6 +4,7 @@ import { ArrowRight, BookOpen, ChevronDown } from "lucide-react";
 import { trpc } from "~/lib/trpc";
 import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
+import { PendingIcon } from "./home-pending-icon";
 import { PendingPagination, PENDING_PAGE_SIZE } from "./home-pending-pagination";
 import styles from "./home-pending.module.css";
 
@@ -24,9 +25,7 @@ export function PendingPlanning({ group }: { group: HomeGroup | undefined }): Re
           onOpenChange={setOpen}
           summary={
             <>
-              <span className={`${styles.icon} ${styles.planningIcon}`}>
-                <BookOpen aria-hidden="true" />
-              </span>
+              <PendingIcon icon={BookOpen} className={styles.planningIcon} attention />
               <span className={styles.identity}>
                 <strong>Turmas com planejamento a revisar</strong>
                 <span>
