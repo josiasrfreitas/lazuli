@@ -111,7 +111,7 @@ function MaterialBook({
   );
 }
 
-function materialBookOptions(options: Props["options"]): BookSelectionProps["books"] {
+export function materialBookOptions(options: Props["options"]): BookSelectionProps["books"] {
   return (options ?? []).map((stage) => ({
     id: stage.id,
     label: `${stage.name} · ${stage.internalCode}`,
@@ -157,7 +157,7 @@ type BookSelectionProps = {
   errors: Props["errors"];
 };
 
-function MaterialBookSelection({
+export function MaterialBookSelection({
   selected,
   id,
   index,
@@ -181,11 +181,13 @@ function MaterialBookSelection({
         value={value}
         query={query}
         onQueryChange={setQuery}
-        options={books.filter(
-          (book) =>
-            (book.id === id || !selected.includes(book.id)) &&
-            normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
-        )}
+        options={books
+          .filter(
+            (book) =>
+              (book.id === id || !selected.includes(book.id)) &&
+              normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
+          )
+          .slice(0, 5)}
         onSelect={(book) => select(book.id)}
         onClear={remove}
         loading={pending}

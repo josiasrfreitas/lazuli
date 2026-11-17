@@ -1,4 +1,5 @@
 "use client";
+import { MaterialBookSelection, materialBookOptions } from "./material-book-fields";
 import { BookAgreement, bookQuote } from "./book-agreement";
 import { useEffect, useState, type ReactElement } from "react";
 import { materialFinalPriceQuote } from "@lazuli/domain";
@@ -76,30 +77,16 @@ export function SemesterBooks({
       {rows.map((book, i) => (
         <fieldset key={i} className="grid gap-3 border-t border-border py-3 sm:grid-cols-2">
           <legend className="pr-3 font-semibold">{i + 1}º semestre</legend>
-          <label className="grid gap-1">
-            Livro
-            <select
-              className={control}
-              value={book.stageId ?? ""}
-              onChange={(e) =>
-                update(i, {
-                  stageId: e.target.value || null,
-                  acquisitionSemester: book.acquisitionSemester,
-                })
-              }
-            >
-              <option value="">A definir</option>
-              {catalog.map((stage) => (
-                <option
-                  key={stage.id}
-                  value={stage.id}
-                  disabled={rows.some((r, j) => j !== i && r.stageId === stage.id)}
-                >
-                  {stage.name} · {stage.track.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SemesterBookSearch
+            index={i}
+            catalog={catalog}
+            selected={rows.map((row) => row.stageId ?? "")}
+            pending={material.stages.isLoading}
+            failed={material.stages.isError}
+            onChange={(stageId) =>
+              update(i, { stageId: stageId || null, acquisitionSemester: book.acquisitionSemester })
+            }
+          />
           <label className="grid gap-1">
             Aquisição
             <select
@@ -181,5 +168,38 @@ export function SemesterBooks({
       {quoteError && <p role="alert">{quoteError}</p>}
       {errors.materialBooks && <p role="alert">{errors.materialBooks}</p>}
     </section>
+  );
+}
+
+function SemesterBookSearch({
+  index,
+  catalog,
+  selected,
+  pending,
+  failed,
+  onChange,
+}: {
+  index: number;
+  catalog: NonNullable<SetupMaterial["stages"]["data"]>;
+  selected: string[];
+  pending: boolean;
+  failed: boolean;
+  onChange: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const books = materialBookOptions(catalog);
+  const id = selected[index] ?? "";
+  const choose = (id: string) => {
+    onChange(id);
+    setQuery("");
+  };
+  return (
+    <MaterialBookSelection
+      {...{ index, selected, id, books, query, setQuery, pending, failed }}
+      value={books.find((b) => b.id === id) ?? null}
+      select={choose}
+      remove={() => choose("")}
+      errors={{}}
+    />
   );
 }
