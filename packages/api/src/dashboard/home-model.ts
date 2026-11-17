@@ -114,7 +114,7 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: false,
   },
   contracts: {
-    title: "Primeiro contrato a criar",
+    title: "Contratos a criar",
     description: "Alunos ativos sem nenhum contrato registrado.",
     area: "finance",
     attention: false,

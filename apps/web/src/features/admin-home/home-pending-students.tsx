@@ -1,6 +1,15 @@
 import { PENDING_PAGE_SIZE as PAGE_SIZE } from "./home-pending-pagination";
 import { useState, type ReactElement } from "react";
-import { ArrowRight, ChevronDown, FileText, FolderOpen, Plus, UserRoundPlus } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  CircleHelp,
+  DollarSign,
+  File,
+  FolderOpen,
+  Plus,
+  UserRoundPlus,
+} from "lucide-react";
 import { Badge, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
@@ -61,15 +70,28 @@ function StudentsSummary({
   kind: "students" | "contracts" | "documents";
 }): ReactElement {
   const { Icon, title, detail } = STUDENT_SUMMARIES[kind];
+  const missing = kind === "documents";
+  const financial = kind === "contracts";
   return (
     <>
-      <span className={styles.icon}>
+      <span
+        className={
+          missing
+            ? `${styles.icon} ${styles.missingIcon}`
+            : financial
+              ? `${styles.icon} ${styles.contractIcon}`
+              : styles.icon
+        }
+      >
         <Icon aria-hidden="true" />
+        {missing && <CircleHelp className={styles.iconAttention} aria-hidden="true" />}
+        {financial && <DollarSign className={styles.contractCurrency} aria-hidden="true" />}
       </span>
       <span className={styles.identity}>
         <strong>{title}</strong>
         <span>
-          {total} {total === 1 ? "aluno" : "alunos"} · {detail}
+          {total} {total === 1 ? "aluno" : "alunos"}
+          {detail && <> · {detail}</>}
         </span>
       </span>
       <span className={styles.action}>
@@ -80,7 +102,11 @@ function StudentsSummary({
 }
 
 const STUDENT_SUMMARIES = {
-  contracts: { Icon: FileText, title: "Criar primeiro contrato", detail: "sem contrato" },
+  contracts: {
+    Icon: File,
+    title: "Contratos a criar",
+    detail: null,
+  },
   documents: {
     Icon: FolderOpen,
     title: "Aluno com anexos cadastrais ausentes ou incompletos",

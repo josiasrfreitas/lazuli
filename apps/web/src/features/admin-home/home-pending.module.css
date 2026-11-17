@@ -84,12 +84,25 @@
   background: var(--over-capacity-muted);
   color: var(--over-capacity);
 }
-.healthIcon {
+.healthIcon,
+.missingIcon,
+.contractIcon {
   position: relative;
+}
+.contractIcon > .contractCurrency {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.625rem;
+  height: 0.625rem;
+  transform: translate(-50%, -35%);
+}
+.healthIcon {
   background: var(--warning-muted);
   color: var(--warning);
 }
-.healthIcon > .iconAttention {
+.healthIcon > .iconAttention,
+.missingIcon > .iconAttention {
   position: absolute;
   right: -0.125rem;
   bottom: -0.125rem;
