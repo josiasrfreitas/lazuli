@@ -17,7 +17,6 @@ import {
   DialogHeader,
   DialogPortal,
   DialogTitle,
-  DialogTrigger,
   InlineSkeleton,
 } from "@lazuli/ui";
 import { BookOpen, Plus } from "lucide-react";
@@ -55,9 +54,6 @@ export function StudentMaterials({
     contract?.schedules.find((row) => row.kind === "TUITION")?.firstDueDate ?? contract?.startsOn;
   return (
     <Dialog open={open} onOpenChange={materialOpenChange({ pending, setOpen, setAdding })}>
-      <DialogTrigger render={<Button size="sm" variant="secondary" />}>
-        <BookOpen aria-hidden="true" /> Material didático
-      </DialogTrigger>
       <DialogPortal>
         <div className={styles.dialogScope}>
           <DialogBackdrop data-student-materials-backdrop="" />

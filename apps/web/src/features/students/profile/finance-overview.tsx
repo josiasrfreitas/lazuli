@@ -43,14 +43,12 @@ export function FinanceOverview({
           )}
           hasDebt={summary.data.overdueCount > 0}
         />
-        <div className="flex flex-wrap items-center gap-2">
-          <StudentMaterials
-            studentId={profile.id}
-            studentName={profile.contact.fullName}
-            summary={summary.data}
-          />
-          <FinanceDetails summary={summary.data} profile={profile} />
-        </div>
+        <StudentMaterials
+          studentId={profile.id}
+          studentName={profile.contact.fullName}
+          summary={summary.data}
+        />
+        <FinanceDetails summary={summary.data} profile={profile} />
       </div>
       <div className={styles.overviewFacts}>
         <FinanceEssentials summary={summary.data} />

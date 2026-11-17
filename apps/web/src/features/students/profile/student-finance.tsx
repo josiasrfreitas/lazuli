@@ -1,7 +1,9 @@
 import { useState, type ReactElement } from "react";
+import { useQueryState } from "nuqs";
 import dynamic from "next/dynamic";
 import {
   ArrowRight,
+  BookOpen,
   Handshake,
   FilePenLine,
   FileText,
@@ -279,6 +281,8 @@ function FinanceManagementActions({
   onReversePayment: () => void;
 }): ReactElement | null {
   const [open, setOpen] = useState(false);
+  const [, setMaterial] = useQueryState("material");
+  const [, setDetails] = useQueryState("detalhesContrato");
   const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   const showNegotiate = installmentColumnMode(state.situations) !== "paid";
   return (
@@ -288,6 +292,30 @@ function FinanceManagementActions({
       </PopoverTrigger>
       <PopoverContent align="end" size="menu">
         <div className="grid min-w-64 gap-0.5">
+          {state.summary.data && (
+            <>
+              <button
+                type="button"
+                className={financeActionClassName}
+                onClick={() => {
+                  setOpen(false);
+                  void setMaterial("1");
+                }}
+              >
+                <BookOpen aria-hidden="true" /> Material didático
+              </button>
+              <button
+                type="button"
+                className={financeActionClassName}
+                onClick={() => {
+                  setOpen(false);
+                  void setDetails("1");
+                }}
+              >
+                <FileText aria-hidden="true" /> Contrato e detalhes
+              </button>
+            </>
+          )}
           {showNegotiate && (
             <button
               type="button"

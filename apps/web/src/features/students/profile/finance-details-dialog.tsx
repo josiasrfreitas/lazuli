@@ -1,9 +1,9 @@
 "use client";
 
+import { useQueryState } from "nuqs";
 import { useState, type ReactElement } from "react";
 import { FileText, ReceiptText } from "lucide-react";
 import {
-  Button,
   Dialog,
   DialogBackdrop,
   DialogBody,
@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogPortal,
   DialogTitle,
-  DialogTrigger,
   SegmentedControl,
   SegmentedControlItem,
 } from "@lazuli/ui";
@@ -34,7 +33,8 @@ export function FinanceDetails({
   summary: Summary;
   profile: StudentProfile;
 }): ReactElement {
-  const [open, setOpen] = useState(false);
+  const [requested, setRequested] = useQueryState("detalhesContrato");
+  const open = requested === "1";
   const [pending, setPending] = useState(false);
   const [view, setView] = useState<View>("contract");
   const receipts = trpc.finance.studentPayments.useInfiniteQuery(
@@ -48,14 +48,11 @@ export function FinanceDetails({
       onOpenChange={(next, event) => {
         if (pending) event.cancel();
         else {
-          setOpen(next);
-          if (next) setView("contract");
+          void setRequested(next ? "1" : null);
+          if (!next) setView("contract");
         }
       }}
     >
-      <DialogTrigger render={<Button variant="secondary" size="sm" />}>
-        <FileText aria-hidden="true" /> Contrato e detalhes
-      </DialogTrigger>
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
