@@ -11,6 +11,7 @@ import type { SetupMaterial } from "./contract-setup-material";
 type Book = {
   stageId: string | null;
   acquisitionSemester: number | null;
+  agreedPriceCents?: number | undefined;
   acquisition?: ContractMaterialInput;
 };
 export function contractBooks(value: string | undefined): Book[] {
@@ -26,18 +27,21 @@ export function SemesterBooks({
   const count = durationFromDates(fields) / 6;
   const stored = contractBooks(fields.materialBooks);
   const suggestions = fields.materialStageIds.split(",");
-  const rows = Array.from(
-    { length: count },
-    (_, i) => stored[i] ?? { stageId: suggestions[i] || null, acquisitionSemester: null },
-  );
+  const catalog = material.stages.data ?? [];
+  const prices = material.prices.data;
+  const rows: Book[] = Array.from({ length: count }, (_, i) => {
+    const book = stored[i] ?? { stageId: suggestions[i] || null, acquisitionSemester: null };
+    const stage = catalog.find((s) => s.id === book.stageId);
+    if (!stage || !prices || book.acquisition || book.agreedPriceCents) return book;
+    const reference = initialBookTerms(stage, prices).expectedTotalCents;
+    return reference > 0 ? { ...book, agreedPriceCents: reference } : book;
+  });
   const serialized = JSON.stringify(rows);
   useEffect(() => {
     if (fields.materialBooks !== serialized) change("materialBooks", serialized);
   }, [serialized, change, fields.materialBooks]);
   const update = (index: number, row: Book) =>
     change("materialBooks", JSON.stringify(rows.map((old, i) => (i === index ? row : old))));
-  const catalog = material.stages.data ?? [];
-  const prices = material.prices.data;
   return (
     <section className="grid gap-4">
       <p>Indique quando cada livro será pago.</p>
@@ -73,13 +77,37 @@ export function SemesterBooks({
               const stage = catalog.find((s) => s.id === book.stageId);
               if (value === "now" && stage && prices)
                 update(i, {
-                  ...book,
+                  stageId: book.stageId,
                   acquisitionSemester: null,
-                  acquisition: initialBookTerms(stage, prices),
+                  acquisition: {
+                    ...initialBookTerms(stage, prices),
+                    priceOverrideCents: book.agreedPriceCents,
+                  },
                 });
-              else update(i, { stageId: book.stageId, acquisitionSemester: Number(value) || null });
+              else
+                update(i, {
+                  stageId: book.stageId,
+                  agreedPriceCents: book.agreedPriceCents ?? book.acquisition?.priceOverrideCents,
+                  acquisitionSemester: Number(value) || null,
+                });
             }}
           />
+          {!book.acquisition && book.stageId && (
+            <label className="grid max-w-48 gap-1">
+              Valor combinado (R$)
+              <input
+                className="h-9 rounded-sm border border-input bg-field px-2"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={book.agreedPriceCents === undefined ? "" : book.agreedPriceCents / 100}
+                onChange={(e) => {
+                  const n = e.target.valueAsNumber;
+                  if (n > 0) update(i, { ...book, agreedPriceCents: Math.round(n * 100) });
+                }}
+              />
+            </label>
+          )}
           {book.acquisition && prices && (
             <BookReceiptTerms
               terms={book.acquisition}

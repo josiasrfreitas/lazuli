@@ -2119,6 +2119,7 @@ model ContractBook {
   semester Int
   stageId String? @map("stage_id") @db.Uuid
   acquisitionSemester Int? @map("acquisition_semester")
+  agreedPriceCents Int? @map("agreed_price_cents")
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Restrict)
   stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
   @@id([contractId, semester])

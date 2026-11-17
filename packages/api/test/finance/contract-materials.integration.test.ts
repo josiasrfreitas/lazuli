@@ -933,3 +933,79 @@ void it("reserves one book per semester and bills a deferred acquisition only on
     assert.equal(detail.orders.filter((order) => order.kind === "MATERIAL").length, 2);
   });
 });
+
+void it("settles payment at signing and receives scheduled and open-date books once on their actual payment date", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const stage = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
+    const later = [];
+    for (const sequence of [2, 3])
+      later.push(
+        await tx.stage.create({
+          data: {
+            trackId: stage.trackId,
+            name: "Book " + sequence,
+            internalCode: "BOOK" + sequence,
+            sequence,
+          },
+        }),
+      );
+    const price = (await service.readMaterialPrice())!.adult;
+    const terms = {
+      stageIds: [stageId],
+      category: "ADULT" as const,
+      payment: "CASH" as const,
+      installmentCount: 1,
+      quoteVersion: price.version,
+      expectedTotalCents: price.cashCents,
+      receivedMethod: "PIX",
+    };
+    const input = {
+      ...values,
+      durationMonths: 18,
+      books: [
+        { stageId, acquisitionSemester: null, acquisition: terms },
+        { stageId: later[0]!.id, acquisitionSemester: 2, agreedPriceCents: 50000 },
+        { stageId: later[1]!.id, acquisitionSemester: null, agreedPriceCents: 50000 },
+      ],
+    };
+    const contract = await service.createMonthlyContract(input);
+    await service.createMonthlyContract(input);
+    assert.equal(await tx.paymentEntry.count({ where: { payerId: values.payerId } }), 1);
+    assert.equal(contract.materials.length, 1);
+    for (const [i, book] of later.entries()) {
+      const payment = {
+        commandId: randomUUID(),
+        contractId: contract.id,
+        semester: i + 2,
+        firstDueDate: "2026-02-03",
+        material: { ...terms, stageIds: [book.id], priceOverrideCents: 50000 },
+      };
+      const saved = await service.addContractMaterial(payment);
+      assert.deepEqual(await service.addContractMaterial(payment), saved);
+      await assert.rejects(
+        service.addContractMaterial({ ...payment, commandId: randomUUID() }),
+        /já foi adquirido/,
+      );
+    }
+    const payments = await tx.paymentEntry.findMany({
+      where: { payerId: values.payerId },
+      orderBy: { date: "asc" },
+    });
+    assert.deepEqual(
+      payments.map((p) => [p.method, p.amountCents, p.date.toISOString().slice(0, 10)]),
+      [
+        ["PIX", price.cashCents, values.agreedOn],
+        ["PIX", 50000, "2026-02-03"],
+        ["PIX", 50000, "2026-02-03"],
+      ],
+    );
+    const materials = await service.studentMaterials({
+      studentId: values.studentId,
+      now: new Date("2026-02-04T14:00:00Z"),
+    });
+    assert.equal(materials.acquisitions.length, 3);
+    assert.equal(materials.openMaterialRows.length, 0);
+    assert.ok(materials.acquisitions.every((order) => order.balanceCents === 0));
+  });
+});

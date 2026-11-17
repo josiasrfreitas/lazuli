@@ -257,6 +257,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
               semester: index + 1,
               stageId: book.stageId,
               acquisitionSemester: book.acquisitionSemester,
+              agreedPriceCents: book.agreedPriceCents ?? null,
             })),
           }
         : undefined,

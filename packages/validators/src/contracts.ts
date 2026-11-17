@@ -46,7 +46,7 @@ export const contractMaterialInputSchema = z
       .int("Informe um número inteiro de parcelas.")
       .min(1, "Informe pelo menos uma parcela.")
       .max(MAX_PERSISTED_AMOUNT_CENTS),
-    quoteVersion: z.string().regex(/^[a-f0-9]{64}$/u),
+    quoteVersion: z.union([z.string().regex(/^[a-f0-9]{64}$/u), z.literal("AGREED_PRICE")]),
     expectedTotalCents: z.number().int().nonnegative().max(MAX_PERSISTED_AMOUNT_CENTS),
     priceOverrideCents: z
       .number()
@@ -126,6 +126,12 @@ export const createMonthlyContractInputSchema = z
         z
           .object({
             stageId: z.string().uuid().nullable(),
+            agreedPriceCents: z
+              .number()
+              .int()
+              .positive()
+              .max(MAX_PERSISTED_AMOUNT_CENTS)
+              .optional(),
             acquisitionSemester: z.number().int().positive().nullable(),
             acquisition: contractMaterialInputSchema.optional(),
           })

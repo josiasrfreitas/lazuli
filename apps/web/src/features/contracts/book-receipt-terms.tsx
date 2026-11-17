@@ -28,14 +28,17 @@ export function BookReceiptTerms({
   terms,
   prices,
   change,
+  allowAgreement = true,
 }: {
   terms: ContractMaterialInput;
   prices: Prices;
+  allowAgreement?: boolean;
   change: (terms: ContractMaterialInput) => void;
 }) {
   const id = useId();
   const methods = trpc.finance.paymentMethods.useQuery();
   const [error, setError] = useState("");
+  const manual = terms.quoteVersion === "AGREED_PRICE";
   const amount = bookQuote(terms, prices).charged;
   function update(next: ContractMaterialInput) {
     try {
@@ -70,12 +73,32 @@ export function BookReceiptTerms({
           }}
         />
       )}
+      {manual && terms.payment === "INSTALLMENTS" && (
+        <label className="grid gap-1">
+          Taxa do cartão (%)
+          <input
+            className="h-9 rounded-sm border border-input bg-field px-2"
+            type="number"
+            min="0"
+            max="99.99"
+            step="0.01"
+            value={terms.cardFeeOverridePct ?? ""}
+            onChange={(e) => {
+              const n = e.target.valueAsNumber;
+              if (n >= 0 && n < 100) update({ ...terms, cardFeeOverridePct: n });
+            }}
+          />
+        </label>
+      )}
       {terms.payment === "INSTALLMENTS" && (
         <SelectControl
           name={id + "-parcelas"}
           label="Parcelas no cartão"
           value={String(terms.installmentCount)}
-          choices={Object.keys(prices.cardFeeRates)
+          choices={(manual
+            ? Array.from({ length: 12 }, (_, i) => String(i + 1))
+            : Object.keys(prices.cardFeeRates)
+          )
             .sort((a, b) => Number(a) - Number(b))
             .map((n) => ({ value: n, label: n + "×" }))}
           onChange={(n) => update({ ...terms, installmentCount: Number(n) })}
@@ -84,7 +107,7 @@ export function BookReceiptTerms({
       <p className="self-end text-sm">
         {amount > 0 ? "Valor pago" : "Bolsa integral"} · <strong>{money(amount)}</strong>
       </p>
-      <BookAgreement terms={terms} change={update} />
+      {allowAgreement && <BookAgreement terms={terms} change={update} />}
       {methods.isError && (
         <button type="button" onClick={() => void methods.refetch()}>
           Tentar carregar formas de pagamento

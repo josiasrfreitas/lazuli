@@ -12,6 +12,7 @@ export type MaterialTarget = {
   semester?: number;
   stageId: string | null;
   name?: string | null;
+  agreedPriceCents?: number | null;
 };
 
 export function MaterialReceipt({
@@ -34,7 +35,20 @@ export function MaterialReceipt({
   const prices = trpc.finance.readMaterialPrice.useQuery();
   const mutation = trpc.finance.addContractMaterial.useMutation();
   const stage = catalog.data?.find((s) => s.id === stageId);
-  const terms = edited ?? (stage && prices.data ? initialBookTerms(stage, prices.data) : undefined);
+  const [manualPrice, setManualPrice] = useState("");
+  const base = target.agreedPriceCents ?? Math.round(Number(manualPrice) * 100);
+  const agreed = { cashCents: base, version: "AGREED_PRICE" };
+  const priceList =
+    prices.data ??
+    (prices.data === null && base > 0 ? { adult: agreed, child: agreed, cardFeeRates: {} } : null);
+  const terms =
+    edited ??
+    (stage && priceList
+      ? {
+          ...initialBookTerms(stage, priceList),
+          priceOverrideCents: target.agreedPriceCents ?? (prices.data === null ? base : undefined),
+        }
+      : undefined);
   const input = addContractMaterialInputSchema.safeParse({
     commandId: command.current,
     contractId: target.contractId,
@@ -71,13 +85,29 @@ export function MaterialReceipt({
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          {terms && prices.data && (
-            <BookReceiptTerms terms={terms} prices={prices.data} change={setEdited} />
+          {prices.data === null && !target.agreedPriceCents && (
+            <Field name="material-price">
+              <Label>Valor combinado (R$)</Label>
+              <Input
+                name="material-price"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={manualPrice}
+                onChange={(e) => {
+                  setManualPrice(e.target.value);
+                  setEdited(undefined);
+                }}
+              />
+            </Field>
           )}
-          {prices.data === null && (
-            <p role="status">
-              Cadastre os preços dos livros em Ajustes financeiros para registrar o pagamento.
-            </p>
+          {terms && priceList && (
+            <BookReceiptTerms
+              terms={terms}
+              prices={priceList}
+              change={setEdited}
+              allowAgreement={false}
+            />
           )}
           {(prices.isError || catalog.isError) && (
             <Button
@@ -99,6 +129,9 @@ export function MaterialReceipt({
         </Button>
         <Button
           disabled={
+            (terms?.quoteVersion === "AGREED_PRICE" &&
+              terms.payment === "INSTALLMENTS" &&
+              terms.cardFeeOverridePct === undefined) ||
             !input.success ||
             !terms ||
             (!terms.receivedMethod && terms.scholarshipPct !== 100) ||

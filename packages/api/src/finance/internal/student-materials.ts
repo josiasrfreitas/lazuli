@@ -57,6 +57,7 @@ type StudentMaterialsResult = {
     stageId: string | null;
     name: string | null;
     acquisitionSemester: number | null;
+    agreedPriceCents: number | null;
     acquired: boolean;
   }[];
   acquiredCount: number;
@@ -101,6 +102,7 @@ export async function readStudentMaterials(
         semester: true,
         stageId: true,
         acquisitionSemester: true,
+        agreedPriceCents: true,
         stage: { select: { name: true } },
       },
       orderBy: [{ contract: { startsOn: "asc" } }, { semester: "asc" }],
@@ -139,6 +141,7 @@ export async function readStudentMaterials(
       stageId: slot.stageId,
       name: slot.stage?.name ?? null,
       acquisitionSemester: slot.acquisitionSemester,
+      agreedPriceCents: slot.agreedPriceCents,
       acquired: Boolean(slot.stageId && acquired.has(slot.stageId)),
     })),
     current,
