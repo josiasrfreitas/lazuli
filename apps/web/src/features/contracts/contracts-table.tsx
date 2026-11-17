@@ -265,7 +265,7 @@ function ContractGroup({
                       <span className="whitespace-nowrap text-sm text-muted-foreground">
                         {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
                       </span>
-                      <ContractFinancialStatus row={row} />
+                      {row.status !== "INADIMPLENTE" && <ContractFinancialStatus row={row} />}
                     </div>
                   </div>
                   <Link
