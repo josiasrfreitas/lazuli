@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { bookQuote } from "./book-agreement";
 import { contractBooks } from "./semester-books";
 import {
   Button,
@@ -433,7 +434,7 @@ function ReviewMaterial({
               {i + 1}º semestre ·{" "}
               {material.stages.data?.find((s) => s.id === b.stageId)?.name ?? "Livro a definir"} ·{" "}
               {b.acquisition
-                ? `Aquisição de ${money(b.acquisition.expectedTotalCents)}`
+                ? `Aquisição de ${money(material.prices.data ? bookQuote(b.acquisition, material.prices.data).charged : b.acquisition.expectedTotalCents)}`
                 : b.acquisitionSemester
                   ? `Previsto para o ${b.acquisitionSemester}º semestre`
                   : "Data em aberto"}

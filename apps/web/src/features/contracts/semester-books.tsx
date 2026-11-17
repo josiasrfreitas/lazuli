@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, type ReactElement } from "react";
+import { BookAgreement, bookQuote } from "./book-agreement";
+import { useEffect, useState, type ReactElement } from "react";
 import { materialFinalPriceQuote } from "@lazuli/domain";
 import type { ContractMaterialInput } from "@lazuli/validators";
 import { formatBRLFromCents as money } from "~/lib/format";
@@ -22,6 +23,7 @@ export function SemesterBooks({
   errors,
   material,
 }: Pick<FormProps, "fields" | "change" | "errors"> & { material: SetupMaterial }): ReactElement {
+  const [quoteError, setQuoteError] = useState("");
   const count = durationFromDates(fields) / 6;
   const stored = contractBooks(fields.materialBooks);
   const suggestions = fields.materialStageIds.split(",");
@@ -152,11 +154,31 @@ export function SemesterBooks({
                     </option>
                   ))}
               </select>
-              <span>{money(book.acquisition.expectedTotalCents)}</span>
+              <span>{prices && money(bookQuote(book.acquisition, prices).charged)}</span>
             </label>
+          )}
+          {book.acquisition && prices && (
+            <BookAgreement
+              terms={book.acquisition}
+              change={(terms) => {
+                try {
+                  const quote = bookQuote(terms, prices);
+                  update(i, {
+                    ...book,
+                    acquisition: { ...terms, expectedTotalCents: quote.reference },
+                  });
+                  setQuoteError("");
+                } catch {
+                  setQuoteError(
+                    "Confira o preço, a taxa e a bolsa. A última condição válida foi mantida.",
+                  );
+                }
+              }}
+            />
           )}
         </fieldset>
       ))}
+      {quoteError && <p role="alert">{quoteError}</p>}
       {errors.materialBooks && <p role="alert">{errors.materialBooks}</p>}
     </section>
   );
