@@ -49,6 +49,30 @@ export async function searchAddresses(query: string): Promise<AddressSuggestion[
 
 /** Suggestions are transient; fetch storage-authorized details before persisting an address. */
 export async function resolveAddress(placeId: string): Promise<ResolvedAddress> {
+  const result = await storedPlace(placeId);
+  return toResolvedAddress(result.Address);
+}
+
+export async function resolveAddressLocation(placeId: string): Promise<{
+  label: string;
+  latitude: number;
+  longitude: number;
+}> {
+  const result = await storedPlace(placeId);
+  const [longitude, latitude] = result.Position ?? [];
+  if (
+    latitude === undefined ||
+    longitude === undefined ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  )
+    throw new Error("Address coordinates unavailable");
+  return { label: result.Address.Label ?? "", latitude, longitude };
+}
+
+async function storedPlace(placeId: string): Promise<GetPlaceCommandOutput & { Address: NonNullable<GetPlaceCommandOutput["Address"]> }> {
   const result = await places().send(
     new GetPlaceCommand({
       PlaceId: placeId,
@@ -59,7 +83,7 @@ export async function resolveAddress(placeId: string): Promise<ResolvedAddress> 
   );
   const address = result.Address;
   if (!address || address.Country?.Code3 !== "BRA") throw new Error("Address unavailable");
-  return toResolvedAddress(address);
+  return { ...result, Address: address };
 }
 
 function toResolvedAddress(

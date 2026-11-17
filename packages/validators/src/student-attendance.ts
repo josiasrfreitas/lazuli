@@ -20,6 +20,7 @@ const MIN_ACCURACY = 5;
 const MAX_ACCURACY = 500;
 export const attendanceSettingsSchema = z
   .object({
+    addressLabel: z.string().trim().max(500).nullable().optional(),
     latitude: z.number().finite().min(-MAX_LATITUDE).max(MAX_LATITUDE),
     longitude: z.number().finite().min(-MAX_LONGITUDE).max(MAX_LONGITUDE),
     radiusMeters: z.number().int().min(MIN_RADIUS).max(MAX_RADIUS),

@@ -165,6 +165,11 @@ docker run -d --name mailpit --network lazuli --restart unless-stopped \\
           Action: ["geo-places:Autocomplete", "geo-places:GetPlace"],
           Resource: "arn:aws:geo-places:us-east-2::provider/default",
         },
+        {
+          Effect: "Allow",
+          Action: ["geo-maps:GetTile"],
+          Resource: "arn:aws:geo-maps:us-east-2::provider/default",
+        },
       ],
     }),
   });

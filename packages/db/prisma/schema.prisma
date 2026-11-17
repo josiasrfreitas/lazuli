@@ -1495,6 +1495,7 @@ model AttendanceSettings {
   deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
   latitude          Float
   longitude         Float
+  addressLabel      String?   @map("address_label")
   radiusMeters      Int       @map("radius_meters")
   maxAccuracyMeters Int       @map("max_accuracy_meters")
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz

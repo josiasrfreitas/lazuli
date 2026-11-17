@@ -28,6 +28,7 @@
     "better-auth": "catalog:",
     "date-fns": "^4.4.0",
     "lucide-react": "catalog:",
+    "maplibre-gl": "6.18.0",
     "next": "catalog:",
     "nuqs": "catalog:",
     "pdfjs-dist": "^6.4.299",
