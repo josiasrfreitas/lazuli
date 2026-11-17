@@ -434,7 +434,7 @@ function ReviewMaterial({
               {i + 1}º semestre ·{" "}
               {material.stages.data?.find((s) => s.id === b.stageId)?.name ?? "Livro a definir"} ·{" "}
               {b.acquisition
-                ? `Aquisição de ${money(material.prices.data ? bookQuote(b.acquisition, material.prices.data).charged : b.acquisition.expectedTotalCents)}`
+                ? `Pago no ato · ${money(material.prices.data ? bookQuote(b.acquisition, material.prices.data).charged : b.acquisition.expectedTotalCents)}`
                 : b.acquisitionSemester
                   ? `Previsto para o ${b.acquisitionSemester}º semestre`
                   : "Data em aberto"}

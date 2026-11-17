@@ -126,7 +126,9 @@ export async function readStudentMaterials(
         .execute()
     : [];
   const beneficiaries = {
-    byOrder: new Map(unpaidOrders.map((id) => [id, [{ id: student.id, name: student.fullName }]])),
+    byOrder: new Map(
+      unpaidOrders.map((id) => [id, [{ studentId: student.id, fullName: student.fullName }]]),
+    ),
     ordered: [],
   };
   return {

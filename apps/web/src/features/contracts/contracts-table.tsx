@@ -323,8 +323,8 @@ function ContractGroup({
                             <p key={book.semester}>
                               {book.name ?? "Livro a definir"} ·{" "}
                               {book.acquisitionSemester
-                                ? `Aquisição no ${book.acquisitionSemester}º semestre`
-                                : "Aquisição em aberto"}
+                                ? `Pagamento no ${book.acquisitionSemester}º semestre`
+                                : "Data de pagamento em aberto"}
                             </p>
                           ))}
                       {!row.materialDue && !row.plannedBooks?.some((book) => !book.acquired) && (
