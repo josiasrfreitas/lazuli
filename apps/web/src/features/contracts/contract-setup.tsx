@@ -195,6 +195,7 @@ function useSetupData(props: Props): {
   const { state, offer } = props;
   const fields = props.fields ?? state.fields;
   const material = useSetupMaterial({
+    autoSuggest: !props.renewedFromId,
     fields,
     change: state.change,
     suggestedStageId: props.suggestedStageId,
@@ -455,7 +456,7 @@ function SetupHeader({
         <h2 tabIndex={-1}>{setupTitles[step]}</h2>
         <p>{introductions[step]}</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
         {step === "parties" && onRestoreTerms && (
           <Button
             type="button"

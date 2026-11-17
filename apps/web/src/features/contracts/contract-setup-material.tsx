@@ -196,12 +196,17 @@ export function useSetupMaterial({
   fields,
   change,
   suggestedStageId,
+  autoSuggest = true,
 }: Pick<MaterialProps, "fields" | "change"> & {
   suggestedStageId?: string | null | undefined;
+  autoSuggest?: boolean;
 }): SetupMaterial {
   const enabled = fields.materialPayment !== "NONE";
   const { prices, status, stages } = useMaterialQueries(fields);
-  const suggested = suggestedStageId ?? status.data?.suggestedStageId;
+  const suggested =
+    autoSuggest && fields.materialPayment !== "NONE"
+      ? (suggestedStageId ?? status.data?.suggestedStageId)
+      : null;
   useSuggestedStage({ fields, change, stages, suggested });
   const count = fields.materialStageIds.split(",").filter(Boolean).length;
   const unit = priceForCategory(fields.materialCategory, prices.data);
@@ -252,25 +257,27 @@ export function SetupMaterialFields({
   suggestedStageId?: string | null | undefined;
   allowNoAcquisition?: boolean;
 }): ReactElement {
-  const enabled = !allowNoAcquisition || fields.materialPayment !== "NONE";
+  const enabled = fields.materialPayment !== "NONE";
   return (
     <div className={materialStyles.root}>
-      {allowNoAcquisition && <MaterialAcquisitionChoice enabled={enabled} change={change} />}
       {allowNoAcquisition && <PreviousMaterial material={material} />}
-      <fieldset disabled={!enabled} className={materialStyles.layout} data-enabled={enabled}>
+      <fieldset className={materialStyles.layout}>
         <div className={materialStyles.controls}>
           <MaterialBooks fields={fields} errors={errors} change={change} material={material} />
-          <div className={materialStyles.terms}>
-            <MaterialCategory fields={fields} errors={errors} change={change} />
-            <MaterialPayment fields={fields} change={change} />
-            <MaterialInstallments
-              fields={fields}
-              errors={errors}
-              change={change}
-              material={material}
-            />
-          </div>
-          <SetupScholarship fields={fields} errors={errors} change={change} material />
+          {enabled && (
+            <div className={materialStyles.terms}>
+              <MaterialCategory fields={fields} errors={errors} change={change} />
+              <MaterialPayment fields={fields} change={change} />
+              <MaterialInstallments
+                fields={fields}
+                errors={errors}
+                change={change}
+                material={material}
+              />
+            </div>
+          )}
+          {enabled && <SetupScholarship fields={fields} errors={errors} change={change} material />}
+          {!enabled && <p className={styles.help}>Sem nova aquisição de material.</p>}
         </div>
         {enabled && (
           <div className={materialStyles.summary}>
@@ -294,32 +301,6 @@ function MaterialTotalError({ message }: { message: string }): ReactElement {
     <p role="alert" tabIndex={-1} aria-invalid="true" className="text-caption text-destructive">
       {message}
     </p>
-  );
-}
-
-function MaterialAcquisitionChoice({
-  enabled,
-  change,
-}: {
-  enabled: boolean;
-  change: MaterialProps["change"];
-}): ReactElement {
-  return (
-    <Field name="materialAcquisition">
-      <Label>Material neste contrato</Label>
-      <SegmentedControl
-        size="sm"
-        wrap
-        value={enabled ? "BUY" : "NONE"}
-        onValueChange={(value) => {
-          if (value) change("materialPayment", value === "NONE" ? "NONE" : "CASH");
-        }}
-        aria-label="Material neste contrato"
-      >
-        <SegmentedControlItem value="NONE">Sem nova aquisição</SegmentedControlItem>
-        <SegmentedControlItem value="BUY">Adquirir material</SegmentedControlItem>
-      </SegmentedControl>
-    </Field>
   );
 }
 

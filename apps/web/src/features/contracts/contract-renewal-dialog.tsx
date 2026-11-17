@@ -99,7 +99,7 @@ function RenewalShell({
         <DialogBackdrop />
         <DialogContent className="md:max-w-6xl h-[min(48rem,calc(100dvh-4rem))]">
           <DialogHeader>
-            <DialogTitle>Renovar contrato</DialogTitle>
+            <DialogTitle>Rematrícula</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
           {children}
@@ -132,7 +132,7 @@ function RenewalFields({
       allowEnrollmentFee={false}
       billingFirstDueDate={{ value: model.firstDueDate, onChange: model.changeDueDate }}
       error={model.error}
-      completeLabel="Confirmar renovação"
+      completeLabel="Confirmar rematrícula"
       onRestoreTerms={model.restoreTerms}
       onComplete={model.submit}
       onBack={close}

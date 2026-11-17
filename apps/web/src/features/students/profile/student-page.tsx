@@ -130,6 +130,7 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProp
     entranceComplete,
     financePending: finance.isPending,
     pendingRenewals: finance.data?.pendingRenewals,
+    overdueCents: finance.data?.overdueCents ?? 0,
   });
   const content = {
     section: activeSection,
@@ -201,6 +202,7 @@ function studentHeaderProps({
   entranceComplete,
   financePending,
   pendingRenewals,
+  overdueCents,
 }: {
   id: string;
   profile: StudentProfile | undefined;
@@ -210,6 +212,7 @@ function studentHeaderProps({
   entranceComplete: boolean;
   financePending: boolean;
   pendingRenewals: RouterOutputs["finance"]["studentSummary"]["pendingRenewals"] | undefined;
+  overdueCents: number;
 }): Parameters<typeof SectionsHeader>[0] {
   return {
     id,
@@ -221,6 +224,7 @@ function studentHeaderProps({
     financeActive: activeSection === "financeiro",
     renewalReady: entranceComplete && Boolean(profile) && !financePending,
     pendingRenewals: pendingRenewals ?? [],
+    overdueCents,
   };
 }
 
@@ -277,6 +281,7 @@ function SectionsHeader({
   financeActive,
   renewalReady,
   pendingRenewals,
+  overdueCents,
 }: {
   id: string;
   profile: StudentProfile | undefined;
@@ -285,6 +290,7 @@ function SectionsHeader({
   financeActive: boolean;
   renewalReady: boolean;
   pendingRenewals: RouterOutputs["finance"]["studentSummary"]["pendingRenewals"];
+  overdueCents: number;
 }): ReactElement {
   return (
     <div className={styles.stickyHeader} data-ready={profile ? true : undefined}>
@@ -294,7 +300,11 @@ function SectionsHeader({
         canSchedule={canSchedule}
         renewalAction={
           financeActive && pendingRenewals.length > 0 ? (
-            <StudentContractRenewal contracts={pendingRenewals} ready={renewalReady} />
+            <StudentContractRenewal
+              contracts={pendingRenewals}
+              ready={renewalReady}
+              overdueCents={overdueCents}
+            />
           ) : undefined
         }
         navigation={<StudentTabsNavigation disabled={registrationBusy} />}

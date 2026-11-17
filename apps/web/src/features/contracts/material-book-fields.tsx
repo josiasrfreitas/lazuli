@@ -16,7 +16,8 @@ type Props = Pick<FormProps, "fields" | "change" | "errors"> & {
 };
 
 export function MaterialStages(props: Props): ReactElement {
-  const selected = props.fields.materialStageIds.split(",");
+  const selected =
+    props.fields.materialPayment === "NONE" ? [] : props.fields.materialStageIds.split(",");
   return (
     <div className="grid min-w-0 gap-2">
       <div className={styles.materialBooks}>
@@ -28,7 +29,13 @@ export function MaterialStages(props: Props): ReactElement {
           size="sm"
           variant="ghost"
           className="flex-none"
-          onClick={() => props.change("materialStageIds", `${props.fields.materialStageIds},`)}
+          onClick={() => {
+            props.change(
+              "materialStageIds",
+              selected.length ? `${props.fields.materialStageIds},` : "",
+            );
+            if (!selected.length) props.change("materialPayment", "CASH");
+          }}
         >
           <Plus aria-hidden="true" /> Adicionar livro
         </Button>
@@ -66,8 +73,10 @@ function MaterialBook({
   const [query, setQuery] = useState("");
   const books = materialBookOptions(options);
   const value = books.find((book) => book.id === id) ?? null;
-  const remove = (): void =>
+  const remove = (): void => {
     change("materialStageIds", selected.filter((_value, position) => position !== index).join(","));
+    if (selected.length === 1) change("materialPayment", "NONE");
+  };
   const select = (stageId: string): void => {
     change(
       "materialStageIds",
@@ -97,7 +106,7 @@ function MaterialBook({
           errors,
         }}
       />
-      <RemoveMaterialBook visible={selected.length > 1 && !value} index={index} remove={remove} />
+      <RemoveMaterialBook visible={!value} index={index} remove={remove} />
     </div>
   );
 }
@@ -178,7 +187,7 @@ function MaterialBookSelection({
             normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
         )}
         onSelect={(book) => select(book.id)}
-        onClear={() => (selected.length > 1 ? remove() : select(""))}
+        onClear={remove}
         loading={pending}
         failed={failed}
         invalid={Boolean(errors.materialStageIds) && !id}
