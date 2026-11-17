@@ -891,3 +891,45 @@ void it("records bank installments on one receipt and keeps one material charge"
     assert.equal(chargedMaterial.chargedAmountCents, 166667);
   });
 });
+
+void it("reserves one book per semester and bills a deferred acquisition only once", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const first = await tx.stage.findFirstOrThrow({ where: { id: stageId } });
+    const second = await tx.stage.create({
+      data: { trackId: first.trackId, name: "Essentials 2", internalCode: "E2", sequence: 2 },
+    });
+    const prices = (await service.readMaterialPrice())!;
+    const terms = {
+      stageIds: [stageId],
+      category: "ADULT" as const,
+      payment: "CASH" as const,
+      installmentCount: 1,
+      quoteVersion: prices.adult.version,
+      expectedTotalCents: prices.adult.cashCents,
+    };
+    const contract = await service.createMonthlyContract({
+      ...values,
+      books: [
+        { stageId, acquisitionSemester: null, acquisition: terms },
+        { stageId: second.id, acquisitionSemester: 2 },
+      ],
+    });
+    assert.equal(contract.plannedBooks?.length, 2);
+    assert.equal(contract.materials.length, 1);
+    const acquisition = {
+      commandId: randomUUID(),
+      contractId: contract.id,
+      firstDueDate: "2026-07-31",
+      material: { ...terms, stageIds: [second.id] },
+    };
+    const added = await service.addContractMaterial(acquisition);
+    assert.deepEqual(await service.addContractMaterial(acquisition), added);
+    await assert.rejects(
+      service.addContractMaterial({ ...acquisition, commandId: randomUUID() }),
+      /já foi adquirido/,
+    );
+    const detail = await service.readContract(contract.id, NOW);
+    assert.equal(detail.orders.filter((order) => order.kind === "MATERIAL").length, 2);
+  });
+});
