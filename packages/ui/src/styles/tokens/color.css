@@ -192,7 +192,7 @@
   --selection-indicator: var(--lz-ref-gold);
   --icon-active: var(--selection-indicator);
 
-  --navigation: var(--lz-ref-navy);
+  --navigation: var(--card);
   --navigation-foreground: #e9edf6;
   --navigation-muted: #b1bfd3;
   --navigation-active: #243958;
