@@ -5,7 +5,14 @@ import { StudentAvatar } from "~/components/student-avatar";
 import type { CSSProperties, ReactElement } from "react";
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
-import { Badge, DataTable, type BadgeVariant, type DataTableColumn } from "@lazuli/ui";
+import {
+  Badge,
+  TableContainer,
+  TablePagination,
+  DataTable,
+  type BadgeVariant,
+  type DataTableColumn,
+} from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { abbreviatedPersonName } from "~/lib/format";
 import { paymentPlanLabel } from "./contract-form-model";
@@ -206,30 +213,35 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
   const dueBook = rows.find((row) => row.materialDue)?.materialDue;
   const href = `/alunos/${first.student.id}?secao=financeiro`;
   return (
-    <details className="group py-1">
-      <summary className="flex cursor-pointer flex-wrap items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="transition-transform group-open:rotate-90 motion-reduce:transition-none"
-        >
-          ›
-        </span>
+    <section
+      aria-labelledby={`contract-group-${first.student.id}`}
+      className="overflow-hidden rounded-lg border border-border bg-card"
+    >
+      <header className="flex flex-wrap items-center gap-3 border-b border-border bg-muted px-4 py-2">
         <StudentAvatar colorKey={first.student.id} name={first.student.fullName} size="sm" />
-        <strong>{first.student.fullName}</strong>
-        <span className="text-muted-foreground">
-          {first.student.placements
-            .map((p) => [p.modality, p.classCode, p.stageCode].filter(Boolean).join(" · "))
-            .join(" · ")}
-        </span>
+        <div className="min-w-0 flex-1">
+          <h2 id={`contract-group-${first.student.id}`} className="font-display font-semibold">
+            {first.student.fullName}
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            {first.student.placements
+              .map((p) => [p.modality, p.classCode, p.stageCode].filter(Boolean).join(" · "))
+              .join(" · ")}
+          </span>
+        </div>
         {renewal && (
           <Badge variant="warning">Rematrícula até {shortCivilDate(renewal.endsOn)}</Badge>
         )}
         {dueBook && <Badge variant="info">A adquirir · {dueBook}</Badge>}
-      </summary>
-      <div className="mt-3 grid gap-3 border-t border-border pt-3">
+      </header>
+      <div className="divide-y divide-border">
         {rows.map((row) => (
-          <section key={row.id} className="flex flex-wrap items-start justify-between gap-3">
+          <section
+            key={row.id}
+            className="grid items-start gap-3 px-4 py-3 sm:grid-cols-[minmax(10rem,1fr)_minmax(12rem,2fr)_auto]"
+          >
             <div>
+              <span className="block text-xs text-muted-foreground">Vigência</span>
               <strong title={termHint(row.endsOn)}>
                 {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
               </strong>
@@ -258,21 +270,23 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
                 <p>Nenhuma aquisição registrada</p>
               )}
             </div>
-            {row.materialDue && (
-              <Link className="underline" href={href + "&material=1"}>
-                Conferir {row.materialDue}
+            <div className="grid gap-2 text-sm sm:text-right">
+              {row.materialDue && (
+                <Link className="underline" href={href + "&material=1"}>
+                  Conferir {row.materialDue}
+                </Link>
+              )}
+              <Link
+                className="text-primary underline"
+                href={row.renewalPending ? href + "&renovarContrato=" + row.id : href}
+              >
+                {row.renewalPending ? "Rematricular" : "Abrir financeiro"}
               </Link>
-            )}
-            <Link
-              className="text-primary underline"
-              href={row.renewalPending ? href + "&renovarContrato=" + row.id : href}
-            >
-              {row.renewalPending ? "Rematricular" : "Abrir financeiro"}
-            </Link>
+            </div>
           </section>
         ))}
       </div>
-    </details>
+    </section>
   );
 }
 
@@ -309,6 +323,31 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
     else byStudent.set(row.student.id, [row]);
   }
   const groups = list.data && Array.from(byStudent, ([id, rows]) => ({ id, rows }));
+  if (list.data && groups?.length && !list.isError) {
+    return (
+      <TableContainer
+        viewportBound
+        className="border-0 bg-transparent"
+        aria-busy={list.isFetching}
+        footer={
+          <TablePagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            pageCount={Math.max(1, Math.ceil(list.data.total / PAGE_SIZE))}
+            totalItems={list.data.total}
+            onPageChange={filters.setPage}
+            itemLabel={{ singular: "aluno", plural: "alunos" }}
+          />
+        }
+      >
+        <div className="w-0 min-w-full space-y-3 pb-3 pr-3">
+          {groups.map((group) => (
+            <ContractGroup key={group.id} rows={group.rows} />
+          ))}
+        </div>
+      </TableContainer>
+    );
+  }
   return (
     <DataTable<{ id: string; rows: ContractRow[] }>
       label="Contratos mensais"
