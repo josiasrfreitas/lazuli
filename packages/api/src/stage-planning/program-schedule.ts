@@ -9,6 +9,7 @@ const MILLISECONDS_PER_MINUTE = 60_000;
 type ProgramRow = {
   programActivityId: string;
   plannedOn: Date;
+  plannedSessionId: string | null;
   kind: "CONTENT" | "ASSESSMENT" | "REVIEW" | "ACTIVITY";
   title: string;
   reference: string;
@@ -73,7 +74,10 @@ export async function previewProgramSchedule(
         deletedAt: null,
         status: "SCHEDULED",
         date: { gte: new Date(startOn) },
-        OR: [{ date: { lte: new Date(scope.semester.endOn) } }, { appointmentSeriesId: { not: null } }],
+        OR: [
+          { date: { lte: new Date(scope.semester.endOn) } },
+          { appointmentSeriesId: { not: null } },
+        ],
       },
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
     }),
@@ -91,14 +95,16 @@ export async function previewProgramSchedule(
     sessions
       .filter((session) => !closed.has(dateOnly(session.date)))
       .map((session) => ({
+        id: session.id,
         date: dateOnly(session.date),
         minutes:
           (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
       })),
   );
-  const rows: ProgramRow[] = result.scheduled.map(({ activity, date }) => ({
+  const rows: ProgramRow[] = result.scheduled.map(({ activity, date, sessionId }) => ({
     programActivityId: activity.id,
     plannedOn: new Date(date),
+    plannedSessionId: sessionId ?? null,
     kind: programActivityKind(activity.kind),
     title: activity.title,
     reference: `Unidade ${activity.unit.sequence} · hora-aula ${activity.teachingHour.sequence}`,
@@ -117,7 +123,7 @@ export async function persistProgramSchedule(
     await (existing
       ? context.database.stagePlanItem.update({
           where: { id: existing.id },
-          data: { plannedOn: row.plannedOn },
+          data: { plannedOn: row.plannedOn, plannedSessionId: row.plannedSessionId },
         })
       : context.database.stagePlanItem.create({ data: { ...row, planId } }));
   }

@@ -84,6 +84,10 @@ export async function savePlanItem(
   const data = {
     programActivityId: program.id,
     plannedOn: new Date(input.plannedOn),
+    plannedSessionId:
+      previous && dateOnly(previous.plannedOn) === input.plannedOn
+        ? previous.plannedSessionId
+        : null,
     ...plannedText(program.content, input),
     pageFrom: input.pageFrom,
     pageTo: input.pageTo,
@@ -261,7 +265,10 @@ export async function saveProgramStart(
   input: StagePlanWindow,
 ): Promise<VersionedResult> {
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
-  if ((plan ? dateOnly(plan.plannedStartOn) : scope.classStartOn) <= scope.today || input.plannedStartOn <= scope.today)
+  if (
+    (plan ? dateOnly(plan.plannedStartOn) : scope.classStartOn) <= scope.today ||
+    input.plannedStartOn <= scope.today
+  )
     throw badRequest("O início só pode ser alterado enquanto ainda estiver no futuro.");
   if (
     !plan &&

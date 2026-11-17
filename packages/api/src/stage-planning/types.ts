@@ -24,11 +24,16 @@ export type PlanningDetail = {
         items: (PlanSnapshot["items"][number] & { curriculum: ActivityContext | null })[];
       })
     | null;
-  calendar: { endOn: string; availableMinutes: number; remainingSessions: number; unrecordedSessions: number };
+  calendar: {
+    endOn: string;
+    availableMinutes: number;
+    remainingSessions: number;
+    unrecordedSessions: number;
+  };
   preview: { plannedStartOn: string; items: PreviewItem[] } | null;
   records: PlanningRecord[];
   upcoming: { id: string; date: string; time: string }[];
-  projection: { itemId: string; date: string | null }[];
+  projection: { itemId: string; date: string | null; sessionId: string | null }[];
   availableSessions: { id: string; date: string; minutes: number }[];
 };
 export type PlanningRevision = {

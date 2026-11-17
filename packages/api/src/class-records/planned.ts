@@ -23,7 +23,11 @@ export async function plannedAtEncounter(
     version: revision.version,
     items: stagePlanSnapshotSchema
       .parse(revision.snapshot)
-      .items.filter((item) => item.plannedOn === dateOnly(input.session.date)),
+      .items.filter((item) =>
+        item.plannedSessionId
+          ? item.plannedSessionId === input.session.id
+          : item.plannedOn === dateOnly(input.session.date),
+      ),
   };
 }
 const rosterSelect = {

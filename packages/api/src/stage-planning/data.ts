@@ -40,7 +40,12 @@ export const planInclude = {
 export type Plan = Prisma.StagePlanGetPayload<{ include: typeof planInclude }>;
 
 export type PlanningScope = {
-  class: { id: string; name: string; scheduleType: "REGULAR" | "PERSONALIZED"; teacherId?: string | null };
+  class: {
+    id: string;
+    name: string;
+    scheduleType: "REGULAR" | "PERSONALIZED";
+    teacherId?: string | null;
+  };
   semester: { name: string; startOn: string; endOn: string };
   stage: { id: string; name: string; track: { name: string } };
   student: { id: string; fullName: string } | null;
@@ -81,7 +86,10 @@ export async function loadPlanningScope(
     });
   }
   assertReadableEnrollment(context, { progress, today });
-  return { ...scopeFor({ classRow, progress, today, substituteOnly }), canAdjust: context.staffUser.role !== "TEACHER" };
+  return {
+    ...scopeFor({ classRow, progress, today, substituteOnly }),
+    canAdjust: context.staffUser.role !== "TEACHER",
+  };
 }
 async function assertTeacherAccess(
   context: PlanningContext,
@@ -172,9 +180,19 @@ function scopeFor(input: {
   if (!stage) throw notFound("Estágio não encontrado.");
   const historical = progress
     ? progressEnded(progress, today)
-    : [dateOnly(classRow.semester.endDate), ...classRow.appointmentSeries.map((row) => dateOnly(row.throughDate))].toSorted().at(-1)! < today;
+    : [
+        dateOnly(classRow.semester.endDate),
+        ...classRow.appointmentSeries.map((row) => dateOnly(row.throughDate)),
+      ]
+        .toSorted()
+        .at(-1)! < today;
   return {
-    class: { id: classRow.id, name: classRow.portalClassName, scheduleType: classRow.scheduleType, teacherId: usualTeacherOn(classRow, new Date(today))?.id ?? null },
+    class: {
+      id: classRow.id,
+      name: classRow.portalClassName,
+      scheduleType: classRow.scheduleType,
+      teacherId: usualTeacherOn(classRow, new Date(today))?.id ?? null,
+    },
     semester: {
       name: classRow.semester.name,
       startOn: dateOnly(classRow.semester.startDate),
@@ -213,6 +231,7 @@ export function planSnapshot(plan: Plan): PlanSnapshot {
       id: item.id,
       programActivityId: item.programActivityId,
       plannedOn: dateOnly(item.plannedOn),
+      ...(item.plannedSessionId ? { plannedSessionId: item.plannedSessionId } : {}),
       kind: item.kind,
       title: item.title,
       reference: item.reference,

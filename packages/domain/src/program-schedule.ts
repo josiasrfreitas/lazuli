@@ -1,9 +1,9 @@
 /** Distribute canonical activities without compressing their teaching time. */
 export function scheduleProgram<T extends { id: string; durationMinutes: number }>(
   activities: readonly T[],
-  sessions: readonly { date: string; minutes: number }[],
-): { scheduled: { activity: T; date: string }[]; missingMinutes: number } {
-  const scheduled: { activity: T; date: string }[] = [];
+  sessions: readonly { id?: string; date: string; minutes: number }[],
+): { scheduled: { activity: T; date: string; sessionId?: string }[]; missingMinutes: number } {
+  const scheduled: { activity: T; date: string; sessionId?: string }[] = [];
   let sessionIndex = 0;
   let remaining = sessions[0]?.minutes ?? 0;
   let missingMinutes = 0;
@@ -14,7 +14,12 @@ export function scheduleProgram<T extends { id: string; durationMinutes: number 
       duration -= consumed;
       remaining -= consumed;
       if (duration === 0) {
-        scheduled.push({ activity, date: sessions[sessionIndex]!.date });
+        const session = sessions[sessionIndex]!;
+        scheduled.push({
+          activity,
+          date: session.date,
+          ...(session.id ? { sessionId: session.id } : {}),
+        });
       }
       if (remaining === 0) {
         sessionIndex++;

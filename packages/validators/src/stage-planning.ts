@@ -76,7 +76,13 @@ export const stagePlanRemoveSchema = stagePlanTargetSchema.extend({
 });
 export const stagePlanSnapshotSchema = z.object({
   ...windowFields,
-  items: z.array(z.object({ id: z.string().uuid(), ...itemFields })),
+  items: z.array(
+    z.object({
+      id: z.string().uuid(),
+      ...itemFields,
+      plannedSessionId: z.string().uuid().nullable().optional(),
+    }),
+  ),
 });
 export type StagePlanTarget = z.infer<typeof stagePlanTargetSchema>;
 export type StagePlanWindow = z.infer<typeof stagePlanWindowSchema>;

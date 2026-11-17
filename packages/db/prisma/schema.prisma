@@ -734,6 +734,7 @@ model ClassSubstitution {
 }
 
 model ClassSession {
+  plannedItems StagePlanItem[]
   appointmentSeriesId String? @map("appointment_series_id") @db.Uuid
   appointmentSeries ClassAppointmentSeries? @relation(fields: [appointmentSeriesId], references: [id], onDelete: Restrict)
   @@index([appointmentSeriesId])
@@ -1369,6 +1370,9 @@ model StagePlanItem {
   deletedAt DateTime?             @map("deleted_at") @db.Timestamptz
   planId    String                @map("plan_id") @db.Uuid
   plannedOn DateTime              @map("planned_on") @db.Date
+  plannedSessionId String?        @map("planned_session_id") @db.Uuid
+  plannedSession ClassSession?    @relation(fields: [plannedSessionId], references: [id], onDelete: Restrict)
+  @@index([plannedSessionId])
   kind      StagePlanActivityKind
   title     String
   reference String?
