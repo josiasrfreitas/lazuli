@@ -305,6 +305,7 @@ function SectionsHeader({
         renewalAction={
           financeActive && pendingRenewals.length > 0 ? (
             <StudentContractRenewal
+              studentId={id}
               contracts={pendingRenewals}
               ready={renewalReady}
               overdueCents={overdueCents}

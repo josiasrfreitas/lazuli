@@ -19,14 +19,16 @@ import {
 } from "@lazuli/ui";
 import { RenewalDialog } from "~/features/contracts/contract-renewal-dialog";
 import { formatDateOnlyBR, formatBRLFromCents } from "~/lib/format";
-import { ContractRenegotiationDialog } from "./contract-renegotiation-dialog";
+import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import styles from "./student-contract-renewal.module.css";
 
 export function StudentContractRenewal({
   contracts,
+  studentId,
   ready = true,
   overdueCents,
 }: {
+  studentId: string;
   contracts: { id: string; startsOn: string | null }[];
   ready?: boolean;
   overdueCents: number;
@@ -41,7 +43,7 @@ export function StudentContractRenewal({
     setAcknowledged(null);
     void setRequestedContractId(null);
   };
-  const [negotiatingId, setNegotiatingId] = useState<string | null>(null);
+  const [negotiating, setNegotiating] = useState(false);
   const [choosing, setChoosing] = useState(false);
   if (contracts.length === 0) return null;
   return (
@@ -53,20 +55,17 @@ export function StudentContractRenewal({
       ) : (
         <RenewalChooser {...{ contracts, choosing, setChoosing, setContractId }} />
       )}
-      {negotiatingId && (
-        <ContractRenegotiationDialog
-          contractId={negotiatingId}
-          onClose={() => setNegotiatingId(null)}
-        />
+      {negotiating && (
+        <TreatmentDialog studentId={studentId} onClose={() => setNegotiating(false)} />
       )}
-      {!negotiatingId &&
+      {!negotiating &&
         activeContractId &&
         (overdueCents > 0 && acknowledged !== activeContractId ? (
           <RenewalDebtNotice
             overdueCents={overdueCents}
             onClose={closeRenewal}
             onReview={() => {
-              setNegotiatingId(activeContractId);
+              setNegotiating(true);
               closeRenewal();
             }}
             onContinue={() => setAcknowledged(activeContractId)}
@@ -142,7 +141,7 @@ function RenewalDebtNotice({
         <DialogContent className="grid gap-4 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <TriangleAlert aria-hidden="true" className="size-5 shrink-0 text-warning" />
+              <TriangleAlert aria-hidden="true" className="size-5 shrink-0 text-destructive" />
               Este aluno está inadimplente
             </DialogTitle>
             <DialogDescription>
