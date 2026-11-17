@@ -213,8 +213,15 @@ const contractLine =
   "grid gap-2 px-4 py-3 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center sm:gap-4 [&>a]:justify-self-start sm:[&>a]:justify-self-end";
 const contractLabel = "flex items-center gap-2 text-sm font-semibold text-muted-foreground";
 
-function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
+function ContractGroup({
+  rows,
+  followUp,
+}: {
+  rows: ContractRow[];
+  followUp: boolean;
+}): ReactElement {
   const first = rows[0]!;
+  const history = rows.flatMap((row) => row.materials);
   const href = `/alunos/${first.student.id}?secao=financeiro`;
   return (
     <section
@@ -235,92 +242,102 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
         </div>
       </header>
       <div className="divide-y divide-border">
-        {rows.map((row) => (
-          <section key={row.id} className="divide-y divide-border">
-            <div className={contractLine}>
-              <h3 className={contractLabel}>
-                <FileText aria-hidden="true" size={16} />
-                Contrato
-              </h3>
-              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                <strong title={termHint(row.endsOn)}>
-                  {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
-                </strong>
-                {row.renewalPending && <Badge variant="warning">{termHint(row.endsOn)}</Badge>}
-                <span className="whitespace-nowrap text-sm text-muted-foreground">
-                  {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
-                </span>
-                <ContractFinancialStatus row={row} />
-              </div>
-              <Link
-                className={buttonVariants({
-                  variant: row.renewalPending ? "primary" : "secondary",
-                  size: "sm",
-                })}
-                href={row.renewalPending ? href + "&renovarContrato=" + row.id : href}
-              >
-                {row.renewalPending ? (
-                  <RotateCw aria-hidden="true" />
-                ) : (
-                  <ArrowRight aria-hidden="true" />
-                )}
-                {row.renewalPending ? "Rematricular" : "Abrir financeiro"}
-              </Link>
-            </div>
-            <div className={contractLine}>
-              <h3 className={contractLabel}>
-                <BookOpen aria-hidden="true" size={16} />
-                Material
-              </h3>
-              <div className="min-w-0 space-y-1 text-sm">
-                {row.materialDue && (
-                  <p>
-                    <span className="text-muted-foreground">Próximo livro · </span>
-                    <strong>{row.materialDue}</strong> <Badge variant="info">A adquirir</Badge>
-                  </p>
-                )}
-                {row.plannedBooks?.map((book) => {
-                  const sale = book.stageId
-                    ? row.materials.find((material) => material.stageIds?.includes(book.stageId!))
-                    : undefined;
-                  return (
-                    <p key={book.semester}>
-                      {book.name ?? "Livro a definir"} ·{" "}
-                      {book.acquired
-                        ? (sale?.paymentLabel ?? "Adquirido")
-                        : book.acquisitionSemester
-                          ? `Aquisição no ${book.acquisitionSemester}º semestre`
-                          : "Aquisição em aberto"}
-                    </p>
-                  );
-                })}
-                {row.materials
-                  .filter(
-                    (material) =>
-                      !material.stageIds?.length ||
-                      !material.stageIds.every((id) =>
-                        row.plannedBooks?.some((book) => book.stageId === id),
-                      ),
-                  )
-                  .map((material) => (
-                    <p key={material.id}>
-                      {material.name} · {material.paymentLabel}
-                    </p>
-                  ))}
-                {!row.plannedBooks?.length && !row.materials.length && (
-                  <p className="text-muted-foreground">Nenhuma aquisição registrada</p>
-                )}
-              </div>
-              <Link
-                className={buttonVariants({ variant: "secondary", size: "sm" })}
-                href={href + "&material=1"}
-              >
-                Conferir material
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </div>
-          </section>
-        ))}
+        {rows
+          .filter((row) => !followUp || row.renewalPending || (row === first && row.materialDue))
+          .map((row) => (
+            <section key={row.id} className="divide-y divide-border">
+              {(!followUp || row.renewalPending) && (
+                <div className={contractLine}>
+                  <h3 className={contractLabel}>
+                    <FileText aria-hidden="true" size={16} />
+                    Contrato
+                  </h3>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong title={termHint(row.endsOn)}>
+                        {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
+                      </strong>
+                      {row.renewalPending && (
+                        <Badge variant="warning">{termHint(row.endsOn)}</Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="whitespace-nowrap text-sm text-muted-foreground">
+                        {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
+                      </span>
+                      <ContractFinancialStatus row={row} />
+                    </div>
+                  </div>
+                  <Link
+                    className={buttonVariants({
+                      variant: row.renewalPending ? "primary" : "secondary",
+                      size: "sm",
+                    })}
+                    href={row.renewalPending ? href + "&renovarContrato=" + row.id : href}
+                  >
+                    {row.renewalPending ? (
+                      <RotateCw aria-hidden="true" />
+                    ) : (
+                      <ArrowRight aria-hidden="true" />
+                    )}
+                    {row.renewalPending ? "Rematricular" : "Abrir financeiro"}
+                  </Link>
+                </div>
+              )}
+              {(!followUp || (row === first && row.materialDue)) && (
+                <div className={contractLine}>
+                  <h3 className={contractLabel}>
+                    <BookOpen aria-hidden="true" size={16} />
+                    Material
+                  </h3>
+                  <div className="min-w-0 space-y-1 text-sm">
+                    {row.materialDue && (
+                      <p>
+                        <span className="text-muted-foreground">Próximo livro · </span>
+                        <strong>{row.materialDue}</strong> <Badge variant="info">A adquirir</Badge>
+                      </p>
+                    )}
+                    {(followUp ? history : row.materials).length > 0 && (
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="text-muted-foreground">Livros anteriores</span>
+                        {(followUp ? history : row.materials).map((material) => (
+                          <span key={material.id}>
+                            {material.name} · {material.paymentLabel}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {!followUp &&
+                      row.plannedBooks
+                        ?.filter((book) => !book.acquired)
+                        .map((book) => {
+                          return (
+                            <p key={book.semester}>
+                              {book.name ?? "Livro a definir"} ·{" "}
+                              {book.acquisitionSemester
+                                ? `Aquisição no ${book.acquisitionSemester}º semestre`
+                                : "Aquisição em aberto"}
+                            </p>
+                          );
+                        })}
+                    {!followUp &&
+                      !row.materialDue &&
+                      !row.plannedBooks?.length &&
+                      !row.materials.length && (
+                        <p className="text-muted-foreground">Nenhuma aquisição registrada</p>
+                      )}
+                  </div>
+                  <Link
+                    className={buttonVariants({ variant: "secondary", size: "sm" })}
+                    href={href + "&material=1"}
+                  >
+                    Conferir material
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </div>
+              )}
+            </section>
+          ))}
       </div>
     </section>
   );
@@ -378,7 +395,7 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
       >
         <div className="w-0 min-w-full space-y-3 pb-3 pr-3">
           {groups.map((group) => (
-            <ContractGroup key={group.id} rows={group.rows} />
+            <ContractGroup key={group.id} rows={group.rows} followUp={filters.followUp} />
           ))}
         </div>
       </TableContainer>
@@ -391,7 +408,7 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
         {
           id: "student",
           header: "Aluno e contratos",
-          cell: (group) => <ContractGroup rows={group.rows} />,
+          cell: (group) => <ContractGroup rows={group.rows} followUp={filters.followUp} />,
         },
       ]}
       state={

@@ -295,7 +295,7 @@ function contractAmounts(
             ? "Pago"
             : orderFinancialSummary(entry, now).status === "SEM_SALDO"
               ? "Sem saldo"
-              : "Saldo em aberto",
+              : "Não pago",
       totalCents: entry.principalAmountCents,
       count: entry.installmentCount ?? entry.installments.length,
       installmentCents: uniformInstallmentAmount(entry),
