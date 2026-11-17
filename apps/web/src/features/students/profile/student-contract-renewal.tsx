@@ -56,7 +56,7 @@ export function StudentContractRenewal({
         <RenewalChooser {...{ contracts, choosing, setChoosing, setContractId }} />
       )}
       {negotiating && (
-        <TreatmentDialog overdueOnly studentId={studentId} onClose={() => setNegotiating(false)} />
+        <TreatmentDialog studentId={studentId} onClose={() => setNegotiating(false)} />
       )}
       {!negotiating &&
         activeContractId &&

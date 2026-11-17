@@ -23,19 +23,17 @@ import { useTreatment, type TreatmentState } from "./use-treatment";
 export const TREATMENT_FORM_ID = "financial-treatment";
 export type TreatmentDialogProps = {
   studentId?: string;
-  overdueOnly?: boolean;
   initialIds?: string[];
   onClose: () => void;
   onConfirmed?: () => void;
 };
 export function TreatmentDialog({
   studentId,
-  overdueOnly = false,
   initialIds = [],
   onClose,
   onConfirmed,
 }: TreatmentDialogProps): ReactElement {
-  const state = useTreatment({ overdueOnly, studentId, initialIds, onClose, onConfirmed });
+  const state = useTreatment({ studentId, initialIds, onClose, onConfirmed });
   const content = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const firstField = (): HTMLElement | null =>
@@ -91,7 +89,7 @@ function TreatmentHeader({ review }: { review: boolean }): ReactElement {
       <DialogDescription>
         {review
           ? "Confira o efeito em cada parcela antes de confirmar."
-          : "Selecione as parcelas e defina as condições combinadas com o responsável."}
+          : "Selecione as parcelas vencidas e defina as condições combinadas com o responsável."}
       </DialogDescription>
     </DialogHeader>
   );

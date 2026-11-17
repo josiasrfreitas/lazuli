@@ -123,9 +123,7 @@ function SelectionStatus({ state }: StateProps): ReactElement {
         </div>
       )}
       {!state.available.isPending && !state.available.isError && state.rows.length === 0 && (
-        <p className="text-caption text-muted-foreground">
-          Nenhuma parcela em aberto para negociar.
-        </p>
+        <p className="text-caption text-muted-foreground">Nenhuma parcela vencida para negociar.</p>
       )}
     </>
   );

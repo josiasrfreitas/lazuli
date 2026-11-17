@@ -56,14 +56,13 @@ export type TreatmentState = {
 function useTreatmentRows(
   studentId: string | undefined,
   initialIds: string[],
-  overdueOnly: boolean,
 ): { available: Available; rows: TreatmentRow[] } {
   const query = trpc.finance.treatmentInstallments.useInfiniteQuery(
-    studentId ? { studentId, overdueOnly } : { installmentIds: initialIds },
+    studentId ? { studentId } : { installmentIds: initialIds },
     { getNextPageParam: (page) => page.nextCursor, staleTime: 0 },
   );
   const initial = trpc.finance.treatmentInstallments.useQuery(
-    { studentId, overdueOnly, installmentIds: initialIds },
+    { studentId, installmentIds: initialIds },
     { enabled: initialIds.length > 0, staleTime: 0 },
   );
   const rows = [
@@ -272,19 +271,17 @@ async function submitTreatment(context: SubmitContext): Promise<void> {
   }
 }
 export function useTreatment({
-  overdueOnly,
   studentId,
   initialIds,
   onClose,
   onConfirmed,
 }: {
-  overdueOnly: boolean;
   studentId: string | undefined;
   initialIds: string[];
   onClose: () => void;
   onConfirmed: (() => void) | undefined;
 }): TreatmentState {
-  const { available, rows } = useTreatmentRows(studentId, initialIds, overdueOnly);
+  const { available, rows } = useTreatmentRows(studentId, initialIds);
   const draft = useTreatmentDraft(initialIds);
   const flow = useTreatmentReview(onClose, onConfirmed);
   const [showAll, setShowAll] = useState(!studentId || initialIds.length === 0);
