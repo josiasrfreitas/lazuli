@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { StaffRole } from "@lazuli/auth";
 import { z } from "@lazuli/validators";
-import { createServiceLogger, safeError } from "@lazuli/logging";
+import { createServiceLogger, safeError, reportError } from "@lazuli/logging";
 import superjson from "superjson";
 
 import type { Context } from "./context.js";
@@ -66,7 +66,9 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
         },
         label,
       );
-    } else if (result.error.code !== "INTERNAL_SERVER_ERROR")
+    } else if (result.error.code === "INTERNAL_SERVER_ERROR") {
+      reportError(result.error.cause ?? result.error, { procedure: path, service: "web" });
+    } else
       logger.warn(
         {
           ...fields,

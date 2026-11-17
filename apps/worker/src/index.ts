@@ -1,3 +1,4 @@
+import { flush } from "./instrumentation.js";
 import { refreshStudentHealthPending } from "@lazuli/worker-handlers";
 import { processAssessmentFile } from "@lazuli/worker-handlers/assessment-files";
 import { processStudentDocument } from "@lazuli/worker-handlers/student-documents";
@@ -21,7 +22,7 @@ import { db } from "@lazuli/db";
 import { runWithReadiness } from "./readiness.js";
 import { runJob } from "./run-job.js";
 import { createPeriodicTasks } from "./periodic-tasks.js";
-import { safeError } from "@lazuli/logging";
+import { reportError, safeError } from "@lazuli/logging";
 import { logger } from "./logger.js";
 
 type GenerationResult = Awaited<ReturnType<typeof processSessionGeneration>>;
@@ -116,6 +117,8 @@ async function processStudentDocumentPayload(
 try {
   await start();
 } catch (error) {
+  if (error instanceof Error) reportError(error, { service: "worker", operation: "startup" });
   logger.fatal(safeError(error), "Worker startup failed");
+  await flush(2_000);
   process.exitCode = 1;
 }

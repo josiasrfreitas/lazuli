@@ -1,3 +1,4 @@
+import { reportTransportError } from "../telemetry.js";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
@@ -146,6 +147,7 @@ export async function receiveAssessmentFile(ctx: Context, request: Request): Pro
           data: { status: "FAILED", failureCode: "TRANSFER" },
         })
         .catch((): undefined => {});
+    if (error instanceof Error) reportTransportError(error, "assessment-file");
     return failure(error instanceof TRPCError ? error : null);
   }
 }
@@ -169,6 +171,7 @@ export async function downloadAssessmentFile(ctx: Context, id: string): Promise<
       },
     });
   } catch (error) {
+    if (error instanceof Error) reportTransportError(error, "assessment-file");
     return failure(error instanceof TRPCError ? error : null);
   }
 }

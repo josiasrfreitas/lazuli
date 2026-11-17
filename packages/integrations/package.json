@@ -26,7 +26,8 @@
     "@lazuli/job-contracts": "workspace:*",
     "nodemailer": "catalog:",
     "resend": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@lazuli/logging": "workspace:*"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

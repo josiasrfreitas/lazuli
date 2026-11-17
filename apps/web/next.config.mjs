@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { networkInterfaces } from "node:os";
 const DEFAULT_IMAGE_QUALITY = 75;
 const LOGIN_IMAGE_QUALITY = 90;
@@ -69,4 +70,12 @@ const config = {
   },
 };
 
-export default config;
+export default withSentryConfig(config, {
+  org: "lazuli-ql",
+  project: "lazuli-web",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: true },
+  release: { name: process.env.SENTRY_RELEASE },
+});

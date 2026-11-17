@@ -102,6 +102,12 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: 413781344359.dkr.ecr.us-east-2.amazonaws.com/lazuli/${{ env.DEPLOY_ENVIRONMENT }}:${{ env.DEPLOY_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          build-args: |
+            LAZULI_BUILD_ENV=${{ env.DEPLOY_MODE == 'application' && env.DEPLOY_ENVIRONMENT == 'prod' && 'prod' || '' }}
+            SENTRY_WEB_DSN=${{ vars.SENTRY_WEB_DSN }}
+            SENTRY_RELEASE=${{ env.DEPLOY_SHA }}
+          secrets: |
+            sentry_auth_token=${{ env.DEPLOY_MODE == 'application' && env.DEPLOY_ENVIRONMENT == 'prod' && secrets.SENTRY_AUTH_TOKEN || '' }}
           cache-from: type=gha,scope=${{ env.DEPLOY_MODE }}-arm64
           cache-to: type=gha,scope=${{ env.DEPLOY_MODE }}-arm64,mode=max
       - uses: actions/setup-node@v4

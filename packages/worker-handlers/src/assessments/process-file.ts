@@ -1,3 +1,4 @@
+import { reportError } from "@lazuli/logging";
 import { createHash } from "node:crypto";
 import type { DatabaseClient } from "@lazuli/db";
 import { assessmentFilePayloadSchema, type AssessmentFilePayload } from "@lazuli/job-contracts";
@@ -45,7 +46,8 @@ export async function processAssessmentFile({
       data: { status: "READY", checksum, failureCode: null, processedAt: new Date() },
     });
     return { status: "READY" };
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) reportError(error, { service: "worker", operation: "assessments" });
     await database.assessmentFile.updateMany({
       where,
       data: { status: "FAILED", failureCode: "PROCESSING" },

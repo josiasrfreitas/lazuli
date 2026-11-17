@@ -1,3 +1,4 @@
+import { reportTransportError } from "../telemetry.js";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
 import { paymentProofUploadSchema, z, type PaymentProofUpload } from "@lazuli/validators";
@@ -76,6 +77,7 @@ export async function proofBytes(
 }
 
 export function proofFailure(error: Error | null): Response {
+  reportTransportError(error, "payment-proof");
   const known = error instanceof TRPCError ? error : null;
   const statuses: Record<string, number> = {
     UNAUTHORIZED: 401,

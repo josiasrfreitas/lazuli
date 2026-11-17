@@ -1,3 +1,4 @@
+import { reportError } from "@lazuli/logging";
 import type { DatabaseClient } from "@lazuli/db";
 import { reconcileCalendar } from "./reconcile.js";
 
@@ -60,12 +61,13 @@ export async function processCalendarReconciliation(
       },
       { timeout: 60_000, maxWait: 15_000 },
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) reportError(error, { service: "worker", operation: "calendar" });
     await database.calendarReconciliationRequest.updateMany({
       where: { id: request.id, status: "RUNNING" },
       data: { status: "FAILED", failureCode: "RECONCILIATION_FAILED", completedAt: new Date() },
     });
-    throw new Error("CALENDAR_RECONCILIATION_FAILED");
+    throw error;
   }
   return request.id;
 }
@@ -101,7 +103,8 @@ export async function recoverCalendarRequests(input: {
   for (const request of input.requests) {
     try {
       await input.process(request.id);
-    } catch {
+    } catch (error) {
+      if (error instanceof Error) reportError(error, { service: "worker", operation: "calendar" });
       failed += 1;
     }
   }

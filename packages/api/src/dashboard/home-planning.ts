@@ -1,4 +1,5 @@
-import { Prisma, type TransactionClient } from "@lazuli/db";
+import type { TransactionClient } from "@lazuli/db";
+import { Prisma } from "@lazuli/db/prisma";
 import { linkItem, type HomeItem } from "./home-model.js";
 
 type PlanningClass = {

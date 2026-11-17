@@ -6,6 +6,7 @@ import {
   createServiceLogger,
   requestIdFromHeaders,
   safeError,
+  reportError,
   withCheckpoint,
 } from "@lazuli/logging";
 
@@ -30,6 +31,7 @@ function handleTRPCRequest(request: Request): Promise<Response> {
       }),
     onError: ({ path, error, type, ctx }) => {
       if (error.code === "INTERNAL_SERVER_ERROR") {
+        reportError(error.cause ?? error, { service: "web", procedure: path ?? "context" });
         const cause = safeError(error.cause);
         const failure = safeError(error);
         requestLogger.error(

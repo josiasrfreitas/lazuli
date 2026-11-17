@@ -137,7 +137,7 @@ void describe("sessions-generate worker", () => {
         database: db,
         payload: { classId: fixtures.personalizedClassId, requestId: request.id },
       }),
-      /SESSION_GENERATION_FAILED/u,
+      /SESSION_REQUEST_SCOPE_MISMATCH/u,
     );
     const preserved = await db.sessionGenerationRequest.findUniqueOrThrow({
       where: { id: request.id },

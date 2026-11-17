@@ -1,3 +1,4 @@
+import { reportError } from "@lazuli/logging";
 import type { DatabaseClient, SessionGenerationRequest } from "@lazuli/db";
 import { sessionsGeneratePayloadSchema, type SessionsGeneratePayload } from "@lazuli/job-contracts";
 import { generateClassSessions, type SessionGenerationResult } from "../index.js";
@@ -28,9 +29,10 @@ export async function processSessionGeneration(input: {
       data: { status: "RUNNING", startedAt: new Date(), completedAt: null, failureCode: null },
     });
     return await executeGeneration({ database: input.database, payload });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) reportError(error, { service: "worker", operation: "sessions" });
     await recordGenerationFailure({ database: input.database, payload });
-    throw new Error("SESSION_GENERATION_FAILED");
+    throw error;
   }
 }
 
@@ -85,7 +87,8 @@ async function recordGenerationFailure({ database, payload }: GenerationInput): 
       },
       data: { status: "FAILED", failureCode: "GENERATION_FAILED", completedAt: new Date() },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) reportError(error, { service: "worker", operation: "sessions" });
     // A database outage leaves a stale request; the UI permits a fresh attempt after five minutes.
   }
 }

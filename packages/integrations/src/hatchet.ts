@@ -1,3 +1,4 @@
+import { reportError } from "@lazuli/logging";
 import { z } from "zod";
 import { readHatchetEnvironment } from "./hatchet/env.js";
 import { createHash } from "node:crypto";
@@ -138,7 +139,8 @@ export function createHatchetCalendarReconciliationQueue(): CalendarReconciliati
           return statuses;
         });
         return { available: true, statuses };
-      } catch {
+      } catch (error) {
+        if (error instanceof Error) reportError(error, { operation: "hatchet-status" });
         return { available: false, statuses: {} };
       }
     },
@@ -193,7 +195,8 @@ export function createHatchetStudentHealthRefreshQueue(): StudentHealthRefreshQu
             return "UNAVAILABLE";
           return run.status;
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof Error) reportError(error, { operation: "hatchet-status" });
         return "UNAVAILABLE";
       }
     },

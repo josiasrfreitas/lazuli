@@ -1,3 +1,4 @@
+import { reportError } from "@lazuli/logging";
 import type { DatabaseClient } from "@lazuli/db";
 import { extractIdentityDocument } from "@lazuli/domain";
 import { textractIdentityOcr, type IdentityOcr } from "@lazuli/integrations/identity-ocr";
@@ -39,7 +40,8 @@ export async function processStudentDocument(
       ),
     };
     await database.studentDocumentFile.updateMany({ where, data: { status: "READY", extraction } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) reportError(error, { service: "worker", operation: "documents" });
     await database.studentDocumentFile.updateMany({ where, data: { status: "FAILED" } });
   }
 }
