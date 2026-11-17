@@ -150,6 +150,7 @@ type TaskDialogProps = {
   error?: string | undefined;
   bodyRef?: React.RefObject<HTMLDivElement | null> | undefined;
   submitVariant?: ButtonVariant;
+  footerSummary?: ReactNode;
 };
 export function TaskDialog(props: TaskDialogProps): ReactElement {
   if (props.embedded) return <TaskContent {...props} />;
@@ -242,6 +243,7 @@ function TaskBody({
         {typeof props.children === "function" ? props.children(actions) : props.children}
         {props.error && <ToastAlert variant="destructive">{props.error}</ToastAlert>}
       </DialogBody>
+      {props.footerSummary}
       {typeof props.children !== "function" && <DialogFooter>{actions}</DialogFooter>}
     </>
   );

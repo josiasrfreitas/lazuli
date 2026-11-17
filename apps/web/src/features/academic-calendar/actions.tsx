@@ -48,7 +48,14 @@ export function CalendarActions({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        render={<Button size="sm" variant="ghost" disabled={disabled || run.isPending} />}
+        render={
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={disabled || run.isPending}
+            data-calendar-configure-trigger
+          />
+        }
       >
         <Settings2 aria-hidden="true" /> Configurar
       </PopoverTrigger>

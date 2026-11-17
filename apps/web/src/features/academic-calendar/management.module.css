@@ -1,25 +1,38 @@
-.page {
-  padding: 1.5rem 2rem;
-  min-height: 100%;
-  color: var(--foreground);
+.dialog {
+  width: calc(100vw - 2rem);
+  max-width: 90rem;
+  height: calc(100dvh - 4rem);
+}
+.stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.workspace {
+  flex: 1;
+  min-height: 0;
+}
+.listBody {
+  display: flex;
+  flex-direction: column;
+}
+.emptySection {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.emptySection > .empty {
+  flex: 1;
 }
 .header {
-  display: grid;
-  justify-items: start;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.5rem;
 }
-.header h1 {
-  font-size: var(--lz-text-h2);
-  color: var(--heading);
-  margin: 0;
-}
-.header h1 span {
-  margin-left: 0.5rem;
-  font-family: var(--lz-font-numeric);
-  color: var(--interactive);
-}
-.header p,
 .sectionHeader p,
 .explanation p {
   color: var(--muted-foreground);
@@ -30,93 +43,117 @@
 }
 .section {
   display: grid;
-  gap: 1.5rem;
-  padding-top: 1.5rem;
+  gap: 0.75rem;
 }
 .sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex: 1 1 28rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
 }
-.sectionHeader h2 {
-  font-size: var(--lz-text-h3);
-  margin: 0 0 0.375rem;
+.sectionHeader p {
+  font-size: var(--lz-text-body);
+}
+.headerControls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
 }
 .actions {
+  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 .periods {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: 0.75rem;
   padding: 0;
   list-style: none;
   margin: 0;
 }
 .period {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1rem;
-  background: var(--accent);
-  color: var(--accent-foreground);
-  padding: 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0.75rem;
+  border: 1px solid var(--border);
   border-radius: var(--lz-radius-lg);
 }
-.period > svg {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-.period > div {
-  flex: 1;
-}
-.period h3 {
-  font-size: var(--lz-text-h3);
-  margin: 0;
-}
-.period p {
-  font-size: var(--lz-text-caption);
-  margin: 0.5rem 0 0;
-}
-.period .range {
+.periodHeading {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  font: 600 1.375rem var(--lz-font-numeric);
-  margin-block: 1rem;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.periodHeading svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  color: var(--icon);
+}
+.period h3 {
+  font-size: var(--lz-text-body);
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.period .range {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font: 500 var(--lz-text-body) var(--lz-font-numeric);
+  margin: 0;
 }
 .range small {
-  display: block;
+  display: inline;
   font-size: var(--lz-text-caption);
   font-weight: 400;
-  margin-top: 0.25rem;
+  margin-inline-start: 0.375rem;
+}
+.range > span {
+  white-space: nowrap;
 }
 .range svg {
   width: 1rem;
   height: 1rem;
 }
 .interruptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 0.75rem;
   list-style: none;
   margin: 0;
   padding: 0;
-  border-block: 1px solid var(--border);
 }
 .interruption {
   display: grid;
-  grid-template-columns: 7rem minmax(0, 1fr) auto;
-  gap: 1rem;
-  padding: 1rem 0.5rem;
-  align-items: center;
-  border-bottom: 1px solid var(--border-subtle);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 1rem;
+  align-content: start;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--lz-radius-lg);
 }
-.interruption:last-child {
-  border: 0;
+.interruptionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.interruption > div {
+  min-width: 0;
 }
 .interruption h3 {
+  overflow-wrap: anywhere;
   font-size: var(--lz-text-body);
   margin: 0;
 }
@@ -126,17 +163,30 @@
   color: var(--muted-foreground);
 }
 .interruptionDate {
-  color: var(--warning);
-  background: var(--warning-muted);
-  border-radius: var(--lz-radius-md);
-  padding: 0.625rem;
-  font: 600 var(--lz-text-body) var(--lz-font-numeric);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--muted-foreground);
+  font: 500 var(--lz-text-caption) var(--lz-font-numeric);
+}
+.interruptionKind {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+.interruptionDate svg,
+.interruptionKind svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+.interruptionKind svg {
+  margin-top: 0.125rem;
 }
 .interruptionDate small {
-  display: block;
   font-weight: 400;
   font-size: var(--lz-text-caption);
-  margin-top: 0.25rem;
 }
 .description {
   white-space: pre-line;
@@ -144,52 +194,18 @@
 }
 .explanation {
   border-top: 1px solid var(--border);
-  padding-top: 1rem;
+  padding-top: 0.75rem;
 }
 .explanation h3 {
   font-size: var(--lz-text-body);
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.25rem;
 }
 .empty {
-  padding: 2rem 1rem;
   background: var(--card);
   border-radius: var(--lz-radius-lg);
 }
-.empty svg {
-  width: 2rem;
-  height: 2rem;
-  color: var(--interactive);
-}
-.empty h3 {
-  font-size: var(--lz-text-h3);
-  margin: 1rem 0 0.5rem;
-}
-.empty p {
-  color: var(--muted-foreground);
-  font-size: var(--lz-text-caption);
-  margin: 0;
-}
-@media (max-width: 900px) {
-  .page {
-    padding: 1.25rem;
-  }
-  .periods {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 @media (max-width: 639px) {
-  .page {
-    padding: 1rem;
-  }
-  .header h1 {
-    font-size: var(--lz-text-h3);
-  }
-  .interruption {
-    grid-template-columns: 5rem minmax(0, 1fr);
-    gap: 0.75rem;
-  }
-  .interruption > button {
-    grid-column: 2;
-    justify-self: start;
+  .headerControls {
+    align-items: flex-start;
   }
 }

@@ -27,32 +27,31 @@ export function AcademicCalendar(): ReactElement {
     <>
       <CalendarExecutionNotifications requests={query.data?.requests ?? []} />
       {renderChangeEditor(controller)}
-      {managing && query.data ? (
+      {managing && query.data && (
         <CalendarManagement
           data={query.data}
           year={navigation.year}
-          onClose={() => configure(false)}
           section={controller.section ?? "semestres"}
           onSectionChange={(section) => configure(true, section)}
-        />
-      ) : (
-        <AcademicCalendarWorkspace
-          data={query.data}
-          navigation={navigation}
-          period={query.period}
-          periods={query.periods}
-          refreshing={query.isFetching}
-          unavailable={Boolean(query.error && !query.data)}
-          disabled={pending}
-          onConfigure={(section) => configure(true, section)}
-          onCreate={(date) => openEditor({ kind: "event", date })}
-          onEdit={editEntry}
-          onInterruption={(date) => openEditor({ kind: "interruption", date })}
-          editor={renderEventEditor(controller)}
-          notice={renderNotice(controller)}
-          dailyAgenda={renderDailyAgenda(controller)}
+          onClose={() => configure(false)}
         />
       )}
+      <AcademicCalendarWorkspace
+        data={query.data}
+        navigation={navigation}
+        period={query.period}
+        periods={query.periods}
+        refreshing={query.isFetching}
+        unavailable={Boolean(query.error && !query.data)}
+        disabled={pending}
+        onConfigure={(section) => configure(true, section)}
+        onCreate={(date) => openEditor({ kind: "event", date })}
+        onEdit={editEntry}
+        onInterruption={(date) => openEditor({ kind: "interruption", date })}
+        editor={renderEventEditor(controller)}
+        notice={renderNotice(controller)}
+        dailyAgenda={renderDailyAgenda(controller)}
+      />
     </>
   );
 }
@@ -82,7 +81,6 @@ function useCalendarController(): CalendarController {
   const [pending, setPending] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const restoreFocus = useRef<HTMLElement | null>(null);
-  const calendarScroll = useRef(0);
   const navigation = useAcademicCalendarNavigation();
   const query = useCalendarPeriodData(navigation);
   function openEditor(value: Editor): void {
@@ -98,12 +96,7 @@ function useCalendarController(): CalendarController {
     });
   }
   function configure(open: boolean, nextSection = "semestres"): void {
-    const main = document.querySelector("main");
-    if (open) calendarScroll.current = main?.scrollTop ?? 0;
     void setSection(open ? nextSection : null);
-    requestAnimationFrame(() => {
-      if (main) main.scrollTop = open ? 0 : calendarScroll.current;
-    });
   }
   function editEntry(entry: CalendarEntry): void {
     if (!entry.editor || pending) return;
@@ -195,9 +188,7 @@ function renderNotice({ announcement, query }: CalendarController): ReactElement
           </div>
         </Alert>
       )}
-      {query.data && (
-        <CalendarProcessing requests={query.data.requests} />
-      )}
+      {query.data && <CalendarProcessing requests={query.data.requests} />}
     </>
   );
 }
