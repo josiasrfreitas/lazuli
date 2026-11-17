@@ -34,7 +34,7 @@ export type PlanningDetail = {
   records: PlanningRecord[];
   upcoming: { id: string; date: string; time: string }[];
   projection: { itemId: string; date: string | null; sessionId: string | null }[];
-  availableSessions: { id: string; date: string; minutes: number }[];
+  availableSessions: { id: string; date: string; minutes: number; startTime: string; endTime: string }[];
 };
 export type PlanningRevision = {
   id: string;

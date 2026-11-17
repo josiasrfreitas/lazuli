@@ -31,3 +31,14 @@ margin or is complete, and neither when tight/unknown. Add a live two-column sch
 left fields, right capacity before/after, updated from the real conflict-checked recurrence preview.
 Default to the class's current teacher. Preserve the outside-period confirmation as the final step.
 At narrow widths these columns stack inside the existing scrollable dialog.
+
+Final refinements: keep a compact live capacity balance above the persistent actions on narrow
+screens. Identify days with existing sessions in the weekday controls and list their actual hours
+for the chosen interval. Refresh the planning data on opening the form, without displaying absent
+time values. Explain that different weekday hours can be saved in separate, cumulative adjustments.
+Preserve the existing encounters when adding another recurrence. Assign projected activities to
+the specific session, so two lessons on the same day receive distinct planned content.
+
+Calendar integration: holidays are skipped; explicit extra sessions can extend beyond the semester
+and count in its capacity. Changing semester boundaries preserves explicit extras, while a closure
+on their date can cancel an unstarted encounter without evidence. Performed records remain intact.

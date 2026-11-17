@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, type ReactElement } from "react";
-import { CalendarPlus, ArrowRight } from "lucide-react";
+import { CalendarPlus, CalendarDays, ArrowRight } from "lucide-react";
 import type { RouterInputs } from "@lazuli/api";
 import { Button, Checkbox, Field, Label } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -13,11 +13,13 @@ import {
   ExtraCapacity,
   CompactExtraCapacity,
   hourLabel,
+  encounterLabel,
   type ExtraPreview,
 } from "./extra-capacity";
 import styles from "./adjustments.module.css";
+import { ExistingSchedule, scheduledDays, weekLabels } from "./existing-schedule";
 
-const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const days = weekLabels;
 export type AdjustmentFormProps = {
   data: Planning;
   onClose: () => void;
@@ -45,6 +47,9 @@ export function ExtraClassesForm({
   const [allowOutsidePeriod, setAllowOutsidePeriod] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const utils = trpc.useUtils();
+  useEffect(() => {
+    void utils.planning.detail.invalidate({ classId: data.scope.class.id });
+  }, [data.scope.class.id, utils]);
   const [reviewing, setReviewing] = useState(false);
   const [live, setLive] = useState<{
     key: string;
@@ -69,6 +74,14 @@ export function ExtraClassesForm({
   };
   const liveInput = { ...input, reason: "Prévia de aulas extras.", allowOutsidePeriod: false };
   const liveKey = JSON.stringify(liveInput);
+  const existing = scheduledDays(
+    data,
+    input.from || data.scope.today,
+    input.through || data.scope.semester.endOn,
+  );
+  const occupiedDays = new Set(
+    existing.map((session) => new Date(`${session.date}T12:00:00Z`).getUTCDay()),
+  );
   const ready = Boolean(
     input.from && input.through && teacherId && weekdays.length && startTime && endTime,
   );
@@ -188,6 +201,8 @@ export function ExtraClassesForm({
                         size="sm"
                         variant={weekdays.includes(day) ? "secondary" : "ghost"}
                         aria-pressed={weekdays.includes(day)}
+                        aria-label={occupiedDays.has(index) ? `${label} · já tem aula` : label}
+                        aria-describedby={occupiedDays.has(index) ? "existing-class-schedule" : undefined}
                         onClick={() =>
                           setWeekdays((value) =>
                             value.includes(day)
@@ -197,11 +212,13 @@ export function ExtraClassesForm({
                         }
                       >
                         {label}
+                        {occupiedDays.has(index) && <CalendarDays aria-hidden="true" />}
                       </Button>
                     );
                   })}
                 </div>
               </fieldset>
+              <ExistingSchedule sessions={existing} />
               <div className={styles.timeRow}>
                 <TextControl
                   name="startTime"
@@ -247,8 +264,7 @@ export function ExtraClassesForm({
               <>
                 <div className={styles.preview} aria-live="polite">
                   <h3>
-                    {preview.data.dates.length} encontros · {hourLabel(preview.data.addedMinutes)}{" "}
-                    adicionais
+                    {encounterLabel(preview.data.dates.length)} · +{hourLabel(preview.data.addedMinutes)}
                   </h3>
                   <p>
                     {dateLabel(preview.data.dates[0]!)} a {dateLabel(preview.data.dates.at(-1)!)} ·{" "}
@@ -270,10 +286,10 @@ export function ExtraClassesForm({
                     {preview.data.uncertain
                       ? "O saldo de conteúdo depende de confirmar os registros pendentes."
                       : preview.data.margin < 0
-                        ? `Ainda faltarão ${-preview.data.margin / 60}h para concluir o conteúdo.`
+                        ? `Ainda faltarão ${hourLabel(-preview.data.margin)} para concluir o conteúdo.`
                         : preview.data.margin === 0
                           ? "O conteúdo passa a caber exatamente nas aulas disponíveis."
-                          : `O conteúdo cabe com ${preview.data.margin / 60}h de folga.`}
+                          : `O conteúdo cabe com ${hourLabel(preview.data.margin)} de folga.`}
                   </p>
                 </div>
                 <details className={styles.dates}>
@@ -282,7 +298,10 @@ export function ExtraClassesForm({
                 </details>
                 {preview.data.skipped.length > 0 && (
                   <p className={styles.help}>
-                    {preview.data.skipped.length} encontros ignorados por fechamento:{" "}
+                    {preview.data.skipped.length === 1
+                      ? "1 encontro ignorado"
+                      : `${preview.data.skipped.length} encontros ignorados`}{" "}
+                    por fechamento:{" "}
                     {preview.data.skipped
                       .map((row) => `${dateLabel(row.date)} (${row.reason})`)
                       .join("; ")}
@@ -298,7 +317,7 @@ export function ExtraClassesForm({
                         checked={allowOutsidePeriod}
                         onCheckedChange={(checked) => setAllowOutsidePeriod(Boolean(checked))}
                       />
-                      Confirmo {preview.data.outside} encontros fora do período letivo, incluindo
+                      Confirmo {encounterLabel(preview.data.outside)} fora do período letivo, incluindo
                       férias.
                     </Label>
                   </Field>

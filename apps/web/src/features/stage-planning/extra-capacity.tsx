@@ -8,6 +8,8 @@ import { semesterOutlook } from "./outlook-model";
 import styles from "./adjustments.module.css";
 
 export type ExtraPreview = RouterOutputs["planning"]["previewExtra"];
+export const encounterLabel = (count: number): string =>
+  `${count} ${count === 1 ? "encontro" : "encontros"}`;
 export const hourLabel = (minutes: number): string =>
   `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / 60)}h`;
 export function CompactExtraCapacity({
@@ -42,7 +44,7 @@ export function CompactExtraCapacity({
     >
       {preview && !loading && (
         <strong>
-          +{hourLabel(preview.addedMinutes)} · {preview.dates.length} encontros
+          +{hourLabel(preview.addedMinutes)} · {encounterLabel(preview.dates.length)}
         </strong>
       )}
       <span>{message}</span>
@@ -113,7 +115,7 @@ export function ExtraCapacity({
             <div className={styles.capacityHeading}>
               <strong>+{hourLabel(added)} nesta seleção</strong>
               <Badge variant={balance >= 0 && known ? "success" : "info"}>
-                {preview.dates.length} encontros
+                {encounterLabel(preview.dates.length)}
               </Badge>
             </div>
             <p>
@@ -147,12 +149,16 @@ export function ExtraCapacity({
             </p>
             {preview.outside > 0 && (
               <p>
-                {preview.outside} encontros nas férias ou fora do período letivo. Você vai confirmar
+                {encounterLabel(preview.outside)} nas férias ou fora do período letivo. Você vai confirmar
                 essas datas no próximo passo.
               </p>
             )}
             {preview.skipped.length > 0 && (
-              <p>{preview.skipped.length} datas de fechamento foram excluídas.</p>
+              <p>
+                {preview.skipped.length === 1
+                  ? "1 data de fechamento foi excluída."
+                  : `${preview.skipped.length} datas de fechamento foram excluídas.`}
+              </p>
             )}
             <span className={styles.selectionDetail}>
               <Check size={15} aria-hidden="true" />
@@ -160,11 +166,17 @@ export function ExtraCapacity({
             </span>
           </>
         ) : (
-          <p>
-            {ready
-              ? "Confira as datas e horários para calcular os encontros."
-              : "Escolha professor, dias e intervalo para ver quanto essa seleção cobre."}
-          </p>
+          <>
+            <p>
+              {ready
+                ? "Confira as datas e horários para calcular os encontros."
+                : "Escolha professor, dias e intervalo para ver quanto essa seleção cobre."}
+            </p>
+            <p>
+              Para usar horários diferentes em cada dia, salve um dia por vez. As aulas se somam às
+              que você já agendou.
+            </p>
+          </>
         )}
       </div>
     </aside>

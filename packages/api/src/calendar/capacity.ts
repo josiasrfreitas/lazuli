@@ -23,7 +23,13 @@ export async function calendarCapacity(
     rows.push(session);
     byClassDate.set(key, rows);
   }
-  return classes.map((row) => classCapacity(row, { state, byClassDate }));
+  return classes.map((row) => classCapacity(row, {
+    state,
+    byClassDate,
+    extraSessions: sessions.filter(
+      (session) => session.classId === row.id && session.appointmentSeriesId,
+    ),
+  }));
 }
 
 type CalendarCapacity = {
@@ -61,11 +67,23 @@ async function readCapacityClasses(
       ...(state.period
         ? { semesterId: state.period.id }
         : {
-            semester: {
-              deletedAt: null,
-              startDate: { lte: day(state.through) },
-              endDate: { gte: day(state.from) },
-            },
+            OR: [
+              {
+                semester: {
+                  deletedAt: null,
+                  startDate: { lte: day(state.through) },
+                  endDate: { gte: day(state.from) },
+                },
+              },
+              {
+                sessions: { some: {
+                  deletedAt: null,
+                  status: "SCHEDULED",
+                  appointmentSeriesId: { not: null },
+                  date: { gte: day(state.from), lte: day(state.through) },
+                } },
+              },
+            ],
           }),
     },
     orderBy: { portalClassName: "asc" },
@@ -74,7 +92,11 @@ async function readCapacityClasses(
 }
 function classCapacity(
   row: CapacityClass,
-  input: { state: CalendarChangeState; byClassDate: Map<string, CapacitySession[]> },
+  input: {
+    state: CalendarChangeState;
+    byClassDate: Map<string, CapacitySession[]>;
+    extraSessions: CapacitySession[];
+  },
 ): CalendarCapacity {
   const { state, byClassDate } = input;
 
@@ -98,6 +120,12 @@ function classCapacity(
       actual: byClassDate.get(`${row.id}:${date}`) ?? [],
       closed: state.closed,
     });
+  }
+  for (const session of input.extraSessions) {
+    const date = civil(session.date);
+    if (date <= through || date < from || session.status === "CANCELLED") continue;
+    if (state.closed.has(date) && !session.classRecord) continue;
+    availableMinutes += minutes(session.startTime, session.endTime);
   }
   const { unknownItems, requiredMinutes } = planRequirements(plan);
   return {

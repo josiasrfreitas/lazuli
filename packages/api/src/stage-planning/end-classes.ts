@@ -22,14 +22,14 @@ export async function previewEndClasses(context: PlanningContext, input: EndClas
   }));
   const availableMinutes = data.availableSessions.filter((row) => row.date <= input.lastDate).reduce((sum, row) => sum + row.minutes, 0);
   const blocked = uncertain ? "Confira os registros e a duração dos conteúdos antes de antecipar o encerramento."
-    : availableMinutes < remainingMinutes ? `Ainda faltariam ${(remainingMinutes - availableMinutes) / 60}h para acomodar o conteúdo até essa data.`
+    : availableMinutes < remainingMinutes ? `Ainda faltariam ${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format((remainingMinutes - availableMinutes) / 60)}h para acomodar o conteúdo até essa data.`
     : cancellable.length === 0 ? "Não há aulas futuras sem registros para cancelar depois dessa data." : null;
   return {
     count: cancellable.length, preserved: sessions.length - cancellable.length,
     from: cancellable[0] ? dateOnly(cancellable[0].date) : null,
     through: cancellable.at(-1) ? dateOnly(cancellable.at(-1)!.date) : null,
     remainingMinutes, availableMinutes, blocked,
-    confirmation: `CONFIRMO O CANCELAMENTO DE ${cancellable.length} AULAS`,
+    confirmation: `CONFIRMO O CANCELAMENTO DE ${cancellable.length} ${cancellable.length === 1 ? "AULA" : "AULAS"}`,
     fingerprint: adjustmentFingerprint({ input, plan: data.plan?.version, records: data.records, sessions }),
     sessionIds: cancellable.map((row) => row.id),
   };

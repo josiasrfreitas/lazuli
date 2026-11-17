@@ -292,7 +292,7 @@ function SummaryMethod({ data }: { data: Planning }): ReactElement {
       </summary>
       <p>
         Somamos a duração prevista dos conteúdos ainda não concluídos e comparamos com as aulas
-        disponíveis até Última aula · {dateLabel(data.calendar.endOn)}, excluindo cancelamentos e dias sem
+        disponíveis até {dateLabel(data.calendar.endOn)}, excluindo cancelamentos e dias sem
         aula. É uma comparação com a carga da programação, não uma previsão baseada na velocidade do
         professor. Conteúdos sem confirmação não são considerados concluídos.
       </p>

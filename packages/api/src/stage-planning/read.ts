@@ -265,6 +265,8 @@ async function planningCalendar(
   const future = eligible.filter((session) => sessionEndInstant(session) > context.now);
   return {
     availableSessions: future.map((session) => ({
+      startTime: timeOnly(session.startTime),
+      endTime: timeOnly(session.endTime),
       id: session.id,
       date: dateOnly(session.date),
       minutes: Math.max(
