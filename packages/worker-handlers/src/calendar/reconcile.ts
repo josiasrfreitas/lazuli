@@ -142,7 +142,7 @@ async function cancelSessions(
   const { sessions, blocked, request, now } = input;
   let cancelledSessions = 0;
   for (const original of sessions) {
-    if (!blocked(original.date, original.class.semesterId)) continue;
+    if (!blocked(original.date, original.appointmentSeriesId ? undefined : original.class.semesterId)) continue;
     await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`class-record:${original.id}`},0))`;
     const row = await database.classSession.findUniqueOrThrow({
       where: { id: original.id },

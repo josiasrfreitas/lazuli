@@ -32,6 +32,7 @@ export function selectImpactCandidates(
   const affectedSession = (row: ImpactSession): boolean =>
     state.closed.has(civil(row.date)) ||
     (change.action === "period" &&
+      !row.appointmentSeriesId &&
       row.class.semesterId === change.id &&
       outside(row.class.semesterId, row.date));
   const affectedAppointment = (row: ImpactAppointment): boolean =>

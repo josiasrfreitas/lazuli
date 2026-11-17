@@ -1,6 +1,6 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import Link from "next/link";
+
 import {
   ArrowRight,
   ArrowUpRight,
@@ -11,40 +11,25 @@ import {
   Info,
   Plus,
 } from "lucide-react";
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogPortal,
-  DialogBackdrop,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogBody,
-} from "@lazuli/ui";
-import { SelectControl } from "~/features/classes/form-controls";
+import { Badge, Button } from "@lazuli/ui";
+import type { ReactNode } from "react";
+import { ProgramExplorer } from "./program-explorer";
 import { dateLabel, type Planning, type PlannedItem } from "./shared";
 import { semesterOutlook, contentGroups, type ContentGroup } from "./outlook-model";
 import styles from "./journey.module.css";
-import { contentChoicesForUnit } from "./journey-model";
+
 
 const MINUTES_PER_HOUR = 60;
 const hours = (minutes: number): string =>
   `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / MINUTES_PER_HOUR)}h`;
 type Outlook = ReturnType<typeof semesterOutlook>;
-const STATES = {
-  completed: { label: "Concluído", variant: "success" },
-  partial: { label: "Em andamento", variant: "warning" },
-  worked: { label: "Conclusão não informada", variant: "info" },
-  unconfirmed: { label: "Ainda sem conclusão", variant: "neutral" },
-  scheduled: { label: "A trabalhar", variant: "neutral" },
-} as const;
 export function PlanningJourney({
   data,
   onEdit,
+  actions,
 }: {
   data: Planning;
+  actions?: ReactNode;
   onEdit?: ((item: PlannedItem | null) => void) | undefined;
 }): ReactElement {
   const outlook = semesterOutlook(data);
@@ -56,31 +41,21 @@ export function PlanningJourney({
   const next = groups.find((group) =>
     group.steps.some((step) => step.item.id === outlook.journey.next?.item.id),
   );
-  const previous = groups
-    .slice(0, current ? groups.indexOf(current) : 0)
-    .findLast((group) => group.steps.every((step) => step.state === "completed"));
+
   return (
     <div className={styles.workspace}>
-      <SemesterSummary data={data} outlook={outlook} />
+      <SemesterSummary data={data} outlook={outlook} actions={actions} />
       <JourneyContent
         data={data}
         outlook={outlook}
         groups={groups}
         current={current}
         next={next}
-        previous={previous}
         setSelected={setSelected}
         onEdit={onEdit}
       />
       {selected && (
-        <ContentExplorer
-          groups={groups}
-          selected={selected}
-          onSelect={setSelected}
-          onClose={() => setSelected(null)}
-          onEdit={onEdit}
-          preview={Boolean(data.preview)}
-        />
+        <ProgramExplorer data={data} groups={groups} onClose={() => setSelected(null)} onEdit={onEdit} />
       )}
     </div>
   );
@@ -135,25 +110,25 @@ function outlookCopy(outlook: Outlook): {
     };
   return {
     title: `Há ${hours(outlook.margin)} de folga para concluir o conteúdo`,
-    label: "Cabe no semestre",
+    label: "Conteúdo acomodado",
     variant: "success",
     explanation:
       "A carga prevista restante cabe nas aulas disponíveis. A folga permite retomar conteúdos e acomodar ajustes de ritmo.",
   };
 }
-function SemesterSummary({ data, outlook }: { data: Planning; outlook: Outlook }): ReactElement {
+function SemesterSummary({ data, outlook, actions }: { data: Planning; outlook: Outlook; actions?: ReactNode }): ReactElement {
   const copy = outlookCopy(outlook);
   const max = Math.max(1, outlook.availableMinutes, outlook.remainingMinutes);
   return (
     <section className={styles.outlook} aria-label="Conclusão do conteúdo no semestre">
       <header className={styles.outlookHeader}>
         <div className={styles.outlookStatus}>
-          <h3>Até o fim do semestre</h3>
+          <h3>Disponibilidade de aulas</h3>
           <Badge variant={copy.variant}>{copy.label}</Badge>
         </div>
         <span>
           <CalendarDays size={15} aria-hidden="true" />
-          {dateLabel(data.scope.semester.endOn)}
+          Última aula · {dateLabel(data.calendar.endOn)}
         </span>
       </header>
       <div className={styles.outlookBody}>
@@ -202,7 +177,7 @@ function SemesterSummary({ data, outlook }: { data: Planning; outlook: Outlook }
           </p>
         </div>
       </div>
-      <SummaryMethod data={data} />
+      <div className={styles.summaryFooter}><SummaryMethod data={data} />{actions}</div>
     </section>
   );
 }
@@ -243,82 +218,12 @@ function ContentMoment({
   );
 }
 
-function ContentExplorer({
-  groups,
-  selected,
-  onSelect,
-  onClose,
-  onEdit,
-  preview,
-}: {
-  groups: ContentGroup[];
-  selected: string;
-  onSelect: (id: string) => void;
-  onClose: () => void;
-  onEdit?: ((item: PlannedItem) => void) | undefined;
-  preview: boolean;
-}): ReactElement {
-  const group = groups.find((group) => group.id === selected) ?? groups[0];
-  if (!group) return <></>;
-  const units = [...new Set(groups.map((group) => group.unit))];
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogPortal>
-        <DialogBackdrop />
-        <DialogContent className="md:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Programação por conteúdo</DialogTitle>
-            <DialogDescription>
-              Consulte o previsto e o que foi trabalhado em cada lição.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <div className={styles.explorer}>
-              <div className={styles.selectors}>
-                <SelectControl
-                  name="planning-unit"
-                  label="Unidade"
-                  value={group.unit}
-                  choices={units.map((unit) => ({ value: unit, label: unit }))}
-                  onChange={(unit) => {
-                    const first = groups.find((group) => group.unit === unit);
-                    if (first) onSelect(first.id);
-                  }}
-                />
-                <SelectControl
-                  name="planning-content"
-                  label="Conteúdo"
-                  value={group.id}
-                  choices={contentChoicesForUnit(groups, group.unit)}
-                  onChange={onSelect}
-                />
-              </div>
-              <ExplorerActivities
-                group={group}
-                preview={preview}
-                onEdit={onEdit}
-                onClose={onClose}
-              />
-            </div>
-          </DialogBody>
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
-  );
-}
-
 function JourneyContent({
   data,
   outlook,
   groups,
   current,
   next,
-  previous,
   setSelected,
   onEdit,
 }: {
@@ -327,7 +232,6 @@ function JourneyContent({
   groups: ContentGroup[];
   current: ContentGroup | undefined;
   next: ContentGroup | undefined;
-  previous: ContentGroup | undefined;
   setSelected: (value: string) => void;
   onEdit: ((item: PlannedItem | null) => void) | undefined;
 }): ReactElement {
@@ -353,7 +257,6 @@ function JourneyContent({
         outlook={outlook}
         current={current}
         next={next}
-        previous={previous}
         setSelected={setSelected}
       />
       <p className={styles.contextLine}>
@@ -389,7 +292,7 @@ function SummaryMethod({ data }: { data: Planning }): ReactElement {
       </summary>
       <p>
         Somamos a duração prevista dos conteúdos ainda não concluídos e comparamos com as aulas
-        disponíveis até {dateLabel(data.scope.semester.endOn)}, excluindo cancelamentos e dias sem
+        disponíveis até Última aula · {dateLabel(data.calendar.endOn)}, excluindo cancelamentos e dias sem
         aula. É uma comparação com a carga da programação, não uma previsão baseada na velocidade do
         professor. Conteúdos sem confirmação não são considerados concluídos.
       </p>
@@ -399,73 +302,10 @@ function SummaryMethod({ data }: { data: Planning }): ReactElement {
 
 function momentIcon(current: boolean | undefined, label: string): ReactElement {
   if (current) return <Clock3 size={15} aria-hidden="true" />;
-  return label === "Já trabalhado" ? (
+  return label === "Último conteúdo trabalhado" ? (
     <Check size={15} aria-hidden="true" />
   ) : (
     <ArrowRight size={15} aria-hidden="true" />
-  );
-}
-
-function ExplorerActivities({
-  group,
-  preview,
-  onEdit,
-  onClose,
-}: {
-  group: ContentGroup;
-  preview: boolean;
-  onEdit: ((item: PlannedItem) => void) | undefined;
-  onClose: () => void;
-}): ReactElement {
-  return (
-    <div className={styles.activities}>
-      {group.steps.map((step) => (
-        <article key={step.item.id}>
-          <div className={styles.activityTitle}>
-            <h3>{step.item.title}</h3>
-            <Badge variant={STATES[step.state].variant}>{STATES[step.state].label}</Badge>
-          </div>
-          <p>
-            {step.item.plannedOn
-              ? `${preview ? "Cabe no calendário em" : "Previsto para"} ${dateLabel(step.item.plannedOn)}`
-              : "Sem data · falta tempo no calendário"}
-            {step.item.curriculum
-              ? ` · ${hours(step.item.curriculum.durationMinutes)} na programação`
-              : ""}
-          </p>
-          {step.evidence.length > 0 ? (
-            <div className={styles.evidence}>
-              {step.evidence.map((record) => (
-                <Link
-                  key={record.id}
-                  href={`/turmas/${record.classId}?secao=aulas&aula=${record.id}#aulas-da-turma`}
-                >
-                  <ArrowUpRight size={13} aria-hidden="true" />
-                  {dateLabel(record.date)} ·{" "}
-                  {record.content.planItemStatus === "COMPLETED"
-                    ? "Conclusão registrada"
-                    : "Conteúdo trabalhado"}
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p>Sem conclusão registrada.</p>
-          )}
-          {onEdit && step.item.plannedOn && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onClose();
-                if (step.item.plannedOn) onEdit({ ...step.item, plannedOn: step.item.plannedOn });
-              }}
-            >
-              Editar atividade
-            </Button>
-          )}
-        </article>
-      ))}
-    </div>
   );
 }
 
@@ -473,45 +313,25 @@ function JourneyMoments({
   outlook,
   current,
   next,
-  previous,
   setSelected,
 }: {
   outlook: Outlook;
   current: ContentGroup | undefined;
   next: ContentGroup | undefined;
-  previous: ContentGroup | undefined;
   setSelected: (value: string) => void;
 }): ReactElement {
   return (
     <div className={styles.moments}>
       <ContentMoment
-        label="Já trabalhado"
-        group={previous}
-        empty="O percurso começa com os primeiros registros."
-        detail={previous ? `${previous.steps.length} conteúdos concluídos` : null}
-        onOpen={setSelected}
-      />
-      <ContentMoment
-        label="Ponto atual"
-        group={current}
+        label="Último conteúdo trabalhado" group={current}
         empty="Aguardando o primeiro registro de conteúdo."
-        detail={outlook.journey.current?.item.title ?? null}
-        current
-        onOpen={setSelected}
+        detail={outlook.journey.current?.item.title ?? null} onOpen={setSelected}
       />
       <ContentMoment
-        label={nextMomentLabel(outlook, current)}
-        group={next}
-        empty={current ? "Fim da sequência prevista." : "Programação ainda não disponível."}
-        detail={outlook.journey.next?.item.title ?? null}
-        onOpen={setSelected}
+        label="Próximo" group={next} current
+        empty={current ? "Programação concluída." : "Programação ainda não disponível."}
+        detail={outlook.journey.next?.item.title ?? null} onOpen={setSelected}
       />
     </div>
   );
-}
-
-function nextMomentLabel(outlook: Outlook, current: ContentGroup | undefined): string {
-  return outlook.journey.next?.item.id === outlook.journey.current?.item.id && current
-    ? "Para continuar"
-    : "A seguir";
 }

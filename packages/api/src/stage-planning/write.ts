@@ -39,6 +39,8 @@ export async function savePlanWindow(
   input: StagePlanWindow,
 ): Promise<VersionedResult> {
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
+  if (plan && (dateOnly(plan.plannedStartOn) <= scope.today || input.plannedStartOn <= scope.today))
+    throw badRequest("O início só pode ser alterado enquanto ainda estiver no futuro.");
   input = windowInSemester(input, scope);
   const rows = await windowProgramRows(context, { scope, plan, input });
   if (!rows) assertWindowBounds(scope, { plan, input });
@@ -126,7 +128,7 @@ async function bumpVersion(context: PlanningContext, plan: Plan): Promise<void> 
       message: "O planejamento mudou. Atualize a página antes de salvar novamente.",
     });
 }
-async function recordRevision(
+export async function recordRevision(
   context: PlanningContext,
   input: { scope: PlanningScope; planId: string; reason: string },
 ): Promise<VersionedResult> {
@@ -259,6 +261,8 @@ export async function saveProgramStart(
   input: StagePlanWindow,
 ): Promise<VersionedResult> {
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
+  if ((plan ? dateOnly(plan.plannedStartOn) : scope.classStartOn) <= scope.today || input.plannedStartOn <= scope.today)
+    throw badRequest("O início só pode ser alterado enquanto ainda estiver no futuro.");
   if (
     !plan &&
     !(await programSchedule(context, { scope, startOn: input.plannedStartOn, plan: null }))

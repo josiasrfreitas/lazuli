@@ -6,6 +6,8 @@ export const ACTIVITY_AREAS = {
 } as const;
 export type ActivityArea = keyof typeof ACTIVITY_AREAS;
 export const ACTIVITY_ACTIONS = {
+  "appointments.scheduleClass": ["PEDAGOGICAL", "Atendimentos da turma agendados"],
+  "planning.endClasses": ["PEDAGOGICAL", "Encerramento das aulas antecipado"],
   "studentAttendance.open": ["PEDAGOGICAL", "Abriu link de presença"],
   "studentAttendance.close": ["PEDAGOGICAL", "Encerrou link de presença"],
   "planning.create": ["PEDAGOGICAL", "Planejamento criado"],

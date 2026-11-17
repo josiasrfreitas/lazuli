@@ -1,0 +1,58 @@
+.actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.success { display: flex; gap: .375rem; align-items: center; color: var(--success); font-size: var(--lz-text-caption); }
+.choices { display: grid; }
+.choices button { display: flex; align-items: center; gap: 1rem; padding: 1.25rem .5rem; text-align: left; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
+.choices button:last-child { border: 0; }
+.choices button:hover { background: var(--accent); }
+.choices button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.choices button > svg { width: 1.25rem; height: 1.25rem; color: var(--interactive); flex-shrink: 0; }
+.choices button > span { flex: 1; display: grid; gap: .375rem; }
+.choices strong { display: flex; gap: .625rem; flex-wrap: wrap; align-items: center; color: var(--heading); font-weight: 600; }
+.choices span > span, .help { color: var(--muted-foreground); font-size: .875rem; line-height: 1.5; }
+.form { display: grid; gap: 1.25rem; padding-top: .75rem; }
+.dateRow, .timeRow { display: flex; flex-wrap: wrap; gap: 1rem; }
+.timeRow > * { width: 8rem; }
+.weekdays legend { font-size: .875rem; margin-bottom: .5rem; }
+.weekdays > div { display: flex; gap: .25rem; flex-wrap: wrap; }
+.preview { padding-block: .25rem 1rem; border-bottom: 1px solid var(--border); }
+.preview h3 { color: var(--heading); font-size: 1.25rem; font-weight: 600; }
+.preview p { margin-top: .5rem; color: var(--muted-foreground); font-size: .875rem; }
+.preview[data-destructive] h3 { color: var(--destructive); }
+.balance { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-block: 1.25rem .75rem; font-variant-numeric: tabular-nums; }
+.balance strong { color: var(--heading); }
+.balance svg { width: 1rem; color: var(--muted-foreground); }
+.dates { color: var(--muted-foreground); font-size: .875rem; }
+.dates summary { cursor: pointer; }
+.dates p { margin-top: .75rem; line-height: 1.8; }
+.confirm { display: flex; gap: .625rem; align-items: start; line-height: 1.5; }
+.warning { color: var(--warning); font-size: .875rem; }
+@media (max-width: 480px) { .dateRow { gap: .75rem; } .dateRow > * { flex: 1 1 8rem; } }
+
+.error { color: var(--destructive); font-size: .875rem; line-height: 1.5; }
+
+.scheduleLayout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(16rem, .9fr); gap: 2rem; align-items: start; }
+.capacity { position: sticky; top: 0; min-width: 0; border-left: 1px solid var(--border-subtle); padding: .75rem 0 .5rem 1.5rem; }
+.capacity header { display: flex; gap: .5rem; align-items: center; color: var(--heading); }
+.capacity h3 { font-size: 1rem; font-weight: 600; }
+.capacityBaseline { display: grid; gap: .625rem; margin-block: 1.25rem; }
+.capacityBaseline > div { display: flex; gap: .5rem; justify-content: space-between; font-size: .875rem; }
+.capacityBaseline span { color: var(--muted-foreground); }
+.capacityBaseline strong { font-variant-numeric: tabular-nums; color: var(--heading); }
+.capacityTrack { display: grid; gap: .5rem; }
+.capacityTrack > span, .capacity p, .selectionDetail { font-size: var(--lz-text-caption); color: var(--muted-foreground); line-height: 1.5; }
+.capacityTrack progress { width: 100%; height: .5rem; appearance: none; border: 0; border-radius: var(--radius-sm); overflow: hidden; background: var(--muted); }
+.capacityTrack progress::-webkit-progress-bar { background: var(--muted); }
+.capacityTrack progress::-webkit-progress-value { background: var(--interactive); transition: width .25s ease-out; }
+.capacityTrack progress::-moz-progress-bar { background: var(--interactive); }
+.capacityTrack[data-covered] progress::-webkit-progress-value { background: var(--success); }
+.capacityTrack[data-covered] progress::-moz-progress-bar { background: var(--success); }
+.capacityTrack > strong { font-size: .875rem; color: var(--warning); }
+.capacityTrack[data-covered] > strong { color: var(--success); }
+.selectionResult { border-top: 1px solid var(--border-subtle); margin-top: 1.25rem; padding-top: 1.25rem; display: grid; gap: .875rem; min-height: 8rem; }
+.capacityHeading { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.capacityHeading strong { font-weight: 600; color: var(--heading); }
+.selectionDetail { display: flex; gap: .375rem; align-items: center; }
+.selectionDetail svg { flex-shrink: 0; }
+.capacity p.error { color: var(--destructive); }
+@media (max-width: 760px) { .scheduleLayout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; } .capacity { position: static; border-left: 0; border-top: 1px solid var(--border-subtle); padding: 1.25rem 0 0; } }
+@media (prefers-reduced-motion: reduce) { .capacityTrack progress::-webkit-progress-value { transition: none; } }

@@ -134,6 +134,8 @@ enum ArtifactKind {
 }
 
 model User {
+  classAppointmentsTaught ClassAppointmentSeries[] @relation("ClassAppointmentTeacher")
+  classAppointmentsScheduled ClassAppointmentSeries[] @relation("ClassAppointmentScheduler")
   attendanceSettingsUpdated AttendanceSettings[] @relation("AttendanceSettingsAuthor")
   attendanceWindowsOpened AttendanceWindow[] @relation("AttendanceWindowOpener")
   attendanceWindowsClosed AttendanceWindow[] @relation("AttendanceWindowCloser")
@@ -474,6 +476,7 @@ model ProductLine {
 }
 
 model Class {
+  appointmentSeries ClassAppointmentSeries[]
   nextClasses   Class[]             @relation("ClassLineage")
   id                      String            @id @default(uuid()) @db.Uuid
   createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz
@@ -731,6 +734,9 @@ model ClassSubstitution {
 }
 
 model ClassSession {
+  appointmentSeriesId String? @map("appointment_series_id") @db.Uuid
+  appointmentSeries ClassAppointmentSeries? @relation(fields: [appointmentSeriesId], references: [id], onDelete: Restrict)
+  @@index([appointmentSeriesId])
   attendanceWindows AttendanceWindow[]
   attendanceDeclarations AttendanceDeclaration[]
   attendanceProjection AttendanceProjection?
@@ -2397,4 +2403,24 @@ model TeacherUploadSession {
   closedAt DateTime? @map("closed_at") @db.Timestamptz
   files TeacherFile[]
   @@index([teacherId])
+}
+
+// A collective appointment uses class-session attendance and content, not duplicate student appointments.
+model ClassAppointmentSeries {
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  classId String @map("class_id") @db.Uuid
+  teacherId String @map("teacher_id") @db.Uuid
+  scheduledById String @map("scheduled_by_id") @db.Uuid
+  fromDate DateTime @map("from_date") @db.Date
+  throughDate DateTime @map("through_date") @db.Date
+  schedule Json
+  reason String
+  class Class @relation(fields: [classId], references: [id], onDelete: Restrict)
+  teacher User @relation("ClassAppointmentTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  scheduledBy User @relation("ClassAppointmentScheduler", fields: [scheduledById], references: [id], onDelete: Restrict)
+  sessions ClassSession[]
+  @@index([classId])
 }

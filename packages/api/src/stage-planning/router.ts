@@ -5,7 +5,7 @@ import {
   stagePlanItemSchema,
   stagePlanRemoveSchema,
 } from "@lazuli/validators";
-import { staffProcedure, router } from "../trpc/init.js";
+import { adminProcedure, staffProcedure, router } from "../trpc/init.js";
 import type { Context, StaffUser } from "../trpc/context.js";
 import type { PlanningContext } from "./data.js";
 import { planningContexts, readPlanning, planningHistory } from "./read.js";
@@ -16,6 +16,9 @@ import {
   prepareProgramPlan,
   saveProgramStart,
 } from "./write.js";
+import { extraClassesSchema, endClassesSchema, confirmEndClassesSchema } from "./adjustment-schema.js";
+import { previewExtraClasses, scheduleExtraClasses } from "./extra-classes.js";
+import { previewEndClasses, endClasses } from "./end-classes.js";
 const context = (ctx: {
   db: Context["db"];
   staffUser: StaffUser;
@@ -26,6 +29,14 @@ const context = (ctx: {
   now: ctx.now ?? new Date(),
 });
 export const planningRouter = router({
+  previewExtra: adminProcedure.input(extraClassesSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => previewExtraClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
+  scheduleExtra: adminProcedure.input(extraClassesSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => scheduleExtraClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
+  previewEnd: adminProcedure.input(endClassesSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => previewEndClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
+  endClasses: adminProcedure.input(confirmEndClassesSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => endClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
   prepare: staffProcedure.input(stagePlanTargetSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) => prepareProgramPlan({ ...context(ctx), database }, input), {
       timeout: 30_000,

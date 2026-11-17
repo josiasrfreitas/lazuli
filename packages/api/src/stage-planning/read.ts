@@ -7,7 +7,7 @@ import type { RevisionPage } from "../class-records/types.js";
 import { timeOnly } from "../class-records/data.js";
 import type { StagePlanTarget } from "@lazuli/validators";
 import { stagePlanSnapshotSchema } from "@lazuli/validators";
-import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
+import { saoPauloDateOnly, sessionEndInstant, scheduleProgram, recordedActivities } from "@lazuli/domain";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import {
   loadPlanningScope,
@@ -133,11 +133,25 @@ export async function readPlanning(
   const preview = candidate?.missingMinutes ? candidate : null;
   const labels = await readActivityContexts(context.database, planningActivityIds(plan, preview));
   const calendar = await planningCalendar(context, { scope, startOn, hasPlan: Boolean(plan) });
+  const records = plan ? await planningRecords(context, { scope, plan }) : [];
+  const snapshot = planningSnapshot(plan, labels);
+  const previewSnapshot = planningPreview({ preview, startOn, labels });
+  const items = snapshot?.items ?? previewSnapshot?.items ?? [];
+  const completed = new Set(records.flatMap((record) =>
+    recordedActivities(record.content).filter((item) => item.status === "COMPLETED").map((item) => item.id),
+  ));
+  const pending = items.filter((item) => !completed.has(item.id)).toSorted((a, b) =>
+    (a.curriculum?.sequence ?? 0) - (b.curriculum?.sequence ?? 0),
+  );
+  const projected = pending.some((item) => !item.curriculum) ? { scheduled: [] } : scheduleProgram(pending.map((item) => ({
+    id: item.id, durationMinutes: item.curriculum!.durationMinutes,
+  })), calendar.availableSessions);
   return {
     scope,
-    preview: planningPreview({ preview, startOn, labels }),
-    plan: planningSnapshot(plan, labels),
-    records: plan ? await planningRecords(context, { scope, plan }) : [],
+    preview: previewSnapshot,
+    plan: snapshot,
+    records,
+    projection: pending.map((item) => ({ itemId: item.id, date: projected.scheduled.find((row) => row.activity.id === item.id)?.date ?? null })),
     ...calendar,
   };
 }
@@ -194,17 +208,15 @@ function planningSnapshot(
 async function planningCalendar(
   context: PlanningContext,
   { scope, startOn, hasPlan }: { scope: PlanningScope; startOn: string; hasPlan: boolean },
-): Promise<Pick<PlanningDetail, "calendar" | "upcoming">> {
+): Promise<Pick<PlanningDetail, "calendar" | "upcoming" | "availableSessions">> {
   const [sessions, closures] = await Promise.all([
     context.database.classSession.findMany({
       where: {
         classId: scope.class.id,
         deletedAt: null,
         status: "SCHEDULED",
-        date: {
-          gte: new Date(startOn),
-          lte: new Date(scope.semester.endOn),
-        },
+        date: { gte: new Date(startOn) },
+        OR: [{ date: { lte: new Date(scope.semester.endOn) } }, { appointmentSeriesId: { not: null } }],
       },
       select: {
         id: true,
@@ -218,7 +230,7 @@ async function planningCalendar(
     context.database.schoolClosedDay.findMany({
       where: {
         deletedAt: null,
-        date: { gte: new Date(scope.semester.startOn), lte: new Date(scope.semester.endOn) },
+        date: { gte: new Date(scope.semester.startOn) },
       },
       select: { date: true },
     }),
@@ -227,7 +239,15 @@ async function planningCalendar(
   const eligible = sessions.filter((session) => !closed.has(dateOnly(session.date)));
   const future = eligible.filter((session) => sessionEndInstant(session) > context.now);
   return {
+    availableSessions: future.map((session) => ({
+      id: session.id, date: dateOnly(session.date),
+      minutes: Math.max(0, Math.min(
+        (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
+        (sessionEndInstant(session).getTime() - context.now.getTime()) / MILLISECONDS_PER_MINUTE,
+      )),
+    })),
     calendar: {
+      endOn: eligible.at(-1) ? dateOnly(eligible.at(-1)!.date) : scope.semester.endOn,
       availableMinutes: future.reduce(
         (sum, session) =>
           sum +

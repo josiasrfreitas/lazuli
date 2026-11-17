@@ -21,6 +21,7 @@ const classInclude = {
   portalClassName: true,
   startDate: true,
   status: true,
+  appointmentSeries: { where: { deletedAt: null }, select: { throughDate: true } },
   scheduleType: true,
   sharedStage: { select: stageSelect },
   semester: { select: { id: true, name: true, startDate: true, endDate: true } },
@@ -39,7 +40,7 @@ export const planInclude = {
 export type Plan = Prisma.StagePlanGetPayload<{ include: typeof planInclude }>;
 
 export type PlanningScope = {
-  class: { id: string; name: string; scheduleType: "REGULAR" | "PERSONALIZED" };
+  class: { id: string; name: string; scheduleType: "REGULAR" | "PERSONALIZED"; teacherId?: string | null };
   semester: { name: string; startOn: string; endOn: string };
   stage: { id: string; name: string; track: { name: string } };
   student: { id: string; fullName: string } | null;
@@ -48,6 +49,7 @@ export type PlanningScope = {
   progressStartOn: string | null;
   classStartOn: string;
   readOnly: boolean;
+  canAdjust: boolean;
   today: string;
 };
 const progressInclude = {
@@ -79,7 +81,7 @@ export async function loadPlanningScope(
     });
   }
   assertReadableEnrollment(context, { progress, today });
-  return scopeFor({ classRow, progress, today, substituteOnly });
+  return { ...scopeFor({ classRow, progress, today, substituteOnly }), canAdjust: context.staffUser.role !== "TEACHER" };
 }
 async function assertTeacherAccess(
   context: PlanningContext,
@@ -170,9 +172,9 @@ function scopeFor(input: {
   if (!stage) throw notFound("Estágio não encontrado.");
   const historical = progress
     ? progressEnded(progress, today)
-    : dateOnly(classRow.semester.endDate) < today;
+    : [dateOnly(classRow.semester.endDate), ...classRow.appointmentSeries.map((row) => dateOnly(row.throughDate))].toSorted().at(-1)! < today;
   return {
-    class: { id: classRow.id, name: classRow.portalClassName, scheduleType: classRow.scheduleType },
+    class: { id: classRow.id, name: classRow.portalClassName, scheduleType: classRow.scheduleType, teacherId: usualTeacherOn(classRow, new Date(today))?.id ?? null },
     semester: {
       name: classRow.semester.name,
       startOn: dateOnly(classRow.semester.startDate),
@@ -181,6 +183,7 @@ function scopeFor(input: {
     stage,
     classStartOn: dateOnly(classRow.startDate ?? classRow.semester.startDate),
     ...progressContext(progress),
+    canAdjust: false,
     readOnly: substituteOnly || classRow.status !== "ACTIVE" || historical,
     today,
   };

@@ -23,6 +23,12 @@ export async function readPlanningPending(
     WHERE item.deleted_at IS NULL AND plan.deleted_at IS NULL
       AND c.deleted_at IS NULL AND semester.deleted_at IS NULL
       AND (item.planned_on < semester.start_date OR item.planned_on > semester.end_date)
+      AND NOT EXISTS (
+        SELECT 1 FROM "ClassSession" extra
+        WHERE extra.class_id = c.id AND extra.date = item.planned_on
+          AND extra.appointment_series_id IS NOT NULL AND extra.deleted_at IS NULL
+          AND extra.status = 'SCHEDULED'
+      )
     GROUP BY c.id, c.portal_class_name, semester.name
   `;
   const [counts, classes] = await Promise.all([

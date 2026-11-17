@@ -72,14 +72,15 @@ export async function previewProgramSchedule(
         classId: scope.class.id,
         deletedAt: null,
         status: "SCHEDULED",
-        date: { gte: new Date(startOn), lte: new Date(scope.semester.endOn) },
+        date: { gte: new Date(startOn) },
+        OR: [{ date: { lte: new Date(scope.semester.endOn) } }, { appointmentSeriesId: { not: null } }],
       },
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
     }),
     context.database.schoolClosedDay.findMany({
       where: {
         deletedAt: null,
-        date: { gte: new Date(startOn), lte: new Date(scope.semester.endOn) },
+        date: { gte: new Date(startOn) },
       },
       select: { date: true },
     }),
