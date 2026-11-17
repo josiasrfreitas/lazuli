@@ -85,10 +85,15 @@ export const WORK_COPY: Record<
     outcome: "Alunos sem primeiro contrato.",
     scope: "Primeiros contratos",
   },
+  materials: {
+    action: "Conferir material",
+    outcome: "Registrar a aquisição do próximo livro.",
+    scope: "Estágios nos últimos 60 dias ou já encerrados",
+  },
   renewals: {
     action: "Conferir rematrículas",
     outcome: "Conversar sobre a continuidade do contrato.",
-    scope: "Terminam nos próximos 30 dias",
+    scope: "Terminam nos próximos 60 dias",
   },
 };
 export type WorkPriority = {

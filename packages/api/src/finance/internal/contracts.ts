@@ -12,6 +12,7 @@ import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
 import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import { groupedContractPage } from "./grouped-contract-page.js";
 import { contractStatusPage } from "./contract-status-page.js";
 import { createStudent } from "../../students/data.js";
 import { createContractPayer } from "./payers.js";
@@ -90,7 +91,7 @@ async function readyTerms(input: {
     assertContractParties(database, values),
   ]);
   const prior = await renewalPrior(database, values);
-  if (!prior && !values.material) {
+  if (!prior && !values.material && !values.books) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Inclua o material para criar um novo contrato.",
@@ -250,6 +251,15 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       standardPunctualityDiscountPct: settings.punctualityDiscountPct,
       interestRatePctMonthly: settings.interestRatePctMonthly,
       cancellationFeePct: settings.cancellationFeePct,
+      plannedBooks: values.books
+        ? {
+            create: values.books.map((book, index) => ({
+              semester: index + 1,
+              stageId: book.stageId,
+              acquisitionSemester: book.acquisitionSemester,
+            })),
+          }
+        : undefined,
       orders: { create: orders },
     },
     select: contractSelect,
@@ -269,21 +279,26 @@ async function contractOrders(
   const enrollmentFee = values.enrollmentFeeCents
     ? enrollmentFeeOrderData({ values, staffUserId })
     : null;
-  const material = values.material
-    ? await materialOrderData({
+  const acquisitions =
+    values.books?.flatMap((book) => (book.acquisition ? [book.acquisition] : [])) ??
+    (values.material ? [values.material] : []);
+  const materials = [];
+  for (const material of acquisitions)
+    materials.push(
+      await materialOrderData({
         database,
-        material: values.material,
+        material,
         settings,
-        firstDueDate: values.firstDueDate,
+        firstDueDate: values.books ? values.agreedOn : values.firstDueDate,
         staffUserId,
-      })
-    : null;
+      }),
+    );
   return [
     ...(preview.principalAmountCents > 0
       ? [tuitionOrderData({ values, preview, staffUserId })]
       : []),
     ...(enrollmentFee ? [enrollmentFee] : []),
-    ...(material ? [material] : []),
+    ...materials,
   ];
 }
 
@@ -371,6 +386,9 @@ type ContractListOptions = {
   query?: string;
   payerId?: string | undefined;
   studentId?: string | undefined;
+  followUp?: boolean | undefined;
+  grouped?: boolean | undefined;
+  materialState?: "ACQUIRED" | "PLANNED" | undefined;
   scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
   startsFrom?: string | undefined;
   endsTo?: string | undefined;
@@ -415,6 +433,31 @@ export async function listContracts(
 }> {
   const { page, now = new Date() } = options;
   const pageSize = 25;
+  if (options.grouped) {
+    const grouped = await groupedContractPage(database, { ...options, now });
+    const contracts = await database.contract.findMany({
+      where: { id: { in: grouped.ids } },
+      select: contractSelect,
+    });
+    const byId = new Map(contracts.map((contract) => [contract.id, contract]));
+    return {
+      rows: grouped.ids.flatMap((id) => {
+        const row = byId.get(id);
+        return row
+          ? [
+              {
+                ...toRow(row, now),
+                renewalPending: grouped.renewals.has(id),
+                materialDue: grouped.materials.get(row.student.id) ?? null,
+              },
+            ]
+          : [];
+      }),
+      page,
+      pageSize,
+      total: grouped.total,
+    };
+  }
   const where = contractListWhere(options);
   if (options.query) {
     const [students, payers] = await Promise.all([

@@ -11,12 +11,21 @@ import {
 import { toDateOnlyString } from "./shared.js";
 
 export type ContractListRow = {
+  plannedBooks?: Array<{
+    semester: number;
+    stageId: string | null;
+    name: string | null;
+    acquisitionSemester: number | null;
+    acquired: boolean;
+  }>;
+  renewalPending?: boolean;
+  materialDue?: string | null;
   id: string;
   payer: { id: string; name: string };
   student: {
     id: string;
     fullName: string;
-    placements: Array<{ stageCode: string; classCode: string }>;
+    placements: Array<{ stageCode: string; classCode: string; modality?: string }>;
   };
   agreedOn: string;
   startsOn: string;
@@ -30,6 +39,7 @@ export type ContractListRow = {
   materials: Array<{
     id: string;
     name: string;
+    paymentLabel?: string;
     totalCents: number;
     count: number;
     installmentCents: number | null;
@@ -46,6 +56,15 @@ export type ContractListRow = {
 export const contractSelect = {
   id: true,
   commandFingerprint: true,
+  plannedBooks: {
+    orderBy: { semester: "asc" },
+    select: {
+      semester: true,
+      stageId: true,
+      acquisitionSemester: true,
+      stage: { select: { name: true } },
+    },
+  },
   terminatedAt: true,
   agreedOn: true,
   startsOn: true,
@@ -64,7 +83,7 @@ export const contractSelect = {
         select: {
           entryDate: true,
           exitDate: true,
-          class: { select: { portalClassName: true } },
+          class: { select: { portalClassName: true, scheduleType: true } },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
             select: { stage: { select: { internalCode: true } } },
@@ -129,6 +148,7 @@ function academicPlacements(
       enrollment.progressRecords.map((progress) => ({
         stageCode: progress.stage.internalCode,
         classCode: enrollment.class.portalClassName,
+        modality: enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
       })),
     );
 }
@@ -161,10 +181,22 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
   const materialOrders = row.orders.filter(
     (entry) => entry.kind === "MATERIAL" && !entry.cancelledAt,
   );
-  const amounts = contractAmounts(order, materialOrders);
+  const amounts = contractAmounts(order, materialOrders, now);
   const tuition = tuitionDetails({ order, row, now });
   return {
     id: row.id,
+    plannedBooks: row.plannedBooks.map((b) => ({
+      semester: b.semester,
+      stageId: b.stageId,
+      name: b.stage?.name ?? null,
+      acquisitionSemester: b.acquisitionSemester,
+      acquired: materialOrders.some(
+        (o) =>
+          b.stageId &&
+          (o.material?.stageId === b.stageId ||
+            o.material?.items.some((i) => i.stageId === b.stageId)),
+      ),
+    })),
     payer: row.payer,
     student: {
       id: row.student.id,
@@ -210,7 +242,7 @@ function tuitionDetails({
   };
 }
 
-function orderFinancialSummary(
+export function orderFinancialSummary(
   order: SelectedContract["orders"][number] | undefined,
   now: Date,
 ): ReturnType<typeof deriveContractFinancialSummary> {
@@ -233,6 +265,7 @@ function orderFinancialSummary(
 function contractAmounts(
   order: SelectedContract["orders"][number] | undefined,
   materialOrders: SelectedContract["orders"],
+  now: Date,
 ): Pick<ContractListRow, "principalAmountCents" | "materialAmountCents" | "materials"> {
   return {
     principalAmountCents:
@@ -245,7 +278,18 @@ function contractAmounts(
     materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
     materials: materialOrders.map((entry) => ({
       id: entry.id,
-      name: entry.material?.name ?? "Material",
+      name:
+        entry.material?.items.map((item) => item.name).join(" + ") ||
+        entry.material?.name ||
+        "Material",
+      paymentLabel:
+        entry.principalAmountCents === 0
+          ? "Sem cobrança"
+          : orderFinancialSummary(entry, now).status === "QUITADO"
+            ? "Pago"
+            : orderFinancialSummary(entry, now).status === "SEM_SALDO"
+              ? "Sem saldo"
+              : "Saldo em aberto",
       totalCents: entry.principalAmountCents,
       count: entry.installmentCount ?? entry.installments.length,
       installmentCents: uniformInstallmentAmount(entry),

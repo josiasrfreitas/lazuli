@@ -3,6 +3,8 @@ import { readOccurrencePending } from "./home-occurrences.js";
 import { readPlanningPending } from "./home-planning.js";
 import { adultCutoffDateOnly } from "../students/date-rules.js";
 import { pendingRenewalWhere } from "../finance/internal/renewal-pending.js";
+import { Prisma as SQL } from "@lazuli/db/prisma";
+import { upcomingMaterial } from "../finance/internal/upcoming-material.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
 import { pendingClassRecordCutoff as pendingRecordCutoff } from "../class-records/pending-policy.js";
 import {
@@ -89,7 +91,10 @@ function readGroup(database: Database, input: Scope & { pagination: Page }): Pro
   }
 }
 
-function readOtherGroup(database: Database, input: Scope & { pagination: Page }): Promise<Result> {
+async function readOtherGroup(
+  database: Database,
+  input: Scope & { pagination: Page },
+): Promise<Result> {
   const page = input.pagination;
   switch (input.kind) {
     case "placement": {
@@ -100,6 +105,33 @@ function readOtherGroup(database: Database, input: Scope & { pagination: Page })
     }
     case "appointments": {
       return appointmentPage(database, { now: input.now, page, period: input.period });
+    }
+    case "materials": {
+      const rows = await database.$queryRaw<
+        Array<{ id: string | null; name: string; book: string; total: bigint }>
+      >(SQL.sql`
+        WITH params AS (SELECT ${saoPauloDateOnly(input.now)}::date AS today), needs AS (
+          SELECT s.id,s.full_name AS name,book.name AS book FROM "Student" s CROSS JOIN params
+          CROSS JOIN LATERAL (${upcomingMaterial(SQL.sql`s.id`)}) book WHERE s.deleted_at IS NULL AND s.status='ACTIVE'
+        ) SELECT page.*, totals.total FROM (SELECT count(*) AS total FROM needs) totals LEFT JOIN LATERAL
+          (SELECT * FROM needs ORDER BY name,id LIMIT ${page.take} OFFSET ${page.skip}) page ON true ORDER BY page.name,page.id
+      `);
+      return {
+        total: Number(rows[0]?.total ?? 0),
+        items: rows.flatMap((r) =>
+          r.id
+            ? [
+                linkItem({
+                  id: r.id,
+                  title: r.name,
+                  detail: r.book,
+                  date: null,
+                  href: `/alunos/${r.id}?secao=financeiro&material=1`,
+                }),
+              ]
+            : [],
+        ),
+      };
     }
     case "renewals": {
       return renewalPage(database, { now: input.now, page });

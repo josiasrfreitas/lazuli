@@ -112,6 +112,7 @@ type PendingGroups = {
   planning: HomeGroup | undefined;
   group: HomeGroup | undefined;
   appointments: HomeGroup | undefined;
+  materials: HomeGroup | undefined;
   renewals: HomeGroup | undefined;
   placement: HomeGroup | undefined;
   students: HomeGroup | undefined;
@@ -130,6 +131,7 @@ function pendingGroups(data: HomeData | undefined): PendingGroups {
     occurrences: groups.find((item) => item.kind === "occurrences"),
     group: groups.find((item) => item.kind === "coverage"),
     appointments: groups.find((item) => item.kind === "appointments"),
+    materials: finance ? groups.find((item) => item.kind === "materials") : undefined,
     renewals: finance ? groups.find((item) => item.kind === "renewals") : undefined,
     placement: groups.find((item) => item.kind === "placement"),
     contracts: finance ? groups.find((item) => item.kind === "contracts") : undefined,
@@ -160,6 +162,7 @@ function PendingActionRows({
       <PendingOccurrences group={groups.health} kind="health" />
       <PendingCoverage group={groups.group} today={today} />
       <PendingPlanning group={groups.planning} />
+      {finance && <PendingStudents group={groups.materials} kind="materials" />}
       {finance && <PendingRenewals group={groups.renewals} today={today} />}
       <PendingAppointments group={groups.appointments} today={today} />
       <PendingPlacement group={groups.placement} today={today} />
@@ -186,6 +189,7 @@ function PendingFeedback({
   students,
   documents,
   contracts,
+  materials,
   renewals,
   appointments,
   occurrences,
@@ -202,6 +206,7 @@ function PendingFeedback({
     students,
     documents,
     contracts,
+    materials,
     renewals,
     appointments,
     occurrences,
@@ -236,6 +241,7 @@ function pendingIsEmpty({
   students,
   documents,
   contracts,
+  materials,
   renewals,
   appointments,
   occurrences,
@@ -250,6 +256,7 @@ function pendingIsEmpty({
   | "students"
   | "documents"
   | "contracts"
+  | "materials"
   | "renewals"
   | "health"
   | "occurrences"
@@ -263,6 +270,7 @@ function pendingIsEmpty({
     students,
     documents,
     contracts,
+    materials,
     renewals,
     health,
     occurrences,

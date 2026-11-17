@@ -146,7 +146,7 @@ function validateInstallmentCount(
 }
 
 function validateMaterialFields(fields: ContractFields, errors: SetupErrors): void {
-  if (fields.materialPayment !== "NONE") {
+  if (!fields.materialBooks && fields.materialPayment !== "NONE") {
     if (errors.materialCardFeePct) delete errors.materialTotal;
     if (fields.materialStageIds.split(",").some((id) => !id)) {
       errors.materialStageIds = "Selecione o livro ou remova a linha vazia.";

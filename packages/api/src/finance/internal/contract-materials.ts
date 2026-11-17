@@ -336,6 +336,40 @@ async function materialContract(
       code: "BAD_REQUEST",
       message: "Contrato indisponível para adquirir material.",
     });
+  const slots = await database.contractBook.findMany({
+    where: { contractId: contract.id },
+    orderBy: { semester: "asc" },
+  });
+  if (slots.length) {
+    const acquired = await database.materialOrder.findMany({
+      where: { order: { contractId: contract.id, deletedAt: null, cancelledAt: null } },
+      select: { stageId: true, items: { select: { stageId: true } } },
+    });
+    const used = new Set(
+      acquired.flatMap((row) => [row.stageId, ...row.items.map((i) => i.stageId)]),
+    );
+    for (const stageId of values.material.stageIds) {
+      if (used.has(stageId))
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Este livro já foi adquirido neste contrato.",
+        });
+      const slot =
+        slots.find((b) => b.stageId === stageId) ?? slots.find((b) => b.stageId === null);
+      if (!slot)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Este livro não está previsto nos semestres disponíveis do contrato.",
+        });
+      if (!slot.stageId) {
+        slot.stageId = stageId;
+        await database.contractBook.update({
+          where: { contractId_semester: { contractId: contract.id, semester: slot.semester } },
+          data: { stageId },
+        });
+      }
+    }
+  }
   const anchor = toDateOnlyString(first);
   const monthDistance =
     (Number(values.firstDueDate.slice(0, ISO_YEAR_END_INDEX)) -

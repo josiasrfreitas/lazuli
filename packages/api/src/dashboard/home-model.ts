@@ -13,6 +13,7 @@ export const HOME_GROUPS = [
   "documents",
   "contracts",
   "renewals",
+  "materials",
   "semester",
 ] as const;
 export type HomeGroupKind = (typeof HOME_GROUPS)[number];
@@ -116,6 +117,12 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
   contracts: {
     title: "Contratos a criar",
     description: "Alunos ativos sem nenhum contrato registrado.",
+    area: "finance",
+    attention: false,
+  },
+  materials: {
+    title: "Próximos livros a adquirir",
+    description: "Alunos com estágio a concluir e próximo material sem aquisição registrada.",
     area: "finance",
     attention: false,
   },

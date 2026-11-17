@@ -9,6 +9,7 @@ const enrollmentSelect = {
       id: true,
       portalClassName: true,
       scheduleType: true,
+      semester: { select: { endDate: true } },
       sharedStageId: true,
       stagePlan: { select: { stageId: true, plannedEndOn: true, deletedAt: true } },
     },
@@ -170,6 +171,7 @@ function materialPlannedEnd(input: {
 }): string | null {
   const { enrollment, progress, studentId } = input;
   const ppt = enrollment.class.scheduleType === "PERSONALIZED";
+  if (!ppt) return toDateOnlyString(enrollment.class.semester.endDate);
   const plan = ppt ? progress.stagePlan : enrollment.class.stagePlan;
   if (!plan || plan.deletedAt || plan.stageId !== progress.stage.id) return null;
   if (ppt && progress.stagePlan?.studentId !== studentId) return null;
@@ -187,7 +189,7 @@ function nextMaterialStage(input: {
   const successor = stages.find(
     (stage) => stage.trackId === progress.stage.trackId && stage.sequence > progress.stage.sequence,
   );
-  const next = ppt ? successor : organization?.stage;
+  const next = ppt ? successor : (organization?.stage ?? successor);
   if (ppt && !successor) return null;
   return { next: next ?? null };
 }

@@ -117,7 +117,8 @@ function useMaterialSubmission(
     mutation.mutate(parsed.data, {
       onSuccess: () => {
         void utils.students.invalidate();
-        void utils.finance.studentMaterials.invalidate();
+        void utils.finance.invalidate();
+        void utils.dashboard.invalidate();
         onPendingChange(false);
         onSaved();
         onClose();

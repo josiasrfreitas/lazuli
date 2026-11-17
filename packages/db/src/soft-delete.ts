@@ -13,6 +13,7 @@ const FILTERED_READ_OPERATIONS = new Set([
 
 const UUID_ENTITY_EXCEPTIONS = new Set([
   "Account",
+  "ContractBook",
   "FinanceSettings",
   "RateLimit",
   "Session",

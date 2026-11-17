@@ -3,15 +3,9 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { StudentAvatar } from "~/components/student-avatar";
 import type { CSSProperties, ReactElement } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
-import {
-  Badge,
-  DataTable,
-  type BadgeVariant,
-  type DataTableColumn,
-  type DataTableState,
-} from "@lazuli/ui";
+import { Badge, DataTable, type BadgeVariant, type DataTableColumn } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { abbreviatedPersonName } from "~/lib/format";
 import { paymentPlanLabel } from "./contract-form-model";
@@ -206,26 +200,88 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   },
 ];
 
-function tableState({
-  rows,
-  failed,
-  filtered,
-}: {
-  rows: ContractRow[] | undefined;
-  failed: boolean;
-  filtered: boolean;
-}): DataTableState<ContractRow> {
-  if (failed) return { kind: "error" };
-  if (rows === undefined) return { kind: "loading" };
-  if (rows.length === 0) return { kind: filtered ? "noResults" : "empty" };
-  return { kind: "data", rows };
+function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
+  const first = rows[0]!;
+  const renewal = rows.find((row) => row.renewalPending);
+  const href = `/alunos/${first.student.id}?secao=financeiro`;
+  return (
+    <details className="group py-1">
+      <summary className="flex cursor-pointer flex-wrap items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="transition-transform group-open:rotate-90 motion-reduce:transition-none"
+        >
+          ›
+        </span>
+        <StudentAvatar colorKey={first.student.id} name={first.student.fullName} size="sm" />
+        <strong>{first.student.fullName}</strong>
+        <span className="text-muted-foreground">
+          {first.student.placements
+            .map((p) => [p.modality, p.classCode, p.stageCode].filter(Boolean).join(" · "))
+            .join(" · ")}
+        </span>
+        {renewal && (
+          <Badge variant="warning">Rematrícula até {shortCivilDate(renewal.endsOn)}</Badge>
+        )}
+        {first.materialDue && <Badge variant="info">A adquirir · {first.materialDue}</Badge>}
+      </summary>
+      <div className="mt-3 grid gap-3 border-t border-border pt-3">
+        {rows.map((row) => (
+          <section key={row.id} className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <strong title={termHint(row.endsOn)}>
+                {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
+              </strong>
+              <p>{paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}</p>
+              <ContractFinancialStatus row={row} />
+            </div>
+            <div>
+              <strong>Material do contrato</strong>
+              {row.plannedBooks?.map((b) => (
+                <p key={b.semester}>
+                  {b.semester}º semestre · {b.name ?? "Livro a definir"} ·{" "}
+                  {b.acquired
+                    ? "Adquirido"
+                    : b.acquisitionSemester
+                      ? `Aquisição prevista no ${b.acquisitionSemester}º semestre`
+                      : "Aquisição em aberto"}
+                </p>
+              ))}
+              {row.materials.length ? (
+                row.materials.map((m) => (
+                  <p key={m.id}>
+                    {m.name} · {m.paymentLabel}
+                  </p>
+                ))
+              ) : (
+                <p>Nenhuma aquisição registrada</p>
+              )}
+            </div>
+            {row.materialDue && (
+              <Link className="underline" href={href + "&material=1"}>
+                Conferir material
+              </Link>
+            )}
+            <Link
+              className="text-primary underline"
+              href={row.renewalPending ? href + "&renovarContrato=" + row.id : href}
+            >
+              {row.renewalPending ? "Rematricular" : "Abrir financeiro"}
+            </Link>
+          </section>
+        ))}
+      </div>
+    </details>
+  );
 }
 
 export function ContractsTable({ filters }: { filters: ContractFilters }): ReactElement {
-  const router = useRouter();
   const { page, search, payerId, studentId, startsFrom, endsTo, status } = filters;
   const list = trpc.finance.listContracts.useQuery({
     page,
+    grouped: true,
+    materialState: filters.materialState,
+    followUp: filters.followUp,
     query: search.trim(),
     scheduleType: filters.scheduleType,
     payerId,
@@ -235,16 +291,42 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
     status,
   });
   const filtered = Boolean(
-    filters.scheduleType || search.trim() || payerId || studentId || startsFrom || endsTo || status,
+    filters.followUp ||
+    filters.materialState ||
+    filters.scheduleType ||
+    search.trim() ||
+    payerId ||
+    studentId ||
+    startsFrom ||
+    endsTo ||
+    status,
   );
+  const byStudent = new Map<string, ContractRow[]>();
+  for (const row of list.data?.rows ?? []) {
+    const rows = byStudent.get(row.student.id);
+    if (rows) rows.push(row);
+    else byStudent.set(row.student.id, [row]);
+  }
+  const groups = list.data && Array.from(byStudent, ([id, rows]) => ({ id, rows }));
   return (
-    <DataTable
+    <DataTable<{ id: string; rows: ContractRow[] }>
       label="Contratos mensais"
-      columns={contractColumns}
-      onRowClick={(row) =>
-        router.push(`/alunos/${encodeURIComponent(row.student.id)}?secao=financeiro`)
+      columns={[
+        {
+          id: "student",
+          header: "Aluno e contratos",
+          cell: (group) => <ContractGroup rows={group.rows} />,
+        },
+      ]}
+      state={
+        list.isError
+          ? { kind: "error" }
+          : !groups
+            ? { kind: "loading" }
+            : groups.length
+              ? { kind: "data", rows: groups }
+              : { kind: filtered ? "noResults" : "empty" }
       }
-      state={tableState({ rows: list.data?.rows, failed: list.isError, filtered })}
       errorTitle="Não foi possível carregar os contratos"
       empty={{
         title: "Nenhum contrato cadastrado",
@@ -255,7 +337,7 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
         page,
         pageSize: PAGE_SIZE,
         onPageChange: filters.setPage,
-        itemLabel: { singular: "contrato", plural: "contratos" },
+        itemLabel: { singular: "aluno", plural: "alunos" },
         ...(list.data
           ? {
               pageCount: Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)),

@@ -63,7 +63,9 @@ export async function readAdminHome({
   const finance = canAccess(staffUser.role, "finance");
   const kinds = finance
     ? HOME_GROUPS
-    : HOME_GROUPS.filter((kind) => kind !== "contracts" && kind !== "renewals");
+    : HOME_GROUPS.filter(
+        (kind) => kind !== "contracts" && kind !== "renewals" && kind !== "materials",
+      );
   const [groups, agenda, audience, school, leadConversion] = await Promise.all([
     withCheckpoint(requestLogger, {
       checkpoint: "home_groups",

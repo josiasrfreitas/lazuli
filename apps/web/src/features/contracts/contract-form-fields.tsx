@@ -16,7 +16,10 @@ import {
 } from "@lazuli/ui";
 import { Info, UserMinus, UserPlus } from "lucide-react";
 import { formatBRLFromCents } from "~/lib/format";
-import { maskPhoneBR } from "~/lib/masks";
+import { addCalendarMonths } from "@lazuli/domain";
+import { durationFromDates } from "./contract-form-model";
+import { formatDateOnlyBR } from "~/lib/format";
+import { parseDateBR, maskPhoneBR } from "~/lib/masks";
 import { PersonDocumentField } from "~/components/person-document-field";
 import type { ContractFields } from "./contract-form-model";
 import { PaymentSection } from "./contract-payment-section";
@@ -241,6 +244,32 @@ export function TermFields({ fields, errors, change, maskedDates }: FormProps): 
         onChange={(value) => change("firstDueDate", value)}
         error={errors.firstDueDate}
       />
+      <Field name="semestres">
+        <Label>Semestres de contrato</Label>
+        <select
+          name="semestres"
+          className="h-9 rounded-sm border border-border bg-background px-2"
+          disabled={!parseDateBR(fields.firstDueDate)}
+          value={
+            Number.isInteger(durationFromDates(fields) / 6) ? durationFromDates(fields) / 6 : ""
+          }
+          onChange={(event) => {
+            const start = parseDateBR(fields.firstDueDate);
+            if (start && event.target.value)
+              change(
+                "endsOn",
+                formatDateOnlyBR(addCalendarMonths(start, Number(event.target.value) * 6)),
+              );
+          }}
+        >
+          <option value="">Selecione</option>
+          {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {n} {n === 1 ? "semestre · 1 livro" : `semestres · ${n} livros`}
+            </option>
+          ))}
+        </select>
+      </Field>
       <TextField
         name="endsOn"
         label="Fim da vigência"

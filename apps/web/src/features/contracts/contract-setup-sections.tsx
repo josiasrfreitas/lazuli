@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { contractBooks } from "./semester-books";
 import {
   Button,
   Field,
@@ -425,7 +426,21 @@ function ReviewMaterial({
         </Button>
       }
     >
-      {fields.materialPayment === "NONE" ? (
+      {fields.materialBooks ? (
+        <ol>
+          {contractBooks(fields.materialBooks).map((b, i) => (
+            <li key={i}>
+              {i + 1}º semestre ·{" "}
+              {material.stages.data?.find((s) => s.id === b.stageId)?.name ?? "Livro a definir"} ·{" "}
+              {b.acquisition
+                ? `Aquisição de ${money(b.acquisition.expectedTotalCents)}`
+                : b.acquisitionSemester
+                  ? `Previsto para o ${b.acquisitionSemester}º semestre`
+                  : "Data em aberto"}
+            </li>
+          ))}
+        </ol>
+      ) : fields.materialPayment === "NONE" ? (
         <p className={styles.help}>Sem nova aquisição.</p>
       ) : (
         <>

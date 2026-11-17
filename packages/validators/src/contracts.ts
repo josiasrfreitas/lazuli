@@ -119,6 +119,19 @@ export const createMonthlyContractInputSchema = z
     commandId: z.string().uuid(),
     renewedFromId: z.string().uuid().optional(),
     material: contractMaterialInputSchema.optional(),
+    books: z
+      .array(
+        z
+          .object({
+            stageId: z.string().uuid().nullable(),
+            acquisitionSemester: z.number().int().positive().nullable(),
+            acquisition: contractMaterialInputSchema.optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(20)
+      .optional(),
     studentId: z.string().uuid().optional(),
     payerId: z.string().uuid().optional(),
     agreedOn: civilDateSchema,
@@ -163,7 +176,28 @@ export const createMonthlyContractInputSchema = z
         message: "O total do contrato ultrapassa o limite permitido.",
       });
     }
-    if (!input.renewedFromId && !input.material) {
+    if (input.books) {
+      const ids = input.books.flatMap((book) => (book.stageId ? [book.stageId] : []));
+      if (
+        input.material ||
+        input.books.length * 6 !== input.durationMonths ||
+        new Set(ids).size !== ids.length ||
+        input.books.some(
+          (book) =>
+            (book.acquisitionSemester ?? 0) > input.books!.length ||
+            (book.acquisition &&
+              (book.acquisitionSemester !== null ||
+                book.acquisition.stageIds.length !== 1 ||
+                book.acquisition.stageIds[0] !== book.stageId)),
+        )
+      )
+        context.addIssue({
+          code: "custom",
+          path: ["books"],
+          message: "Confira o livro e a aquisição de cada semestre.",
+        });
+    }
+    if (!input.books && !input.renewedFromId && !input.material) {
       context.addIssue({
         code: "custom",
         path: ["material", "stageIds"],
@@ -209,6 +243,9 @@ export const listContractsInputSchema = z
     payerId: z.string().uuid().optional(),
     studentId: z.string().uuid().optional(),
     scheduleType: z.enum(["REGULAR", "PERSONALIZED"]).optional(),
+    followUp: z.boolean().optional(),
+    grouped: z.boolean().optional(),
+    materialState: z.enum(["ACQUIRED", "PLANNED"]).optional(),
     startsFrom: civilDateSchema.optional(),
     endsTo: civilDateSchema.optional(),
     status: z.enum(["INADIMPLENTE", "EM_DIA", "QUITADO", "SEM_SALDO", "CANCELADO"]).optional(),

@@ -8,7 +8,7 @@ import type { FinanceDatabase } from "./shared.js";
 const PAGE_SIZE = 25;
 
 /** The same registered balances and paid-installment rule used by the domain summary. */
-const STATUS_FACTS = Prisma.sql`
+export const STATUS_FACTS = Prisma.sql`
   LEFT JOIN LATERAL (
     SELECT bool_and(o.cancelled_at IS NOT NULL) AS cancelled, COALESCE(SUM(o.installment_count), 0) AS installment_count
     FROM "Order" o
@@ -51,7 +51,7 @@ const STATUS_FACTS = Prisma.sql`
   ) facts ON true
 `;
 
-const FINANCIAL_STATUS = Prisma.sql`
+export const FINANCIAL_STATUS = Prisma.sql`
   CASE
     WHEN filtered.terminated_at IS NOT NULL OR contract_order.cancelled THEN 'CANCELADO'
     WHEN facts.overdue_cents > 0 THEN 'INADIMPLENTE'
@@ -67,14 +67,15 @@ export type ContractStatusPageOptions = {
   query?: string | undefined;
   payerId?: string | undefined;
   studentId?: string | undefined;
+  materialState?: "ACQUIRED" | "PLANNED" | undefined;
   scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
   startsFrom?: string | undefined;
   endsTo?: string | undefined;
-  status: ContractFinancialStatus;
+  status?: ContractFinancialStatus | undefined;
   now: Date;
 };
 
-function candidateConditions(options: ContractStatusPageOptions): Prisma.Sql {
+export function candidateConditions(options: ContractStatusPageOptions): Prisma.Sql {
   const conditions = [Prisma.sql`c.command_id IS NOT NULL`, Prisma.sql`c.deleted_at IS NULL`];
   if (options.payerId) conditions.push(Prisma.sql`c.payer_id = ${options.payerId}::uuid`);
   if (options.studentId) conditions.push(Prisma.sql`c.student_id = ${options.studentId}::uuid`);
@@ -87,6 +88,14 @@ function candidateConditions(options: ContractStatusPageOptions): Prisma.Sql {
       AND e.entry_date <= (SELECT today FROM params) AND (e.exit_date IS NULL OR e.exit_date > (SELECT today FROM params))
       AND cl.schedule_type = ${options.scheduleType}::"ClassScheduleType"
   )`);
+  if (options.materialState === "ACQUIRED")
+    conditions.push(
+      Prisma.sql`EXISTS (SELECT 1 FROM "Order" o JOIN "MaterialOrder" m ON m.order_id=o.id WHERE o.contract_id=c.id AND o.deleted_at IS NULL AND o.cancelled_at IS NULL)`,
+    );
+  if (options.materialState === "PLANNED")
+    conditions.push(
+      Prisma.sql`EXISTS (SELECT 1 FROM "ContractBook" b WHERE b.contract_id=c.id AND NOT EXISTS (SELECT 1 FROM "Order" o JOIN "MaterialOrder" m ON m.order_id=o.id WHERE o.contract_id=c.id AND o.deleted_at IS NULL AND o.cancelled_at IS NULL AND (m.stage_id=b.stage_id OR EXISTS (SELECT 1 FROM "MaterialOrderItem" i WHERE i.order_id=o.id AND i.stage_id=b.stage_id))))`,
+    );
   const query = normalizeSearch(options.query ?? "");
   if (query) {
     conditions.push(Prisma.sql`(

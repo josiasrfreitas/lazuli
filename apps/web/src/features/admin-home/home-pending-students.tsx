@@ -2,6 +2,7 @@ import { PENDING_PAGE_SIZE as PAGE_SIZE } from "./home-pending-pagination";
 import { useState, type ReactElement } from "react";
 import {
   ArrowRight,
+  BookOpen,
   ChevronDown,
   DollarSign,
   File,
@@ -25,7 +26,7 @@ export function PendingStudents({
   kind = "students",
 }: {
   group: HomeGroup | undefined;
-  kind?: "students" | "contracts" | "documents";
+  kind?: "students" | "contracts" | "documents" | "materials";
 }): ReactElement | null {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -67,7 +68,7 @@ function StudentsSummary({
   kind,
 }: {
   total: number;
-  kind: "students" | "contracts" | "documents";
+  kind: "students" | "contracts" | "documents" | "materials";
 }): ReactElement {
   const { Icon, title, detail } = STUDENT_SUMMARIES[kind];
   const financial = kind === "contracts";
@@ -96,6 +97,7 @@ function StudentsSummary({
 }
 
 const STUDENT_SUMMARIES = {
+  materials: { Icon: BookOpen, title: "Próximos livros a adquirir", detail: "Fim do estágio" },
   contracts: {
     Icon: File,
     title: "Contratos a criar",
@@ -118,8 +120,25 @@ function StudentsCases({
   kind,
 }: {
   group: HomeGroup;
-  kind: "students" | "contracts" | "documents";
+  kind: "students" | "contracts" | "documents" | "materials";
 }): ReactElement {
+  if (kind === "materials")
+    return (
+      <ul className={styles.lessonList}>
+        {group.items.map((item) => (
+          <li key={item.id}>
+            <Link
+              className={styles.appointmentCase}
+              href={`/alunos/${item.id}?secao=financeiro&material=1`}
+            >
+              <strong>{item.title}</strong>
+              <span>{item.detail}</span>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    );
   if (kind === "documents") return <DocumentCases group={group} />;
   const contracts = kind === "contracts";
   return (
@@ -216,7 +235,7 @@ function StudentsPagination({
   page: number;
   busy: boolean;
   setPage: (page: number) => void;
-  kind: "students" | "contracts" | "documents";
+  kind: "students" | "contracts" | "documents" | "materials";
 }): ReactElement | null {
   if (total <= PAGE_SIZE) return null;
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryState } from "nuqs";
 import { useState, type ComponentProps, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -40,7 +41,11 @@ export function StudentMaterials({
   studentName: string;
   summary: Summary;
 }): ReactElement {
-  const [open, setOpen] = useState(false);
+  const [requested, setRequested] = useQueryState("material");
+  const open = requested === "1";
+  const setOpen = (value: boolean) => {
+    void setRequested(value ? "1" : null);
+  };
   const [adding, setAdding] = useState(false);
   const [pending, setPending] = useState(false);
   const query = trpc.finance.studentMaterials.useQuery({ studentId }, { enabled: open });
@@ -180,6 +185,30 @@ function MaterialDetails({ data }: { data: Materials }): ReactElement {
         <CurrentMaterial data={data} />
         <NextMaterial data={data} />
       </dl>
+      {data.plannedBooks.length > 0 && (
+        <section className={styles.history}>
+          <h3>Livros previstos em contrato</h3>
+          <ol>
+            {data.plannedBooks.map((b) => (
+              <li
+                key={b.contractId + b.semester}
+                className="flex flex-wrap justify-between gap-2 border-b border-border py-2"
+              >
+                <strong>
+                  {b.semester}º semestre · {b.name ?? "Livro a definir"}
+                </strong>
+                <span>
+                  {b.acquired
+                    ? "Adquirido"
+                    : b.acquisitionSemester
+                      ? `Aquisição no ${b.acquisitionSemester}º semestre`
+                      : "Aquisição em aberto"}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <section className={styles.history} aria-labelledby="material-acquisitions-heading">
         <div className={styles.historyHeading}>
           <h3 id="material-acquisitions-heading">Aquisições</h3>
@@ -264,6 +293,11 @@ function AcquisitionHistory({ acquisitions }: { acquisitions: Acquisition[] }): 
           <div className="text-right">
             <strong className="font-numeric">{money(sale.chargedCents)}</strong>
             <p className={styles.note}>{acquisitionTerms(sale)}</p>
+            <span>
+              {sale.balanceCents > 0
+                ? `A receber · ${money(sale.balanceCents)}`
+                : "Sem saldo em aberto"}
+            </span>
           </div>
         </li>
       ))}

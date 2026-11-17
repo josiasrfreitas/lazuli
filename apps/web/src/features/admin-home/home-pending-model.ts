@@ -85,6 +85,12 @@ const GROUPS: Record<
     href: ACTIVE_STUDENTS_URL,
     destination: STUDENT_DESTINATION,
   },
+  materials: {
+    title: "Próximos livros a adquirir",
+    score: 5,
+    href: "/contratos?acompanhamento=rematriculas-e-materiais",
+    destination: "Contratos",
+  },
   renewals: {
     title: "Contratos a renovar",
     score: 5,
@@ -181,7 +187,7 @@ function groupContext(kind: HomeGroup["kind"], item: HomeItem | undefined): stri
   if (kind === "renewals")
     return datedContext(item, {
       prefix: "Próximo vencimento",
-      fallback: "Vencem nos próximos 30 dias",
+      fallback: "Vencem nos próximos 60 dias",
     });
   if (kind === "semester")
     return datedContext(item, {

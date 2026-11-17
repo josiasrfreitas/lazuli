@@ -1,3 +1,4 @@
+import { contractSelect, orderFinancialSummary } from "./contracts-select.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import { notFound } from "../../trpc/errors.js";
@@ -28,12 +29,13 @@ const materialSaleSelect = {
     orderBy: { position: "asc" },
     select: { stageId: true, name: true, stageCode: true },
   },
-  order: { select: { createdAt: true } },
+  order: { select: { ...contractSelect.orders.select, createdAt: true } },
 } satisfies Prisma.MaterialOrderSelect;
 type MaterialSale = Prisma.MaterialOrderGetPayload<{ select: typeof materialSaleSelect }>;
 type Acquisition = {
   id: string;
   acquiredOn: string;
+  balanceCents: number;
   payment: MaterialSale["payment"];
   chargedCents: number;
   installmentCount: number;
@@ -44,6 +46,13 @@ type StudentMaterialsResult = {
   next: Coverage[];
   nextAcquisitions: Coverage[];
   acquisitions: Acquisition[];
+  plannedBooks: {
+    contractId: string;
+    semester: number;
+    name: string | null;
+    acquisitionSemester: number | null;
+    acquired: boolean;
+  }[];
   acquiredCount: number;
   suggestedStageId: string | null;
 };
@@ -61,7 +70,7 @@ export async function readStudentMaterials(
   if (!student) throw notFound(STUDENT_NOT_FOUND_MESSAGE);
   const asOf = saoPauloDateOnly(input.now);
   const today = new Date(asOf);
-  const [enrollments, placements, catalog, sales] = await Promise.all([
+  const [enrollments, placements, catalog, sales, slots] = await Promise.all([
     activeEnrollments(database, { studentId, today }),
     database.semesterPlacement.findMany({
       where: {
@@ -77,12 +86,32 @@ export async function readStudentMaterials(
     }),
     contractMaterialOptions(database),
     materialSales(database, studentId),
+    database.contractBook.findMany({
+      where: {
+        contract: { studentId, deletedAt: null, terminatedAt: null, endsOn: { gte: today } },
+      },
+      select: {
+        contractId: true,
+        semester: true,
+        stageId: true,
+        acquisitionSemester: true,
+        stage: { select: { name: true } },
+      },
+      orderBy: [{ contract: { startsOn: "asc" } }, { semester: "asc" }],
+    }),
   ]);
-  const acquisitions = sales.map((sale) => toAcquisition(sale));
+  const acquisitions = sales.map((sale) => toAcquisition(sale, input.now));
   const acquired = new Set(acquisitions.flatMap((sale) => sale.books.map((book) => book.stageId)));
   const { current, next, nextAcquisitions, add } = createCollector({ catalog, acquired, asOf });
   applyCoverage({ enrollments, placements, catalog, add });
   return {
+    plannedBooks: slots.map((slot) => ({
+      contractId: slot.contractId,
+      semester: slot.semester,
+      name: slot.stage?.name ?? null,
+      acquisitionSemester: slot.acquisitionSemester,
+      acquired: Boolean(slot.stageId && acquired.has(slot.stageId)),
+    })),
     current,
     next,
     nextAcquisitions,
@@ -92,9 +121,12 @@ export async function readStudentMaterials(
   };
 }
 
-function toAcquisition(sale: MaterialSale): Acquisition {
+function toAcquisition(sale: MaterialSale, now: Date): Acquisition {
+  const { financialSummary } = orderFinancialSummary(sale.order, now);
   return {
     id: sale.orderId,
+    balanceCents:
+      financialSummary.overdueCents + financialSummary.futureCents + financialSummary.dueTodayCents,
     acquiredOn: saoPauloDateOnly(sale.order.createdAt),
     payment: sale.payment,
     chargedCents: sale.chargedAmountCents ?? 0,

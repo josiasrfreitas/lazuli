@@ -225,6 +225,9 @@ export type FinanceModule = {
     query?: string;
     payerId?: string | undefined;
     studentId?: string | undefined;
+    followUp?: boolean | undefined;
+    grouped?: boolean | undefined;
+    materialState?: "ACQUIRED" | "PLANNED" | undefined;
     scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
     startsFrom?: string | undefined;
     endsTo?: string | undefined;

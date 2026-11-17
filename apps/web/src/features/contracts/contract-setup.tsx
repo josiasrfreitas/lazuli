@@ -1,5 +1,7 @@
 "use client";
 
+import { SemesterBooks } from "./semester-books";
+import { durationFromDates } from "./contract-form-model";
 import {
   useEffect,
   useId,
@@ -146,9 +148,9 @@ function collectSetupErrors({
       props.parseInput?.() ??
       contractInputFromFields(fields, state.commandId.current, props.renewedFromId),
   });
-  if (fields.materialPayment !== "NONE" && material.installmentError)
+  if (!fields.materialBooks && fields.materialPayment !== "NONE" && material.installmentError)
     all.materialInstallments = material.installmentError;
-  if (fields.materialPayment !== "NONE" && material.priceError)
+  if (!fields.materialBooks && fields.materialPayment !== "NONE" && material.priceError)
     all.materialCustomPrice = material.priceError;
   if (props.deferStudentValidation) removeStudentErrors(all);
   return step === "review"
@@ -505,6 +507,8 @@ function SetupStepFields({
     );
   if (step === "tuition")
     return <SetupTuition {...formProps} allowEnrollmentFee={props.allowEnrollmentFee ?? false} />;
+  if (step === "material" && Number.isInteger(durationFromDates(formProps.fields) / 6))
+    return <SemesterBooks {...formProps} material={material} />;
   if (step === "material")
     return (
       <SetupMaterialFields

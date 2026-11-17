@@ -84,7 +84,6 @@ function partyField(input: PartyFieldInput): TableFilterField {
     id: input.id,
     label: input.label,
     kind: "remote-options",
-    promoted: true,
     selected: input.selectedId ? [input.selectedId] : [],
     selectedOptions: input.selectedOptions,
     search: input.search,
@@ -135,7 +134,6 @@ function contractTermFilterField(filters: ContractFilters): TableFilterField {
     id: "term",
     label: "Vigência",
     kind: "period",
-    promoted: true,
     from: filters.startsFrom ?? "",
     to: filters.endsTo ?? "",
     onChange: (from, to) => {
@@ -177,6 +175,16 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
     { enabled: Boolean(filters.studentId) },
   );
   return [
+    {
+      id: "followUp",
+      label: "Rematrículas e materiais",
+      kind: "options",
+      promoted: true,
+      options: [{ id: "rematriculas-e-materiais", label: "Rematrículas e materiais a conferir" }],
+      selected: filters.followUp ? ["rematriculas-e-materiais"] : [],
+      onChange: (ids) => filters.setFilters({ acompanhamento: ids.at(-1) ?? null }),
+      onClear: () => filters.setFilters({ acompanhamento: null }),
+    },
     ...contractPartyFilterFields({
       filters,
       search,
@@ -188,6 +196,18 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
       })),
       setSearch,
     }),
+    {
+      id: "material",
+      label: "Aquisição de material",
+      kind: "options",
+      options: [
+        { id: "ACQUIRED", label: "Com aquisição registrada" },
+        { id: "PLANNED", label: "Com livro previsto a adquirir" },
+      ],
+      selected: filters.materialState ? [filters.materialState] : [],
+      onChange: (ids) => filters.setFilters({ material: ids.at(-1) ?? null }),
+      onClear: () => filters.setFilters({ material: null }),
+    },
     contractTermFilterField(filters),
     contractStatusFilterField(filters),
     {
@@ -247,6 +267,8 @@ export function ContractsToolbar({
         fields={fields}
         onClearAll={() =>
           filters.setFilters({
+            material: null,
+            acompanhamento: null,
             pagador: null,
             beneficiario: null,
             vigenciaDe: null,

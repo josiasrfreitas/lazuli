@@ -87,6 +87,10 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
   if (assignPersonOrMaterialIssue(errors, issue)) return;
   const section = issue.path[0];
   switch (section) {
+    case "books": {
+      errors.materialBooks = issue.message;
+      return;
+    }
     case "durationMonths": {
       errors.endsOn = "Informe uma data final entre 1 e 120 meses completos após o início.";
       return;

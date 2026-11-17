@@ -1,0 +1,163 @@
+"use client";
+import { useEffect, type ReactElement } from "react";
+import { materialFinalPriceQuote } from "@lazuli/domain";
+import type { ContractMaterialInput } from "@lazuli/validators";
+import { formatBRLFromCents as money } from "~/lib/format";
+import type { FormProps } from "./contract-form-fields";
+import { durationFromDates } from "./contract-form-model";
+import type { SetupMaterial } from "./contract-setup-material";
+
+type Book = {
+  stageId: string | null;
+  acquisitionSemester: number | null;
+  acquisition?: ContractMaterialInput;
+};
+export function contractBooks(value: string | undefined): Book[] {
+  return value ? (JSON.parse(value) as Book[]) : [];
+}
+
+export function SemesterBooks({
+  fields,
+  change,
+  errors,
+  material,
+}: Pick<FormProps, "fields" | "change" | "errors"> & { material: SetupMaterial }): ReactElement {
+  const count = durationFromDates(fields) / 6;
+  const stored = contractBooks(fields.materialBooks);
+  const suggestions = fields.materialStageIds.split(",");
+  const rows = Array.from(
+    { length: count },
+    (_, i) => stored[i] ?? { stageId: suggestions[i] || null, acquisitionSemester: null },
+  );
+  const serialized = JSON.stringify(rows);
+  useEffect(() => {
+    if (fields.materialBooks !== serialized) change("materialBooks", serialized);
+  }, [serialized, change, fields.materialBooks]);
+  const update = (index: number, row: Book) =>
+    change("materialBooks", JSON.stringify(rows.map((old, i) => (i === index ? row : old))));
+  const catalog = material.stages.data ?? [];
+  const prices = material.prices.data;
+  const control = "h-9 max-w-full rounded-sm border border-border bg-background px-2";
+  function acquisition(
+    stageId: string | null,
+    method: ContractMaterialInput["payment"],
+    installments: number,
+  ): ContractMaterialInput | undefined {
+    const stage = catalog.find((s) => s.id === stageId);
+    if (!stage || !prices) return undefined;
+    const child = stage.track.ageGroup === "CHILD";
+    const price = child ? prices.child : prices.adult;
+    const fee = method === "CASH" ? 0 : prices.cardFeeRates[String(installments)];
+    if (fee === undefined) return undefined;
+    const quote = materialFinalPriceQuote({ cashCents: price.cashCents, cardFeePct: fee });
+    return {
+      stageIds: [stage.id],
+      payment: method,
+      category: child ? "CHILD" : "ADULT",
+      installmentCount: installments,
+      expectedTotalCents: method === "CASH" ? quote.cashCents : quote.totalCents,
+      quoteVersion: price.version,
+    };
+  }
+  return (
+    <section className="grid gap-4">
+      <p>
+        Um livro por semestre. Registrar a aquisição gera a cobrança. O pagamento é lançado no
+        financeiro.
+      </p>
+      {!prices && !material.prices.isLoading && (
+        <p className="text-sm text-muted-foreground">
+          Para registrar uma aquisição agora, confira os preços em Ajustes financeiros. Você pode
+          deixar os livros previstos.
+        </p>
+      )}
+      {rows.map((book, i) => (
+        <fieldset key={i} className="grid gap-3 border-t border-border py-3 sm:grid-cols-2">
+          <legend className="pr-3 font-semibold">{i + 1}º semestre</legend>
+          <label className="grid gap-1">
+            Livro
+            <select
+              className={control}
+              value={book.stageId ?? ""}
+              onChange={(e) =>
+                update(i, {
+                  stageId: e.target.value || null,
+                  acquisitionSemester: book.acquisitionSemester,
+                })
+              }
+            >
+              <option value="">A definir</option>
+              {catalog.map((stage) => (
+                <option
+                  key={stage.id}
+                  value={stage.id}
+                  disabled={rows.some((r, j) => j !== i && r.stageId === stage.id)}
+                >
+                  {stage.name} · {stage.track.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1">
+            Aquisição
+            <select
+              className={control}
+              value={book.acquisition ? "now" : (book.acquisitionSemester ?? "")}
+              onChange={(e) => {
+                if (e.target.value === "now") {
+                  const terms = acquisition(book.stageId, "CASH", 1);
+                  if (terms) update(i, { ...book, acquisitionSemester: null, acquisition: terms });
+                } else
+                  update(i, {
+                    stageId: book.stageId,
+                    acquisitionSemester: Number(e.target.value) || null,
+                  });
+              }}
+            >
+              <option value="">Data em aberto</option>
+              <option value="now" disabled={!book.stageId || !prices}>
+                Registrar agora
+              </option>
+              {rows.map((_, j) => (
+                <option key={j} value={j + 1}>
+                  Prever para o {j + 1}º semestre
+                </option>
+              ))}
+            </select>
+          </label>
+          {book.acquisition && (
+            <label className="grid gap-1">
+              Condição combinada
+              <select
+                className={control}
+                value={
+                  book.acquisition.payment === "CASH" ? "cash" : book.acquisition.installmentCount
+                }
+                onChange={(e) => {
+                  const cash = e.target.value === "cash";
+                  const terms = acquisition(
+                    book.stageId,
+                    cash ? "CASH" : "INSTALLMENTS",
+                    cash ? 1 : Number(e.target.value),
+                  );
+                  if (terms) update(i, { ...book, acquisition: terms });
+                }}
+              >
+                <option value="cash">À vista</option>
+                {Object.keys(prices?.cardFeeRates ?? {})
+                  .sort((a, b) => Number(a) - Number(b))
+                  .map((n) => (
+                    <option key={n} value={n}>
+                      Cartão · {n}x
+                    </option>
+                  ))}
+              </select>
+              <span>{money(book.acquisition.expectedTotalCents)}</span>
+            </label>
+          )}
+        </fieldset>
+      ))}
+      {errors.materialBooks && <p role="alert">{errors.materialBooks}</p>}
+    </section>
+  );
+}

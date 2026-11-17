@@ -1,5 +1,6 @@
 "use client";
 
+import { contractBooks } from "./semester-books";
 import { type ReactElement } from "react";
 import { ChevronRight } from "lucide-react";
 import { formatBRLFromCents as money } from "~/lib/format";
@@ -17,6 +18,10 @@ type SummaryRow = {
 };
 
 function materialValue(fields: FormProps["fields"], material: SetupMaterial): string {
+  if (fields.materialBooks) {
+    const count = contractBooks(fields.materialBooks).length;
+    return count === 1 ? "1 livro previsto" : `${count} livros previstos`;
+  }
   if (fields.materialPayment === "NONE") return "Sem nova aquisição";
   if (!material.effective) return "Livros e valores a definir";
   const books = material.count === 1 ? "livro" : "livros";
@@ -24,7 +29,7 @@ function materialValue(fields: FormProps["fields"], material: SetupMaterial): st
 }
 
 function materialDetail(fields: FormProps["fields"]): string | undefined {
-  if (fields.materialPayment === "NONE") return undefined;
+  if (fields.materialBooks || fields.materialPayment === "NONE") return undefined;
   if (fields.materialScholarshipMode === "FULL") return "Bolsa integral";
   if (fields.materialPayment === "CASH") return "À vista · repasse";
   return `${fields.materialInstallments || "—"} parcelas · cartão · repasse`;

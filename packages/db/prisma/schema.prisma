@@ -555,6 +555,7 @@ model Track {
 }
 
 model Stage {
+  contractBooks ContractBook[]
   id           String    @id @default(uuid()) @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -888,6 +889,7 @@ model Payer {
 }
 
 model Contract {
+  plannedBooks ContractBook[]
   renegotiations ContractRenegotiation[]
   renewals Contract[] @relation("ContractRenewal")
   nextMaterialPurchaseOn DateTime? @map("next_material_purchase_on") @db.Date
@@ -2110,6 +2112,17 @@ model AssessmentFile {
   @@index([status, updatedAt])
   @@index([uploadedById])
   competence AcademicCompetence?
+}
+
+model ContractBook {
+  contractId String @map("contract_id") @db.Uuid
+  semester Int
+  stageId String? @map("stage_id") @db.Uuid
+  acquisitionSemester Int? @map("acquisition_semester")
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  @@id([contractId, semester])
+  @@unique([contractId, stageId])
 }
 
 model MaterialOrder {
