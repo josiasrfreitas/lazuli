@@ -1,3 +1,6 @@
+import { ledgerQuery } from "./installments-query.js";
+import { toPublicRow } from "../installments-groups.js";
+import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { contractSelect, orderFinancialSummary } from "./contracts-select.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
@@ -29,12 +32,13 @@ const materialSaleSelect = {
     orderBy: { position: "asc" },
     select: { stageId: true, name: true, stageCode: true },
   },
-  order: { select: { ...contractSelect.orders.select, createdAt: true } },
+  order: { select: { ...contractSelect.orders.select, createdAt: true, contractId: true } },
 } satisfies Prisma.MaterialOrderSelect;
 type MaterialSale = Prisma.MaterialOrderGetPayload<{ select: typeof materialSaleSelect }>;
 type Acquisition = {
   id: string;
   acquiredOn: string;
+  contractId: string | null;
   balanceCents: number;
   payment: MaterialSale["payment"];
   chargedCents: number;
@@ -46,9 +50,11 @@ type StudentMaterialsResult = {
   next: Coverage[];
   nextAcquisitions: Coverage[];
   acquisitions: Acquisition[];
+  openMaterialRows: FinanceInstallmentRow[];
   plannedBooks: {
     contractId: string;
     semester: number;
+    stageId: string | null;
     name: string | null;
     acquisitionSemester: number | null;
     acquired: boolean;
@@ -65,7 +71,7 @@ export async function readStudentMaterials(
   const { studentId } = input;
   const student = await database.student.findFirst({
     where: { id: studentId, deletedAt: null },
-    select: { id: true },
+    select: { id: true, fullName: true },
   });
   if (!student) throw notFound(STUDENT_NOT_FOUND_MESSAGE);
   const asOf = saoPauloDateOnly(input.now);
@@ -104,10 +110,31 @@ export async function readStudentMaterials(
   const acquired = new Set(acquisitions.flatMap((sale) => sale.books.map((book) => book.stageId)));
   const { current, next, nextAcquisitions, add } = createCollector({ catalog, acquired, asOf });
   applyCoverage({ enrollments, placements, catalog, add });
+  const unpaidOrders = acquisitions.filter((sale) => sale.balanceCents > 0).map((sale) => sale.id);
+  const openRows = unpaidOrders.length
+    ? await ledgerQuery({
+        kysely: database.$kysely,
+        businessDate: asOf,
+        studentId,
+        search: undefined,
+      })
+        .selectFrom("ledger")
+        .selectAll()
+        .where("orderId", "in", unpaidOrders)
+        .where("collectibleBalanceCents", ">", 0)
+        .orderBy("dueDate")
+        .execute()
+    : [];
+  const beneficiaries = {
+    byOrder: new Map(unpaidOrders.map((id) => [id, [{ id: student.id, name: student.fullName }]])),
+    ordered: [],
+  };
   return {
+    openMaterialRows: openRows.map((row) => toPublicRow(row, beneficiaries)),
     plannedBooks: slots.map((slot) => ({
       contractId: slot.contractId,
       semester: slot.semester,
+      stageId: slot.stageId,
       name: slot.stage?.name ?? null,
       acquisitionSemester: slot.acquisitionSemester,
       acquired: Boolean(slot.stageId && acquired.has(slot.stageId)),
@@ -125,6 +152,7 @@ function toAcquisition(sale: MaterialSale, now: Date): Acquisition {
   const { financialSummary } = orderFinancialSummary(sale.order, now);
   return {
     id: sale.orderId,
+    contractId: sale.order.contractId,
     balanceCents:
       financialSummary.overdueCents + financialSummary.futureCents + financialSummary.dueTodayCents,
     acquiredOn: saoPauloDateOnly(sale.order.createdAt),

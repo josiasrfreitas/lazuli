@@ -1,4 +1,4 @@
-import { materialOrderData } from "./contract-materials.js";
+import { materialOrderData, receiveNewMaterial } from "./contract-materials.js";
 import { searchIds } from "../../search.js";
 import { createHash } from "node:crypto";
 
@@ -264,6 +264,21 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
     },
     select: contractSelect,
   });
+  const received = (values.books ?? []).flatMap((book) =>
+    book.acquisition?.receivedMethod ? [book.acquisition] : [],
+  );
+  for (const material of received) {
+    const order = contract.orders.find((row) => row.material?.stageId === material.stageIds[0]);
+    if (!order) throw new Error("Cobrança do material não encontrada.");
+    await receiveNewMaterial({ ...input, order, material, date: values.agreedOn });
+  }
+  if (received.length)
+    return toRow(
+      await database.contract.findUniqueOrThrow({
+        where: { id: contract.id },
+        select: contractSelect,
+      }),
+    );
   return toRow(contract);
 }
 

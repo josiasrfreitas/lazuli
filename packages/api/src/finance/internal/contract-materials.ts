@@ -1,5 +1,6 @@
 import { materialFinalPriceVersion, materialPriceVersion } from "./material-price-version.js";
-import { createHash } from "node:crypto";
+import { registerPayment } from "./register-payment.js";
+import { createHash, randomUUID } from "node:crypto";
 import {
   addCalendarMonths,
   materialFinalPriceQuote,
@@ -271,6 +272,33 @@ function materialCreateData(input: {
   };
 }
 
+/** New material orders have a single school receivable, including card sales. */
+export async function receiveNewMaterial(input: {
+  database: FinanceDatabase;
+  staffUserId: string;
+  order: { installments: { id: string; amountCents: number }[] };
+  material: ContractMaterialInput;
+  payerId: string;
+  date: string;
+}): Promise<void> {
+  const { receivedMethod, installmentCount } = input.material;
+  const [line] = input.order.installments;
+  if (!receivedMethod || !line) return;
+  await registerPayment({
+    database: input.database,
+    staffUserId: input.staffUserId,
+    values: {
+      commandId: randomUUID(),
+      payerId: input.payerId,
+      date: toDateOnly(input.date),
+      method: receivedMethod,
+      amountCents: line.amountCents,
+      externalInstallments: installmentCount,
+      allocations: [{ installmentId: line.id, amountCents: line.amountCents }],
+    },
+  });
+}
+
 /** Explicit acquisition only; renewal never copies material orders. */
 export async function addContractMaterial(input: {
   database: FinanceDatabase;
@@ -304,11 +332,22 @@ export async function addContractMaterial(input: {
     settings,
     material: values.material,
     firstDueDate: values.firstDueDate,
-    scheduleAnchor: { date: anchor, offset: monthDistance },
+    ...(values.material.receivedMethod
+      ? {}
+      : { scheduleAnchor: { date: anchor, offset: monthDistance } }),
     staffUserId,
   });
   const order = await database.order.create({
     data: { ...data, contract: { connect: { id: contractId } } },
+    include: { contract: { select: { payerId: true } }, installments: true },
+  });
+  await receiveNewMaterial({
+    database,
+    staffUserId,
+    order,
+    payerId: order.contract!.payerId!,
+    material: values.material,
+    date: values.firstDueDate,
   });
   await database.materialOrder.update({
     where: { orderId: order.id },
@@ -340,7 +379,7 @@ async function materialContract(
     where: { contractId: contract.id },
     orderBy: { semester: "asc" },
   });
-  if (slots.length) {
+  if (slots.length || values.material.receivedMethod) {
     const acquired = await database.materialOrder.findMany({
       where: { order: { contractId: contract.id, deletedAt: null, cancelledAt: null } },
       select: { stageId: true, items: { select: { stageId: true } } },
@@ -354,8 +393,13 @@ async function materialContract(
           code: "CONFLICT",
           message: "Este livro já foi adquirido neste contrato.",
         });
+      if (!slots.length && values.semester === undefined) continue;
       const slot =
-        slots.find((b) => b.stageId === stageId) ?? slots.find((b) => b.stageId === null);
+        values.semester !== undefined
+          ? slots.find(
+              (b) => b.semester === values.semester && (!b.stageId || b.stageId === stageId),
+            )
+          : (slots.find((b) => b.stageId === stageId) ?? slots.find((b) => b.stageId === null));
       if (!slot)
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -377,7 +421,8 @@ async function materialContract(
       MONTHS_PER_YEAR +
     Number(values.firstDueDate.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX)) -
     Number(anchor.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX));
-  assertMaterialDueDate({ anchor, monthDistance, firstDueDate: values.firstDueDate });
+  if (!values.material.receivedMethod)
+    assertMaterialDueDate({ anchor, monthDistance, firstDueDate: values.firstDueDate });
   return { contractId: contract.id, anchor, monthDistance };
 }
 

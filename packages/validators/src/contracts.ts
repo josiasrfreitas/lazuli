@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { civilDateSchema } from "./civil-date.js";
-import { payerCreateInputSchema } from "./finance.js";
+import { payerCreateInputSchema, paymentMethodSchema } from "./finance.js";
 import { studentCreateInputSchema } from "./student.js";
 
 const MAX_PERCENT = 100;
@@ -31,6 +31,7 @@ const newContractPayerSchema = payerCreateInputSchema;
 
 export const contractMaterialInputSchema = z
   .object({
+    receivedMethod: paymentMethodSchema.optional(),
     stageIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um livro."),
     category: z.enum(["CHILD", "ADULT"]),
     scholarshipPct: scholarshipPercentage.optional(),
@@ -106,6 +107,7 @@ export const addContractMaterialInputSchema = z
   .object({
     commandId: z.string().uuid(),
     contractId: z.string().uuid(),
+    semester: z.number().int().positive().optional(),
     firstDueDate: civilDateSchema,
     material: contractMaterialInputSchema,
   })

@@ -29,7 +29,9 @@ import {
   type FinanceDatabase,
 } from "./shared.js";
 
-export type RegisterPaymentInput = z.infer<typeof financeRegisterPaymentInputSchema>;
+export type RegisterPaymentInput = z.infer<typeof financeRegisterPaymentInputSchema> & {
+  externalInstallments?: number;
+};
 
 export type RegisterPaymentResult = {
   paymentEntry: PaymentEntrySummary;
@@ -133,6 +135,9 @@ function fingerprint(values: RegisterPaymentInput): string {
     date: values.date.toISOString().slice(0, DATE_ONLY_LENGTH),
     amountCents: values.amountCents,
     method: values.method,
+    ...((values.externalInstallments ?? 1) > 1
+      ? { externalInstallments: values.externalInstallments }
+      : {}),
     note: values.note ?? null,
     externalReference: values.externalReference ?? null,
     allocations: sortStrings(combined.map((row) => row.installmentId)).map((installmentId) => ({
