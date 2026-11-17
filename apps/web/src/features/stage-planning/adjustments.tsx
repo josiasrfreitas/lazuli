@@ -65,14 +65,12 @@ export function PlanningAdjustments({
             Alterar início
           </Button>
         )}
-        {data.scope.canAdjust && !data.scope.readOnly && data.scope.student && (
-          <Button size="sm" variant="secondary" onClick={() => setMode("individual")}>
-            <CalendarPlus aria-hidden="true" />
-            Estender com atendimento
-          </Button>
-        )}
-        {data.scope.canAdjust && !data.scope.readOnly && !data.scope.student && (
-          <Button size="sm" variant="secondary" onClick={() => setMode("choose")}>
+        {data.scope.canAdjust && !data.scope.readOnly && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setMode(data.scope.student ? "individual" : "choose")}
+          >
             <SlidersHorizontal aria-hidden="true" />
             Ajustar aulas
           </Button>
