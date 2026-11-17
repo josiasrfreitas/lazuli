@@ -154,6 +154,7 @@ function contractStatusFilterField(filters: ContractFilters): TableFilterField {
     id: "status",
     label: "Situação",
     kind: "options",
+    promoted: true,
     options: STATUS_OPTIONS,
     selected: filters.status ? [filters.status] : [],
     onChange: (ids) => filters.setFilters({ situacao: ids.at(-1) ?? null }),
