@@ -36,24 +36,12 @@ export function useAcademicCalendarNavigation(): AcademicCalendarNavigation {
   );
   const year = Math.min(MAX_YEAR, Math.max(MIN_YEAR, query.ano));
   const date =
-    validDate(query.data) && (query.periodo || Number(query.data.slice(0, YEAR_LENGTH)) === year)
-      ? query.data
-      : null;
+    validDate(query.data) && Number(query.data.slice(0, YEAR_LENGTH)) === year ? query.data : null;
   const month = selectedMonth({ month: query.mes, date, daily: query.agenda });
   return {
     year,
     periodId: query.periodo,
     location: { month, date, daily: Boolean(date && query.agenda) },
-    setPeriod: (period: { id: string; startDate: Date }, preserveView = false) => {
-      void setQuery(
-        {
-          periodo: period.id,
-          ano: preserveView && month !== null ? year : period.startDate.getUTCFullYear(),
-          ...(preserveView ? {} : { mes: null, data: null, agenda: null }),
-        },
-        preserveView ? { history: "replace" } : undefined,
-      );
-    },
     setYear: (next: number) => {
       void setQuery({
         ano: Math.min(MAX_YEAR, Math.max(MIN_YEAR, next)),
@@ -75,10 +63,7 @@ export function useAcademicCalendarNavigation(): AcademicCalendarNavigation {
     },
     setLocation: (location: AcademicCalendarLocation) => {
       void setQuery({
-        ano:
-          location.date && (location.month !== null || !query.periodo)
-            ? Number(location.date.slice(0, YEAR_LENGTH))
-            : year,
+        ano: location.date ? Number(location.date.slice(0, YEAR_LENGTH)) : year,
         mes: location.month === null ? null : location.month + 1,
         data: location.date,
         agenda: location.daily || null,
@@ -91,7 +76,6 @@ export type AcademicCalendarNavigation = {
   year: number;
   periodId: string | null;
   location: AcademicCalendarLocation;
-  setPeriod: (period: { id: string; startDate: Date }, preserveView?: boolean) => void;
   setYear: (year: number) => void;
   setMonth: (year: number, month: number) => void;
   setLocation: (location: AcademicCalendarLocation) => void;

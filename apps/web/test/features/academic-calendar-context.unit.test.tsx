@@ -46,7 +46,6 @@ const navigation: AcademicCalendarNavigation = {
   location: { month: 6, date: null, daily: false },
   setYear: noop,
   setMonth: noop,
-  setPeriod: noop,
   setLocation: noop,
 };
 const workspace = {
@@ -78,7 +77,7 @@ void it("distinguishes unavailable context from loading and empty periods", () =
   assert.match(unavailable, /Datas indisponíveis/u);
   assert.doesNotMatch(unavailable, /Adicionar evento/u);
   const empty = renderToStaticMarkup(
-    <CalendarContextPanel {...context} period={null} date={null} />,
+    <CalendarContextPanel {...context} data={{ ...data, periods: [] }} period={null} date={null} />,
   );
   assert.match(empty, /Definir semestres/u);
   assert.match(empty, /Nenhuma data cadastrada/u);
@@ -111,4 +110,110 @@ void it("uses the supplied daily agenda instead of month cells", () => {
   assert.match(html, /Agenda selecionada/u);
   assert.doesNotMatch(html, /data-date=/u);
   assert.doesNotMatch(html, /aria-label="Mês anterior"/u);
+});
+
+void it("renders only registered months in the annual view with year navigation and no period filter", () => {
+  const html = renderWithQueries(
+    <AcademicCalendarWorkspace
+      {...workspace}
+      period={null}
+      navigation={{
+        ...navigation,
+        periodId: null,
+        location: { month: null, date: null, daily: false },
+      }}
+    />,
+  );
+  assert.match(html, /aria-label="Ano anterior"/u);
+  assert.match(html, /aria-label="Próximo ano"/u);
+  assert.doesNotMatch(html, /Todos os períodos|data-slot="segmented-control"/u);
+  assert.match(html, /Períodos de 2026/u);
+  assert.match(html, /data-date="2026-08-01"/u);
+  assert.match(html, /data-date="2026-12-15"/u);
+  assert.match(html, /data-date="2026-07-01"[^>]*data-kind="vacation"/u);
+  assert.doesNotMatch(html, /data-date="2026-01-01"|data-date="2027-/u);
+});
+
+void it("shows an empty year with semester setup instead of twelve unrelated months", () => {
+  const html = renderWithQueries(
+    <AcademicCalendarWorkspace
+      {...workspace}
+      data={{ ...data, periods: [] }}
+      period={null}
+      periods={[]}
+      navigation={{
+        ...navigation,
+        year: 2027,
+        periodId: null,
+        location: { month: null, date: null, daily: false },
+      }}
+    />,
+  );
+  assert.match(html, /Nenhum período em 2027/u);
+  assert.match(html, /Definir semestres/u);
+  assert.doesNotMatch(html, /data-date=/u);
+});
+
+void it("shows both semesters and the confirmed vacation month between them in the annual view", () => {
+  const first = {
+    ...period,
+    id: "first",
+    name: "2026.1",
+    startDate: new Date("2026-02-01Z"),
+    endDate: new Date("2026-06-30Z"),
+  };
+  const periods = [first, period];
+  const html = renderWithQueries(
+    <AcademicCalendarWorkspace
+      {...workspace}
+      data={{ ...data, periods }}
+      periods={periods}
+      period={null}
+      navigation={{
+        ...navigation,
+        periodId: null,
+        location: { month: null, date: null, daily: false },
+      }}
+    />,
+  );
+  assert.match(html, /data-date="2026-02-01"/u);
+  assert.match(html, /data-date="2026-07-15"[^>]*data-kind="vacation"/u);
+  assert.match(html, /data-date="2026-12-15"/u);
+  assert.match(html, /Férias acadêmicas/u);
+  assert.doesNotMatch(html, /Fora de Segundo semestre/u);
+});
+
+void it("loads with month-shaped placeholders and retains the requested year", () => {
+  const html = renderWithQueries(
+    <AcademicCalendarWorkspace
+      {...workspace}
+      data={undefined}
+      period={null}
+      periods={[]}
+      navigation={{
+        ...navigation,
+        year: 2027,
+        location: { month: null, date: null, daily: false },
+      }}
+    />,
+  );
+  assert.match(html, /role="status" aria-label="Carregando calendário"/u);
+  assert.match(html, />2027<\/h2>/u);
+  assert.match(html, /class="month"[\s\S]*class="weekdays"[\s\S]*class="days"/u);
+  assert.doesNotMatch(html, /h-32 w-full|Nenhum período em/u);
+});
+
+void it("does not keep loading or offer semester setup when the year request failed", () => {
+  const html = renderWithQueries(
+    <AcademicCalendarWorkspace
+      {...workspace}
+      data={undefined}
+      unavailable
+      period={null}
+      periods={[]}
+      navigation={{ ...navigation, location: { month: null, date: null, daily: false } }}
+    />,
+  );
+  assert.match(html, /Datas indisponíveis/u);
+  assert.doesNotMatch(html, /aria-label="Carregando calendário"|Definir semestres/u);
 });

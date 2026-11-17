@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
 import type { StaffRole } from "@lazuli/auth/server";
 import { navBreadcrumbFor, navReturnFor } from "./nav-items";
-import { trpc } from "~/lib/trpc";
 import { parseAsBoolean, parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 
 export function AppBreadcrumb({ role }: AppBreadcrumbInput): ReactNode {
@@ -57,25 +56,22 @@ function useCalendarBreadcrumb(params: ReadonlyURLSearchParams): CalendarBreadcr
     { history: "push" },
   );
   const { year, month } = calendarCoordinates(params);
-  const query = trpc.calendar.academic.year.useQuery({ year }, { staleTime: YEAR_STALE_TIME });
-  const periodId = params.get("periodo");
-  const period = query.data?.periods.find((row) => row.id === periodId);
   const monthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(year, month - 1, 1)));
   const daily = calendarDailyDate(params);
-  const returnYear = daily ? year : (period?.startDate.getUTCFullYear() ?? year);
-  const href = `/aulas?visao=academico&ano=${returnYear}${periodId ? `&periodo=${encodeURIComponent(periodId)}` : ""}${daily ? `&mes=${month}` : ""}`;
-  const parent = daily ? monthLabel : (period?.name ?? "Calendário acadêmico");
+  const returnYear = year;
+  const href = `/aulas?visao=academico&ano=${returnYear}${daily ? `&mes=${month}` : ""}`;
+  const parent = daily ? monthLabel : `Calendário acadêmico · ${year}`;
   function onClick(event: MouseEvent<HTMLAnchorElement>): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
       return;
     event.preventDefault();
     void setCalendarLocation({
       ano: returnYear,
-      periodo: periodId,
+      periodo: null,
       mes: daily ? month : null,
       data: null,
       agenda: null,
@@ -166,7 +162,6 @@ const MAX_YEAR = 2100;
 const MONTHS_PER_YEAR = 12;
 const MONTH_START = 5;
 const MONTH_END = 7;
-const YEAR_STALE_TIME = 30_000;
 const DAY_LENGTH = 2;
 
 function calendarCoordinates(params: ReadonlyURLSearchParams): { year: number; month: number } {

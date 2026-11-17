@@ -2,9 +2,6 @@ import { civilDate, isoDay, shiftDay } from "./date-model";
 import type { AcademicYear } from "./model";
 
 const MONTHS_PER_YEAR = 12;
-const YEAR_LENGTH = 4;
-const MONTH_START = 5;
-const MONTH_END = 7;
 type CalendarMonth = { year: number; month: number; from: string };
 
 export type CalendarPeriod = AcademicYear["periods"][number];
@@ -21,18 +18,51 @@ export function periodVacations(
   const index = periods.findIndex((row) => row.id === period.id);
   const previous = periods[index - 1];
   const next = index === -1 ? undefined : periods[index + 1];
-  const before = {
-    from: previous ? shiftDay(civilDate(previous.endDate), 1) : null,
-    through: shiftDay(civilDate(period.startDate), -1),
-  };
-  const after = {
-    from: shiftDay(civilDate(period.endDate), 1),
-    through: next ? shiftDay(civilDate(next.startDate), -1) : null,
-  };
   return {
-    before: validBefore(before),
-    after: validAfter(after),
+    before: previous
+      ? validBefore({
+          from: shiftDay(civilDate(previous.endDate), 1),
+          through: shiftDay(civilDate(period.startDate), -1),
+        })
+      : null,
+    after: next
+      ? validAfter({
+          from: shiftDay(civilDate(period.endDate), 1),
+          through: shiftDay(civilDate(next.startDate), -1),
+        })
+      : null,
   };
+}
+
+/** A lone period includes one neighboring vacation month, without creating calendar records. */
+export function calendarYearVacations(periods: CalendarPeriod[], year: number): CalendarVacations {
+  const visible = calendarPeriodsInYear(periods, year);
+  if (visible.length !== 1) return { before: null, after: null };
+  const period = visible[0]!;
+  const ordered = periods.toSorted(
+    (first, second) => first.startDate.getTime() - second.startDate.getTime(),
+  );
+  const vacations = periodVacations(period, ordered);
+  const index = ordered.findIndex((row) => row.id === period.id);
+  if (index === 0)
+    vacations.before = validBefore({
+      from: isoDay({
+        year: period.startDate.getUTCFullYear(),
+        month: period.startDate.getUTCMonth() - 1,
+        day: 1,
+      }),
+      through: shiftDay(civilDate(period.startDate), -1),
+    });
+  if (index === ordered.length - 1)
+    vacations.after = validAfter({
+      from: shiftDay(civilDate(period.endDate), 1),
+      through: isoDay({
+        year: period.endDate.getUTCFullYear(),
+        month: period.endDate.getUTCMonth() + 2,
+        day: 0,
+      }),
+    });
+  return vacations;
 }
 
 export function vacationAt(date: string, vacations: CalendarVacations): "before" | "after" | null {
@@ -51,57 +81,68 @@ export function vacationAt(date: string, vacations: CalendarVacations): "before"
   return null;
 }
 
-export function selectedCalendarPeriod(
-  periods: CalendarPeriod[],
-  { selectedId, year, today }: { selectedId: string | null; year: number; today: string },
-): CalendarPeriod | null {
-  const reference = today.startsWith(String(year)) ? today : `${year}-01-01`;
-  return (
-    periods.find((period) => period.id === selectedId) ??
-    periods.find(
+export function calendarPeriodsInYear(periods: CalendarPeriod[], year: number): CalendarPeriod[] {
+  return periods
+    .filter(
       (period) =>
-        civilDate(period.startDate) <= reference && civilDate(period.endDate) >= reference,
-    ) ??
-    periods.find((period) => civilDate(period.startDate) > reference) ??
-    periods.at(-1) ??
-    null
-  );
+        civilDate(period.startDate) <= `${year}-12-31` &&
+        civilDate(period.endDate) >= `${year}-01-01`,
+    )
+    .toSorted((first, second) => first.startDate.getTime() - second.startDate.getTime());
 }
 
-/** Keep the surrounding months visible; a cross-year period uses a continuous calendar. */
+export function calendarVacationRanges(
+  periods: CalendarPeriod[],
+  year: number,
+): { from: string; through: string }[] {
+  const ordered = periods.toSorted(
+    (first, second) => first.startDate.getTime() - second.startDate.getTime(),
+  );
+  const visible = calendarPeriodsInYear(ordered, year);
+  if (visible.length === 1) {
+    const vacations = calendarYearVacations(ordered, year);
+    return [vacations.before, vacations.after].flatMap((range) =>
+      range?.from &&
+      range.through &&
+      range.from <= `${year}-12-31` &&
+      range.through >= `${year}-01-01`
+        ? [{ from: range.from, through: range.through }]
+        : [],
+    );
+  }
+  return ordered.flatMap((period) => {
+    const range = periodVacations(period, ordered).after;
+    return range?.through && range.from <= `${year}-12-31` && range.through >= `${year}-01-01`
+      ? [{ from: range.from, through: range.through }]
+      : [];
+  });
+}
+
+/** Show configured months and the gaps between them within one civil year. */
 export function periodCalendarMonths(
   period: CalendarPeriod | null,
   { fallbackYear, periods = [] }: { fallbackYear: number; periods?: CalendarPeriod[] },
 ): CalendarMonth[] {
-  const months = baseCalendarMonths(period, fallbackYear);
-  const vacations = periodVacations(period, periods);
-  const first = months[0]!;
-  const last = months.at(-1)!;
-  const before = vacations.before?.through;
-  const after = vacations.after?.from;
-  if (before && before < first.from && before >= "2000-01-01") {
-    months.unshift(monthFromDate(before));
-  }
-  if (
-    after &&
-    after > isoDay({ year: last.year, month: last.month + 1, day: 0 }) &&
-    after <= "2100-12-31"
-  ) {
-    months.push(monthFromDate(after));
-  }
-  return months;
-}
-
-export function mergeCalendarYears(first: AcademicYear, second?: AcademicYear): AcademicYear {
-  if (!second) return first;
-  return {
-    periods: first.periods,
-    closedDays: unique([...first.closedDays, ...second.closedDays]),
-    events: unique([...first.events, ...second.events]),
-    interruptions: unique([...first.interruptions, ...second.interruptions]),
-    requests: unique([...first.requests, ...second.requests]),
-    planWarnings: unique([...first.planWarnings, ...second.planWarnings]),
-  };
+  const visible = calendarPeriodsInYear(period ? [period] : periods, fallbackYear);
+  if (visible.length === 0) return [];
+  const boundaryMonths = visible.length === 1 ? 1 : 0;
+  const firstMonth = Math.max(
+    0,
+    (visible[0]!.startDate.getUTCFullYear() === fallbackYear
+      ? visible[0]!.startDate.getUTCMonth()
+      : 0) - boundaryMonths,
+  );
+  const lastDate = new Date(Math.max(...visible.map((row) => row.endDate.getTime())));
+  const lastMonth = Math.min(
+    MONTHS_PER_YEAR - 1,
+    (lastDate.getUTCFullYear() > fallbackYear ? MONTHS_PER_YEAR - 1 : lastDate.getUTCMonth()) +
+      boundaryMonths,
+  );
+  return Array.from({ length: lastMonth - firstMonth + 1 }, (_value, index) => ({
+    year: fallbackYear,
+    month: firstMonth + index,
+    from: isoDay({ year: fallbackYear, month: firstMonth + index, day: 1 }),
+  }));
 }
 
 function validBefore(
@@ -113,30 +154,4 @@ function validBefore(
 }
 function validAfter(after: NonNullable<CalendarVacations["after"]>): CalendarVacations["after"] {
   return after.from > "2100-12-31" || (after.through && after.from > after.through) ? null : after;
-}
-function baseCalendarMonths(period: CalendarPeriod | null, fallbackYear: number): CalendarMonth[] {
-  const year = period?.startDate.getUTCFullYear() ?? fallbackYear;
-  const crossesYear = period && period.endDate.getUTCFullYear() !== year;
-  const firstMonth = crossesYear ? period.startDate.getUTCMonth() : 0;
-  const periodMonths = period
-    ? (period.endDate.getUTCFullYear() - year) * MONTHS_PER_YEAR +
-      period.endDate.getUTCMonth() -
-      firstMonth +
-      1
-    : MONTHS_PER_YEAR;
-  // A 366-day interval can touch 13 civil months; never hide its final days.
-  return Array.from({ length: Math.max(MONTHS_PER_YEAR, periodMonths) }, (_value, index) => {
-    const from = isoDay({ year, month: firstMonth + index, day: 1 });
-    return monthFromDate(from);
-  });
-}
-function monthFromDate(date: string): CalendarMonth {
-  return {
-    year: Number(date.slice(0, YEAR_LENGTH)),
-    month: Number(date.slice(MONTH_START, MONTH_END)) - 1,
-    from: `${date.slice(0, MONTH_END)}-01`,
-  };
-}
-function unique<Row extends { id: string }>(rows: Row[]): Row[] {
-  return [...new Map(rows.map((row) => [row.id, row])).values()];
 }
