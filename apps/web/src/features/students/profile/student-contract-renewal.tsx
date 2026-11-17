@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactElement } from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw, TriangleAlert } from "lucide-react";
 import { useQueryState } from "nuqs";
 import {
   Dialog,
@@ -126,7 +126,10 @@ function RenewalDebtNotice({
         <DialogBackdrop />
         <DialogContent className="grid gap-4 sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Este aluno está inadimplente</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <TriangleAlert aria-hidden="true" className="size-5 shrink-0 text-warning" />
+              Este aluno está inadimplente
+            </DialogTitle>
             <DialogDescription>
               Recomenda-se negociar as pendências antes da rematrícula.
             </DialogDescription>
