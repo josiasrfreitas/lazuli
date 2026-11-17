@@ -61,7 +61,11 @@ export function StudentMaterials({
       <DialogPortal>
         <div className={styles.dialogScope}>
           <DialogBackdrop data-student-materials-backdrop="" />
-          <DialogContent data-student-materials-dialog="" showCloseButton={!pending}>
+          <DialogContent
+            data-student-materials-dialog=""
+            data-adding={adding}
+            showCloseButton={!pending}
+          >
             <MaterialContents
               studentId={studentId}
               studentName={studentName}

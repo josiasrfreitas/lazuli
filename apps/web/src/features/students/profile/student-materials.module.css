@@ -79,6 +79,10 @@
 @media (min-width: 48rem) {
   .dialogScope :global([data-student-materials-dialog][data-student-materials-dialog]) {
     width: calc(100vw - 3rem);
+    max-width: 44rem;
+  }
+
+  .dialogScope :global([data-student-materials-dialog][data-adding="true"]) {
     max-width: 64rem;
   }
 }
