@@ -24,7 +24,7 @@ export function PendingPlanning({ group }: { group: HomeGroup | undefined }): Re
           onOpenChange={setOpen}
           summary={
             <>
-              <span className={styles.icon}>
+              <span className={`${styles.icon} ${styles.planningIcon}`}>
                 <BookOpen aria-hidden="true" />
               </span>
               <span className={styles.identity}>

@@ -80,6 +80,26 @@
   width: 1.125rem;
   height: 1.125rem;
 }
+.planningIcon {
+  background: var(--over-capacity-muted);
+  color: var(--over-capacity);
+}
+.healthIcon {
+  position: relative;
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+.healthIcon > .iconAttention {
+  position: absolute;
+  right: -0.125rem;
+  bottom: -0.125rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: var(--pending-row);
+  fill: var(--pending-row);
+  stroke-width: 2.5;
+}
 .identity {
   display: grid;
   gap: 0.25rem;
