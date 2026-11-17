@@ -89,6 +89,10 @@
 .contractIcon {
   position: relative;
 }
+.contractIcon {
+  background: var(--contract-surface);
+  color: var(--contract-foreground);
+}
 .contractIcon > .contractCurrency {
   position: absolute;
   top: 50%;

@@ -6,6 +6,7 @@ import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
+import { PendingIcon } from "./home-pending-icon";
 import styles from "./home-pending.module.css";
 
 const REFRESH_MS = 60_000;
@@ -110,9 +111,7 @@ function appointmentAgeDays(item: HomeGroup["items"][number], today: string): nu
 function AppointmentSummary({ total }: { total: number }): ReactElement {
   return (
     <>
-      <span className={`${styles.icon} ${styles.recordIcon}`}>
-        <CalendarCheck aria-hidden="true" />
-      </span>
+      <PendingIcon icon={CalendarCheck} className={styles.recordIcon} missing />
       <span className={styles.identity}>
         <strong>Atendimento sem registro</strong>
         <span>

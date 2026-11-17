@@ -3,7 +3,6 @@ import { useState, type ReactElement } from "react";
 import {
   ArrowRight,
   ChevronDown,
-  CircleHelp,
   DollarSign,
   File,
   FolderOpen,
@@ -16,6 +15,7 @@ import { formatDateOnlyBR } from "~/lib/format";
 import Link from "next/link";
 import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
+import { PendingIcon } from "./home-pending-icon";
 import styles from "./home-pending.module.css";
 
 const REFRESH_MS = 60_000;
@@ -70,23 +70,16 @@ function StudentsSummary({
   kind: "students" | "contracts" | "documents";
 }): ReactElement {
   const { Icon, title, detail } = STUDENT_SUMMARIES[kind];
-  const missing = kind === "documents";
   const financial = kind === "contracts";
   return (
     <>
-      <span
-        className={
-          missing
-            ? `${styles.icon} ${styles.missingIcon}`
-            : financial
-              ? `${styles.icon} ${styles.contractIcon}`
-              : styles.icon
-        }
+      <PendingIcon
+        icon={Icon}
+        className={financial ? styles.contractIcon : ""}
+        missing
       >
-        <Icon aria-hidden="true" />
-        {missing && <CircleHelp className={styles.iconAttention} aria-hidden="true" />}
         {financial && <DollarSign className={styles.contractCurrency} aria-hidden="true" />}
-      </span>
+      </PendingIcon>
       <span className={styles.identity}>
         <strong>{title}</strong>
         <span>

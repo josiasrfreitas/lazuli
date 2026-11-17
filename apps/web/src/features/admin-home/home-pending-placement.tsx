@@ -6,6 +6,7 @@ import { Badge, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
+import { PendingIcon } from "./home-pending-icon";
 import styles from "./home-pending.module.css";
 
 const REFRESH_MS = 60_000;
@@ -81,9 +82,7 @@ function PlacementCases({ group, today }: { group: HomeGroup; today: string }): 
 function PlacementSummary({ total }: { total: number }): ReactElement {
   return (
     <>
-      <span className={`${styles.icon} ${styles.placementIcon}`}>
-        <FilePenLine aria-hidden="true" />
-      </span>
+      <PendingIcon icon={FilePenLine} className={styles.placementIcon} missing />
       <span className={styles.identity}>
         <strong>Nivelamentos pendentes</strong>
         <span>

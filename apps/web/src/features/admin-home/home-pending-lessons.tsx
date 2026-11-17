@@ -6,6 +6,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { PendingDisclosure } from "./home-pending-disclosure";
+import { PendingIcon } from "./home-pending-icon";
 import styles from "./home-pending.module.css";
 
 type Teacher = RouterOutputs["dashboard"]["pendingLessonSummaries"][number];
@@ -33,9 +34,7 @@ function TeacherGroup({ teacher }: { teacher: Teacher }): ReactElement {
       onOpenChange={setOpen}
       summary={
         <>
-          <span className={`${styles.icon} ${styles.recordIcon}`}>
-            <ClipboardList aria-hidden="true" />
-          </span>
+          <PendingIcon icon={ClipboardList} className={styles.recordIcon} missing />
           <span className={styles.identity}>
             <strong>Aulas sem registro</strong>
             <span>
