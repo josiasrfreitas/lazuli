@@ -40,8 +40,16 @@ Reviewed captures:
 - `apps/web/.impeccable/review/calendar-impact/desktop.png`
 - `apps/web/.impeccable/review/calendar-impact/mobile.png`
 - `apps/web/.impeccable/review/calendar-impact/mobile-confirmation.png`
+- `apps/web/.impeccable/review/calendar-impact/user-1026.png`
 
 The independent Impeccable review returned **ship**, with no material fixes.
+
+The committed UI was subsequently reloaded and exercised again at the user's request. Opening a
+professor group with keyboard Enter exposed seven class summaries and all three known 14h deficits
+(26h available of 40h required). Incorrect acknowledgement followed by Enter sent zero confirmation
+requests; matching text enabled the action and clearing it disabled it. The 390px dialog fit within
+x=16..374 without horizontal page overflow, with the confirmation reachable by scrolling. The
+additional 1026×812 capture was independently reviewed and retained the **ship** disposition.
 
 ## Limits
 
