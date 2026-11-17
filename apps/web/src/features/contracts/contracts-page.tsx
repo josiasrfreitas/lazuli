@@ -72,6 +72,7 @@ export function ContractsPage(): ReactElement {
     <>
       <DataTablePage
         title="Contratos"
+        className="[&_[data-slot=data-table-page-toolbar]]:flex-nowrap [&_[data-slot=data-table-page-controls]]:min-w-0 [&_[data-slot=data-table-page-controls]]:flex-1"
         controls={<ContractsToolbar filters={filters} onNew={() => setCreating(true)} />}
       >
         <ContractsTable filters={filters} />
