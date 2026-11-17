@@ -242,17 +242,15 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
                 <FileText aria-hidden="true" size={16} />
                 Contrato
               </h3>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <strong title={termHint(row.endsOn)}>
-                    {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
-                  </strong>
-                  {row.renewalPending && <Badge variant="warning">{termHint(row.endsOn)}</Badge>}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                <strong title={termHint(row.endsOn)}>
+                  {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
+                </strong>
+                {row.renewalPending && <Badge variant="warning">{termHint(row.endsOn)}</Badge>}
+                <span className="whitespace-nowrap text-sm text-muted-foreground">
                   {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
-                  <ContractFinancialStatus row={row} />
-                </div>
+                </span>
+                <ContractFinancialStatus row={row} />
               </div>
               <Link
                 className={buttonVariants({
@@ -287,10 +285,9 @@ function ContractGroup({ rows }: { rows: ContractRow[] }): ReactElement {
                     : undefined;
                   return (
                     <p key={book.semester}>
-                      <span className="text-muted-foreground">{book.semester}º semestre · </span>
                       {book.name ?? "Livro a definir"} ·{" "}
                       {book.acquired
-                        ? ["Adquirido", sale?.paymentLabel].filter(Boolean).join(" · ")
+                        ? (sale?.paymentLabel ?? "Adquirido")
                         : book.acquisitionSemester
                           ? `Aquisição no ${book.acquisitionSemester}º semestre`
                           : "Aquisição em aberto"}
