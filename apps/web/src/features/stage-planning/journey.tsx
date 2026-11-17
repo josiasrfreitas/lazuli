@@ -61,7 +61,7 @@ export function PlanningJourney({
   );
 }
 
-function outlookCopy(outlook: Outlook): {
+function outlookCopy(outlook: Outlook, individual: boolean): {
   title: string;
   explanation: string;
   label: string;
@@ -69,7 +69,7 @@ function outlookCopy(outlook: Outlook): {
 } {
   if (outlook.status === "unknown")
     return {
-      title: "Ainda falta confirmar o avanço da turma",
+      title: individual ? "Ainda falta confirmar o avanço do aluno" : "Ainda falta confirmar o avanço da turma",
       label: "Dados incompletos",
       variant: "neutral",
       explanation: outlook.unknownDurations
@@ -117,7 +117,7 @@ function outlookCopy(outlook: Outlook): {
   };
 }
 function SemesterSummary({ data, outlook, actions }: { data: Planning; outlook: Outlook; actions?: ReactNode }): ReactElement {
-  const copy = outlookCopy(outlook);
+  const copy = outlookCopy(outlook, Boolean(data.scope.student));
   const max = Math.max(1, outlook.availableMinutes, outlook.remainingMinutes);
   return (
     <section className={styles.outlook} aria-label="Conclusão do conteúdo no semestre">
@@ -240,7 +240,7 @@ function JourneyContent({
       <div className={styles.contentHeader}>
         <h3>
           <BookOpen size={18} aria-hidden="true" />
-          Conteúdo da turma
+          {data.scope.student ? `Conteúdo do aluno · ${data.scope.stage.name}` : "Conteúdo da turma"}
         </h3>
         {groups.length > 0 && (
           <Button
@@ -261,6 +261,7 @@ function JourneyContent({
       />
       <p className={styles.contextLine}>
         {journeyContext(data, outlook)}
+        {data.scope.student && stageCompletionEstimate(data, outlook)}
         {!data.preview &&
           outlook.journey.expected &&
           ` Pelo roteiro, até hoje estava previsto: ${outlook.journey.expected.item.title}.`}
@@ -273,6 +274,14 @@ function JourneyContent({
       )}
     </section>
   );
+}
+
+function stageCompletionEstimate(data: Planning, outlook: Outlook): string {
+  if (outlook.status === "complete") return " Estágio concluído.";
+  if (outlook.status === "unknown" || !data.projection.length || data.projection.some((item) => !item.date))
+    return " Conclusão do estágio sem previsão.";
+  const lastDate = data.projection.at(-1)?.date;
+  return lastDate ? ` Conclusão prevista do estágio em ${dateLabel(lastDate)}.` : "";
 }
 
 function journeyContext(data: Planning, outlook: Outlook): string {

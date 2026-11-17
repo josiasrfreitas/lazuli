@@ -58,10 +58,7 @@ const StudentPlanning = dynamic(
     import("~/features/stage-planning/student-planning").then((module) => module.StudentPlanning),
   { loading: EnrollmentLoading },
 );
-const CurrentEnrollment = dynamic(
-  () => import("./current-enrollment").then((module) => module.CurrentEnrollment),
-  { loading: EnrollmentLoading },
-);
+
 const StudentContractRenewal = dynamic(() =>
   import("./student-contract-renewal").then((module) => module.StudentContractRenewal),
 );
@@ -402,7 +399,7 @@ function PedagogySection({
   pedagogyWorkspacePreview,
 }: PedagogySectionProps): ReactElement {
   if (section === PLANNING_SECTION)
-    return <StudentPlanningPanel id={id} profile={profile} pedagogy={pedagogy} />;
+    return <StudentPlanning studentId={id} />;
   if (profile)
     return (
       <StudentPedagogySection
@@ -510,48 +507,4 @@ function StudentTabsNavigation({ disabled }: { disabled: boolean }): ReactElemen
       </TabsList>
     </div>
   );
-}
-
-function StudentPlanningPanel({
-  id,
-  profile,
-  pedagogy,
-}: {
-  id: string;
-  profile: StudentProfile | undefined;
-  pedagogy: ReturnType<typeof useStudentPedagogy>;
-}): ReactElement {
-  return (
-    <div className="grid min-w-0 gap-4">
-      <StudentPlanningEnrollments profile={profile} pedagogy={pedagogy} />
-      <StudentPlanning studentId={id} />
-    </div>
-  );
-}
-
-function StudentPlanningEnrollments({
-  profile,
-  pedagogy,
-}: {
-  profile: StudentProfile | undefined;
-  pedagogy: ReturnType<typeof useStudentPedagogy>;
-}): ReactNode {
-  if (pedagogy.isError)
-    return (
-      <ProfileError
-        message="Não foi possível carregar a matrícula."
-        onRetry={() => void pedagogy.refetch()}
-      />
-    );
-  if (!profile || !pedagogy.data) return <EnrollmentLoading />;
-  return pedagogy.data.enrollments
-    .filter((enrollment) => enrollment.current && enrollment.class.scheduleType === "PERSONALIZED")
-    .map((enrollment) => (
-      <CurrentEnrollment
-        key={enrollment.id}
-        enrollment={enrollment}
-        today={pedagogy.data?.today ?? ""}
-        profile={profile}
-      />
-    ));
 }
