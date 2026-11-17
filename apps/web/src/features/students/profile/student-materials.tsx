@@ -20,7 +20,7 @@ import {
 } from "@lazuli/ui";
 import { BookOpen } from "lucide-react";
 import { trpc } from "~/lib/trpc";
-import { formatBRLFromCents as money } from "~/lib/format";
+import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { PaymentDialog } from "~/features/installments/payment/payment-dialog";
 import { visibleFinanceContracts } from "./finance-contract-terms";
 import { MaterialReceipt, type MaterialTarget } from "./material-receipt";
@@ -159,9 +159,14 @@ function BookList({
           {sale.balanceCents > 0
             ? `Falta pagar ${money(sale.balanceCents)}`
             : sale.chargedCents
-              ? "Quitado"
+              ? sale.lastReceipt
+                ? `Pago em ${formatDateOnlyBR(sale.lastReceipt.date)} · ${sale.lastReceipt.method}`
+                : "Sem saldo a receber"
               : "Bolsa integral"}
         </span>
+        {sale.balanceCents === 0 && sale.chargedCents > 0 && (
+          <strong>{money(sale.chargedCents)}</strong>
+        )}
         {rows.length > 0 && (
           <Button size="sm" variant="secondary" onClick={() => onReceive(rows)}>
             Registrar pagamento

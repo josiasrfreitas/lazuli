@@ -19,6 +19,8 @@ type Coverage = {
   neededOn: string | null;
 };
 
+const installments = contractSelect.orders.select.installments;
+const allocations = installments.select.allocations;
 const materialSaleSelect = {
   orderId: true,
   stageId: true,
@@ -32,7 +34,26 @@ const materialSaleSelect = {
     orderBy: { position: "asc" },
     select: { stageId: true, name: true, stageCode: true },
   },
-  order: { select: { ...contractSelect.orders.select, createdAt: true, contractId: true } },
+  order: {
+    select: {
+      ...contractSelect.orders.select,
+      createdAt: true,
+      contractId: true,
+      installments: {
+        ...installments,
+        select: {
+          ...installments.select,
+          allocations: {
+            ...allocations,
+            select: {
+              ...allocations.select,
+              paymentEntry: { select: { date: true, paymentMethod: { select: { name: true } } } },
+            },
+          },
+        },
+      },
+    },
+  },
 } satisfies Prisma.MaterialOrderSelect;
 type MaterialSale = Prisma.MaterialOrderGetPayload<{ select: typeof materialSaleSelect }>;
 type Acquisition = {
@@ -40,6 +61,7 @@ type Acquisition = {
   acquiredOn: string;
   contractId: string | null;
   balanceCents: number;
+  lastReceipt: { date: string; method: string } | null;
   payment: MaterialSale["payment"];
   chargedCents: number;
   installmentCount: number;
@@ -155,8 +177,17 @@ export async function readStudentMaterials(
 
 function toAcquisition(sale: MaterialSale, now: Date): Acquisition {
   const { financialSummary } = orderFinancialSummary(sale.order, now);
+  const receipts = sale.order.installments
+    .flatMap((line) => line.allocations)
+    .filter((row) => row.amountCents > row.reversals.reduce((sum, r) => sum + r.amountCents, 0))
+    .map((row) => row.paymentEntry)
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  const latest = receipts[0];
   return {
     id: sale.orderId,
+    lastReceipt: latest
+      ? { date: toDateOnlyString(latest.date), method: latest.paymentMethod.name }
+      : null,
     contractId: sale.order.contractId,
     balanceCents:
       financialSummary.overdueCents + financialSummary.futureCents + financialSummary.dueTodayCents,

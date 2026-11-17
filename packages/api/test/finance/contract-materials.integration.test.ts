@@ -570,7 +570,7 @@ void it("allows three books in one sale without generating three school receivab
 });
 
 for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
-  void it(`uses the ${scheduleType} academic plan instead of contract duration for material attention`, async () => {
+  void it(`uses the ${scheduleType} stage end instead of contract duration for material attention`, async () => {
     await scenario(async (tx, { stageId, values }) => {
       const stage = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
       const next = await tx.stage.create({
@@ -580,7 +580,7 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
         data: {
           name: randomUUID(),
           startDate: new Date("2026-01-01"),
-          endDate: new Date("2026-06-30"),
+          endDate: new Date(scheduleType === "REGULAR" ? "2026-02-28" : "2026-06-30"),
         },
       });
       const group = await tx.class.create({
@@ -639,8 +639,8 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
           now: NOW,
         });
         assert.equal(withoutDestination.materialNeeds.length, 1);
-        assert.equal(withoutDestination.materialNeeds[0]!.nextStage, null);
-        assert.equal(withoutDestination.materialNeeds[0]!.stagePending, true);
+        assert.equal(withoutDestination.materialNeeds[0]!.nextStage, next.name);
+        assert.equal(withoutDestination.materialNeeds[0]!.stagePending, false);
         const nextSemester = await tx.period.create({
           data: {
             name: randomUUID(),
@@ -677,20 +677,17 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
       assert.equal(summary.materialNeeds.length, 1);
       assert.equal(summary.materialNeeds[0]!.plannedEndOn, "2026-02-28");
       assert.equal(summary.materialNeeds[0]!.nextStage, "Essentials 2");
-      // Moving the academic plan, with the same class and same twelve-month contract, removes attention.
-      await tx.stagePlan.update({
-        where: { id: plan.id },
-        data: { plannedEndOn: new Date("2026-06-01") },
-      });
+      const moveEnd = (end: string) =>
+        scheduleType === "REGULAR"
+          ? tx.period.update({ where: { id: semester.id }, data: { endDate: new Date(end) } })
+          : tx.stagePlan.update({ where: { id: plan.id }, data: { plannedEndOn: new Date(end) } });
+      await moveEnd("2026-06-01");
       const coveredSummary = await service.studentSummary({
         studentId: values.studentId,
         now: NOW,
       });
       assert.deepEqual(coveredSummary.materialNeeds, []);
-      await tx.stagePlan.update({
-        where: { id: plan.id },
-        data: { plannedEndOn: new Date("2026-02-28") },
-      });
+      await moveEnd("2026-02-28");
       // Agreeing the next book is enough: an unpaid sale must not prompt a duplicate purchase.
       await service.addContractMaterial({
         commandId: randomUUID(),
