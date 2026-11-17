@@ -11,45 +11,34 @@ export async function calendarPlanWarnings(
   database: Prisma.TransactionClient,
   year: number,
 ): Promise<CalendarPlanWarning[]> {
-  const [items, closedDays] = await Promise.all([
-    database.stagePlanItem.findMany({
-      where: {
-        deletedAt: null,
-        plannedOn: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) },
-        plan: { deletedAt: null },
-      },
-      include: {
-        plan: {
-          select: {
-            classId: true,
-            class: {
-              select: {
-                portalClassName: true,
-                semester: { select: { startDate: true, endDate: true } },
-              },
+  const items = await database.stagePlanItem.findMany({
+    where: {
+      deletedAt: null,
+      plannedOn: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) },
+      plan: { deletedAt: null },
+    },
+    include: {
+      plan: {
+        select: {
+          classId: true,
+          class: {
+            select: {
+              portalClassName: true,
+              semester: { select: { startDate: true, endDate: true } },
             },
-            student: { select: { fullName: true } },
           },
+          student: { select: { fullName: true } },
         },
       },
-      orderBy: { plannedOn: "asc" },
-    }),
-    database.schoolClosedDay.findMany({
-      where: {
-        deletedAt: null,
-        date: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) },
-      },
-      select: { date: true },
-    }),
-  ]);
-  const blocked = new Set(closedDays.map((row) => civil(row.date)));
+    },
+    orderBy: { plannedOn: "asc" },
+  });
   return items
     .filter(
       (row) =>
-        blocked.has(civil(row.plannedOn)) ||
-        (row.plan.class &&
-          (row.plannedOn < row.plan.class.semester.startDate ||
-            row.plannedOn > row.plan.class.semester.endDate)),
+        row.plan.class &&
+        (row.plannedOn < row.plan.class.semester.startDate ||
+          row.plannedOn > row.plan.class.semester.endDate),
     )
     .map((row) => ({
       id: row.id,

@@ -75,7 +75,7 @@ function PlanWarnings({ planWarnings }: Pick<AcademicYear, "planWarnings">): Rea
   return (
     <details>
       <summary className="cursor-pointer text-caption">
-        Revisar datas de {planWarnings.length} itens do plano fora do calendário
+        Revisar datas de {planWarnings.length} itens do plano fora do período letivo
       </summary>
       <ul className="mt-2 grid gap-2 text-caption">
         {planWarnings.map((row) => (
