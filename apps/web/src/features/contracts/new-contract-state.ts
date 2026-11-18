@@ -93,7 +93,7 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
       return;
     }
     case "durationMonths": {
-      errors.endsOn = "Informe uma data final entre 1 e 120 meses completos após o início.";
+      errors.endsOn = "Informe uma data final posterior ao início, com vigência de até 120 meses.";
       return;
     }
     case "firstDueDate": {

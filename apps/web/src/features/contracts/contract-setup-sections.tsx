@@ -23,7 +23,7 @@ import {
   TermFields,
   type FormProps,
 } from "./contract-form-fields";
-import { durationFromDates } from "./contract-form-model";
+import { contractPeriodLabel, durationFromDates } from "./contract-form-model";
 import { TextField } from "./contract-text-field";
 import { ContractScholarshipFields } from "./contract-scholarship-fields";
 import { ContractPayerFields } from "./contract-payer-fields";
@@ -323,9 +323,7 @@ function ReviewParties({
         </div>
         <div>
           <dt>Vigência</dt>
-          <dd>
-            {fields.firstDueDate} a {fields.endsOn}
-          </dd>
+          <dd>{contractPeriodLabel(fields)}</dd>
         </div>
         <div>
           <dt>Primeiro vencimento</dt>

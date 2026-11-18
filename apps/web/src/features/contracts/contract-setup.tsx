@@ -14,11 +14,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
 import { ToastAlert, Button } from "@lazuli/ui";
 import { parseDateBR } from "~/lib/masks";
 import type { FormProps } from "./contract-form-fields";
-import {
-  contractInputFromFields,
-  durationFromDates,
-  MONTHS_PER_SEMESTER,
-} from "./contract-form-model";
+import { contractInputFromFields, durationFromDates } from "./contract-form-model";
 import type { ContractFormState, ContractOperation } from "./new-contract-state";
 import { validatePrice } from "./new-contract-state";
 import {
@@ -30,11 +26,7 @@ import {
   stepForField,
   type SetupStep,
 } from "./contract-setup-model";
-import {
-  SetupMaterialFields,
-  useSetupMaterial,
-  type SetupMaterial,
-} from "./contract-setup-material";
+import { useSetupMaterial, type SetupMaterial } from "./contract-setup-material";
 import { SetupParties, SetupReview, SetupTuition } from "./contract-setup-sections";
 import { SetupSummary } from "./contract-setup-summary";
 import styles from "./contract-setup.module.css";
@@ -510,20 +502,14 @@ function SetupStepFields({
     );
   if (step === "tuition")
     return <SetupTuition {...formProps} allowEnrollmentFee={props.allowEnrollmentFee ?? false} />;
-  if (
-    step === "material" &&
-    Number.isInteger(durationFromDates(formProps.fields) / MONTHS_PER_SEMESTER)
-  )
-    return <SemesterBooks {...formProps} material={material} />;
-  if (step === "material")
-    return (
-      <SetupMaterialFields
-        {...formProps}
-        material={material}
-        suggestedStageId={props.suggestedStageId}
-        allowNoAcquisition={Boolean(props.renewedFromId)}
-      />
+  if (step === "material") {
+    const months = durationFromDates(formProps.fields);
+    return months >= 1 && months <= 120 ? (
+      <SemesterBooks {...formProps} material={material} />
+    ) : (
+      <p>Defina a vigência do contrato para selecionar os livros.</p>
     );
+  }
   if (step === "review")
     return (
       <SetupReview

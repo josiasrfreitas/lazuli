@@ -101,12 +101,28 @@ for (const [firstDueDate, endsOn] of [
   });
 }
 
-for (const endsOn of ["", "31/02/2027", "31/03/2026", "28/02/2026", "30/04/2037", "15/09/2026"]) {
+for (const [endsOn, months, books] of [
+  ["17/03/2028", 13, 2],
+  ["20/03/2028", 13, 2],
+  ["18/05/2028", 15, 3],
+] as const) {
+  void it(`keeps the selected end and rounds the term for ${endsOn}`, () => {
+    const parsed = contractInputFromFields(
+      { ...fields, materialPayment: "NONE", firstDueDate: "18/02/2027", endsOn },
+      COMMAND,
+    );
+    assert.equal(parsed.data?.durationMonths, months);
+    assert.equal(parsed.data?.books?.length, books);
+    assert.equal(parsed.data?.endsOn, endsOn.split("/").reverse().join("-"));
+  });
+}
+
+for (const endsOn of ["", "31/02/2027", "31/03/2026", "28/02/2026", "30/04/2037"]) {
   void it(`rejects an invalid or nonmonthly term ending on ${endsOn}`, () => {
     const parsed = contractInputFromFields({ ...fields, endsOn }, COMMAND);
     assert.equal(parsed.success, false);
     assert.deepEqual(fieldErrors(parsed, false), {
-      endsOn: "Informe uma data final entre 1 e 120 meses completos após o início.",
+      endsOn: "Informe uma data final posterior ao início, com vigência de até 120 meses.",
     });
   });
 }

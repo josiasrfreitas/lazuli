@@ -52,6 +52,7 @@ export function setupTuitionPreview({
     return previewMonthlyContract({
       ...offer,
       startsOn: start,
+      endsOn: parseDateBR(fields.endsOn) ?? undefined,
       firstDueDate: due,
       durationMonths: duration,
       monthlyAmountCents: Math.round(

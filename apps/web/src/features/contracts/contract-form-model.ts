@@ -1,4 +1,4 @@
-import { addCalendarMonths, previewMonthlyContract } from "@lazuli/domain";
+import { nearestContractUnits, previewMonthlyContract } from "@lazuli/domain";
 import {
   createMonthlyContractInputSchema,
   type studentCreateInputSchema,
@@ -10,7 +10,6 @@ import { formatBRLFromCents } from "~/lib/format";
 import { materialCardFeeInput } from "./material-card-fee";
 
 const CENTS_PER_REAL = 100;
-const MONTHS_PER_YEAR = 12;
 export const MONTHS_PER_SEMESTER = 6;
 
 export type ContractFields = {
@@ -130,14 +129,16 @@ export function suggestMonthlyAmount(
   return fields.monthlyAmount === monthlyAmount ? fields : { ...fields, monthlyAmount };
 }
 
-export function durationFromDates(fields: ContractFields): number {
+export function durationFromDates(fields: ContractFields, monthsPerUnit = 1): number {
   const start = parseDateBR(fields.firstDueDate);
   const end = parseDateBR(fields.endsOn);
-  if (!start || !end) return Number.NaN;
-  const [startYear, startMonth] = start.split("-").map(Number);
-  const [endYear, endMonth] = end.split("-").map(Number);
-  const months = (endYear! - startYear!) * MONTHS_PER_YEAR + endMonth! - startMonth!;
-  return months > 0 && addCalendarMonths(start, months) === end ? months : Number.NaN;
+  return start && end ? nearestContractUnits(start, end, monthsPerUnit) : Number.NaN;
+}
+
+export function contractPeriodLabel(fields: ContractFields): string {
+  const months = durationFromDates(fields);
+  if (!Number.isFinite(months)) return "Período a definir";
+  return `${fields.firstDueDate} a ${fields.endsOn} (${months} ${months === 1 ? "mês" : "meses"})`;
 }
 
 function studentInput(fields: ContractFields): object {
@@ -205,6 +206,7 @@ export function contractInputFromFields(
     ...payerInput(fields),
     agreedOn: parseDateBR(fields.agreedOn),
     startsOn: parseDateBR(fields.firstDueDate),
+    endsOn: parseDateBR(fields.endsOn) ?? undefined,
     durationMonths: durationFromDates(fields),
     firstDueDate: parseDateBR(fields.billingFirstDueDate ?? fields.firstDueDate),
     monthlyAmountCents: Math.round(Number(fields.monthlyAmount.replace(",", ".")) * CENTS_PER_REAL),
@@ -220,7 +222,7 @@ export function contractInputFromFields(
 }
 
 function contractMaterialInput(fields: ContractFields): object {
-  const semesters = durationFromDates(fields) / MONTHS_PER_SEMESTER;
+  const semesters = durationFromDates(fields, MONTHS_PER_SEMESTER);
   if (Number.isInteger(semesters) && (fields.materialBooks || fields.materialPayment === "NONE")) {
     const books = fields.materialBooks
       ? (JSON.parse(fields.materialBooks) as z.input<

@@ -25,7 +25,7 @@ export function SemesterBooks({
   errors,
   material,
 }: Pick<FormProps, "fields" | "change" | "errors"> & { material: SetupMaterial }): ReactElement {
-  const count = durationFromDates(fields) / MONTHS_PER_SEMESTER;
+  const count = durationFromDates(fields, MONTHS_PER_SEMESTER);
   const stored = contractBooks(fields.materialBooks);
   const suggestions = fields.materialStageIds.split(",");
   const catalog = material.stages.data ?? [];

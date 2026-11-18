@@ -1,5 +1,6 @@
 "use client";
 
+import { contractPeriodLabel } from "./contract-form-model";
 import { contractBooks } from "./semester-books";
 import { type ReactElement } from "react";
 import { ChevronRight } from "lucide-react";
@@ -51,10 +52,7 @@ function summaryRows({
       step: "parties",
       title: "Responsável e período",
       value: payer || "Responsável a definir",
-      detail:
-        fields.firstDueDate && fields.endsOn
-          ? `${fields.firstDueDate} a ${fields.endsOn}`
-          : "Período a definir",
+      detail: contractPeriodLabel(fields),
     },
     {
       step: "tuition",

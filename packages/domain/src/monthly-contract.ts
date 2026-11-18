@@ -2,6 +2,7 @@ import { splitPrincipal } from "./installment-amounts.js";
 
 export type MonthlyContractTerms = {
   startsOn: string;
+  endsOn?: string | undefined;
   durationMonths: number;
   installmentCount?: number | undefined;
   firstDueDate: string;
@@ -34,6 +35,20 @@ export function addCalendarMonths(value: string, months: number): string {
   const month = (monthIndex % MONTHS_PER_YEAR) + ONE_BASED_MONTH;
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(sourceDay, lastDay)).padStart(2, "0")}`;
+}
+
+/** Compare the actual calendar anniversaries, including short months and leap years. */
+export function nearestContractUnits(start: string, end: string, monthsPerUnit = 1): number {
+  if (end <= start) return Number.NaN;
+  const months =
+    (Number(end.slice(0, 4)) - Number(start.slice(0, 4))) * MONTHS_PER_YEAR +
+    Number(end.slice(5, 7)) -
+    Number(start.slice(5, 7));
+  const lower = addCalendarMonths(start, months) > end ? months - 1 : months;
+  const before = Date.parse(addCalendarMonths(start, lower));
+  const after = Date.parse(addCalendarMonths(start, lower + 1));
+  const fraction = (Date.parse(end) - before) / (after - before);
+  return Math.max(1, Math.round((lower + fraction) / monthsPerUnit));
 }
 
 /** Percentages have at most four decimal places. Integer units avoid float-cent drift. */
@@ -100,7 +115,7 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   if (terms.monthlyAmountCents < floorCents)
     throw new Error("Mensalidade acordada abaixo do mínimo autorizado.");
   return {
-    endsOn: addCalendarMonths(terms.startsOn, terms.durationMonths),
+    endsOn: terms.endsOn ?? addCalendarMonths(terms.startsOn, terms.durationMonths),
     chargedMonthlyCents,
     principalAmountCents,
     onTimeMonthlyCents,

@@ -80,6 +80,7 @@ export {
 export { toWhatsAppUrl } from "./whatsapp-url.js";
 export {
   addCalendarMonths,
+  nearestContractUnits,
   previewMonthlyContract,
   priceAfterDiscountCents,
   punctualityDiscountOnPayment,

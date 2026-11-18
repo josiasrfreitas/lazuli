@@ -867,6 +867,9 @@ importers:
 
   packages/validators:
     dependencies:
+      '@lazuli/domain':
+        specifier: workspace:*
+        version: link:../domain
       zod:
         specifier: 'catalog:'
         version: 3.25.76

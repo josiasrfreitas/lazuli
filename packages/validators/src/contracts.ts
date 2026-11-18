@@ -1,3 +1,4 @@
+import { addCalendarMonths, nearestContractUnits } from "@lazuli/domain";
 import { z } from "zod";
 
 import { civilDateSchema } from "./civil-date.js";
@@ -124,10 +125,10 @@ type PlannedBook = {
   acquisition?: ContractMaterialInput | undefined;
 };
 
-function booksMatchContract(books: readonly PlannedBook[], months: number): boolean {
+function booksMatchContract(books: readonly PlannedBook[], semesters: number): boolean {
   const stageIds = books.flatMap(({ stageId }) => (stageId ? [stageId] : []));
   return (
-    books.length * MONTHS_PER_SEMESTER === months &&
+    books.length === semesters &&
     new Set(stageIds).size === stageIds.length &&
     books.every((book) => bookMatchesSemester(book, books.length))
   );
@@ -167,6 +168,7 @@ export const createMonthlyContractInputSchema = z
     payerId: z.string().uuid().optional(),
     agreedOn: civilDateSchema,
     startsOn: civilDateSchema,
+    endsOn: civilDateSchema.optional(),
     durationMonths: z.number().int().min(1).max(MAX_DURATION_MONTHS),
     installmentCount: z.number().int().positive().optional(),
     firstDueDate: civilDateSchema,
@@ -209,6 +211,15 @@ export const createMonthlyContractInputSchema = z
     }
   })
   .superRefine((input, context) => {
+    const end = input.endsOn ?? addCalendarMonths(input.startsOn, input.durationMonths);
+    if (nearestContractUnits(input.startsOn, end) !== input.durationMonths) {
+      context.addIssue({
+        code: "custom",
+        path: ["durationMonths"],
+        message: "Confira a vigência do contrato.",
+      });
+    }
+    const semesters = nearestContractUnits(input.startsOn, end, MONTHS_PER_SEMESTER);
     const firstBook = input.books?.[0];
     if (firstBook && !firstBook.acquisition && firstBook.acquisitionSemester !== 1) {
       context.addIssue({
@@ -217,7 +228,7 @@ export const createMonthlyContractInputSchema = z
         message: "O pagamento do primeiro livro deve ocorrer no primeiro semestre.",
       });
     }
-    if (input.books && (input.material || !booksMatchContract(input.books, input.durationMonths))) {
+    if (input.books && (input.material || !booksMatchContract(input.books, semesters))) {
       context.addIssue({
         code: "custom",
         path: ["books"],
