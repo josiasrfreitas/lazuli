@@ -123,6 +123,23 @@ not require Docker or any Lazuli data service. If its HTTP or admin port is occu
 does not resolve to loopback, or an unrelated Caddy instance uses the selected admin port, the command
 stops with a corrective diagnostic.
 
+To open Web directly on its assigned localhost port, run the full setup to populate the
+worktree's `.env`. Start Web from the repository root with the same origin for the app,
+the sign-in callback, and email links.
+
+```sh
+pnpm workspace:setup full
+pnpm exec dotenv -e .env -- sh -c '
+  export APP_URL="http://localhost:${LAZULI_WEB_PORT}"
+  export BETTER_AUTH_URL="$APP_URL"
+  exec pnpm -F @lazuli/web dev
+'
+```
+
+Open the localhost URL printed by Next.js. For a worker used with this session, run the
+same launcher with `@lazuli/worker`. Concurrent worktrees on localhost share a cookie
+hostname across ports, so use a separate browser profile for each direct session.
+
 For local sign-in, leave both Google OAuth values empty, request a magic link for
 `dev@lazuli.local`, and open the captured message at `http://localhost:8025`. The link returns to
 the current worktree hostname, and its session cookie is scoped to that hostname. Configure both
