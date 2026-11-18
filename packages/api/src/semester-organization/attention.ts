@@ -106,9 +106,11 @@ export function formationReviewReasons(row: PlacementRow, attention: FormationAt
   if (row.continuity === "CHANGE") reasons.push("Escolha a nova turma para continuar.");
   if (row.continuity === "STAY" || !attention.rollover) return reasons;
   if (attention.contractStatus === "EARLY_END")
-    reasons.push("Contrato vence nos primeiros três meses. Confirme a continuidade.");
+    reasons.push(
+      "O contrato termina nos primeiros três meses do semestre. Pergunte se o aluno vai ficar na turma e registre a resposta.",
+    );
   if (!meetsFormationAverages(attention))
-    reasons.push("Revise as notas e a presença antes de confirmar a continuidade.");
+    reasons.push("Confira as notas e a frequência antes de combinar a permanência na turma.");
   if (row.attentionNote || attention.lowHealth)
     reasons.push("Revise o acompanhamento do aluno antes de confirmar.");
   return reasons;

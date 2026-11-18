@@ -239,7 +239,7 @@ function ReviewProfileActions({
           <Button
             key={link.label}
             size="sm"
-            variant="outline"
+            variant="secondary"
             nativeButton={false}
             render={<Link href={link.href} />}
           >

@@ -22,12 +22,12 @@ type QueueProps = {
 };
 type Lead = OrganizationBoard["waitingLeads"][number];
 const filters = [
-  ["pending", "Todas as pendências"],
+  ["pending", "Pendências de formação"],
   ["unassigned", "Sem turma"],
   ["contract", "Contrato"],
   ["grades", "Notas e médias"],
   ["attendance", "Presença"],
-  ["engagement", "Evasão e desinteresse"],
+  ["engagement", "Risco de saída"],
   ["material", "Material sem compra registrada"],
   ["all", "Todos os alunos"],
 ] as const;

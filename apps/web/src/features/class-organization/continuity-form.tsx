@@ -8,6 +8,7 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { Choices, useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { Placement, OrganizationBoard } from "./model";
+import { responseLabels } from "./confirmation";
 import styles from "./organization.module.css";
 
 const MIN_CONTINUITY_REASON_LENGTH = 3;
@@ -121,12 +122,7 @@ function ContinuityFields({
         name="continuity-choice"
         label="O que o aluno informou sobre este semestre?"
         value={model.value}
-        options={{
-          UNDECIDED: "Ainda sem resposta",
-          STAY: "Vai continuar",
-          CHANGE: "Pediu outra turma",
-          LEAVING: "Pensa em sair",
-        }}
+        options={responseLabels}
         onChange={model.changeValue}
       />
       <p className={styles.small} aria-live="polite">

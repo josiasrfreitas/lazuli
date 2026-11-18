@@ -24,7 +24,10 @@ export function attentionReasons(row: Placement): AttentionReason[] {
     });
   if (row.sourceProgressId) reasons.push(...academicReasons(attention));
   if (row.attentionNote || row.continuity === "LEAVING")
-    reasons.push({ kind: "engagement", label: "Acompanhamento manual" });
+    reasons.push({
+      kind: "engagement",
+      label: row.continuity === "LEAVING" ? "Aluno considera sair" : "Risco de saída sinalizado",
+    });
   if (attention.lowHealth)
     reasons.push({ kind: "engagement", label: `Health Score ${attention.healthScore}` });
   if (attention.materialMissing) reasons.push({ kind: "material", label: "Material a adquirir" });
@@ -40,7 +43,7 @@ function academicReasons(attention: Placement["attention"]): AttentionReason[] {
   if (attention.attendanceFlagged || attention.attendance === null)
     reasons.push({
       kind: "attendance",
-      label: attention.attendance === null ? "Presença sem registros" : "Presença abaixo da média",
+      label: attention.attendance === null ? "Presença sem registros" : "Frequência baixa",
     });
   return reasons;
 }

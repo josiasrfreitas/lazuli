@@ -2,7 +2,7 @@
 import { trpc } from "~/lib/trpc";
 import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import {
   dateOnly,

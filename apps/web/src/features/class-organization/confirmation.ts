@@ -1,5 +1,12 @@
 import type { ClassPlan, Placement, OrganizationBoard } from "./model";
 
+export const responseLabels = {
+  UNDECIDED: "Ainda sem resposta",
+  STAY: "Fica na turma",
+  CHANGE: "Pediu outra turma",
+  LEAVING: "Pensa em sair",
+} as const;
+
 export const confirmationLabels = {
   CONFIRMED: "Confirmado",
   PRECONFIRMED: "Pré-confirmado",

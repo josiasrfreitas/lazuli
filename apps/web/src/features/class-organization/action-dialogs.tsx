@@ -1,6 +1,7 @@
 "use client";
 import type { FormEvent, JSX as ReactJSX } from "react";
 import { FormationProgress } from "./page-loading";
+import { responseLabels } from "./confirmation";
 import { useState } from "react";
 import { z, withdrawSemesterSchema } from "@lazuli/validators";
 import {
@@ -136,20 +137,21 @@ function ReasonDialogView({
 }
 const actions: Record<string, string> = {
   FORMATION_RESET: "Destino provisório retirado no reinício da formação",
-  INHERITED: "Continuidade herdada",
-  CONTINUITY: "Intenção de continuidade",
+  INHERITED: "Proposta trazida da turma anterior",
+  CONTINUITY: "Resposta do aluno registrada",
   CARRIED_FORWARD: "Pendência trazida do período anterior",
   ENROLLED: "Matrícula confirmada",
-  NOT_CONTINUING: "Não continuidade registrada",
-  CONFIRMED_CONTINUITY: "Continuidade confirmada",
+  NOT_CONTINUING: "Saída registrada para o semestre",
+  CONFIRMED_CONTINUITY: "Permanência confirmada",
   PROPOSED: "Proposta criada",
   REVISED: "Proposta revisada",
-  PUBLISHED: "Publicação realizada",
-  WITHDRAWN: "Publicação desfeita",
+  PUBLISHED: "Alocação confirmada",
+  WITHDRAWN: "Alocação desfeita",
   REQUIRES_REVIEW: "Devolvida para revisão",
   REMOVED: "Proposta retirada",
 };
 const snapshotSchema = z.object({
+  continuity: z.enum(["UNDECIDED", "STAY", "CHANGE", "LEAVING"]).nullish(),
   mode: z.enum(["ENTRY", "CONTINUE", "ADVANCE", "REPEAT"]).optional(),
   notes: z.string().nullable().optional(),
 });
@@ -201,9 +203,12 @@ export function PlacementHistory({
 
 export function HistoryRow({ item }: { item: HistoryItem }): ReactJSX.Element {
   const snapshot = snapshotSchema.safeParse(item.snapshot);
+  const response = item.action === "CONTINUITY" && snapshot.success && snapshot.data.continuity;
   return (
     <li className="border-l-2 border-border pl-4">
-      <p className="text-caption font-semibold">{actions[item.action] ?? item.action}</p>
+      <p className="text-caption font-semibold">
+        {response ? responseLabels[response] : (actions[item.action] ?? item.action)}
+      </p>
       <p className="mt-1 text-caption text-muted-foreground">
         {formatDateOnlyBR(dateOnly(item.createdAt))} · {item.recordedBy?.name ?? "Sistema"} · versão{" "}
         {item.version}
