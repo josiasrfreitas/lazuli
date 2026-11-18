@@ -67,13 +67,24 @@ void it("funds allocated students for a year with shared payers, partial payment
     assert.equal(contracts.length, 220);
     assert.equal(new Set(contracts.map((contract) => contract.studentId)).size, 220);
     assert.equal(new Set(contracts.map((contract) => contract.payerId)).size, 205);
+    assert.ok(contracts.some((contract) => contract.orders.length === 3));
+    assert.ok(contracts.some((contract) => contract.orders.length === 2));
     for (const contract of contracts) {
       assert.equal(contract.durationMonths, 12);
       assert.equal(
         contract.monthlyAmountCents! >= 20_000 && contract.monthlyAmountCents! <= 25_000,
         true,
       );
-      assert.equal(contract.orders.length, 2);
+      const materialOrders = contract.orders.filter((order) => order.kind === "MATERIAL");
+      assert.ok(materialOrders.length === 1 || materialOrders.length === 2);
+      for (const order of materialOrders) {
+        for (const installment of order.installments) {
+          assert.equal(
+            installment.allocations.reduce((sum, row) => sum + row.amountCents, 0),
+            installment.amountCents,
+          );
+        }
+      }
       const installments = contract.orders.find((order) => order.kind === "TUITION")!.installments;
       assert.equal(installments.length, 12);
       assert.equal(installments.filter((item) => item.dueDate > new Date(today)).length >= 3, true);
@@ -128,6 +139,9 @@ void it("funds allocated students for a year with shared payers, partial payment
       where: { order: { contract: { studentId: { in: studentIds } } } },
     });
     await database.order.deleteMany({ where: { contract: { studentId: { in: studentIds } } } });
+    await database.contractBook.deleteMany({
+      where: { contract: { studentId: { in: studentIds } } },
+    });
     await database.contract.deleteMany({ where: { studentId: { in: studentIds } } });
     await database.payer.deleteMany({ where: { id: { in: payerIds } } });
     await database.student.deleteMany({ where: { id: { in: studentIds } } });

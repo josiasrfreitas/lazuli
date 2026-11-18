@@ -183,16 +183,18 @@ async function materializePublishedSessions(input: PublishedClassInput, id: stri
     closedDates: new Set(closures.map((row) => isoOf(row.date))),
   });
   await database.classSession.createMany({
-    data: sessions.map((row) => ({
-      ...row,
-      id: stableUuid([
-        "session",
-        row.classId,
-        isoOf(row.date),
-        row.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
-      ]),
-      createdAt: publishedAt,
-      updatedAt: publishedAt,
-    })),
+    data: sessions
+      .filter((row) => isoOf(row.date) >= isoOf(publishedAt))
+      .map((row) => ({
+        ...row,
+        id: stableUuid([
+          "session",
+          row.classId,
+          isoOf(row.date),
+          row.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+        ]),
+        createdAt: publishedAt,
+        updatedAt: publishedAt,
+      })),
   });
 }
