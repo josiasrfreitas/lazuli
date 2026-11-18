@@ -114,16 +114,6 @@ export function FormationQueue({
             <Rows3 size={14} /> Por turma
           </Button>
         )}
-        {!ended && (
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label="Adicionar aluno à formação"
-            onClick={() => onAction({ kind: "findStudent" })}
-          >
-            <Plus size={16} />
-          </Button>
-        )}
       </div>
       <QueueFilters
         criteria={criteria}
@@ -152,6 +142,18 @@ export function FormationQueue({
           onSelect={onSelect}
           reset={() => setCriteria({ ...initialCriteria, filter: "all" })}
         />
+      )}
+      {!ended && (
+        <footer className={styles.panelFooter}>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label="Adicionar aluno à formação"
+            onClick={() => onAction({ kind: "findStudent" })}
+          >
+            <Plus size={15} /> Adicionar aluno
+          </Button>
+        </footer>
       )}
     </>
   );

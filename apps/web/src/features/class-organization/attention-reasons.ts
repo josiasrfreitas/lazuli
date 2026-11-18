@@ -1,3 +1,4 @@
+import { formatDateOnlyBR } from "~/lib/format";
 import type { Placement } from "./model";
 
 export type AttentionReason = { kind: string; label: string };
@@ -15,7 +16,12 @@ export function attentionReasons(row: Placement): AttentionReason[] {
   if (attention.contractStatus === "MISSING")
     reasons.push({ kind: "contract", label: "Sem contrato vigente" });
   if (attention.contractStatus === "EARLY_END")
-    reasons.push({ kind: "contract", label: "Contrato vence no início do semestre" });
+    reasons.push({
+      kind: "contract",
+      label: attention.coverageThrough
+        ? `Contrato até ${formatDateOnlyBR(attention.coverageThrough)}`
+        : "Contrato vence cedo",
+    });
   if (row.sourceProgressId) reasons.push(...academicReasons(attention));
   if (row.attentionNote || row.continuity === "LEAVING")
     reasons.push({ kind: "engagement", label: "Acompanhamento manual" });

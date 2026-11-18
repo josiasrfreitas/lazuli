@@ -739,10 +739,71 @@
 .reviewControls {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex: 1;
   gap: 0.5rem;
   min-width: 0;
 }
 .reviewControls input {
-  width: min(14rem, 100%);
+  flex: 0 1 14rem;
+  min-width: 7rem;
+  width: 100%;
+}
+.place {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
+}
+.placeDetails,
+.placeTitle,
+.placeDetails > span,
+.placeName {
+  min-width: 0;
+}
+.placeTitle small {
+  font-variant-numeric: tabular-nums;
+}
+.slotCounts,
+.gridLegend,
+.gridLegend span {
+  display: flex;
+  align-items: center;
+}
+.slotCounts {
+  gap: 0.45rem;
+  font-size: var(--lz-text-micro, 0.7rem);
+  color: var(--muted-foreground);
+}
+.gridLegend {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  padding: 0.35rem 0.65rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.gridLegend span {
+  gap: 0.25rem;
+}
+.gridLegend span:nth-child(2) svg {
+  color: var(--interactive);
+}
+.gridLegend span:last-child svg {
+  color: var(--warning);
+}
+
+.header > [data-slot="field"] {
+  align-self: center;
+}
+@media (max-width: 52rem) {
+  .reviewControls {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 29rem) {
+  .reviewControls {
+    flex-wrap: wrap;
+  }
+  .reviewControls input {
+    flex: 1 1 8rem;
+  }
 }

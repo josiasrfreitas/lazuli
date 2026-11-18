@@ -287,6 +287,17 @@ function WeekGrid({
   );
   return (
     <>
+      <div className={styles.gridLegend} aria-label="Legenda da grade">
+        <span>
+          <UsersRound size={13} /> Total confirmado ou pré-confirmado
+        </span>
+        <span>
+          <Check size={13} /> Pré-confirmados
+        </span>
+        <span>
+          <TriangleAlert size={13} /> Turma em risco
+        </span>
+      </div>
       <DayPicker day={day} days={days} setDay={setDay} />
       <div className={styles.weekScroll} data-formation-week="">
         <table className={styles.week}>
@@ -437,6 +448,8 @@ function TeachingSlot({
       </span>
       <span className={styles.placeDetails}>
         <span>{professor}</span>
+      </span>
+      <span className={styles.slotCounts}>
         <span
           className={styles.placeCount}
           data-risk={risk}
@@ -444,12 +457,12 @@ function TeachingSlot({
         >
           {risk ? <TriangleAlert size={12} /> : <UsersRound size={12} />} {count}
         </span>
+        {preconfirmed > 0 && (
+          <span className={styles.preconfirmed} title={`${preconfirmed} pré-confirmados`}>
+            <Check size={12} /> {preconfirmed}
+          </span>
+        )}
       </span>
-      {preconfirmed > 0 && (
-        <span className={styles.preconfirmed}>
-          <Check size={12} /> {preconfirmed} pré-confirmado{preconfirmed === 1 ? "" : "s"}
-        </span>
-      )}
     </button>
   );
 }
