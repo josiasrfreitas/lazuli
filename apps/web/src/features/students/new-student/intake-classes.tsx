@@ -277,7 +277,7 @@ export function IntakeClasses({
           <h3>Horários das turmas</h3>
         </div>
         <span>
-          {data?.semester?.name ?? (entryPeriod === "NEXT" ? "Próximo período" : "Período atual")}
+          {data?.semester?.name ?? (entryPeriod === "NEXT" ? "Próximo semestre" : "Semestre atual")}
           {!pending &&
             !error &&
             ` · ${choices.length} ${choices.length === 1 ? "turma" : "turmas"}`}
@@ -345,6 +345,6 @@ function emptyClassesMessage(hasSemester: boolean, entryPeriod: "CURRENT" | "NEX
     return "Nenhuma turma planejada nesta combinação. Você pode deixar a turma pendente.";
   if (hasSemester) return "Nenhuma turma nesta combinação. Você pode deixar a turma pendente.";
   return entryPeriod === "NEXT"
-    ? "Não há próximo período cadastrado."
-    : "Não há período vigente cadastrado.";
+    ? "Não há próximo semestre cadastrado."
+    : "Não há semestre vigente cadastrado.";
 }

@@ -67,10 +67,10 @@ function SemesterField({
   failed: boolean;
   onChange: (value: string) => void;
 }): ReactJSX.Element {
-  if (pending) return <FormFieldLoading label="Período de entrada" />;
+  if (pending) return <FormFieldLoading label="Semestre de entrada" />;
   return (
     <Field name="intake-semester">
-      <Label id="intake-semester-label">Período de entrada</Label>
+      <Label id="intake-semester-label">Semestre de entrada</Label>
       <SegmentedControl
         size="sm"
         wrap
@@ -87,7 +87,7 @@ function SemesterField({
       <FieldError match={Boolean(semesterError)}>{semesterError}</FieldError>
       {!failed && !next && (
         <p className="text-caption text-muted-foreground">
-          O próximo período aguarda definição no calendário acadêmico.
+          O próximo semestre aguarda definição no calendário acadêmico.
         </p>
       )}
     </Field>

@@ -43,14 +43,14 @@ const DAY_MS = 86_400_000;
 
 function futureIntakeDescription(hasPlan: boolean): string {
   return hasPlan
-    ? "Entrada no próximo período com turma planejada."
-    : "Entrada no próximo período sem turma definida.";
+    ? "Entrada no próximo semestre com turma planejada."
+    : "Entrada no próximo semestre sem turma definida.";
 }
 
 function currentIntakeDescription(hasClass: boolean): string {
   return hasClass
-    ? "Entrada neste período com turma definida."
-    : "Entrada neste período sem turma definida.";
+    ? "Entrada neste semestre com turma definida."
+    : "Entrada neste semestre sem turma definida.";
 }
 
 export const studentsRouter = router({
@@ -143,7 +143,7 @@ export const studentsRouter = router({
           description:
             input.entryPeriod === "NEXT"
               ? futureIntakeDescription(Boolean(input.planId))
-              : "Entrada neste período registrada no cadastro.",
+              : "Entrada neste semestre registrada no cadastro.",
         };
       },
     }),

@@ -30,7 +30,7 @@ export function PedagogyStepForm(props: FormProps): ReactJSX.Element {
     event.preventDefault();
     try {
       if (!draft.semesterId || ![semester.currentId, semester.nextId].includes(draft.semesterId)) {
-        setSemesterError("Escolha o período atual ou o próximo período de entrada.");
+        setSemesterError("Escolha o semestre atual ou o próximo semestre de entrada.");
         return;
       }
       pedagogyIntake(draft);
@@ -56,7 +56,7 @@ export function PedagogyStepForm(props: FormProps): ReactJSX.Element {
         onChange={(notes) => set({ notes })}
       />
       <p className="text-caption text-muted-foreground">
-        Sem turma definida, o aluno fica na fila de encaixe do período escolhido.
+        Sem turma definida, o aluno fica na fila de encaixe do semestre escolhido.
       </p>
     </form>
   );

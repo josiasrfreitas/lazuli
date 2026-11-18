@@ -163,7 +163,7 @@ function IntakeFilterFields({
         <InterestChoice
           label="Entrada"
           value={filters.entryPeriod}
-          options={{ CURRENT: "Neste período", NEXT: "Próximo período" }}
+          options={{ CURRENT: "Neste semestre", NEXT: "Próximo semestre" }}
           onChange={(value) => change({ entryPeriod: value as IntakeFilters["entryPeriod"] })}
         />
       </div>

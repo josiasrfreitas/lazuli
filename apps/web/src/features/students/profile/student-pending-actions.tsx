@@ -231,7 +231,7 @@ function RegistrationWork({
 
 function registrationTitle(input: { allocation: boolean; nextPeriod: boolean }): string {
   if (!input.allocation) return "Criar primeiro contrato";
-  return input.nextPeriod ? "Definir turma do próximo período" : "Definir primeira turma";
+  return input.nextPeriod ? "Definir turma do próximo semestre" : "Definir primeira turma";
 }
 
 function registrationDetail(input: {

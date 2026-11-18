@@ -111,7 +111,7 @@ const STUDENT_SUMMARIES = {
   students: {
     Icon: UserRoundPlus,
     title: "Alunos sem turma",
-    detail: "entrada neste período",
+    detail: "entrada neste semestre",
   },
 } as const;
 

@@ -573,7 +573,7 @@ function assertResumePlacement(state: ResumeState, values: ResumeValues): void {
   if (state.enrollment && values.entryPeriod === "NEXT")
     throw badRequest("Este aluno já tem turma no período atual.");
   if (values.entryPeriod === "NEXT" && values.classId)
-    throw badRequest("A turma de entrada pertence ao período atual.");
+    throw badRequest("A turma de entrada pertence ao semestre atual.");
   if (values.entryPeriod === "CURRENT" && values.planId)
     throw badRequest("A turma planejada pertence ao próximo período.");
 }

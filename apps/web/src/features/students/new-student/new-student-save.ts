@@ -111,7 +111,7 @@ export function intakePendingItems({
 
 function pendingClassLabel(entryPeriod: "CURRENT" | "NEXT", waitingPlacement: boolean): string {
   if (entryPeriod === "NEXT")
-    return "Escolher um encaixe na formação de turmas do próximo período.";
+    return "Escolher um encaixe na formação de turmas do próximo semestre.";
   return waitingPlacement
     ? "Concluir o nivelamento e escolher a turma."
     : "Definir a turma na página do aluno.";

@@ -357,7 +357,7 @@ function AllocationFilters({
         />
       </div>
       <p className="text-caption text-muted-foreground">
-        Regular para o início do semestre; PPT para entrada durante o período.
+        Regular para o início do semestre; PPT para entrada durante o semestre.
       </p>
     </div>
   );
