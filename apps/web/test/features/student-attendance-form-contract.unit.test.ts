@@ -67,8 +67,14 @@ void it("supports address search and a map with a 200m radius and explicit GPS c
   const markup = renderWithQueries(
     React.createElement(AttendanceSettingsForm, {
       model: {
-        fields: { addressLabel: "", latitude: "", longitude: "", radiusMeters: "200", maxAccuracyMeters: "" },
-        formRef: {current:null},
+        fields: {
+          addressLabel: "",
+          latitude: "",
+          longitude: "",
+          radiusMeters: "200",
+          maxAccuracyMeters: "",
+        },
+        formRef: { current: null },
         errors: {},
         submit: () => {},
         change: () => {},
@@ -88,8 +94,13 @@ void it("supports address search and a map with a 200m radius and explicit GPS c
   assert.match(markup, /<form[^>]*noValidate=""/iu);
   assert.match(markup, /placeholder="Rua, número e cidade"/u);
   assert.match(markup, /Mapa e área de presença da escola/u);
-  const inputs = (markup.match(/<input\b[^>]*>/gu) ?? []).filter(tag => /name="(?:latitude|longitude|radiusMeters|maxAccuracyMeters)"/u.test(tag));
-  assert.deepEqual(inputs.map(tag=>/name="([^"]+)"/u.exec(tag)?.[1]), ["radiusMeters","maxAccuracyMeters","latitude","longitude"]);
+  const inputs = (markup.match(/<input\b[^>]*>/gu) ?? []).filter((tag) =>
+    /name="(?:latitude|longitude|radiusMeters|maxAccuracyMeters)"/u.test(tag),
+  );
+  assert.deepEqual(
+    inputs.map((tag) => /name="([^"]+)"/u.exec(tag)?.[1]),
+    ["radiusMeters", "maxAccuracyMeters", "latitude", "longitude"],
+  );
   for (const input of inputs) {
     assert.match(input, /name="radiusMeters"/u.test(input) ? /value="200"/u : /value=""/u);
     assert.match(input, /required=""/u);

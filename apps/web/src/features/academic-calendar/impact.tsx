@@ -10,7 +10,13 @@ import type { CalendarChange } from "./change-form";
 import styles from "./impact.module.css";
 
 export function CalendarImpact({
-  change, preview, onBack, onClose, onSaved, embedded = false, onPendingChange,
+  change,
+  preview,
+  onBack,
+  onClose,
+  onSaved,
+  embedded = false,
+  onPendingChange,
 }: {
   embedded?: boolean;
   onPendingChange?: ((pending: boolean) => void) | undefined;
@@ -27,7 +33,11 @@ export function CalendarImpact({
   const confirmed = !phrase || confirmationText.trim().toLocaleUpperCase("pt-BR") === phrase;
   const confirm = trpc.calendar.academic.changes.confirm.useMutation({
     onSuccess: async (result) => {
-      notifyCalendarExecution({ id: result.id, state: result.dispatched ? "QUEUED" : "UNAVAILABLE", reason: result.reason });
+      notifyCalendarExecution({
+        id: result.id,
+        state: result.dispatched ? "QUEUED" : "UNAVAILABLE",
+        reason: result.reason,
+      });
       await Promise.all([utils.calendar.invalidate(), utils.semesterOrganization.invalidate()]);
       if (result.semesterId) onSaved?.(result.semesterId);
       onClose();
@@ -55,11 +65,15 @@ export function CalendarImpact({
       onClose={onClose}
       error={confirm.error?.message}
     >
-      <form id="calendar-confirm" className={styles.review} onSubmit={(event) => {
-        event.preventDefault();
-        if (confirm.isPending || !confirmed) return;
-        confirm.mutate({ change, fingerprint: preview.fingerprint, commandId, confirmationText });
-      }}>
+      <form
+        id="calendar-confirm"
+        className={styles.review}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (confirm.isPending || !confirmed) return;
+          confirm.mutate({ change, fingerprint: preview.fingerprint, commandId, confirmationText });
+        }}
+      >
         <div className={styles.content}>
           <ImpactOverview preview={preview} />
           <TeacherImpacts preview={preview} />
@@ -72,10 +86,15 @@ export function CalendarImpact({
           </div>
           {phrase ? (
             <>
-              <p>As atividades indicadas serão canceladas. A alteração não remarca essas aulas nem move os itens do planejamento.</p>
+              <p>
+                As atividades indicadas serão canceladas. A alteração não remarca essas aulas nem
+                move os itens do planejamento.
+              </p>
               <Field name="confirmationText">
                 <Label htmlFor="calendar-confirmation">Para confirmar, digite a frase:</Label>
-                <strong id="calendar-confirmation-phrase" className={styles.phrase}>{phrase}</strong>
+                <strong id="calendar-confirmation-phrase" className={styles.phrase}>
+                  {phrase}
+                </strong>
                 <Input
                   id="calendar-confirmation"
                   name="confirmationText"
@@ -98,7 +117,10 @@ export function CalendarImpact({
           {preview.preserved > 0 && (
             <p className={styles.preserved}>
               <ShieldCheck aria-hidden="true" />
-              <span>{preview.preserved} registros passados, iniciados ou com informações registradas serão preservados.</span>
+              <span>
+                {preview.preserved} registros passados, iniciados ou com informações registradas
+                serão preservados.
+              </span>
             </p>
           )}
           <p>A atualização das atividades poderá ser acompanhada na Agenda.</p>

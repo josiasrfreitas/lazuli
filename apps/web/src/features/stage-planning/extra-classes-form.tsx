@@ -202,7 +202,9 @@ export function ExtraClassesForm({
                         variant={weekdays.includes(day) ? "secondary" : "ghost"}
                         aria-pressed={weekdays.includes(day)}
                         aria-label={occupiedDays.has(index) ? `${label} · já tem aula` : label}
-                        aria-describedby={occupiedDays.has(index) ? "existing-class-schedule" : undefined}
+                        aria-describedby={
+                          occupiedDays.has(index) ? "existing-class-schedule" : undefined
+                        }
                         onClick={() =>
                           setWeekdays((value) =>
                             value.includes(day)
@@ -264,7 +266,8 @@ export function ExtraClassesForm({
               <>
                 <div className={styles.preview} aria-live="polite">
                   <h3>
-                    {encounterLabel(preview.data.dates.length)} · +{hourLabel(preview.data.addedMinutes)}
+                    {encounterLabel(preview.data.dates.length)} · +
+                    {hourLabel(preview.data.addedMinutes)}
                   </h3>
                   <p>
                     {dateLabel(preview.data.dates[0]!)} a {dateLabel(preview.data.dates.at(-1)!)} ·{" "}
@@ -317,8 +320,8 @@ export function ExtraClassesForm({
                         checked={allowOutsidePeriod}
                         onCheckedChange={(checked) => setAllowOutsidePeriod(Boolean(checked))}
                       />
-                      Confirmo {encounterLabel(preview.data.outside)} fora do período letivo, incluindo
-                      férias.
+                      Confirmo {encounterLabel(preview.data.outside)} fora do período letivo,
+                      incluindo férias.
                     </Label>
                   </Field>
                 )}

@@ -149,8 +149,8 @@ export function ExtraCapacity({
             </p>
             {preview.outside > 0 && (
               <p>
-                {encounterLabel(preview.outside)} nas férias ou fora do período letivo. Você vai confirmar
-                essas datas no próximo passo.
+                {encounterLabel(preview.outside)} nas férias ou fora do período letivo. Você vai
+                confirmar essas datas no próximo passo.
               </p>
             )}
             {preview.skipped.length > 0 && (

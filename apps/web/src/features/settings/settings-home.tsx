@@ -27,18 +27,18 @@ export function SettingsHome({ systemAdmin }: { systemAdmin: boolean }): ReactEl
       >
         <header className={styles.header}>
           <h1 className="font-display text-h3 text-heading">Ajustes</h1>
-        {systemAdmin && (
-          <TabsList aria-label="Seções de ajustes">
-            <TabsTab value="localizacao">
-              <MapPin aria-hidden="true" />
-              Localização
-            </TabsTab>
-            <TabsTab value="financeiro">
-              <Wallet aria-hidden="true" />
-              Financeiro
-            </TabsTab>
-          </TabsList>
-        )}
+          {systemAdmin && (
+            <TabsList aria-label="Seções de ajustes">
+              <TabsTab value="localizacao">
+                <MapPin aria-hidden="true" />
+                Localização
+              </TabsTab>
+              <TabsTab value="financeiro">
+                <Wallet aria-hidden="true" />
+                Financeiro
+              </TabsTab>
+            </TabsList>
+          )}
         </header>
         <TabsPanel value="localizacao" className={styles.panel}>
           <AttendanceSettingsPage />

@@ -23,13 +23,15 @@ export async function calendarCapacity(
     rows.push(session);
     byClassDate.set(key, rows);
   }
-  return classes.map((row) => classCapacity(row, {
-    state,
-    byClassDate,
-    extraSessions: sessions.filter(
-      (session) => session.classId === row.id && session.appointmentSeriesId,
-    ),
-  }));
+  return classes.map((row) =>
+    classCapacity(row, {
+      state,
+      byClassDate,
+      extraSessions: sessions.filter(
+        (session) => session.classId === row.id && session.appointmentSeriesId,
+      ),
+    }),
+  );
 }
 
 type CalendarCapacity = {
@@ -76,12 +78,14 @@ async function readCapacityClasses(
                 },
               },
               {
-                sessions: { some: {
-                  deletedAt: null,
-                  status: "SCHEDULED",
-                  appointmentSeriesId: { not: null },
-                  date: { gte: day(state.from), lte: day(state.through) },
-                } },
+                sessions: {
+                  some: {
+                    deletedAt: null,
+                    status: "SCHEDULED",
+                    appointmentSeriesId: { not: null },
+                    date: { gte: day(state.from), lte: day(state.through) },
+                  },
+                },
               },
             ],
           }),

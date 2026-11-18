@@ -10,7 +10,9 @@ export function scheduledDays(
   from: string,
   through: string,
 ): Planning["availableSessions"] {
-  return data.availableSessions.filter((session) => session.date >= from && session.date <= through);
+  return data.availableSessions.filter(
+    (session) => session.date >= from && session.date <= through,
+  );
 }
 export function ExistingSchedule({
   sessions,
@@ -34,19 +36,27 @@ export function ExistingSchedule({
   }
   return (
     <div id="existing-class-schedule" className={styles.existingSchedule}>
-      <p><CalendarDays size={15} aria-hidden="true" />Já tem aula neste intervalo</p>
+      <p>
+        <CalendarDays size={15} aria-hidden="true" />
+        Já tem aula neste intervalo
+      </p>
       {groups.size ? (
         <ul>
           {[...groups.entries()].map(([time, group]) => (
             <li key={time} title={[...new Set(group.dates)].map(dateLabel).join(" · ")}>
               <strong>
-                {[...group.days].sort((a, b) => a - b).map((day) => weekLabels[day]).join(" e ")}
+                {[...group.days]
+                  .sort((a, b) => a - b)
+                  .map((day) => weekLabels[day])
+                  .join(" e ")}
               </strong>
               <span>{time}</span>
             </li>
           ))}
         </ul>
-      ) : <span>Nenhuma aula agendada nas datas escolhidas.</span>}
+      ) : (
+        <span>Nenhuma aula agendada nas datas escolhidas.</span>
+      )}
       {groups.size > 0 && <span>Você pode adicionar outro horário nesses dias.</span>}
     </div>
   );

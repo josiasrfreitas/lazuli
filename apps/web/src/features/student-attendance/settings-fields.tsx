@@ -63,31 +63,41 @@ export function AttendanceSettingsForm({ model }: { model: SettingsModel }): Rea
         </header>
         <FormSection title="Endereço da escola">
           <div className={styles.searchRow}>
-          <Field name="schoolAddress">
-            <Label className="sr-only">Buscar endereço da escola</Label>
-            <SearchSelect
-              size="sm"
-              name="schoolAddress"
-              placeholder="Rua, número e cidade"
-              showSearchIcon
-              value={search.selected}
-              query={search.query}
-              options={search.options}
-              onQueryChange={search.change}
-              onSelect={(option) => void search.select(option)}
-              onClear={search.clear}
-              minQueryLength={3}
-              loading={search.loading}
-              failed={search.failed}
+            <Field name="schoolAddress">
+              <Label className="sr-only">Buscar endereço da escola</Label>
+              <SearchSelect
+                size="sm"
+                name="schoolAddress"
+                placeholder="Rua, número e cidade"
+                showSearchIcon
+                value={search.selected}
+                query={search.query}
+                options={search.options}
+                onQueryChange={search.change}
+                onSelect={(option) => void search.select(option)}
+                onClear={search.clear}
+                minQueryLength={3}
+                loading={search.loading}
+                failed={search.failed}
+                disabled={busy}
+                invalid={Boolean(model.errors.latitude)}
+                emptyMessage="Nenhum endereço encontrado. Tente incluir a cidade."
+              />
+              <FieldError match={Boolean(search.error || model.errors.latitude)}>
+                {search.error || model.errors.latitude}
+              </FieldError>
+            </Field>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Usar localização atual"
+              title={model.locating ? "Localizando…" : "Usar localização atual"}
               disabled={busy}
-              invalid={Boolean(model.errors.latitude)}
-              emptyMessage="Nenhum endereço encontrado. Tente incluir a cidade."
-            />
-            <FieldError match={Boolean(search.error || model.errors.latitude)}>
-              {search.error || model.errors.latitude}
-            </FieldError>
-          </Field>
-          <Button type="button" size="icon-sm" variant="ghost" aria-label="Usar localização atual" title={model.locating ? "Localizando…" : "Usar localização atual"} disabled={busy} onClick={() => void model.locate()}><LocateFixed aria-hidden="true" /></Button>
+              onClick={() => void model.locate()}
+            >
+              <LocateFixed aria-hidden="true" />
+            </Button>
           </div>
           {model.point && (
             <div className={styles.selectedAddress}>
@@ -121,7 +131,9 @@ export function AttendanceSettingsForm({ model }: { model: SettingsModel }): Rea
               </Button>
             ))}
           </div>
-          <p className="text-caption text-muted-foreground">Precisão GPS: margem de erro aceita na localização do aluno.</p>
+          <p className="text-caption text-muted-foreground">
+            Precisão GPS: margem de erro aceita na localização do aluno.
+          </p>
         </FormSection>
         <AdvancedSettings model={model} disabled={busy} />
         <div className={styles.applicationNote}>
@@ -186,9 +198,7 @@ function AdvancedSettings({
   disabled: boolean;
 }): ReactElement {
   const [expanded, setExpanded] = useState(false);
-  const invalid = Boolean(
-    model.errors.latitude || model.errors.longitude,
-  );
+  const invalid = Boolean(model.errors.latitude || model.errors.longitude);
   return (
     <details
       className={styles.advanced}
@@ -200,9 +210,7 @@ function AdvancedSettings({
         <ChevronDown aria-hidden="true" />
       </summary>
       <div className={styles.advancedBody}>
-        <FormSection
-          title="Coordenadas da entrada"
-        >
+        <FormSection title="Coordenadas da entrada">
           <FormRow>
             <SettingInput model={model} name="latitude" disabled={disabled} />
             <SettingInput model={model} name="longitude" disabled={disabled} />

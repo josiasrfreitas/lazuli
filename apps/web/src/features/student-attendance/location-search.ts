@@ -36,7 +36,8 @@ export function useSchoolAddressSearch(input: {
   );
   const enabled =
     selected === null && debounced.length >= MIN_QUERY_LENGTH && query.trim() === debounced;
-  const waiting = selected === null && query.trim().length >= MIN_QUERY_LENGTH && query.trim() !== debounced;
+  const waiting =
+    selected === null && query.trim().length >= MIN_QUERY_LENGTH && query.trim() !== debounced;
   const search = trpc.addresses.search.useQuery(
     { query: debounced },
     { enabled, retry: false, gcTime: 0, refetchOnWindowFocus: false },

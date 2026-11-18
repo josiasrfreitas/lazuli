@@ -19,7 +19,11 @@ export type ImpactClassSummary = {
   availableMinutes: number;
   requiredMinutes: number | null;
 };
-export type TeacherImpact = { teacherId: string | null; name: string; classes: ImpactClassSummary[] };
+export type TeacherImpact = {
+  teacherId: string | null;
+  name: string;
+  classes: ImpactClassSummary[];
+};
 type Capacity = Awaited<ReturnType<typeof calendarCapacity>>;
 
 /** One compact class summary per responsible teacher, retaining dated substitutions. */
@@ -30,14 +34,16 @@ export async function groupCalendarImpact(
   const { candidates, capacity } = input;
   const ids = new Set([
     ...candidates.cancellableSessions.map((row) => row.classId),
-    ...candidates.plans.flatMap((row) => row.plan.classId ? [row.plan.classId] : []),
+    ...candidates.plans.flatMap((row) => (row.plan.classId ? [row.plan.classId] : [])),
     ...capacity.filter((row) => (row.deficitMinutes ?? 0) > 0).map((row) => row.classId),
   ]);
   if (!ids.size) return [];
   const rows = await database.class.findMany({
     where: { id: { in: [...ids] }, deletedAt: null },
     select: {
-      id: true, portalClassName: true, scheduleType: true,
+      id: true,
+      portalClassName: true,
+      scheduleType: true,
       sharedStage: { select: { name: true } },
       semester: { select: { name: true } },
       ...responsibilitySelect,
@@ -45,7 +51,10 @@ export async function groupCalendarImpact(
   });
   const classes = new Map(rows.map((row) => [row.id, row]));
   const capacities = new Map(capacity.map((row) => [row.classId, row]));
-  const groups = new Map<string, { teacherId: string | null; name: string; classes: Map<string, ImpactClassSummary> }>();
+  const groups = new Map<
+    string,
+    { teacherId: string | null; name: string; classes: Map<string, ImpactClassSummary> }
+  >();
   function entry(classId: string, date: Date, teacher?: { id: string; name: string } | null) {
     const row = classes.get(classId);
     if (!row) return null;
@@ -53,7 +62,11 @@ export async function groupCalendarImpact(
     const key = responsible?.id ?? "unassigned";
     let group = groups.get(key);
     if (!group) {
-      group = { teacherId: responsible?.id ?? null, name: responsible?.name ?? "Sem professor definido", classes: new Map() };
+      group = {
+        teacherId: responsible?.id ?? null,
+        name: responsible?.name ?? "Sem professor definido",
+        classes: new Map(),
+      };
       groups.set(key, group);
     }
     let summary = group.classes.get(classId);
@@ -61,10 +74,17 @@ export async function groupCalendarImpact(
     if (!summary) {
       const load = capacities.get(classId);
       summary = {
-        classId, name: row.portalClassName, stageName: row.sharedStage?.name ?? null,
-        scheduleType: row.scheduleType, periodName: row.semester.name,
-        from: dateOnly, through: dateOnly, lessons: 0, planItems: 0,
-        deficitMinutes: load?.deficitMinutes ?? null, availableMinutes: load?.availableMinutes ?? 0,
+        classId,
+        name: row.portalClassName,
+        stageName: row.sharedStage?.name ?? null,
+        scheduleType: row.scheduleType,
+        periodName: row.semester.name,
+        from: dateOnly,
+        through: dateOnly,
+        lessons: 0,
+        planItems: 0,
+        deficitMinutes: load?.deficitMinutes ?? null,
+        availableMinutes: load?.availableMinutes ?? 0,
         requiredMinutes: load?.requiredMinutes ?? null,
       };
       group.classes.set(classId, summary);
@@ -90,7 +110,10 @@ export async function groupCalendarImpact(
   return [...groups.values()]
     .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"))
     .map((group) => ({
-      teacherId: group.teacherId, name: group.name,
-      classes: [...group.classes.values()].sort((left, right) => left.name.localeCompare(right.name, "pt-BR")),
+      teacherId: group.teacherId,
+      name: group.name,
+      classes: [...group.classes.values()].sort((left, right) =>
+        left.name.localeCompare(right.name, "pt-BR"),
+      ),
     }));
 }

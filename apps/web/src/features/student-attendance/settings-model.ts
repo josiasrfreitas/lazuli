@@ -71,7 +71,9 @@ export function useSettingsForm(initial: Settings): SettingsModel {
     try {
       setPoint(await currentAttendanceLocation(), "");
     } catch {
-      setLocationError("Não foi possível obter sua localização. Permita o acesso no navegador ou busque o endereço da escola.");
+      setLocationError(
+        "Não foi possível obter sua localização. Permita o acesso no navegador ou busque o endereço da escola.",
+      );
     } finally {
       setLocating(false);
     }

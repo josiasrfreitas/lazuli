@@ -16,7 +16,11 @@ import {
   prepareProgramPlan,
   saveProgramStart,
 } from "./write.js";
-import { extraClassesSchema, endClassesSchema, confirmEndClassesSchema } from "./adjustment-schema.js";
+import {
+  extraClassesSchema,
+  endClassesSchema,
+  confirmEndClassesSchema,
+} from "./adjustment-schema.js";
 import { previewExtraClasses, scheduleExtraClasses } from "./extra-classes.js";
 import { previewEndClasses, endClasses } from "./end-classes.js";
 const context = (ctx: {
@@ -30,13 +34,28 @@ const context = (ctx: {
 });
 export const planningRouter = router({
   previewExtra: adminProcedure.input(extraClassesSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) => previewExtraClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
-  scheduleExtra: adminProcedure.input(extraClassesSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) => scheduleExtraClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
+    ctx.db.$transaction((database) => previewExtraClasses({ ...context(ctx), database }, input), {
+      timeout: 30000,
+    }),
+  ),
+  scheduleExtra: adminProcedure
+    .input(extraClassesSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (database) => scheduleExtraClasses({ ...context(ctx), database }, input),
+        { timeout: 30000 },
+      ),
+    ),
   previewEnd: adminProcedure.input(endClassesSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) => previewEndClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
+    ctx.db.$transaction((database) => previewEndClasses({ ...context(ctx), database }, input), {
+      timeout: 30000,
+    }),
+  ),
   endClasses: adminProcedure.input(confirmEndClassesSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) => endClasses({ ...context(ctx), database }, input), { timeout: 30000 })),
+    ctx.db.$transaction((database) => endClasses({ ...context(ctx), database }, input), {
+      timeout: 30000,
+    }),
+  ),
   prepare: staffProcedure.input(stagePlanTargetSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) => prepareProgramPlan({ ...context(ctx), database }, input), {
       timeout: 30_000,

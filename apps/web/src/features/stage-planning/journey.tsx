@@ -18,7 +18,6 @@ import { dateLabel, type Planning, type PlannedItem } from "./shared";
 import { semesterOutlook, contentGroups, type ContentGroup } from "./outlook-model";
 import styles from "./journey.module.css";
 
-
 const MINUTES_PER_HOUR = 60;
 const hours = (minutes: number): string =>
   `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / MINUTES_PER_HOUR)}h`;
@@ -55,13 +54,21 @@ export function PlanningJourney({
         onEdit={onEdit}
       />
       {selected && (
-        <ProgramExplorer data={data} groups={groups} onClose={() => setSelected(null)} onEdit={onEdit} />
+        <ProgramExplorer
+          data={data}
+          groups={groups}
+          onClose={() => setSelected(null)}
+          onEdit={onEdit}
+        />
       )}
     </div>
   );
 }
 
-function outlookCopy(outlook: Outlook, individual: boolean): {
+function outlookCopy(
+  outlook: Outlook,
+  individual: boolean,
+): {
   title: string;
   explanation: string;
   label: string;
@@ -69,7 +76,9 @@ function outlookCopy(outlook: Outlook, individual: boolean): {
 } {
   if (outlook.status === "unknown")
     return {
-      title: individual ? "Ainda falta confirmar o avanço do aluno" : "Ainda falta confirmar o avanço da turma",
+      title: individual
+        ? "Ainda falta confirmar o avanço do aluno"
+        : "Ainda falta confirmar o avanço da turma",
       label: "Dados incompletos",
       variant: "neutral",
       explanation: outlook.unknownDurations
@@ -116,7 +125,15 @@ function outlookCopy(outlook: Outlook, individual: boolean): {
       "A carga prevista restante cabe nas aulas disponíveis. A folga permite retomar conteúdos e acomodar ajustes de ritmo.",
   };
 }
-function SemesterSummary({ data, outlook, actions }: { data: Planning; outlook: Outlook; actions?: ReactNode }): ReactElement {
+function SemesterSummary({
+  data,
+  outlook,
+  actions,
+}: {
+  data: Planning;
+  outlook: Outlook;
+  actions?: ReactNode;
+}): ReactElement {
   const copy = outlookCopy(outlook, Boolean(data.scope.student));
   const max = Math.max(1, outlook.availableMinutes, outlook.remainingMinutes);
   return (
@@ -177,7 +194,10 @@ function SemesterSummary({ data, outlook, actions }: { data: Planning; outlook: 
           </p>
         </div>
       </div>
-      <div className={styles.summaryFooter}><SummaryMethod data={data} />{actions}</div>
+      <div className={styles.summaryFooter}>
+        <SummaryMethod data={data} />
+        {actions}
+      </div>
     </section>
   );
 }
@@ -240,7 +260,9 @@ function JourneyContent({
       <div className={styles.contentHeader}>
         <h3>
           <BookOpen size={18} aria-hidden="true" />
-          {data.scope.student ? `Conteúdo do aluno · ${data.scope.stage.name}` : "Conteúdo da turma"}
+          {data.scope.student
+            ? `Conteúdo do aluno · ${data.scope.stage.name}`
+            : "Conteúdo da turma"}
         </h3>
         {groups.length > 0 && (
           <Button
@@ -253,12 +275,7 @@ function JourneyContent({
           </Button>
         )}
       </div>
-      <JourneyMoments
-        outlook={outlook}
-        current={current}
-        next={next}
-        setSelected={setSelected}
-      />
+      <JourneyMoments outlook={outlook} current={current} next={next} setSelected={setSelected} />
       <p className={styles.contextLine}>
         {journeyContext(data, outlook)}
         {data.scope.student && stageCompletionEstimate(data, outlook)}
@@ -278,7 +295,11 @@ function JourneyContent({
 
 function stageCompletionEstimate(data: Planning, outlook: Outlook): string {
   if (outlook.status === "complete") return " Estágio concluído.";
-  if (outlook.status === "unknown" || !data.projection.length || data.projection.some((item) => !item.date))
+  if (
+    outlook.status === "unknown" ||
+    !data.projection.length ||
+    data.projection.some((item) => !item.date)
+  )
     return " Conclusão do estágio sem previsão.";
   const lastDate = data.projection.at(-1)?.date;
   return lastDate ? ` Conclusão prevista do estágio em ${dateLabel(lastDate)}.` : "";
@@ -301,8 +322,8 @@ function SummaryMethod({ data }: { data: Planning }): ReactElement {
       </summary>
       <p>
         Somamos a duração prevista dos conteúdos ainda não concluídos e comparamos com as aulas
-        disponíveis até {dateLabel(data.calendar.endOn)}, excluindo cancelamentos e dias sem
-        aula. É uma comparação com a carga da programação, não uma previsão baseada na velocidade do
+        disponíveis até {dateLabel(data.calendar.endOn)}, excluindo cancelamentos e dias sem aula. É
+        uma comparação com a carga da programação, não uma previsão baseada na velocidade do
         professor. Conteúdos sem confirmação não são considerados concluídos.
       </p>
     </details>
@@ -332,14 +353,19 @@ function JourneyMoments({
   return (
     <div className={styles.moments}>
       <ContentMoment
-        label="Último conteúdo trabalhado" group={current}
+        label="Último conteúdo trabalhado"
+        group={current}
         empty="Aguardando o primeiro registro de conteúdo."
-        detail={outlook.journey.current?.item.title ?? null} onOpen={setSelected}
+        detail={outlook.journey.current?.item.title ?? null}
+        onOpen={setSelected}
       />
       <ContentMoment
-        label="Próximo" group={next} current
+        label="Próximo"
+        group={next}
+        current
         empty={current ? "Programação concluída." : "Programação ainda não disponível."}
-        detail={outlook.journey.next?.item.title ?? null} onOpen={setSelected}
+        detail={outlook.journey.next?.item.title ?? null}
+        onOpen={setSelected}
       />
     </div>
   );

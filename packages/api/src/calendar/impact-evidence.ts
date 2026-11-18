@@ -29,7 +29,10 @@ export type CalendarChangePreview = {
   capacity: Awaited<ReturnType<typeof calendarCapacity>>;
   teachers: TeacherImpact[];
   confirmationPhrase: string | null;
-  periodChange: { before: { from: string; through: string }; after: { from: string; through: string } } | null;
+  periodChange: {
+    before: { from: string; through: string };
+    after: { from: string; through: string };
+  } | null;
 };
 export function impactFingerprint(
   input: {

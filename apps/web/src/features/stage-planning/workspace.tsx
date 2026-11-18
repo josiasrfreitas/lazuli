@@ -60,7 +60,9 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
         {data.plan || data.preview ? (
           <PlanningJourney
             data={data}
-            actions={<PlanningAdjustments data={data} onStart={() => setMode({ kind: "window" })} />}
+            actions={
+              <PlanningAdjustments data={data} onStart={() => setMode({ kind: "window" })} />
+            }
             onEdit={canEditPlanItems(data) ? (item) => setMode({ kind: "item", item }) : undefined}
           />
         ) : (

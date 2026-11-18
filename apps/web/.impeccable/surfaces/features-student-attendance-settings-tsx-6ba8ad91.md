@@ -2,7 +2,12 @@
 version: 1
 slug: "features-student-attendance-settings-tsx-6ba8ad91"
 primary_target: "apps/web/src/features/student-attendance/settings.tsx"
-related_targets: ["apps/web/src/features/settings/settings-home.tsx","apps/web/src/features/student-attendance/settings-fields.tsx","apps/web/src/features/student-attendance/location-map.tsx"]
+related_targets:
+  [
+    "apps/web/src/features/settings/settings-home.tsx",
+    "apps/web/src/features/student-attendance/settings-fields.tsx",
+    "apps/web/src/features/student-attendance/location-map.tsx",
+  ]
 ---
 
 # School location in Settings

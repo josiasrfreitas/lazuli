@@ -43,9 +43,10 @@ export async function readSchoolMapAsset(input: {
   const region = readAddressSearchRegion();
   client ??= new GeoMapsClient({ region, maxAttempts: 1 });
   const options = { abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) };
-  const result = command instanceof GetTileCommand
-    ? await client.send(command, options)
-    : await client.send(command, options);
+  const result =
+    command instanceof GetTileCommand
+      ? await client.send(command, options)
+      : await client.send(command, options);
   if (!result.Blob && command instanceof GetStyleDescriptorCommand)
     throw new Error("Map style unavailable");
   // AWS can successfully return a vector tile with no features and no body.

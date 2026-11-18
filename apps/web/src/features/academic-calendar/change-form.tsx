@@ -64,9 +64,11 @@ function useChangeForm({
   const [item] = useState(initialItem);
   const [initialDraft] = useState(() => initialChangeDraft(item, initialDate));
   const [draft, setDraft] = useState<CalendarDraft>(initialDraft);
-  const hasChanges = !item || (Object.keys(initialDraft) as (keyof CalendarDraft)[]).some(
-    (key) => draft[key].trim() !== initialDraft[key].trim(),
-  );
+  const hasChanges =
+    !item ||
+    (Object.keys(initialDraft) as (keyof CalendarDraft)[]).some(
+      (key) => draft[key].trim() !== initialDraft[key].trim(),
+    );
   const [change, setChange] = useState<CalendarChange | null>(null);
   const validation = useValidation();
   const preview = trpc.calendar.academic.changes.preview.useMutation();

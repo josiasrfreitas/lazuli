@@ -32,7 +32,12 @@ export async function previewCalendarChange(
     plans,
   } = candidates;
   const capacity = await calendarCapacity(database, state);
-  const teachers = await groupCalendarImpact(database, { candidates, capacity, from: state.from, through: state.through });
+  const teachers = await groupCalendarImpact(database, {
+    candidates,
+    capacity,
+    from: state.from,
+    through: state.through,
+  });
   const releasedDates = state.closedDays
     .filter(
       (row) =>
@@ -69,10 +74,15 @@ export async function previewCalendarChange(
     releasedDates,
     capacity,
     teachers,
-    confirmationPhrase: calendarConfirmationPhrase(cancellableSessions.length + cancellableAppointments.length + cancellableVisits.length),
-    periodChange: change.action === "period" && state.period ? {
-      before: { from: civil(state.period.startDate), through: civil(state.period.endDate) },
-      after: { from: change.from, through: change.through },
-    } : null,
+    confirmationPhrase: calendarConfirmationPhrase(
+      cancellableSessions.length + cancellableAppointments.length + cancellableVisits.length,
+    ),
+    periodChange:
+      change.action === "period" && state.period
+        ? {
+            before: { from: civil(state.period.startDate), through: civil(state.period.endDate) },
+            after: { from: change.from, through: change.through },
+          }
+        : null,
   };
 }

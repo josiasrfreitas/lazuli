@@ -151,8 +151,14 @@ void it("keeps school location under Ajustes for administrators without a separa
     navItemsFor("ADMIN").some((item) => item.href === SETTINGS_PATH),
     true,
   );
-  assert.equal(navItemsFor("ADMIN").some((item) => item.href === SCHOOL_LOCATION_PATH), false);
-  assert.equal(navItemsFor("SYSTEM_ADMIN").some((item) => item.href === SCHOOL_LOCATION_PATH), false);
+  assert.equal(
+    navItemsFor("ADMIN").some((item) => item.href === SCHOOL_LOCATION_PATH),
+    false,
+  );
+  assert.equal(
+    navItemsFor("SYSTEM_ADMIN").some((item) => item.href === SCHOOL_LOCATION_PATH),
+    false,
+  );
   assert.deepEqual(navBreadcrumbFor(SETTINGS_PATH, "SYSTEM_ADMIN"), {
     section: "Sistema",
     page: "Ajustes",

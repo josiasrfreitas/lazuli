@@ -72,7 +72,9 @@ export async function resolveAddressLocation(placeId: string): Promise<{
   return { label: result.Address.Label ?? "", latitude, longitude };
 }
 
-async function storedPlace(placeId: string): Promise<GetPlaceCommandOutput & { Address: NonNullable<GetPlaceCommandOutput["Address"]> }> {
+async function storedPlace(
+  placeId: string,
+): Promise<GetPlaceCommandOutput & { Address: NonNullable<GetPlaceCommandOutput["Address"]> }> {
   const result = await places().send(
     new GetPlaceCommand({
       PlaceId: placeId,
