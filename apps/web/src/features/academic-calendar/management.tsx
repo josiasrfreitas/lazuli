@@ -56,23 +56,7 @@ export function CalendarManagement({
   const steps = useManagementStep<CalendarEditor | null>(null);
   const editor = steps.step;
   const [pending, setPending] = useState(false);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      const element = steps.container.current;
-      if (!element) return;
-      const target = element.querySelector<HTMLElement>(
-        editor
-          ? 'input:not(:disabled), textarea:not(:disabled), [role="combobox"]'
-          : '[role="tab"][aria-selected="true"]',
-      );
-      void Promise.all(
-        element.getAnimations().map((animation) => animation.finished.catch(() => {})),
-      ).then(() => {
-        if (target?.isConnected) target.focus({ preventScroll: true });
-      });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [editor, steps.container]);
+  useManagementFocus(steps.container, editor);
 
   return (
     <Dialog
@@ -84,7 +68,7 @@ export function CalendarManagement({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className={styles.dialog}
+          render={<div className={styles.dialog} />}
           showCloseButton={!pending}
           finalFocus={() =>
             document.querySelector<HTMLElement>("[data-calendar-configure-trigger]")
@@ -107,7 +91,7 @@ export function CalendarManagement({
               />
             ) : (
               <Tabs
-                className={styles.workspace}
+                render={<div className={styles.workspace} />}
                 value={section === "semestres" ? "periods" : "interruptions"}
                 onValueChange={(value) =>
                   onSectionChange(value === "periods" ? "semestres" : "interrupcoes")
@@ -115,7 +99,7 @@ export function CalendarManagement({
                 variant="underline"
               >
                 <ManagementHeader section={section} setEditor={steps.setStep} />
-                <DialogBody className={styles.listBody}>
+                <DialogBody>
                   <PeriodSettings periods={data.periods} setEditor={steps.setStep} />
                   <InterruptionSettings data={data} setEditor={steps.setStep} />
                 </DialogBody>
@@ -126,6 +110,29 @@ export function CalendarManagement({
       </DialogPortal>
     </Dialog>
   );
+}
+
+function useManagementFocus(
+  container: { current: HTMLElement | null },
+  editor: CalendarEditor | null,
+): void {
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const element = container.current;
+      if (element) void focusManagementStep(element, editor !== null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editor, container]);
+}
+
+async function focusManagementStep(element: HTMLElement, editing: boolean): Promise<void> {
+  const target = element.querySelector<HTMLElement>(
+    editing
+      ? 'input:not(:disabled), textarea:not(:disabled), [role="combobox"]'
+      : '[role="tab"][aria-selected="true"]',
+  );
+  await Promise.allSettled(element.getAnimations().map((animation) => animation.finished));
+  if (target?.isConnected) target.focus({ preventScroll: true });
 }
 
 function ManagementEditor({
@@ -177,7 +184,7 @@ function ManagementHeader({
 }): ReactElement {
   const periods = section === "semestres";
   return (
-    <DialogHeader className={styles.header}>
+    <DialogHeader>
       <div className={styles.sectionHeader}>
         <DialogTitle size="lg">
           {periods ? "Limites dos semestres" : "Dias sem atividades acadêmicas"}
@@ -247,7 +254,6 @@ function InterruptionSettings({
     return (
       <TabsPanel value="interruptions" render={<div className={styles.emptySection} />}>
         <EmptyState
-          className={styles.empty}
           icon={<Palmtree aria-hidden="true" />}
           title="Até as pausas estão de folga"
           description="Nenhum feriado ou recesso cadastrado neste ano. Busque as sugestões ou adicione as datas da escola."
@@ -340,7 +346,6 @@ function PeriodList({
     </ul>
   ) : (
     <EmptyState
-      className={styles.empty}
       icon={<CalendarRange aria-hidden="true" />}
       title="Nenhum semestre cadastrado"
       description="Cadastre as datas reais dos semestres. Dias sem configuração não são tratados como férias."

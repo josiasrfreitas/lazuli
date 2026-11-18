@@ -14,7 +14,7 @@
   flex: 1;
   min-height: 0;
 }
-.listBody {
+.workspace > [data-slot="dialog-body"] {
   display: flex;
   flex-direction: column;
 }
@@ -23,10 +23,10 @@
   flex: 1;
   min-height: 0;
 }
-.emptySection > .empty {
+.emptySection > [data-slot="empty-state"] {
   flex: 1;
 }
-.header {
+.workspace > [data-slot="dialog-header"] {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -200,7 +200,7 @@
   font-size: var(--lz-text-body);
   margin: 0 0 0.25rem;
 }
-.empty {
+.workspace [data-slot="empty-state"] {
   background: var(--card);
   border-radius: var(--lz-radius-lg);
 }

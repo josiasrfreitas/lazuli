@@ -8,12 +8,14 @@ import { PendingIcon } from "./home-pending-icon";
 import { PendingPagination, PENDING_PAGE_SIZE } from "./home-pending-pagination";
 import styles from "./home-pending.module.css";
 
+const PLANNING_REFRESH_MS = 60_000;
+
 export function PendingPlanning({ group }: { group: HomeGroup | undefined }): ReactElement | null {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
   const query = trpc.dashboard.pending.useQuery(
     { kind: "planning", page, pageSize: PENDING_PAGE_SIZE },
-    { enabled: open, refetchInterval: open ? 60_000 : false },
+    { enabled: open, refetchInterval: open ? PLANNING_REFRESH_MS : false },
   );
   const visibleGroup = open ? (query.data ?? group) : group;
   const total = visibleGroup?.total ?? 0;
@@ -38,45 +40,13 @@ export function PendingPlanning({ group }: { group: HomeGroup | undefined }): Re
             </>
           }
         >
-          {query.isPending && (
-            <p className={styles.feedback} role="status">
-              Carregando turmas…
-            </p>
-          )}
-          {query.isError && (
-            <p className={styles.feedback} role="alert">
-              Não foi possível atualizar as turmas.{" "}
-              <button type="button" onClick={() => void query.refetch()}>
-                Tentar novamente
-              </button>
-            </p>
-          )}
-          {query.data && (
-            <ul className={styles.lessonList}>
-              {query.data.items.map((item) => (
-                <li key={item.id}>
-                  {item.action.kind === "link" && (
-                    <Link
-                      href={item.action.href}
-                      className={`${styles.appointmentCase} ${styles.planningCase}`}
-                      aria-label={`Abrir planejamento de ${item.title}. ${item.detail}`}
-                    >
-                      <strong className={styles.caseName}>{item.title}</strong>
-                      <span className={styles.preview}>{item.detail}</span>
-                      <span className={styles.action}>
-                        Ver planejamento <ArrowRight aria-hidden="true" />
-                      </span>
-                    </Link>
-                  )}
-                </li>
-              ))}
-              {total === 0 && (
-                <li className={styles.feedback}>
-                  Nenhuma turma com planejamento fora do período letivo.
-                </li>
-              )}
-            </ul>
-          )}
+          <PendingPlanningItems
+            pending={query.isPending}
+            failed={query.isError}
+            retry={() => void query.refetch()}
+            items={query.data?.items}
+            total={total}
+          />
           <PendingPagination
             total={total}
             page={page}
@@ -86,5 +56,63 @@ export function PendingPlanning({ group }: { group: HomeGroup | undefined }): Re
         </PendingDisclosure>
       </td>
     </tr>
+  );
+}
+
+function PendingPlanningItems({
+  pending,
+  failed,
+  retry,
+  items,
+  total,
+}: {
+  pending: boolean;
+  failed: boolean;
+  retry: () => void;
+  items: HomeGroup["items"] | undefined;
+  total: number;
+}): ReactElement {
+  return (
+    <>
+      {pending && (
+        <p className={styles.feedback} role="status">
+          Carregando turmas…
+        </p>
+      )}
+      {failed && (
+        <p className={styles.feedback} role="alert">
+          Não foi possível atualizar as turmas.{" "}
+          <button type="button" onClick={() => retry()}>
+            Tentar novamente
+          </button>
+        </p>
+      )}
+      {items && (
+        <ul className={styles.lessonList}>
+          {items.map((item) => (
+            <li key={item.id}>
+              {item.action.kind === "link" && (
+                <Link
+                  href={item.action.href}
+                  className={`${styles.appointmentCase} ${styles.planningCase}`}
+                  aria-label={`Abrir planejamento de ${item.title}. ${item.detail}`}
+                >
+                  <strong className={styles.caseName}>{item.title}</strong>
+                  <span className={styles.preview}>{item.detail}</span>
+                  <span className={styles.action}>
+                    Ver planejamento <ArrowRight aria-hidden="true" />
+                  </span>
+                </Link>
+              )}
+            </li>
+          ))}
+          {total === 0 && (
+            <li className={styles.feedback}>
+              Nenhuma turma com planejamento fora do período letivo.
+            </li>
+          )}
+        </ul>
+      )}
+    </>
   );
 }

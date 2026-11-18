@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, type ReactElement } from "react";
+import type { RouterInputs } from "@lazuli/api";
 import { Field, Input, Label } from "@lazuli/ui";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { TaskDialog } from "~/features/shared/task-form";
@@ -28,25 +29,9 @@ export function CalendarImpact({
 }): ReactElement {
   const [commandId] = useState(() => crypto.randomUUID());
   const [confirmationText, setConfirmationText] = useState("");
-  const utils = trpc.useUtils();
   const phrase = preview.confirmationPhrase;
   const confirmed = !phrase || confirmationText.trim().toLocaleUpperCase("pt-BR") === phrase;
-  const confirm = trpc.calendar.academic.changes.confirm.useMutation({
-    onSuccess: async (result) => {
-      notifyCalendarExecution({
-        id: result.id,
-        state: result.dispatched ? "QUEUED" : "UNAVAILABLE",
-        reason: result.reason,
-      });
-      await Promise.all([utils.calendar.invalidate(), utils.semesterOrganization.invalidate()]);
-      if (result.semesterId) onSaved?.(result.semesterId);
-      onClose();
-    },
-  });
-  useEffect(() => {
-    onPendingChange?.(confirm.isPending);
-    return () => onPendingChange?.(false);
-  }, [confirm.isPending, onPendingChange]);
+  const confirm = useCalendarConfirmation({ onSaved, onClose, onPendingChange });
   return (
     <TaskDialog
       embedded={embedded}
@@ -79,53 +64,110 @@ export function CalendarImpact({
           <TeacherImpacts preview={preview} />
           <OtherImpacts preview={preview} />
         </div>
-        <aside className={styles.confirmation} aria-label="Confirmação da alteração">
-          <div className={styles.confirmationTitle}>
-            {phrase ? <ShieldAlert aria-hidden="true" /> : <ShieldCheck aria-hidden="true" />}
-            <h3>{phrase ? "Confirme os cancelamentos" : "Antes de aplicar"}</h3>
-          </div>
-          {phrase ? (
-            <>
-              <p>
-                As atividades indicadas serão canceladas. A alteração não remarca essas aulas nem
-                move os itens do planejamento.
-              </p>
-              <Field name="confirmationText">
-                <Label htmlFor="calendar-confirmation">Para confirmar, digite a frase:</Label>
-                <strong id="calendar-confirmation-phrase" className={styles.phrase}>
-                  {phrase}
-                </strong>
-                <Input
-                  id="calendar-confirmation"
-                  name="confirmationText"
-                  size="sm"
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  maxLength={160}
-                  aria-describedby="calendar-confirmation-phrase"
-                  placeholder="Digite a confirmação"
-                  value={confirmationText}
-                  disabled={confirm.isPending}
-                  onChange={(event) => setConfirmationText(event.target.value)}
-                />
-              </Field>
-            </>
-          ) : (
-            <p>Não há atividades futuras a cancelar. O calendário será atualizado ao confirmar.</p>
-          )}
-          {preview.preserved > 0 && (
-            <p className={styles.preserved}>
-              <ShieldCheck aria-hidden="true" />
-              <span>
-                {preview.preserved} registros passados, iniciados ou com informações registradas
-                serão preservados.
-              </span>
-            </p>
-          )}
-          <p>A atualização das atividades poderá ser acompanhada na Agenda.</p>
-        </aside>
+        <ImpactConfirmation
+          phrase={phrase}
+          confirmationText={confirmationText}
+          setConfirmationText={setConfirmationText}
+          pending={confirm.isPending}
+          preserved={preview.preserved}
+        />
       </form>
     </TaskDialog>
+  );
+}
+
+function useCalendarConfirmation({
+  onSaved,
+  onClose,
+  onPendingChange,
+}: {
+  onSaved: ((semesterId: string) => void) | undefined;
+  onClose: () => void;
+  onPendingChange: ((pending: boolean) => void) | undefined;
+}): {
+  isPending: boolean;
+  error: { message: string } | null;
+  mutate: (input: RouterInputs["calendar"]["academic"]["changes"]["confirm"]) => void;
+} {
+  const utils = trpc.useUtils();
+  const confirm = trpc.calendar.academic.changes.confirm.useMutation({
+    onSuccess: async (result) => {
+      notifyCalendarExecution({
+        id: result.id,
+        state: result.dispatched ? "QUEUED" : "UNAVAILABLE",
+        reason: result.reason,
+      });
+      await Promise.all([utils.calendar.invalidate(), utils.semesterOrganization.invalidate()]);
+      if (result.semesterId) onSaved?.(result.semesterId);
+      onClose();
+    },
+  });
+  useEffect(() => {
+    onPendingChange?.(confirm.isPending);
+    return () => onPendingChange?.(false);
+  }, [confirm.isPending, onPendingChange]);
+  return confirm;
+}
+
+function ImpactConfirmation({
+  phrase,
+  confirmationText,
+  setConfirmationText,
+  pending,
+  preserved,
+}: {
+  phrase: ImpactPreview["confirmationPhrase"];
+  confirmationText: string;
+  setConfirmationText: (value: string) => void;
+  pending: boolean;
+  preserved: number;
+}): ReactElement {
+  return (
+    <aside className={styles.confirmation} aria-label="Confirmação da alteração">
+      <div className={styles.confirmationTitle}>
+        {phrase ? <ShieldAlert aria-hidden="true" /> : <ShieldCheck aria-hidden="true" />}
+        <h3>{phrase ? "Confirme os cancelamentos" : "Antes de aplicar"}</h3>
+      </div>
+      {phrase ? (
+        <>
+          <p>
+            As atividades indicadas serão canceladas. A alteração não remarca essas aulas nem move
+            os itens do planejamento.
+          </p>
+          <Field name="confirmationText">
+            <Label htmlFor="calendar-confirmation">Para confirmar, digite a frase:</Label>
+            <strong id="calendar-confirmation-phrase" className={styles.phrase}>
+              {phrase}
+            </strong>
+            <Input
+              id="calendar-confirmation"
+              name="confirmationText"
+              size="sm"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={160}
+              aria-describedby="calendar-confirmation-phrase"
+              placeholder="Digite a confirmação"
+              value={confirmationText}
+              disabled={pending}
+              onChange={(event) => setConfirmationText(event.target.value)}
+            />
+          </Field>
+        </>
+      ) : (
+        <p>Não há atividades futuras a cancelar. O calendário será atualizado ao confirmar.</p>
+      )}
+      {preserved > 0 && (
+        <p className={styles.preserved}>
+          <ShieldCheck aria-hidden="true" />
+          <span>
+            {preserved} registros passados, iniciados ou com informações registradas serão
+            preservados.
+          </span>
+        </p>
+      )}
+      <p>A atualização das atividades poderá ser acompanhada na Agenda.</p>
+    </aside>
   );
 }

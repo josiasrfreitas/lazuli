@@ -118,15 +118,15 @@ async function readOtherGroup(
       `);
       return {
         total: Number(rows[0]?.total ?? 0),
-        items: rows.flatMap((r) =>
-          r.id
+        items: rows.flatMap((row) =>
+          row.id
             ? [
                 linkItem({
-                  id: r.id,
-                  title: r.name,
-                  detail: r.book,
+                  id: row.id,
+                  title: row.name,
+                  detail: row.book,
                   date: null,
-                  href: `/alunos/${r.id}?secao=financeiro&material=1`,
+                  href: `/alunos/${row.id}?secao=financeiro&material=1`,
                 }),
               ]
             : [],

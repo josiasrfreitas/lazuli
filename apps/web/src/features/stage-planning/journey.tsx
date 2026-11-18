@@ -194,11 +194,23 @@ function SemesterSummary({
           </p>
         </div>
       </div>
-      <div className={styles.summaryFooter}>
-        <SummaryMethod data={data} />
-        {actions}
-      </div>
+      <SemesterSummaryFooter data={data} actions={actions} />
     </section>
+  );
+}
+
+function SemesterSummaryFooter({
+  data,
+  actions,
+}: {
+  data: Planning;
+  actions?: ReactNode;
+}): ReactElement {
+  return (
+    <div className={styles.summaryFooter}>
+      <SummaryMethod data={data} />
+      {actions}
+    </div>
   );
 }
 
@@ -297,7 +309,7 @@ function stageCompletionEstimate(data: Planning, outlook: Outlook): string {
   if (outlook.status === "complete") return " Estágio concluído.";
   if (
     outlook.status === "unknown" ||
-    !data.projection.length ||
+    data.projection.length === 0 ||
     data.projection.some((item) => !item.date)
   )
     return " Conclusão do estágio sem previsão.";

@@ -148,15 +148,18 @@ function enrollmentFilter(input: StudentListWhereInput): Prisma.StudentWhereInpu
       some: {
         ...currentEnrollmentFilter(input.now ?? new Date()),
         ...(input.classIds?.length ? { classId: { in: input.classIds } } : {}),
-        class: {
-          ...(input.scheduleType ? { scheduleType: input.scheduleType } : {}),
-          ...(input.teacherIds?.length ? { teacherId: { in: input.teacherIds } } : {}),
-        },
+        class: enrollmentClassFilter(input),
       },
     },
   };
 }
 
+function enrollmentClassFilter(input: StudentListWhereInput): Prisma.ClassWhereInput {
+  return {
+    ...(input.scheduleType ? { scheduleType: input.scheduleType } : {}),
+    ...(input.teacherIds?.length ? { teacherId: { in: input.teacherIds } } : {}),
+  };
+}
 export function buildStudentListWhere(
   input: StudentListWhereInput,
   searchWhere: Prisma.StudentWhereInput,

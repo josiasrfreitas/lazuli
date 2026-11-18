@@ -133,16 +133,30 @@ function ClassBooks({ detail }: { detail: Detail }): ReactElement {
       </p>
       {personalized ? (
         <p className="text-caption text-muted-foreground">Livros e avanços individuais</p>
-      ) : next ? (
-        <p className={styles.nextBook} title="Próximo livro pela sequência do curso">
-          <span>Próximo</span> <strong>{next.name}</strong>
-        </p>
       ) : (
-        <p className="text-caption text-muted-foreground">
-          {current ? "Fim da trilha" : "Próximo a definir"}
-        </p>
+        <NextClassBook next={next} hasCurrent={Boolean(current)} />
       )}
     </section>
+  );
+}
+
+function NextClassBook({
+  next,
+  hasCurrent,
+}: {
+  next: NonNullable<Detail["books"]>["next"] | undefined;
+  hasCurrent: boolean;
+}): ReactElement {
+  if (next)
+    return (
+      <p className={styles.nextBook} title="Próximo livro pela sequência do curso">
+        <span>Próximo</span> <strong>{next.name}</strong>
+      </p>
+    );
+  return (
+    <p className="text-caption text-muted-foreground">
+      {hasCurrent ? "Fim da trilha" : "Próximo a definir"}
+    </p>
   );
 }
 

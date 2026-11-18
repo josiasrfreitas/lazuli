@@ -62,131 +62,173 @@ export function ProgramExplorer({
             </div>
             <div className={styles.units}>
               {units.map((unit) => (
-                <section key={unit} className={styles.unit} aria-label={unit}>
-                  <h3>
-                    {unit}
-                    <span>
-                      {
-                        groups
-                          .filter((g) => g.unit === unit)
-                          .flatMap((g) => g.steps)
-                          .filter((s) => s.state === "completed").length
-                      }{" "}
-                      concluídas
-                    </span>
-                  </h3>
-                  {groups
-                    .filter((group) => group.unit === unit)
-                    .map((group) => {
-                      const done = group.steps.every((step) => step.state === "completed");
-                      const partial = group.steps.some((step) => step.evidence.length > 0) && !done;
-                      const dates = group.steps
-                        .filter((step) => step.state !== "completed")
-                        .map(
-                          (step) =>
-                            data.projection.find((row) => row.itemId === step.item.id)?.date ??
-                            null,
-                        );
-                      const scheduled = dates
-                        .filter((date): date is string => Boolean(date))
-                        .sort();
-                      return (
-                        <details
-                          key={group.id}
-                          className={styles.group}
-                          data-state={done ? "done" : partial ? "partial" : "next"}
-                        >
-                          <summary>
-                            <span className={styles.marker}>
-                              {done ? <Check /> : partial ? <Clock3 /> : <ArrowRight />}
-                            </span>
-                            <span className={styles.name}>
-                              <strong>{group.title}</strong>
-                              <span>
-                                {done
-                                  ? "Concluído"
-                                  : partial
-                                    ? "Em andamento"
-                                    : `${group.steps.length} atividades`}
-                              </span>
-                            </span>
-                            <span className={styles.date}>
-                              {done
-                                ? "Conteúdo registrado"
-                                : scheduled.length
-                                  ? `${dateLabel(scheduled[0]!)}${scheduled.at(-1) !== scheduled[0] ? ` — ${dateLabel(scheduled.at(-1)!)}` : ""}`
-                                  : "Sem data disponível"}
-                              {dates.some((date) => !date) && scheduled.length > 0
-                                ? " · parte sem data"
-                                : ""}
-                            </span>
-                          </summary>
-                          <div className={styles.activities}>
-                            {group.steps.map((step) => {
-                              const projection = data.projection.find(
-                                (row) => row.itemId === step.item.id,
-                              )?.date;
-                              return (
-                                <article key={step.item.id}>
-                                  <div className={styles.activityTitle}>
-                                    <h4>{step.item.title}</h4>
-                                    <Badge
-                                      variant={
-                                        step.state === "completed"
-                                          ? "success"
-                                          : step.state === "partial"
-                                            ? "warning"
-                                            : "neutral"
-                                      }
-                                    >
-                                      {step.state === "completed"
-                                        ? "Concluído"
-                                        : step.state === "partial"
-                                          ? "Parcial"
-                                          : "A trabalhar"}
-                                    </Badge>
-                                  </div>
-                                  {step.state !== "completed" && (
-                                    <p>
-                                      <CalendarDays size={14} aria-hidden="true" />
-                                      {projection
-                                        ? `Previsto para ${dateLabel(projection)}`
-                                        : "Precisa de mais tempo no calendário"}
-                                    </p>
-                                  )}
-                                  {step.evidence.map((record) => (
-                                    <Link
-                                      key={record.id}
-                                      href={`/turmas/${record.classId}?secao=aulas&aula=${record.id}#aulas-da-turma`}
-                                    >
-                                      Registro de {dateLabel(record.date)}
-                                    </Link>
-                                  ))}
-                                  {onEdit && step.item.plannedOn && (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => {
-                                        onClose();
-                                        onEdit({ ...step.item, plannedOn: step.item.plannedOn! });
-                                      }}
-                                    >
-                                      Editar atividade
-                                    </Button>
-                                  )}
-                                </article>
-                              );
-                            })}
-                          </div>
-                        </details>
-                      );
-                    })}
-                </section>
+                <ProgramUnit
+                  key={unit}
+                  unit={unit}
+                  groups={groups.filter((group) => group.unit === unit)}
+                  projection={data.projection}
+                  actions={{ onClose, onEdit }}
+                />
               ))}
             </div>
           </DialogBody>
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+type ExplorerActions = {
+  onClose: () => void;
+  onEdit: ((item: PlannedItem) => void) | undefined;
+};
+type ProgramProjection = Planning["projection"];
+type ProgramStep = ContentGroup["steps"][number];
+type GroupState = "done" | "partial" | "next";
+
+function ProgramUnit({
+  unit,
+  groups,
+  projection,
+  actions,
+}: {
+  unit: string;
+  groups: ContentGroup[];
+  projection: ProgramProjection;
+  actions: ExplorerActions;
+}): ReactElement {
+  const completed = groups
+    .flatMap((group) => group.steps)
+    .filter((step) => step.state === "completed").length;
+  return (
+    <section className={styles.unit} aria-label={unit}>
+      <h3>
+        {unit}
+        <span>{completed} concluídas</span>
+      </h3>
+      {groups.map((group) => (
+        <ProgramGroup key={group.id} group={group} projection={projection} actions={actions} />
+      ))}
+    </section>
+  );
+}
+
+function ProgramGroup({
+  group,
+  projection,
+  actions,
+}: {
+  group: ContentGroup;
+  projection: ProgramProjection;
+  actions: ExplorerActions;
+}): ReactElement {
+  const state = groupState(group);
+  const dates = group.steps
+    .filter((step) => step.state !== "completed")
+    .map((step) => projection.find((row) => row.itemId === step.item.id)?.date ?? null);
+  return (
+    <details className={styles.group} data-state={state}>
+      <summary>
+        <span className={styles.marker}>{groupMarker(state)}</span>
+        <span className={styles.name}>
+          <strong>{group.title}</strong>
+          <span>{groupStatus(state, group.steps.length)}</span>
+        </span>
+        <span className={styles.date}>{groupDateLabel(state, dates)}</span>
+      </summary>
+      <div className={styles.activities}>
+        {group.steps.map((step) => (
+          <ProgramActivity
+            key={step.item.id}
+            step={step}
+            date={projection.find((row) => row.itemId === step.item.id)?.date ?? null}
+            actions={actions}
+          />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function groupState(group: ContentGroup): GroupState {
+  if (group.steps.every((step) => step.state === "completed")) return "done";
+  return group.steps.some((step) => step.evidence.length > 0) ? "partial" : "next";
+}
+
+function groupMarker(state: GroupState): ReactElement {
+  if (state === "done") return <Check />;
+  if (state === "partial") return <Clock3 />;
+  return <ArrowRight />;
+}
+
+function groupStatus(state: GroupState, count: number): string {
+  if (state === "done") return "Concluído";
+  return state === "partial" ? "Em andamento" : `${count} atividades`;
+}
+
+function groupDateLabel(state: GroupState, dates: (string | null)[]): string {
+  if (state === "done") return "Conteúdo registrado";
+  const scheduled = dates.filter((date): date is string => Boolean(date)).toSorted();
+  const first = scheduled[0];
+  const last = scheduled.at(-1);
+  if (!first) return "Sem data disponível";
+  const period = last === first ? dateLabel(first) : `${dateLabel(first)} — ${dateLabel(last)}`;
+  return dates.some((date) => !date) ? `${period} · parte sem data` : period;
+}
+
+function stepBadge(state: ProgramStep["state"]): {
+  variant: "success" | "warning" | "neutral";
+  label: string;
+} {
+  if (state === "completed") return { variant: "success", label: "Concluído" };
+  if (state === "partial") return { variant: "warning", label: "Parcial" };
+  return { variant: "neutral", label: "A trabalhar" };
+}
+
+function ProgramActivity({
+  step,
+  date,
+  actions,
+}: {
+  step: ProgramStep;
+  date: string | null;
+  actions: ExplorerActions;
+}): ReactElement {
+  const { onClose, onEdit } = actions;
+  const badge = stepBadge(step.state);
+  const { plannedOn } = step.item;
+  return (
+    <article>
+      <div className={styles.activityTitle}>
+        <h4>{step.item.title}</h4>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </div>
+      {step.state !== "completed" && (
+        <p>
+          <CalendarDays size={14} aria-hidden="true" />
+          {date ? `Previsto para ${dateLabel(date)}` : "Precisa de mais tempo no calendário"}
+        </p>
+      )}
+      {step.evidence.map((record) => (
+        <Link
+          key={record.id}
+          href={`/turmas/${record.classId}?secao=aulas&aula=${record.id}#aulas-da-turma`}
+        >
+          Registro de {dateLabel(record.date)}
+        </Link>
+      ))}
+      {onEdit && plannedOn && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            onClose();
+            onEdit({ ...step.item, plannedOn });
+          }}
+        >
+          Editar atividade
+        </Button>
+      )}
+    </article>
   );
 }

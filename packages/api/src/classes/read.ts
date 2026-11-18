@@ -146,7 +146,11 @@ export async function readClass(input: ReadClassInput): Promise<
   };
 }
 
-async function classBooks(database: Database, row: ClassBase) {
+type ClassBook = { id: string; name: string };
+async function classBooks(
+  database: Database,
+  row: ClassBase,
+): Promise<{ current: ClassBook | null; next: ClassBook | null }> {
   if (row.scheduleType === "PERSONALIZED" || !row.sharedStage) {
     return { current: null, next: null };
   }

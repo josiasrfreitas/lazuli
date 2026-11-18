@@ -17,7 +17,7 @@ export function SettingsHome({ systemAdmin }: { systemAdmin: boolean }): ReactEl
   return (
     <div className={styles.page}>
       <Tabs
-        className={styles.tabs}
+        render={<div className={styles.tabs} />}
         value={systemAdmin ? section : "localizacao"}
         onValueChange={(value) =>
           void setSection(value === "financeiro" ? "financeiro" : "localizacao")
@@ -40,11 +40,11 @@ export function SettingsHome({ systemAdmin }: { systemAdmin: boolean }): ReactEl
             </TabsList>
           )}
         </header>
-        <TabsPanel value="localizacao" className={styles.panel}>
+        <TabsPanel value="localizacao" render={<div className={styles.panel} />}>
           <AttendanceSettingsPage />
         </TabsPanel>
         {systemAdmin && (
-          <TabsPanel value="financeiro" className={styles.panel}>
+          <TabsPanel value="financeiro" render={<div className={styles.panel} />}>
             <SettingsPage />
           </TabsPanel>
         )}

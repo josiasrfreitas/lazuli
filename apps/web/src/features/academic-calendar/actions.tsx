@@ -60,39 +60,57 @@ export function CalendarActions({
         <Settings2 aria-hidden="true" /> Configurar
       </PopoverTrigger>
       <PopoverContent align="end" size="menu" showArrow={false}>
-        <div className="grid gap-1">
-          <Button
-            className="w-full justify-start"
-            variant="ghost"
-            size="sm"
-            onClick={() => configure("semestres")}
-          >
-            <CalendarRange aria-hidden="true" /> Semestres
-          </Button>
-          <Button
-            className="w-full justify-start"
-            variant="ghost"
-            size="sm"
-            onClick={() => configure("interrupcoes")}
-          >
-            <Flag aria-hidden="true" /> Feriados e recessos
-          </Button>
-          <Button
-            className="w-full justify-start"
-            variant="secondary"
-            size="sm"
-            disabled={run.isPending}
-            onClick={() => run.mutate({ year })}
-          >
-            <RefreshCw aria-hidden="true" />{" "}
-            {run.isPending ? "Solicitando…" : "Atualizar atividades pendentes"}
-          </Button>
-          <p className="max-w-72 px-3 py-2 text-caption text-muted-foreground">
-            Alterações confirmadas atualizam as atividades automaticamente. Pendências também são
-            recuperadas diariamente às 3h.
-          </p>
-        </div>
+        <CalendarActionMenu
+          configure={configure}
+          pending={run.isPending}
+          run={() => run.mutate({ year })}
+        />
       </PopoverContent>
     </Popover>
+  );
+}
+
+function CalendarActionMenu({
+  configure,
+  pending,
+  run,
+}: {
+  configure: (section: string) => void;
+  pending: boolean;
+  run: () => void;
+}): ReactElement {
+  return (
+    <div className="grid gap-1">
+      <Button
+        className="w-full justify-start"
+        variant="ghost"
+        size="sm"
+        onClick={() => configure("semestres")}
+      >
+        <CalendarRange aria-hidden="true" /> Semestres
+      </Button>
+      <Button
+        className="w-full justify-start"
+        variant="ghost"
+        size="sm"
+        onClick={() => configure("interrupcoes")}
+      >
+        <Flag aria-hidden="true" /> Feriados e recessos
+      </Button>
+      <Button
+        className="w-full justify-start"
+        variant="secondary"
+        size="sm"
+        disabled={pending}
+        onClick={run}
+      >
+        <RefreshCw aria-hidden="true" />{" "}
+        {pending ? "Solicitando…" : "Atualizar atividades pendentes"}
+      </Button>
+      <p className="max-w-72 px-3 py-2 text-caption text-muted-foreground">
+        Alterações confirmadas atualizam as atividades automaticamente. Pendências também são
+        recuperadas diariamente às 3h.
+      </p>
+    </div>
   );
 }

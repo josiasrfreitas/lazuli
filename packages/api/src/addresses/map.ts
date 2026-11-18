@@ -12,7 +12,10 @@ export async function schoolMapResponse(context: Context, request: Request): Pro
   const url = new URL(request.url);
   try {
     const asset = await readSchoolMapAsset({
-      path: url.pathname.slice(BASE_PATH.length).split("/").map(decodeURIComponent),
+      path: url.pathname
+        .slice(BASE_PATH.length)
+        .split("/")
+        .map((segment) => decodeURIComponent(segment)),
       dark: url.searchParams.get("theme") !== "light",
       baseUrl: BASE_PATH.slice(0, -1),
     });
@@ -20,7 +23,7 @@ export async function schoolMapResponse(context: Context, request: Request): Pro
     return new Response(Uint8Array.from(asset.body).buffer, {
       headers: {
         "Content-Type": asset.contentType,
-        "Cache-Control": `private, ${asset.cacheControl.replace(/\bpublic,?\s*/gu, "")}`,
+        "Cache-Control": `private, ${asset.cacheControl.replaceAll(/\bpublic,?\s*/gu, "")}`,
         "X-Content-Type-Options": "nosniff",
       },
     });

@@ -9,8 +9,9 @@ import styles from "./impact.module.css";
 
 export type ImpactPreview = RouterOutputs["calendar"]["academic"]["changes"]["preview"];
 type ClassImpact = ImpactPreview["teachers"][number]["classes"][number];
+const MINUTES_PER_HOUR = 60;
 const hours = (minutes: number): string =>
-  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / 60)} h`;
+  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / MINUTES_PER_HOUR)} h`;
 const range = (from: string, through: string): string =>
   from === through
     ? formatDateOnlyBR(from)
@@ -66,7 +67,7 @@ export function ImpactOverview({ preview }: { preview: ImpactPreview }): ReactEl
 }
 
 export function TeacherImpacts({ preview }: { preview: ImpactPreview }): ReactElement | null {
-  if (!preview.teachers.length) return null;
+  if (preview.teachers.length === 0) return null;
   const classes = new Map(
     preview.teachers.flatMap((teacher) =>
       teacher.classes.map((row) => [row.classId, row] as const),

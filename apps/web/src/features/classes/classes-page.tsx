@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ReactElement } from "react";
+import { useState, type ReactElement, type ComponentProps } from "react";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@lazuli/api";
@@ -69,22 +69,12 @@ export function ClassesPage({
         title="Turmas"
         summary={query.data ? `${query.data.total} turmas` : undefined}
         controls={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              nativeButton={false}
-              render={<Link href="/turmas/formacao" />}
-            >
-              <CalendarDays /> Formação de turmas
-            </Button>
-            <ClassFilters
-              params={params}
-              fields={fields}
-              change={(value) => void setParams(value)}
-              create={() => setCreating(true)}
-            />
-          </div>
+          <ClassPageControls
+            params={params}
+            fields={fields}
+            change={(value) => void setParams(value)}
+            create={() => setCreating(true)}
+          />
         }
       >
         <div className="flex h-full min-h-0 flex-col gap-2">
@@ -101,5 +91,26 @@ export function ClassesPage({
       </DataTablePage>
       <ClassCreateDialog open={creating} onOpenChange={setCreating} />
     </>
+  );
+}
+
+function ClassPageControls({
+  params,
+  fields,
+  change,
+  create,
+}: ComponentProps<typeof ClassFilters>): ReactElement {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        size="sm"
+        variant="secondary"
+        nativeButton={false}
+        render={<Link href="/turmas/formacao" />}
+      >
+        <CalendarDays /> Formação de turmas
+      </Button>
+      <ClassFilters params={params} fields={fields} change={change} create={create} />
+    </div>
   );
 }
