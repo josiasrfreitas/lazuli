@@ -57,6 +57,10 @@ const StudentPlanning = dynamic(
   { loading: EnrollmentLoading },
 );
 
+const StudentFormationDialog = dynamic(() =>
+  import("./student-formation-dialog").then((module) => module.StudentFormationDialog),
+);
+
 const StudentContractRenewal = dynamic(() =>
   import("./student-contract-renewal").then((module) => module.StudentContractRenewal),
 );
@@ -80,6 +84,7 @@ type SectionsProps = PageProps & { profile: StudentProfile | undefined };
 
 export function StudentPage({ id, pedagogyWorkspacePreview }: PageProps): ReactElement {
   const profile = useStudentProfile(id);
+  const [formationRequest, setFormationRequest] = useQueryState("revisarVinculo");
   const previewReady = useAnimationPreviewDelay(PREVIEW_DELAY_MS);
   return (
     <div data-page-scroll="internal" className="flex h-full min-h-0 flex-col">
@@ -95,6 +100,14 @@ export function StudentPage({ id, pedagogyWorkspacePreview }: PageProps): ReactE
           />
         )}
       </div>
+      {profile.data && formationRequest && (
+        <StudentFormationDialog
+          key={formationRequest}
+          request={formationRequest}
+          studentId={id}
+          close={() => void setFormationRequest(null)}
+        />
+      )}
     </div>
   );
 }

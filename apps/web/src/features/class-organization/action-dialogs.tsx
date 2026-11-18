@@ -199,7 +199,7 @@ export function PlacementHistory({
   );
 }
 
-function HistoryRow({ item }: { item: HistoryItem }): ReactJSX.Element {
+export function HistoryRow({ item }: { item: HistoryItem }): ReactJSX.Element {
   const snapshot = snapshotSchema.safeParse(item.snapshot);
   return (
     <li className="border-l-2 border-border pl-4">

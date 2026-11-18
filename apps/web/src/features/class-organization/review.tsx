@@ -1,5 +1,6 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
+import { normalizeSearch } from "@lazuli/domain";
 import { useState } from "react";
 import { type OrganizationAction, type OrganizationBoard } from "./model";
 import { useReviewPublish } from "./review-publish";
@@ -8,29 +9,32 @@ import { ReviewView } from "./review-view";
 export function OrganizationReview({
   board,
   query,
+  scope,
   onAction,
   onFeedback,
 }: {
   board: OrganizationBoard;
   query: string;
+  scope: "pending" | "published" | "all";
   onAction: (action: OrganizationAction) => void;
   onFeedback: (text: string) => void;
 }): ReactJSX.Element {
-  const [ids, setIds] = useState<string[]>(() =>
-    board.placements
-      .filter(
-        (row) => !row.publishedAt && !row.declinedAt && row.planId && row.blockers.length === 0,
-      )
-      .map((row) => row.id),
-  );
-  const [showAll, setShowAll] = useState(false);
+  const [ids, setIds] = useState<string[]>([]);
   const rows = board.placements.filter(
     (row) =>
-      (showAll || !row.publishedAt) &&
-      row.studentName.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")),
+      (scope === "all" ||
+        (scope === "published"
+          ? Boolean(row.publishedAt && !row.declinedAt)
+          : !row.publishedAt && !row.declinedAt)) &&
+      normalizeSearch(row.studentName).includes(normalizeSearch(query)),
   );
   const eligible = rows.filter(
-    (row) => !row.publishedAt && !row.declinedAt && row.blockers.length === 0 && row.planId,
+    (row) =>
+      !row.publishedAt &&
+      !row.declinedAt &&
+      row.continuity !== "LEAVING" &&
+      row.blockers.length === 0 &&
+      row.planId,
   );
   const selected = eligible.filter((row) => ids.includes(row.id));
   const { working, error, confirm } = useReviewPublish({
@@ -45,11 +49,9 @@ export function OrganizationReview({
       rows={rows}
       eligible={eligible}
       selected={selected}
-      ids={ids}
-      showAll={showAll}
+      scope={scope}
       working={working}
       error={error}
-      onShowAll={setShowAll}
       onIds={setIds}
       onSelection={(row, value) =>
         setIds((previous) =>

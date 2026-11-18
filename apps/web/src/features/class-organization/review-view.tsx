@@ -1,150 +1,90 @@
-import type { JSX as ReactJSX } from "react";
+import { useState, type ReactElement } from "react";
 import { Button, Checkbox } from "@lazuli/ui";
 import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
 import { ReviewRow } from "./review-row";
-import styles from "./organization.module.css";
+import styles from "./review.module.css";
 
 type ReviewProps = {
   board: OrganizationBoard;
   rows: Placement[];
   eligible: Placement[];
   selected: Placement[];
-  ids: string[];
-  showAll: boolean;
+  scope: "pending" | "published" | "all";
   working: boolean;
   error: string | null;
-  onShowAll: (value: boolean) => void;
   onIds: (ids: string[]) => void;
   onSelection: (row: Placement, value: boolean) => void;
   onAction: (action: OrganizationAction) => void;
   onConfirm: () => void;
 };
 
-export function ReviewView(props: ReviewProps): ReactJSX.Element {
+export function ReviewView(props: ReviewProps): ReactElement {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const eligibleIds = new Set(props.eligible.map(({ id }) => id));
+  const selectedIds = new Set(props.selected.map(({ id }) => id));
   return (
-    <section className={styles.review} aria-label="Revisão das mudanças">
-      <ReviewHeader showAll={props.showAll} onShowAll={props.onShowAll} />
+    <section className={styles.review} aria-label="Revisão dos vínculos">
       {props.error && (
-        <div role="alert" className={styles.error}>
+        <p role="alert" className="text-destructive">
           {props.error}
-        </div>
+        </p>
       )}
-      <ReviewTable {...props} />
-      <ReviewFooter {...props} />
-    </section>
-  );
-}
-
-function ReviewHeader({
-  showAll,
-  onShowAll,
-}: Pick<ReviewProps, "showAll" | "onShowAll">): ReactJSX.Element {
-  return (
-    <div className={styles.row}>
-      <div>
-        <h2 className="text-body font-semibold">Revisão dos vínculos</h2>
-      </div>
-      <label className={styles.rowStart}>
-        <Checkbox
-          size="sm"
-          checked={showAll}
-          onCheckedChange={(value) => onShowAll(Boolean(value))}
-        />
-        <span className={styles.small}>Incluir já alocados</span>
-      </label>
-    </div>
-  );
-}
-
-function ReviewTable({
-  board,
-  rows,
-  eligible,
-  selected,
-  ids,
-  working,
-  onIds,
-  onSelection,
-  onAction,
-}: ReviewProps): ReactJSX.Element {
-  return (
-    <div className={styles.reviewTable}>
-      <table className={styles.table}>
-        <ReviewTableHead eligible={eligible} selected={selected} working={working} onIds={onIds} />
-        <tbody>
-          {rows.map((row) => (
-            <ReviewRow
-              key={row.id}
-              row={row}
-              board={board}
-              selected={ids.includes(row.id)}
-              eligible={eligible.some((item) => item.id === row.id)}
-              working={working}
-              onSelection={(value) => onSelection(row, value)}
-              onAction={onAction}
-            />
-          ))}
-        </tbody>
-      </table>
-      {rows.length === 0 && (
-        <div className={styles.empty}>
-          <h2>Nenhuma mudança nesta seleção</h2>
-          <p>
-            Inclua os já alocados para consultar a composição ou escolha novos encaixes na grade
-            semanal.
+      <div className={styles.list}>
+        {props.rows.length > 0 ? (
+          <ul className={styles.rows}>
+            {props.rows.map((row) => (
+              <ReviewRow
+                key={row.id}
+                row={row}
+                board={props.board}
+                selected={selectedIds.has(row.id)}
+                eligible={eligibleIds.has(row.id)}
+                expanded={expandedId === row.id}
+                working={props.working}
+                onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
+                onSelection={(value) => props.onSelection(row, value)}
+                onAction={props.onAction}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.empty}>
+            {props.scope === "published"
+              ? "Nenhum aluno alocado nesta seleção."
+              : "Nenhum vínculo nesta seleção."}
           </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ReviewTableHead({
-  eligible,
-  selected,
-  working,
-  onIds,
-}: Pick<ReviewProps, "eligible" | "selected" | "working" | "onIds">): ReactJSX.Element {
-  return (
-    <thead>
-      <tr>
-        <th>
-          <Checkbox
+        )}
+      </div>
+      {props.scope !== "published" && (
+        <footer className={styles.footer}>
+          <label>
+            <Checkbox
+              size="sm"
+              aria-label="Selecionar todos os vínculos prontos"
+              checked={props.eligible.length > 0 && props.selected.length === props.eligible.length}
+              indeterminate={
+                props.selected.length > 0 && props.selected.length < props.eligible.length
+              }
+              disabled={!props.eligible.length || props.working}
+              onCheckedChange={(value) => props.onIds(value ? [...eligibleIds] : [])}
+            />
+            Selecionar prontos ({props.eligible.length})
+          </label>
+          <Button
             size="sm"
-            aria-label="Selecionar alocações prontas"
-            disabled={eligible.length === 0 || working}
-            checked={eligible.length > 0 && selected.length === eligible.length}
-            indeterminate={selected.length > 0 && selected.length < eligible.length}
-            onCheckedChange={(value) => onIds(value ? eligible.map((row) => row.id) : [])}
-          />
-        </th>
-        <th>Aluno / mudança</th>
-        <th>Origem</th>
-        <th>Destino</th>
-        <th>Vigência</th>
-        <th>Pendências / contrato</th>
-        <th>
-          <span className="sr-only">Ações</span>
-        </th>
-      </tr>
-    </thead>
-  );
-}
-
-function ReviewFooter({ selected, eligible, working, onConfirm }: ReviewProps): ReactJSX.Element {
-  return (
-    <footer className={styles.selection}>
-      <span className={styles.small}>
-        {selected.length} selecionados · {eligible.length} prontos para aplicar
-      </span>
-      <span className={`${styles.small} ${styles.push}`}>
-        Contratos são tratados separadamente.
-      </span>
-      <Button size="sm" disabled={selected.length === 0 || working} onClick={onConfirm}>
-        {working
-          ? "Aplicando alocações…"
-          : `Aplicar${selected.length > 0 ? ` ${selected.length}` : " selecionados"}`}
-      </Button>
-    </footer>
+            disabled={!props.selected.length || props.working}
+            onClick={props.onConfirm}
+          >
+            {props.working
+              ? "Confirmando…"
+              : props.selected.length === 1
+                ? "Confirmar 1 alocação"
+                : props.selected.length
+                  ? `Confirmar ${props.selected.length} alocações`
+                  : "Confirmar alocações"}
+          </Button>
+        </footer>
+      )}
+    </section>
   );
 }

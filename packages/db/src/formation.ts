@@ -11,12 +11,14 @@ export const contractAt = (at: Date): Prisma.ContractWhereInput => ({
 });
 
 export type FormationAcademics = {
+  gradeAverage: number | null;
   grades: "INCOMPLETE" | "SUFFICIENT" | "NEEDS_SUPPORT";
   attendance: number | null;
   attendanceFlagged: boolean;
 };
 
 export const emptyFormationAcademics: FormationAcademics = {
+  gradeAverage: null,
   grades: "INCOMPLETE",
   attendance: null,
   attendanceFlagged: false,
@@ -75,6 +77,9 @@ export async function readFormationAcademics(
       const presence = attendance.get(row.enrollment.id);
       result.set(row.id, {
         grades: status,
+        gradeAverage: grades.length
+          ? grades.reduce((sum, grade) => sum + Number(grade.score), 0) / grades.length
+          : null,
         ...presenceMetrics(presence),
       });
     }
