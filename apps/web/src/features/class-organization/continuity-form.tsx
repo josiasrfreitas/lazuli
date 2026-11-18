@@ -6,7 +6,7 @@ import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
-import { Choices, dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
+import { Choices, useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
 import { confirmationExplanation } from "./confirmation";
 import styles from "./organization.module.css";
@@ -22,6 +22,8 @@ type Props = {
 type ContinuityModel = {
   value: Continuity;
   reason: string;
+  attentionNote: string;
+  setAttentionNote: (value: string) => void;
   error: string;
   pending: boolean;
   mutationError: string | undefined;
@@ -55,6 +57,7 @@ export function ContinuityDialog(props: Props): ReactJSX.Element {
 function useContinuityModel({ row, board, onClose }: Props): ContinuityModel {
   const [value, setValue] = useState<Continuity>(row.continuity as Continuity);
   const [reason, setReason] = useState(row.continuityReason ?? "");
+  const [attentionNote, setAttentionNote] = useState(row.attentionNote ?? "");
   const [error, setError] = useState("");
   const refresh = useOrganizationRefresh();
   const mutation = trpc.semesterOrganization.continuity.useMutation({
@@ -79,12 +82,15 @@ function useContinuityModel({ row, board, onClose }: Props): ContinuityModel {
         version: row.version,
         continuity: value,
         reason,
+        attentionNote,
       });
     }
   };
   return {
     value,
     reason,
+    attentionNote,
+    setAttentionNote,
     error,
     pending: mutation.isPending,
     mutationError: mutation.error?.message,
@@ -122,6 +128,19 @@ function ContinuityFields({
       />
       <p className="text-caption text-muted-foreground">{continuityDescription(model.value)}</p>
       <ContinuityContract row={row} board={board} />
+      {row.attention.contractStatus === "EARLY_END" && (
+        <p className={styles.note}>
+          O contrato vence na primeira metade do período. Escolha “Continuar na turma” para
+          confirmar o vínculo.
+        </p>
+      )}
+      <NarrativeField
+        name="formation-attention"
+        label="Sinal de desinteresse · opcional"
+        placeholder="Registre o que a equipe precisa acompanhar"
+        value={model.attentionNote}
+        onChange={model.setAttentionNote}
+      />
       <NarrativeField
         name="continuity-reason"
         label={
@@ -158,12 +177,12 @@ function ContinuityContract({
       {row.confirmation === "PRECONFIRMED" && (
         <div className={styles.summary}>
           <strong>Pré-confirmado em {board.semester.name}</strong>
-          <p>O contrato cobre pelo menos os três primeiros meses deste período.</p>
+          <p>O vínculo atende aos critérios de pré-confirmação do período.</p>
         </div>
       )}
-      {row.contract?.endsOn && (
+      {row.attention.coverageThrough && (
         <p className={styles.small}>
-          Contrato até {formatDateOnlyBR(dateOnly(row.contract.endsOn))}.
+          Cobertura contratual até {formatDateOnlyBR(row.attention.coverageThrough)}.
         </p>
       )}
     </>

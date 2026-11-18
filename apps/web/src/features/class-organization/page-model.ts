@@ -2,7 +2,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useQueryState, parseAsString } from "nuqs";
 import type { RouterOutputs } from "@lazuli/api";
-import { trpc, type QueryResult } from "~/lib/trpc";
+import { trpc, type ClientError, type QueryResult } from "~/lib/trpc";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { OrganizationAction, OrganizationBoard } from "./model";
@@ -15,16 +15,13 @@ type SemesterData = {
   today: string;
 };
 export type OrganizationPageModel = SemesterData & {
+  selectedPeriod: string;
   board: OrganizationBoard | undefined;
   ended: boolean;
   tab: string;
   setTab: (value: string) => void;
   search: string;
   setSearch: Setter<string>;
-  classSearch: string;
-  setClassSearch: Setter<string>;
-  showClosed: boolean;
-  setShowClosed: Setter<boolean>;
   planId: string | null;
   setPlanId: Setter<string | null>;
   action: OrganizationAction | null;
@@ -35,8 +32,8 @@ export type OrganizationPageModel = SemesterData & {
   setSetupOpen: Setter<boolean>;
   prepare: {
     isPending: boolean;
-    error: { message: string } | null;
-    reset: () => void;
+    error: ClientError | null;
+    variables: { semesterId: string } | undefined;
     mutate: (input: { semesterId: string }) => void;
   };
   selectPeriod: (id: string) => void;
@@ -48,10 +45,6 @@ type PageControls = Pick<
   | "setTab"
   | "search"
   | "setSearch"
-  | "classSearch"
-  | "setClassSearch"
-  | "showClosed"
-  | "setShowClosed"
   | "planId"
   | "setPlanId"
   | "action"
@@ -66,7 +59,7 @@ type PageControls = Pick<
 export function useOrganizationPageModel(): OrganizationPageModel {
   const controls = usePageControls();
   const data = useSemesterData(controls.selectedPeriod);
-  const board = data.query.data;
+  const board = data.semesterId ? data.query.data : undefined;
   const prepare = usePrepare(controls.setFeedback);
   return {
     ...controls,
@@ -84,8 +77,6 @@ function usePageControls(): PageControls {
   );
   const [tab, setTabState] = useQueryState("visao", parseAsString.withDefault("agenda"));
   const [search, setSearch] = useState("");
-  const [classSearch, setClassSearch] = useState("");
-  const [showClosed, setShowClosed] = useState(false);
   const [planId, setPlanQuery] = useQueryState("turma", parseAsString);
   const setPlanId: Setter<string | null> = (value) => {
     void setPlanQuery(value);
@@ -98,7 +89,6 @@ function usePageControls(): PageControls {
     setPlanId(null);
     setAction(null);
     setFeedback("");
-    setClassSearch("");
   }
   const setTab = (value: string): void => void setTabState(value);
   return {
@@ -107,10 +97,6 @@ function usePageControls(): PageControls {
     setTab,
     search,
     setSearch,
-    classSearch,
-    setClassSearch,
-    showClosed,
-    setShowClosed,
     planId,
     setPlanId,
     action,
@@ -141,7 +127,7 @@ function useSemesterData(selectedPeriod: string): SemesterData {
   const semesterId = resolveSemesterId({ selectedPeriod, periods: periods.data ?? [], today });
   const query = trpc.semesterOrganization.detail.useQuery(
     { semesterId },
-    { enabled: Boolean(semesterId) },
+    { enabled: Boolean(semesterId), placeholderData: (previous) => previous },
   );
   return { periods, query, semesterId, today };
 }
@@ -158,11 +144,12 @@ function resolveSemesterId({
   const current = periods.find(
     (period) => dateOnly(period.startDate) <= today && dateOnly(period.endDate) >= today,
   );
-  return (
-    selectedPeriod ||
-    current?.id ||
-    periods.find((period) => dateOnly(period.endDate) >= today)?.id ||
-    periods[0]?.id ||
-    ""
-  );
+  const period =
+    selectedPeriod === "proximo"
+      ? periods.findLast((candidate) => dateOnly(candidate.startDate) > today)
+      : (periods.find((candidate) => candidate.id === selectedPeriod) ??
+        current ??
+        periods.findLast((candidate) => dateOnly(candidate.endDate) >= today) ??
+        periods[0]);
+  return period?.id ?? "";
 }

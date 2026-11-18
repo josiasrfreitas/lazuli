@@ -16,7 +16,11 @@ export function OrganizationReview({
   onAction: (action: OrganizationAction) => void;
   onFeedback: (text: string) => void;
 }): ReactJSX.Element {
-  const [ids, setIds] = useState<string[]>([]);
+  const [ids, setIds] = useState<string[]>(() =>
+    board.placements
+      .filter((row) => !row.publishedAt && !row.declinedAt && row.planId && !row.blockers.length)
+      .map((row) => row.id),
+  );
   const [showAll, setShowAll] = useState(false);
   const rows = board.placements.filter(
     (row) =>

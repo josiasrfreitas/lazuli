@@ -1,4 +1,4 @@
-import type { Prisma, TransactionClient } from "@lazuli/db";
+import type { Period, Prisma, TransactionClient } from "@lazuli/db";
 import type { StaffUser } from "../trpc/context.js";
 import { intervalsOverlap, saoPauloDateOnly } from "@lazuli/domain";
 import { sql, type AliasedRawBuilder } from "kysely";
@@ -26,15 +26,7 @@ export const readSlots = (
 export async function lockSemester(
   context: OrganizationContext,
   semesterId: string,
-): Promise<{
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
-  name: string;
-  startDate: Date;
-  endDate: Date;
-}> {
+): Promise<Period> {
   await context.database
     .$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${semesterId}`}, 0))`;
   return requireFutureSemester(context, semesterId);
@@ -42,17 +34,9 @@ export async function lockSemester(
 export async function requireFutureSemester(
   context: OrganizationContext,
   semesterId: string,
-): Promise<{
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
-  name: string;
-  startDate: Date;
-  endDate: Date;
-}> {
+): Promise<Period> {
   const semester = await context.database.period.findUnique({ where: { id: semesterId } });
-  if (!semester) throw notFound("Semestre não encontrado.");
+  if (!semester || semester.deletedAt) throw notFound("Semestre não encontrado.");
   if (dateOnly(semester.endDate) < saoPauloDateOnly(context.now))
     throw badRequest("Este período já terminou. Escolha um semestre atual ou futuro.");
   return semester;
@@ -85,6 +69,7 @@ export async function recordPlacementRevision(
       createdAt: context.now,
       snapshot: {
         planId: row.planId,
+        attentionNote: row.attentionNote,
         effectiveDate: row.effectiveDate ? dateOnly(row.effectiveDate) : null,
         declinedAt: row.declinedAt?.toISOString() ?? null,
         declinedReason: row.declinedReason,
@@ -125,9 +110,11 @@ export type ClassPlan = {
   classStatus: Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>["status"] | null;
   classDeletedAt: Date | null;
   className: string | null;
+  startsOn: Date | null;
   startDate: Date;
   endDate: Date;
-  enrolledCount: number | null;
+  enrolledCount: number;
+  enrolledStudentIds: string[];
   assignedTeacher: {
     id: string;
     name: string;
@@ -159,7 +146,7 @@ const PLAN_COLUMNS = [
   "class.status as classStatus",
   "class.deleted_at as classDeletedAt",
   "class.portal_class_name as className",
-  "semester.start_date as startDate",
+  "plan.starts_on as startsOn",
   "semester.end_date as endDate",
 ] as const;
 
@@ -176,7 +163,12 @@ export async function readClassPlans(
     .leftJoin("User as teacher", "teacher.id", "plan.teacher_id")
     .leftJoin("TeacherProfile as profile", "profile.user_id", "plan.teacher_id")
     .select(PLAN_COLUMNS)
-    .select(enrolledCount(context.now))
+    .select(
+      sql<Date>`greatest(semester.start_date, coalesce(plan.starts_on, class.start_date, semester.start_date))`.as(
+        "startDate",
+      ),
+    )
+    .select(enrolledStudentIds(context.now))
     .select((eb) =>
       jsonObjectFrom(
         eb
@@ -215,11 +207,11 @@ export async function readClassPlans(
   return plans.map((plan) => ({ ...plan, draftConflicts: draftPlanConflicts(plan, plans) }));
 }
 
-function enrolledCount(now: Date): AliasedRawBuilder<number, "enrolledCount"> {
+function enrolledStudentIds(now: Date): AliasedRawBuilder<string[], "enrolledStudentIds"> {
   const today = saoPauloDateOnly(now);
-  return sql<number>`
-    (
-        SELECT count(DISTINCT occupied.student_id)::int
+  return sql<string[]>`
+    ARRAY(
+        SELECT DISTINCT occupied.student_id
         FROM "Enrollment" AS occupied
         JOIN "Student" AS occupant ON occupant.id = occupied.student_id
         WHERE occupied.class_id = plan.class_id
@@ -230,10 +222,13 @@ function enrolledCount(now: Date): AliasedRawBuilder<number, "enrolledCount"> {
           AND (occupied.exit_date IS NULL OR
             occupied.exit_date > greatest(semester.start_date, ${today}::date))
       )
-  `.as("enrolledCount");
+  `.as("enrolledStudentIds");
 }
 
-type ClassPlanRow = Omit<ClassPlan, "slots" | "teacherReady" | "active" | "draftConflicts"> & {
+type ClassPlanRow = Omit<
+  ClassPlan,
+  "slots" | "teacherReady" | "active" | "draftConflicts" | "enrolledCount"
+> & {
   slots: Prisma.JsonValue;
 };
 type PlanWithoutConflicts = Omit<ClassPlan, "draftConflicts">;
@@ -242,6 +237,7 @@ function classPlanRow(row: ClassPlanRow, now: Date): PlanWithoutConflicts {
   const teacher = row.assignedTeacher;
   return {
     ...row,
+    enrolledCount: row.enrolledStudentIds.length,
     slots: readSlots(row.slots),
     teacherId: teacher?.id ?? row.teacherId,
     teacherName: teacher?.name ?? row.teacherName,

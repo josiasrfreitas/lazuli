@@ -94,8 +94,8 @@ const GROUPS: Record<
   semester: {
     title: "Entradas em turma para confirmar",
     score: 5,
-    href: "/organizacao",
-    destination: "Organização",
+    href: "/turmas/formacao",
+    destination: "Formação de turmas",
   },
 };
 

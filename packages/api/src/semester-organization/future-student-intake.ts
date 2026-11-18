@@ -1,18 +1,19 @@
-import type { Period, Prisma, Stage, TransactionClient } from "@lazuli/db";
+import type { Period, Prisma, Stage } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest } from "../trpc/errors.js";
 
 /** A pending intake belongs to the first configured period after today. */
 export async function lockNextIntakeSemester(
-  database: TransactionClient,
+  database: Prisma.TransactionClient,
   now: Date,
-): Promise<Period> {
+): Promise<Period | null> {
+  await lockIntakeCalendar(database);
   const today = new Date(saoPauloDateOnly(now));
   const semester = await database.period.findFirst({
     where: { deletedAt: null, startDate: { gt: today } },
     orderBy: { startDate: "asc" },
   });
-  if (!semester) throw badRequest("Cadastre o próximo período antes de deixar a entrada pendente.");
+  if (!semester) return null;
   await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${semester.id}`}, 0))`;
   return semester;
 }
@@ -33,7 +34,30 @@ type PlacementData = {
 };
 
 export async function recordFutureStudentIntake(
-  database: TransactionClient,
+  database: Prisma.TransactionClient,
+  input: Omit<FutureIntakeInput, "semester"> & { semester: Period | null; now: Date },
+): Promise<void> {
+  if (!input.semester) {
+    if (input.planId)
+      throw badRequest("Defina o próximo período no calendário antes de escolher a turma.");
+    const stage = await selectedStage(database, input.stageId);
+    const data = {
+      stageId: stage?.id ?? null,
+      requestedOn: new Date(saoPauloDateOnly(input.now)),
+      recordedById: input.recordedById,
+    };
+    await database.undatedStudentIntake.upsert({
+      where: { studentId: input.studentId },
+      create: { ...data, studentId: input.studentId },
+      update: data,
+    });
+    return;
+  }
+  return recordDatedIntake(database, { ...input, semester: input.semester });
+}
+
+async function recordDatedIntake(
+  database: Prisma.TransactionClient,
   input: FutureIntakeInput,
 ): Promise<void> {
   const stage = await selectedStage(database, input.stageId);
@@ -45,7 +69,10 @@ export async function recordFutureStudentIntake(
       trackId: stage?.trackId ?? null,
       stageId: stage?.id ?? null,
       planId: plan?.id ?? null,
-      effectiveDate: input.semester.startDate,
+      effectiveDate:
+        plan?.startsOn && plan.startsOn > input.semester.startDate
+          ? plan.startsOn
+          : input.semester.startDate,
     },
   });
 }
@@ -56,7 +83,7 @@ function assertStageMatchesPlan(stage: Stage | null, plan: FuturePlan | null): v
 }
 
 async function selectedStage(
-  database: TransactionClient,
+  database: Prisma.TransactionClient,
   stageId: string | null,
 ): Promise<Stage | null> {
   if (!stageId) return null;
@@ -68,7 +95,7 @@ async function selectedStage(
 }
 
 async function selectedPlan(
-  database: TransactionClient,
+  database: Prisma.TransactionClient,
   input: FutureIntakeInput,
 ): Promise<FuturePlan | null> {
   if (!input.planId) return null;
@@ -102,7 +129,7 @@ function samePlacement(
 }
 
 async function upsertFuturePlacement(
-  database: TransactionClient,
+  database: Prisma.TransactionClient,
   input: FutureIntakeInput & { data: PlacementData },
 ): Promise<void> {
   const { semester, studentId, recordedById, data } = input;
@@ -135,7 +162,7 @@ async function upsertFuturePlacement(
 
 /** Switching intake periods removes the unfinished intention for the other period. */
 export async function clearOtherStudentIntake(
-  database: TransactionClient,
+  database: Prisma.TransactionClient,
   input: {
     studentId: string;
     entryPeriod: "CURRENT" | "NEXT";
@@ -143,6 +170,8 @@ export async function clearOtherStudentIntake(
     now: Date;
   },
 ): Promise<void> {
+  if (input.entryPeriod === "CURRENT")
+    await database.undatedStudentIntake.deleteMany({ where: { studentId: input.studentId } });
   const today = new Date(saoPauloDateOnly(input.now));
   const placements = await database.semesterPlacement.findMany({
     where: {
@@ -177,5 +206,37 @@ export async function clearOtherStudentIntake(
         snapshot: { studentId: input.studentId, entryPeriod: input.entryPeriod },
       },
     });
+  }
+}
+
+export async function lockIntakeCalendar(database: Prisma.TransactionClient): Promise<void> {
+  await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('formation:undated-intake', 0))`;
+}
+
+/** Calendar creation and intake share a lock, so a request cannot miss a just-created period. */
+export async function bindUndatedIntakes(
+  database: Prisma.TransactionClient,
+  period: Period,
+): Promise<void> {
+  const waiting = await database.undatedStudentIntake.findMany({
+    where: {
+      requestedOn: { lt: period.startDate },
+      student: { deletedAt: null, status: "ACTIVE" },
+    },
+    include: { stage: { select: { deletedAt: true, track: { select: { status: true } } } } },
+    orderBy: { studentId: "asc" },
+  });
+  for (const item of waiting) {
+    await recordDatedIntake(database, {
+      semester: period,
+      studentId: item.studentId,
+      stageId:
+        item.stage && !item.stage.deletedAt && item.stage.track.status === "ACTIVE"
+          ? item.stageId
+          : null,
+      recordedById: item.recordedById,
+      planId: null,
+    });
+    await database.undatedStudentIntake.delete({ where: { studentId: item.studentId } });
   }
 }

@@ -4,6 +4,7 @@ import { z } from "@lazuli/validators";
 import { adminProcedure, router } from "../trpc/init.js";
 import { activityTransaction } from "../activity/record.js";
 import { calendarChangeSchema, confirmCalendarChangeSchema } from "./change-schema.js";
+import { lockIntakeCalendar } from "../semester-organization/future-student-intake.js";
 import { applyCalendarChange } from "./change-apply.js";
 const MAX_STATUS_REQUESTS = 100;
 const MIN_CALENDAR_YEAR = 2000;
@@ -28,6 +29,7 @@ export const calendarChangesRouter = router({
       action: "calendar.academic.confirmChange",
       options: { timeout: 30_000 },
       work: async (database) => {
+        if (input.change.action === "period") await lockIntakeCalendar(database);
         if (input.change.action === "period" && input.change.id)
           await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${input.change.id}`},0))`;
         await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('lazuli:teaching-schedule',158))`;

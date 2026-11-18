@@ -1,6 +1,7 @@
 import type { DatabaseClient, Prisma, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 
+import { entryHasCoverage, suspendUncoveredMemberships } from "./contract-coverage.js";
 import { reconcileDueSemesterPlacements } from "./semester-placements.js";
 
 type Database = TransactionClient;
@@ -52,6 +53,26 @@ export async function processDueEnrollmentActions(input: {
   const due = await dueActions(input.database, today);
   let applied = 0;
   for (const action of due) {
+    if (
+      (action.kind === "ENTRY" || action.kind === "RETURN") &&
+      !(await entryHasCoverage(input.database, action))
+    ) {
+      const cancelled = await input.database.enrollmentAction.updateMany({
+        where: { id: action.id, status: "SCHEDULED" },
+        data: { status: "CANCELLED", cancelledAt: input.now },
+      });
+      if (cancelled.count) {
+        await input.database.pedagogicalProgress.updateMany({
+          where: { enrollmentId: action.enrollmentId, deletedAt: null },
+          data: { deletedAt: input.now },
+        });
+        await input.database.enrollment.update({
+          where: { id: action.enrollmentId },
+          data: { deletedAt: input.now },
+        });
+      }
+      continue;
+    }
     const claimed = await input.database.enrollmentAction.updateMany({
       where: { id: action.id, status: "SCHEDULED" },
       data: { status: "APPLIED" },
@@ -100,10 +121,11 @@ export async function processAllDueEnrollmentActions(input: {
       where: { status: "SCHEDULED", effectiveDate: { lte: today } },
       select: { id: true },
     });
-    if (!pending) return;
+    if (!pending) break;
     await input.database.$transaction(
       (database) => processDueEnrollmentActions({ database, now: input.now }),
       { timeout: 30_000 },
     );
   }
+  await suspendUncoveredMemberships(input.database, today);
 }

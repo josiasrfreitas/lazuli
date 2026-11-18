@@ -24,6 +24,7 @@ export async function returnToReview(
     data: {
       version: { increment: 1 },
       publishedAt: null,
+      ...(row.continuity === "STAY" ? { continuity: "UNDECIDED" } : {}),
       publishedById: null,
       enrollmentId: null,
       entryActionId: null,

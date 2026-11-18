@@ -1,8 +1,12 @@
-import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireRole } from "~/lib/require-role";
-export const metadata: Metadata = { title: "Próximo semestre" };
-export default async function Page(): Promise<void> {
+import { formationUrl } from "~/features/class-organization/links";
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<never> {
   await requireRole(["ADMIN", "SYSTEM_ADMIN"]);
-  redirect("/organizacao");
+  redirect(formationUrl(await searchParams));
 }

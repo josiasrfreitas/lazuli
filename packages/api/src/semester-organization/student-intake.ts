@@ -1,6 +1,7 @@
 import type { Prisma, Period, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { AdmissionCandidate } from "../admissions/candidates.js";
+import { lockIntakeCalendar } from "./future-student-intake.js";
 import { readSlots } from "./data.js";
 
 const ISO_TIME_START_INDEX = 11;
@@ -10,15 +11,8 @@ const ISO_MINUTE_END_INDEX = 16;
 export async function lockIntakeSemester(
   database: TransactionClient,
   now: Date,
-): Promise<{
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
-  name: string;
-  startDate: Date;
-  endDate: Date;
-} | null> {
+): Promise<Period | null> {
+  await lockIntakeCalendar(database);
   const today = new Date(saoPauloDateOnly(now));
   const semester = await database.period.findFirst({
     where: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
@@ -69,7 +63,28 @@ export async function syncStudentIntake(
   const stageId = input.stageId ?? candidate?.stageId;
   const stage = stageId ? await database.stage.findUnique({ where: { id: stageId } }) : null;
   const slots = intakeSlots(enrollment);
-  if (!stage) return;
+  if (!stage) {
+    const existing = await database.semesterPlacement.findFirst({
+      where: {
+        semesterId: semester.id,
+        studentId,
+        mode: "ENTRY",
+        deletedAt: null,
+        declinedAt: null,
+      },
+    });
+    if (!existing)
+      await database.semesterPlacement.create({
+        data: {
+          semesterId: semester.id,
+          studentId,
+          mode: "ENTRY",
+          effectiveDate: new Date(saoPauloDateOnly(now)),
+          recordedById,
+        },
+      });
+    return;
+  }
   await syncIntakePlacement(database, {
     semester,
     studentId,
@@ -108,9 +123,15 @@ async function syncIntakePlacement(
   const { semester, studentId, enrollment, stage, recordedById } = options;
   const plan = await intakePlan(database, options);
   const existing = await database.semesterPlacement.findFirst({
-    where: { semesterId: semester.id, studentId, trackId: stage.trackId, deletedAt: null },
+    where: {
+      semesterId: semester.id,
+      studentId,
+      OR: [{ trackId: stage.trackId }, { trackId: null, mode: "ENTRY" }],
+      deletedAt: null,
+    },
+    orderBy: { trackId: { sort: "asc", nulls: "last" } },
   });
-  if (existing && !enrollment) return;
+  if (existing && !enrollment && existing.stageId === stage.id) return;
   const row = await writeIntakePlacement(database, { ...options, plan, existing });
   await database.semesterPlacementRevision.create({
     data: {
@@ -175,6 +196,7 @@ async function writeIntakePlacement(
   const data = {
     mode: enrollment ? ("CONTINUE" as const) : ("ENTRY" as const),
     stageId: stage.id,
+    trackId: stage.trackId,
     planId: intakePlacementPlanId({ plan, candidate, semester }),
     effectiveDate: enrollment?.entryDate ?? new Date(saoPauloDateOnly(now)),
     ...(enrollment
@@ -195,7 +217,7 @@ async function writeIntakePlacement(
         data: { ...data, version: { increment: 1 } },
       })
     : database.semesterPlacement.create({
-        data: { ...data, semesterId: semester.id, studentId, trackId: stage.trackId, recordedById },
+        data: { ...data, semesterId: semester.id, studentId, recordedById },
       });
 }
 

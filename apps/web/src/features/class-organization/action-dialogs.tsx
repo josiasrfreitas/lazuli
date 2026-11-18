@@ -1,5 +1,6 @@
 "use client";
 import type { FormEvent, JSX as ReactJSX } from "react";
+import { FormationProgress } from "./page-loading";
 import { useState } from "react";
 import { z, withdrawSemesterSchema } from "@lazuli/validators";
 import {
@@ -175,11 +176,11 @@ export function PlacementHistory({
             <DialogDescription>{row.studentName}</DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <RecordState
-              pending={query.isPending}
-              error={query.error}
-              retry={() => void query.refetch()}
-            />
+            {query.isPending ? (
+              <FormationProgress label="Buscando o histórico" />
+            ) : (
+              <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
+            )}
             <ol className="grid gap-5 py-4">
               {query.data?.map((item) => (
                 <HistoryRow key={item.id} item={item} />

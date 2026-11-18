@@ -1,6 +1,6 @@
 import type { SemesterPlanInput, SemesterPlacementInput } from "@lazuli/validators";
 import { classScheduleSlotsInputSchema } from "@lazuli/validators";
-import { saoPauloDateOnly } from "@lazuli/domain";
+import { formationTeachingDay, saoPauloDateOnly } from "@lazuli/domain";
 import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 import { loadActiveStage, assertTeacherIsActive } from "../classes/guards.js";
@@ -86,6 +86,8 @@ function assertPlanSchedule(input: SemesterPlanInput, previous: ClassPlan | null
       .toSorted()
       .join("|");
   if (!previous || scheduleKey(readSlots(previous.slots)) !== scheduleKey(input.slots)) {
+    if (input.slots.some((slot) => !formationTeachingDay(slot)))
+      throw badRequest("Escolha um horário de segunda a sexta ou no sábado até meio-dia.");
     const schedule = classScheduleSlotsInputSchema.safeParse(input.slots);
     if (!schedule.success) throw badRequest(schedule.error.issues[0]!.message);
   }
@@ -247,7 +249,7 @@ async function assertPlacementPlan(
   if (
     input.planId &&
     !(await context.database.semesterClassPlan.findFirst({
-      where: { id: input.planId, semesterId: input.semesterId },
+      where: { id: input.planId, semesterId: input.semesterId, deletedAt: null, closedAt: null },
     }))
   )
     throw badRequest("Escolha uma turma deste semestre.");

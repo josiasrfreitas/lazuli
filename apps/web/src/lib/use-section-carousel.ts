@@ -1,10 +1,18 @@
 import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 
-type CarouselOptions = { order: readonly string[]; scope: "studentCarousel" | "classCarousel" };
+type CarouselOptions = {
+  order: readonly string[];
+  scope: "studentCarousel" | "classCarousel" | "formationPanel";
+};
 
 /** Snapshot the departing panel so only the selected section stays mounted. */
 export function useSectionCarousel({ order, scope }: CarouselOptions) {
+  const attribute = {
+    studentCarousel: "data-student-carousel",
+    classCarousel: "data-class-carousel",
+    formationPanel: "data-formation-panel",
+  }[scope];
   const transitionRef = useRef<ViewTransition | null>(null);
   const generation = useRef(0);
 
@@ -27,6 +35,7 @@ export function useSectionCarousel({ order, scope }: CarouselOptions) {
 
     if (
       !document.startViewTransition ||
+      (scope === "formationPanel" && document.activeElement?.matches(":focus-visible")) ||
       globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       update();
@@ -34,7 +43,7 @@ export function useSectionCarousel({ order, scope }: CarouselOptions) {
     }
 
     document.documentElement.setAttribute(
-      scope === "classCarousel" ? "data-class-carousel" : "data-student-carousel",
+      attribute,
       order.indexOf(next) > order.indexOf(current) ? "forward" : "backward",
     );
     const transition = document.startViewTransition(() => {
@@ -49,9 +58,7 @@ export function useSectionCarousel({ order, scope }: CarouselOptions) {
       .finally(() => {
         if (transitionRef.current !== transition) return;
         transitionRef.current = null;
-        document.documentElement.removeAttribute(
-          scope === "classCarousel" ? "data-class-carousel" : "data-student-carousel",
-        );
+        document.documentElement.removeAttribute(attribute);
       });
   };
 }

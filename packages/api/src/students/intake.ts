@@ -60,9 +60,14 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
     .digest("hex");
   const previous = await existingIntakeResult(database, { values, fingerprint });
   if (previous) return previous;
-  const candidate = await captureIntakeCandidate(input);
   const today = saoPauloDateOnly(now);
   assertBirthDate(values.student.birthDate, today);
+  const candidate = await captureIntakeCandidate(input);
+  if (candidate?.englishExperience === "SOME") {
+    await assertPlacementReady(database, candidate);
+    if (values.stageId !== candidate.stageId)
+      throw badRequest("Use o estágio definido no nivelamento.");
+  }
   const target =
     values.entryPeriod === "CURRENT" && values.classId
       ? await intakeTarget(database, {
@@ -250,7 +255,8 @@ async function finalizeIntake(
     });
   await (values.entryPeriod === "NEXT"
     ? recordFutureStudentIntake(database, {
-        semester: semester!,
+        semester,
+        now,
         studentId,
         stageId: values.stageId,
         planId: values.planId,
@@ -466,8 +472,8 @@ export async function resumeStudentIntake({
     });
   await updateStudentContact({ database, id: values.studentId, values: values.contact });
   await assertResumeGuardian(database, { state, studentId: values.studentId });
-  await allocateResumedIntake({ database, state, values, recordedById, now });
   const contract = await createMissingIntakeContract(database, { state, values, recordedById });
+  await allocateResumedIntake({ database, state, values, recordedById, now });
   await recordResumedIntake({ database, semester, state, values, recordedById, now });
   return { studentId: values.studentId, contractId: contract?.id ?? null };
 }
@@ -501,7 +507,8 @@ async function recordResumedIntake(input: {
   const { database, semester, state, values, recordedById, now } = input;
   if (values.entryPeriod === "NEXT") {
     await recordFutureStudentIntake(database, {
-      semester: semester!,
+      semester,
+      now,
       studentId: values.studentId,
       stageId: values.stageId,
       planId: values.planId,

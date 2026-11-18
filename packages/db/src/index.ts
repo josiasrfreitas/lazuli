@@ -50,3 +50,10 @@ export {
   computeEnrollmentPercentInWindow,
   computeEnrollmentsPercentInWindow,
 } from "./attendance-percent.js";
+
+export {
+  contractAt,
+  readFormationAcademics,
+  emptyFormationAcademics,
+  type FormationAcademics,
+} from "./formation.js";

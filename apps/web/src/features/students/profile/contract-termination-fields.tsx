@@ -214,7 +214,7 @@ function EnrollmentChoices(props: TerminationViewProps): ReactJSX.Element {
       {preview.enrollments.some((row) => row.semesterPublished) && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <a
-            href="/proximo-semestre"
+            href="/turmas/formacao"
             target="_blank"
             rel="noreferrer"
             className="text-caption font-medium text-primary underline underline-offset-2"

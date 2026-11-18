@@ -182,11 +182,7 @@ export type {
   DocumentFamily,
 } from "./identity-extraction/types.js";
 
-export {
-  periodConfirmation,
-  preconfirmationThrough,
-  type PeriodConfirmation,
-} from "./period-confirmation.js";
+export { periodConfirmation, type PeriodConfirmation } from "./period-confirmation.js";
 
 export {
   LOW_HEALTH_SCORE,
@@ -197,3 +193,12 @@ export { academicActivityCanBeCancelled } from "./academic-calendar.js";
 export { scheduleProgram } from "./program-schedule.js";
 export { programActivityLabels } from "./program-labels.js";
 export { recordedActivities } from "./recorded-activities.js";
+
+export {
+  contractCoverageEnd,
+  formationContractStatus,
+  formationTeachingDay,
+  meetsFormationAverages,
+  MISSING_ENTRY_CONTRACT,
+  type FormationContractStatus,
+} from "./formation.js";

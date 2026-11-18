@@ -226,7 +226,7 @@ function registrationCompletion(input: {
       placement,
       allowPending: lead.englishExperience === "SOME" && !placement,
     });
-    if (props.destination) {
+    if (props.destination && lead.englishExperience !== "SOME") {
       props.destination.onConfirm(registration);
       props.onClose();
     } else capture.mutate(registration);
@@ -398,8 +398,8 @@ function CaptureDetailsStep({ props, state, actions }: CaptureViewProps): ReactJ
         wide
         title={props.candidate ? "Editar lead" : "Novo lead"}
         description={
-          props.destination
-            ? "O lead e o nivelamento serão salvos ao concluir o cadastro do aluno."
+          props.destination && state.draft.englishExperience !== "SOME"
+            ? "O lead será salvo ao concluir o cadastro do aluno."
             : "Registre o contato e o ponto de partida do aluno."
         }
         firstField="lead-name"

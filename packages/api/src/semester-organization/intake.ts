@@ -17,16 +17,15 @@ export async function recordStudentIntake(
 ): Promise<void> {
   const { studentId, recordedById, input, now = new Date() } = options;
   const { semester, stage, plan, today } = await intakeSelection(database, { input, now });
-  if (stage)
-    await createIntakePlacement(database, {
-      semester,
-      stage,
-      plan,
-      today,
-      studentId,
-      recordedById,
-      input,
-    });
+  await createIntakePlacement(database, {
+    semester,
+    stage,
+    plan,
+    today,
+    studentId,
+    recordedById,
+    input,
+  });
 }
 
 type Period = Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
@@ -42,14 +41,8 @@ async function intakeSelection(
     where: { id: input.semesterId, deletedAt: null },
   });
   const today = saoPauloDateOnly(now);
-  if (
-    !semester ||
-    semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH) > today ||
-    semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) < today
-  )
-    throw badRequest(
-      "Cadastre como lead quem aguarda um período futuro. A entrada de aluno exige um período vigente.",
-    );
+  if (!semester || semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) < today)
+    throw badRequest("Escolha um período atual ou futuro no calendário acadêmico.");
   const stage = await intakeStage(database, input.stageId);
   const plan = await intakePlan(database, input);
   if (plan && !stage)
@@ -77,7 +70,7 @@ async function intakePlan(
 ): Promise<ClassPlan | null> {
   if (!input.planId) return null;
   const plan = await database.semesterClassPlan.findFirst({
-    where: { id: input.planId, semesterId: input.semesterId, deletedAt: null },
+    where: { id: input.planId, semesterId: input.semesterId, closedAt: null, deletedAt: null },
   });
   if (!plan) throw badRequest("A turma escolhida não está disponível neste semestre.");
   return plan;
@@ -95,7 +88,7 @@ async function createIntakePlacement(
     input,
   }: {
     semester: Period;
-    stage: Stage;
+    stage: Stage | null;
     plan: ClassPlan | null;
     today: string;
     studentId: string;
@@ -107,8 +100,8 @@ async function createIntakePlacement(
     data: {
       semesterId: semester.id,
       studentId,
-      stageId: stage.id,
-      trackId: stage.trackId,
+      stageId: stage?.id ?? null,
+      trackId: stage?.trackId ?? null,
       planId: plan?.id ?? null,
       mode: "ENTRY",
       effectiveDate: new Date(
@@ -122,7 +115,7 @@ async function createIntakePlacement(
     placementId: row.id,
     version: row.version,
     studentId,
-    stageId: stage.id,
+    stageId: stage?.id ?? null,
     planId: plan?.id ?? null,
     notes: input.notes,
     recordedById,
@@ -135,7 +128,7 @@ async function recordIntakePlacementRevision(
     placementId: string;
     version: number;
     studentId: string;
-    stageId: string;
+    stageId: string | null;
     planId: string | null;
     notes: string;
     recordedById: string;

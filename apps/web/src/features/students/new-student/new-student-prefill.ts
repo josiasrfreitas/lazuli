@@ -61,7 +61,7 @@ export function existingStudentSelections(pending: PendingActions): {
     candidateId: linked?.id ?? null,
     stageId: selectedStageId(pending, future),
     ...selectionClassFormat(pending, future),
-    entryPeriod: future ? "NEXT" : "CURRENT",
+    entryPeriod: future || pending.undatedIntake ? "NEXT" : "CURRENT",
     selectedId: future?.planId ?? "",
   };
 }
@@ -71,7 +71,11 @@ function selectedStageId(
   future: PendingActions["futurePlacement"] | null,
 ): string | null {
   return (
-    future?.stageId ?? pending.lead?.stageId ?? pending.enrollment?.class?.sharedStage?.id ?? null
+    future?.stageId ??
+    pending.undatedIntake?.stageId ??
+    pending.lead?.stageId ??
+    pending.enrollment?.class?.sharedStage?.id ??
+    null
   );
 }
 
@@ -93,7 +97,7 @@ function existingClassFormat(
   const enrollmentClass = pending.enrollment?.class;
   return {
     format: enrollmentClass?.format ?? linked?.format ?? "IN_PERSON",
-    scheduleType: enrollmentClass?.scheduleType ?? linked?.scheduleType ?? "REGULAR",
+    scheduleType: enrollmentClass?.scheduleType ?? linked?.scheduleType ?? "PERSONALIZED",
   };
 }
 
@@ -143,7 +147,7 @@ export function leadStudentSelections(lead: Lead): {
   return {
     stageId: lead.stageId,
     format: lead.format ?? "IN_PERSON",
-    scheduleType: lead.scheduleType ?? "REGULAR",
+    scheduleType: lead.scheduleType ?? "PERSONALIZED",
     entryPeriod: futurePlan ? "NEXT" : "CURRENT",
     selectedId: futurePlan ? (lead.allocationPlan?.id ?? "") : (lead.allocationPlan?.classId ?? ""),
   };

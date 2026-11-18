@@ -9,7 +9,7 @@ const ALIASES: Record<string, string[]> = {
   "/professores": ["professor", "docentes", "equipe"],
   "/turmas": ["turma", "classes", "grupos"],
   "/aulas": ["aula", "calendario", "atendimentos", "agenda", "horarios"],
-  "/proximo-semestre": ["organizar semestre", "alocacao"],
+  "/turmas/formacao": ["organizar semestre", "alocacao"],
   "/financeiro": ["financeiro", "financas", "visao geral", "financeira"],
   "/recebiveis": [
     "receber",
@@ -28,8 +28,13 @@ const ALIASES: Record<string, string[]> = {
 };
 
 export function pageCommands(role: StaffRole): Command[] {
-  return navSectionsFor(role).flatMap((section) =>
-    section.items.map((item) => ({
+  return navSectionsFor(role).flatMap((section) => {
+    const pages = section.items.flatMap((item) =>
+      item.href === "/turmas"
+        ? [item, { href: "/turmas/formacao", label: "Formação de turmas" }]
+        : [item],
+    );
+    return pages.map((item) => ({
       id: `page:${item.href}`,
       kind: "page" as const,
       title: item.label,
@@ -38,8 +43,8 @@ export function pageCommands(role: StaffRole): Command[] {
       section: section.label ?? "Sistema",
       keywords: ALIASES[item.href] ?? [],
       icon: pageIcon(item.href),
-    })),
-  );
+    }));
+  });
 }
 
 function pageIcon(href: string): Command["icon"] {

@@ -134,6 +134,7 @@ enum ArtifactKind {
 }
 
 model User {
+  undatedIntakes UndatedStudentIntake[]
   classAppointmentsTaught ClassAppointmentSeries[] @relation("ClassAppointmentTeacher")
   classAppointmentsScheduled ClassAppointmentSeries[] @relation("ClassAppointmentScheduler")
   attendanceSettingsUpdated AttendanceSettings[] @relation("AttendanceSettingsAuthor")
@@ -282,6 +283,7 @@ model RateLimit {
 }
 
 model Student {
+  undatedIntake UndatedStudentIntake?
   healthPending StudentHealthPending?
   documentSessions StudentDocumentSession[]
   id             String        @id @default(uuid()) @db.Uuid
@@ -359,6 +361,7 @@ model Address {
 }
 
 model Period {
+  formationRiskLimit Int @default(4) @map("formation_risk_limit")
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -555,6 +558,7 @@ model Track {
 }
 
 model Stage {
+  undatedIntakes UndatedStudentIntake[]
   id           String    @id @default(uuid()) @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -1944,6 +1948,7 @@ enum SemesterPlacementMode {
 }
 
 model SemesterClassPlan {
+  startsOn DateTime? @map("starts_on") @db.Date
   closedAt DateTime? @map("closed_at") @db.Timestamptz
   waitingLeads AdmissionCandidate[]
   sourceClass Class? @relation("ClassOrganizationSource", fields: [sourceClassId], references: [id], onDelete: Restrict, onUpdate: NoAction)
@@ -1974,6 +1979,7 @@ model SemesterClassPlan {
 }
 
 model SemesterPlacement {
+  attentionNote String? @map("attention_note")
   continuity String @default("UNDECIDED")
   continuityReason String? @map("continuity_reason")
   effectiveDate DateTime? @map("effective_date") @db.Date
@@ -2427,4 +2433,16 @@ model ClassAppointmentSeries {
   scheduledBy User @relation("ClassAppointmentScheduler", fields: [scheduledById], references: [id], onDelete: Restrict)
   sessions ClassSession[]
   @@index([classId])
+}
+
+/// A student waiting for the calendar to define the next period.
+model UndatedStudentIntake {
+  studentId String @id @map("student_id") @db.Uuid
+  stageId String? @map("stage_id") @db.Uuid
+  requestedOn DateTime @map("requested_on") @db.Date
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
 }

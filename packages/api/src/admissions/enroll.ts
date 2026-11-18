@@ -83,6 +83,7 @@ export function captureEnrollmentTransaction(database: TransactionClient): Enrol
     $kysely: database.$kysely,
     $queryRaw: database.$queryRaw.bind(database),
     enrollment: database.enrollment,
+    contract: database.contract,
     pedagogicalProgress: database.pedagogicalProgress,
     class: database.class,
     student: database.student,

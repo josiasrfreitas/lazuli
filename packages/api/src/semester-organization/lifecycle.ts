@@ -1,3 +1,4 @@
+import { releaseClassPlaces } from "./dissolve.js";
 import { z } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
@@ -30,6 +31,7 @@ export const continuitySchema = z
     id: z.string().uuid(),
     version: z.number().int().positive(),
     continuity: z.enum(["UNDECIDED", "STAY", "CHANGE", "LEAVING"]),
+    attentionNote: z.string().trim().max(MAX_REASON_LENGTH).optional(),
     reason: z.string().trim().max(MAX_REASON_LENGTH).default(""),
   })
   .strict()
@@ -56,6 +58,7 @@ export async function saveContinuity(
     data: {
       continuity: input.continuity,
       continuityReason: input.reason || null,
+      ...(input.attentionNote !== undefined ? { attentionNote: input.attentionNote || null } : {}),
       version: { increment: 1 },
     },
   });
@@ -131,7 +134,7 @@ export const planLifecycleSchema = z
 export async function changePlanStatus(
   context: OrganizationContext,
   input: z.infer<typeof planLifecycleSchema>,
-): Promise<{ classId: string | null; generationRequestId: string | null }> {
+): Promise<PlanStatus & { reconciliationRequestId: string | null }> {
   const initial = await context.database.semesterClassPlan.findUnique({ where: { id: input.id } });
   if (!initial) throw notFound("Turma não encontrada.");
   const semester = await lockSemester(context, initial.semesterId);
@@ -155,7 +158,19 @@ export async function changePlanStatus(
       description: input.open ? "Turma aberta para receber alunos." : "Turma encerrada.",
     },
   });
-  return { classId, generationRequestId };
+  const reconciliation =
+    !input.open && classId
+      ? await context.database.calendarReconciliationRequest.create({
+          data: {
+            semesterId: semester.id,
+            fromDate: new Date(saoPauloDateOnly(context.now)),
+            throughDate: semester.endDate,
+            reason: "Turma desfeita.",
+            requestedById: context.staffUser.id,
+          },
+        })
+      : null;
+  return { classId, generationRequestId, reconciliationRequestId: reconciliation?.id ?? null };
 }
 
 type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
@@ -167,7 +182,13 @@ async function openClassPlan(
   { plan, semester }: { plan: ClassPlan; semester: Period },
 ): Promise<PlanStatus> {
   if (!plan.teacherId) throw badRequest("Defina o professor antes de abrir a turma.");
-  const from = [saoPauloDateOnly(context.now), dateOnly(semester.startDate)].toSorted().at(-1)!;
+  const from = [
+    saoPauloDateOnly(context.now),
+    dateOnly(semester.startDate),
+    dateOnly(plan.startsOn ?? semester.startDate),
+  ]
+    .toSorted()
+    .at(-1)!;
   await assertTeacherEligible({
     database: context.database,
     teacherId: plan.teacherId,
@@ -247,6 +268,7 @@ async function createClassPlan(
     recordedById: context.staffUser.id,
     values: {
       semesterId: semester.id,
+      ...(plan.sourceClassId ? { previousClassId: plan.sourceClassId } : {}),
       startDate,
       teacherId,
       scheduleType: plan.scheduleType,
@@ -259,20 +281,6 @@ async function createClassPlan(
 }
 
 async function closeClassPlan(context: OrganizationContext, plan: ClassPlan): Promise<PlanStatus> {
-  if (plan.classId) {
-    const active = await context.database.enrollment.count({
-      where: {
-        classId: plan.classId,
-        deletedAt: null,
-        OR: [{ exitDate: null }, { exitDate: { gt: new Date(saoPauloDateOnly(context.now)) } }],
-      },
-    });
-    if (active)
-      throw badRequest("Transfira ou encerre os vínculos dos alunos antes de encerrar a turma.");
-    await context.database.class.update({
-      where: { id: plan.classId },
-      data: { status: "ARCHIVED" },
-    });
-  }
+  await releaseClassPlaces(context, plan);
   return { classId: plan.classId, generationRequestId: null };
 }

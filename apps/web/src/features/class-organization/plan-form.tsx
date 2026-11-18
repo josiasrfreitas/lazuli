@@ -1,7 +1,7 @@
 "use client";
 
 import type { JSX as ReactJSX } from "react";
-import { InlineSkeleton } from "@lazuli/ui";
+import { FormationProgress } from "./page-loading";
 import { trpc } from "~/lib/trpc";
 import { TaskDialog } from "~/features/shared/task-form";
 import { stageLabel } from "~/features/class-organization/model";
@@ -48,7 +48,7 @@ function PlanLoading({
       compactHeader
       actionSize="sm"
       title={plan ? "Editar turma" : "Nova turma"}
-      description="Carregando professores e estágios…"
+      description="Horário, estágio e professor."
       formId="plan-loading"
       firstField=""
       submitLabel="Salvar turma"
@@ -56,13 +56,7 @@ function PlanLoading({
       pending={false}
       onClose={onClose}
     >
-      <div className="grid gap-4 py-4" role="status" aria-label="Carregando turma">
-        <InlineSkeleton className="h-12 w-full" />
-        <InlineSkeleton className="h-12 w-full" />
-        <InlineSkeleton className="h-24 w-full" />
-      </div>
+      <FormationProgress label="Buscando professores e estágios" />
     </TaskDialog>
   );
 }
-
-export { SemesterForm } from "./period-create-form";

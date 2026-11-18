@@ -1,3 +1,4 @@
+import { bindUndatedIntakes } from "../semester-organization/future-student-intake.js";
 import type { Prisma } from "@lazuli/db";
 import type { CalendarChange } from "./change-schema.js";
 import { calendarChangeState, type CalendarChangeState } from "./change-state.js";
@@ -35,6 +36,18 @@ async function persistCalendarChange(
       const period = change.id
         ? await database.period.update({ where: { id: change.id }, data })
         : await database.period.create({ data });
+      if (change.id)
+        await database.semesterPlacement.updateMany({
+          where: {
+            semesterId: period.id,
+            deletedAt: null,
+            declinedAt: null,
+            publishedAt: null,
+            effectiveDate: { lt: period.startDate },
+          },
+          data: { effectiveDate: period.startDate, version: { increment: 1 } },
+        });
+      await bindUndatedIntakes(database, period);
       return period.id;
     }
     case "interruption": {

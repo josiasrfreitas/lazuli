@@ -25,7 +25,7 @@ export function PlanStatusDialog({
       onFeedback(
         open
           ? "Turma aberta para receber alunos."
-          : "Turma encerrada. Você pode reabri-la pelas opções da organização.",
+          : "Turma desfeita. Os alunos voltaram às pendências de encaixe.",
       );
       onClose();
     },
@@ -34,11 +34,12 @@ export function PlanStatusDialog({
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title={open ? (plan.classId ? "Reabrir turma" : "Abrir turma") : "Encerrar turma"}
+      title={open ? (plan.classId ? "Reabrir turma" : "Abrir turma") : "Desfazer turma"}
       description={plan.name}
       formId="plan-status"
       firstField=""
-      submitLabel={open ? "Abrir turma" : "Encerrar turma"}
+      submitVariant={open ? "primary" : "destructive"}
+      submitLabel={open ? "Abrir turma" : "Desfazer turma"}
       pending={mutation.isPending}
       error={mutation.error?.message}
       onClose={onClose}
@@ -62,7 +63,7 @@ function PlanStatusMessage({ open }: { open: boolean }): ReactJSX.Element {
     <p className="text-caption">
       {open
         ? "A turma ficará disponível para matrículas. As aulas serão geradas pelo calendário do período."
-        : "A turma sai dos horários disponíveis. Transfira ou encerre os vínculos dos alunos antes de continuar. O histórico será preservado."}
+        : "Os alunos voltarão às pendências deste período. Entradas futuras serão canceladas e vínculos já em andamento serão encerrados hoje."}
     </p>
   );
 }

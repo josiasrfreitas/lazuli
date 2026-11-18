@@ -60,7 +60,7 @@ export function useEnrollmentIdentity(initialCandidateId: string | undefined): E
   const [candidateId, setCandidateId] = useState<string | null>(initialCandidateId ?? null);
   const [stageId, setStageId] = useState<string | null>(null);
   const [format, setFormat] = useState<Format>("IN_PERSON");
-  const [scheduleType, setScheduleType] = useState<ScheduleType>("REGULAR");
+  const [scheduleType, setScheduleType] = useState<ScheduleType>("PERSONALIZED");
   const [entryPeriod, setEntryPeriod] = useState<EntryPeriod>("CURRENT");
   const [teacherSelection, setTeacherSelection] = useState<SearchSelectOption | null>(null);
   const [selectedId, setSelectedId] = useState("");

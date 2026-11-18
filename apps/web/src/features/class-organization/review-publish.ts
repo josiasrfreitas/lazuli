@@ -40,7 +40,7 @@ export function useReviewPublish({
       }
       clearSelection();
       onFeedback(
-        `${count} ${count === 1 ? "alocação aplicada" : "alocações aplicadas"}. Cada vínculo respeita sua data de vigência.`,
+        `${count} ${count === 1 ? "vínculo oficializado" : "vínculos oficializados"}. Cada vínculo respeita sua data de vigência.`,
       );
     } catch (error_) {
       setError(

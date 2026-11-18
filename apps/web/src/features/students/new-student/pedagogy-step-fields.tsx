@@ -52,6 +52,7 @@ export function PedagogyEntryFields({
 
 function SemesterField({
   current,
+  next,
   semesterId,
   semesterError,
   pending,
@@ -83,27 +84,17 @@ function SemesterField({
         <SegmentedControlItem value={current?.id ?? "current"} disabled={!current}>
           Atual{current ? ` · ${current.name}` : ""}
         </SegmentedControlItem>
+        <SegmentedControlItem value={next?.id ?? "future"} disabled={!next}>
+          Próximo{next ? ` · ${next.name}` : ""}
+        </SegmentedControlItem>
       </SegmentedControl>
       <FieldError match={Boolean(semesterError)}>{semesterError}</FieldError>
-      <SemesterAvailabilityNote current={current} failed={failed} />
+      {!failed && !next && (
+        <p className="text-caption text-muted-foreground">
+          O próximo período aguarda definição no calendário acadêmico.
+        </p>
+      )}
     </Field>
-  );
-}
-
-function SemesterAvailabilityNote({
-  current,
-  failed,
-}: {
-  current: SemesterOption;
-  failed: boolean;
-}): ReactJSX.Element | null {
-  if (failed) return null;
-  return (
-    <p className="text-caption text-muted-foreground">
-      {current
-        ? "Para entradas futuras, cadastre um lead e acompanhe o interesse pela turma."
-        : "Não há período vigente. Mantenha a pessoa como lead até a entrada."}
-    </p>
   );
 }
 

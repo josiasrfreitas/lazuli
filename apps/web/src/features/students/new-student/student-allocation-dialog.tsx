@@ -340,7 +340,7 @@ function AllocationFilters({
         <InterestChoice
           label="Modalidade"
           value={scheduleType}
-          options={{ REGULAR: "Regular", PERSONALIZED: "PPT" }}
+          options={{ PERSONALIZED: "PPT", REGULAR: "Regular" }}
           onChange={(value) => onScheduleTypeChange(value as typeof scheduleType)}
         />
         <InterestChoice
