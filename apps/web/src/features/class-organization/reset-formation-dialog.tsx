@@ -7,6 +7,15 @@ import { TaskDialog } from "~/features/shared/task-form";
 import { trpc } from "~/lib/trpc";
 import { useOrganizationRefresh, type OrganizationBoard } from "./shared";
 
+function releaseLabel(students: number, leads: number): string {
+  return [
+    students > 0 && (students === 1 ? "1 vínculo de aluno" : `${students} vínculos de alunos`),
+    leads > 0 && (leads === 1 ? "1 lead" : `${leads} leads`),
+  ]
+    .filter(Boolean)
+    .join(" e ");
+}
+
 export function ResetFormationDialog({
   board,
   onClose,
@@ -28,13 +37,10 @@ export function ResetFormationDialog({
   );
   const refresh = useOrganizationRefresh();
   const reset = trpc.semesterOrganization.reset.useMutation({
-    onSuccess: async ({ released }) => {
+    onSuccess: async ({ released, leads }) => {
       await refresh();
-      onFeedback?.(
-        released === 1
-          ? "1 vínculo voltou para a fila."
-          : `${released} vínculos voltaram para a fila.`,
-      );
+      const verb = released + leads === 1 ? "voltou" : "voltaram";
+      onFeedback?.(`Formação reiniciada. ${releaseLabel(released, leads)} ${verb} à fila.`);
       onClose();
     },
     onError: () => {
@@ -43,8 +49,9 @@ export function ResetFormationDialog({
     },
   });
   const scope = preview.data;
+  const hasProposals = Boolean(scope && (scope.release || scope.leads));
   const canReset =
-    !!scope?.release &&
+    hasProposals &&
     confirmation.trim().toUpperCase() === "REINICIAR" &&
     !preview.isFetching &&
     !preview.error;
@@ -54,7 +61,7 @@ export function ResetFormationDialog({
       size="compact"
       title="Reiniciar formação"
       description={board.semester.name}
-      firstField={scope?.release ? "formation-reset-confirmation" : "formation-reset-summary"}
+      firstField={hasProposals ? "formation-reset-confirmation" : "formation-reset-summary"}
       formId="formation-reset"
       submitLabel="Reiniciar formação"
       submitIcon={<RotateCcw />}
@@ -79,11 +86,9 @@ export function ResetFormationDialog({
           {scope && (
             <>
               <strong>
-                {scope.release === 0
-                  ? "Nenhum destino provisório para retirar."
-                  : scope.release === 1
-                    ? "1 vínculo voltará para a fila de escolha de turma."
-                    : `${scope.release} vínculos voltarão para a fila de escolha de turma.`}
+                {hasProposals
+                  ? `${releaseLabel(scope.release, scope.leads)} ${scope.release + scope.leads === 1 ? "voltará" : "voltarão"} à fila para escolher turma.`
+                  : "Nenhum destino provisório para retirar."}
               </strong>
               <p>
                 {scope.keep === 1
@@ -97,7 +102,7 @@ export function ResetFormationDialog({
             A grade, as notas e o histórico de conversas continuam disponíveis.
           </p>
         </div>
-        {Boolean(scope?.release) && (
+        {hasProposals && (
           <Field>
             <Label htmlFor="formation-reset-confirmation">Digite REINICIAR para confirmar</Label>
             <Input

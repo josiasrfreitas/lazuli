@@ -10,7 +10,7 @@ import {
 import { readSemester } from "./queries.js";
 
 async function resetScope(context: OrganizationContext, semesterId: string) {
-  const { placements } = await readSemester(context, semesterId);
+  const { placements, waitingLeads } = await readSemester(context, semesterId);
   const assigned = placements.filter((row) => row.planId && !row.declinedAt);
   const provisional = assigned.filter(
     (row) =>
@@ -23,14 +23,20 @@ async function resetScope(context: OrganizationContext, semesterId: string) {
   const versions = provisional
     .map(({ id, version }) => [id, version] as const)
     .sort(([left], [right]) => left.localeCompare(right));
+  const interests = waitingLeads
+    .filter((lead) => lead.allocationPlanId !== null)
+    .map((lead) => [lead.id, lead.allocationPlanId] as const)
+    .sort(([left], [right]) => left.localeCompare(right));
   const fingerprint = createHash("sha256")
-    .update(JSON.stringify([semesterId, versions]))
+    .update(JSON.stringify([semesterId, versions, interests]))
     .digest("hex");
   return {
+    leadIds: interests.map(([id]) => id),
     ids: provisional.map((row) => row.id),
     preview: {
       fingerprint,
       release: provisional.length,
+      leads: interests.length,
       keep: assigned.length - provisional.length,
     },
   };
@@ -47,13 +53,13 @@ export async function resetFormation(
   input: { semesterId: string; fingerprint: string },
 ) {
   const semester = await lockSemester(context, input.semesterId);
-  const { ids, preview } = await resetScope(context, input.semesterId);
+  const { ids, leadIds, preview } = await resetScope(context, input.semesterId);
   if (preview.fingerprint !== input.fingerprint)
     throw new TRPCError({
       code: "CONFLICT",
       message: "As propostas mudaram. Confira a prévia atualizada antes de reiniciar.",
     });
-  if (!ids.length) return { released: 0 };
+  if (!ids.length && !leadIds.length) return { released: 0, leads: 0 };
   const released = await context.database.semesterPlacement.updateManyAndReturn({
     where: {
       semesterId: input.semesterId,
@@ -79,13 +85,23 @@ export async function resetFormation(
       ),
     ),
   });
+  const leads = await context.database.admissionCandidate.updateMany({
+    where: {
+      id: { in: leadIds },
+      allocationPlan: { semesterId: semester.id },
+      status: "WAITING",
+      deletedAt: null,
+      allocationPendingAt: { not: null },
+    },
+    data: { allocationPlanId: null },
+  });
   await recordActivity(context.database, {
     context,
     action: "semesterOrganization.reset",
     details: {
       subject: { type: "school", id: semester.id, name: semester.name },
-      description: `${released.length} vínculo(s) voltaram à fila para escolha de turma.`,
+      description: `${released.length} vínculo(s) de alunos e ${leads.count} lead(s) voltaram à fila para escolha de turma.`,
     },
   });
-  return { released: released.length };
+  return { released: released.length, leads: leads.count };
 }

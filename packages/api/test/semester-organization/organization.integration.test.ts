@@ -344,6 +344,19 @@ void it("keeps future class interest as a lead and scopes it to the chosen perio
   assert.equal(retained.status, "WAITING");
   assert.equal(retained.studentId, null);
   assert.equal(retained.enrollmentId, null);
+  const input = { semesterId: scope.semester.id };
+  const service = caller().semesterOrganization;
+  const preview = await service.resetPreview(input);
+  assert.equal(preview.release, 0);
+  assert.equal(preview.leads, 1);
+  assert.deepEqual(await service.reset({ ...input, fingerprint: preview.fingerprint }), {
+    released: 0,
+    leads: 1,
+  });
+  const [returned] = (await service.detail(input)).waitingLeads;
+  assert.equal(returned?.id, lead.id);
+  assert.equal(returned.allocationPlanId, null);
+  assert.equal(returned.allocationPendingReason, "Aguarda o próximo período");
 });
 
 void it("publishes only selected eligible students, preserving the current PPT attempt and both temporal memberships", async () => {
@@ -819,4 +832,11 @@ void it("restarts provisional placements while keeping real confirmations, marks
   const history = await service.history({ id: pending.proposal.id });
   assert.equal(history[0]?.action, "FORMATION_RESET");
   assert.equal((await service.resetPreview(input)).release, 0);
+  await service.prepare(input);
+  const refreshed = await service.detail(input);
+  assert.equal(refreshed.placements.find((row) => row.id === pending.proposal.id)?.planId, null);
+  assert.equal(
+    refreshed.placements.find((row) => row.id === preconfirmed.proposal.id)?.planId,
+    scope.plan.id,
+  );
 });
