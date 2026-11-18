@@ -43,19 +43,29 @@ export function StudentReviewDetail({ row, board, onAction, readOnly }: Props) {
             <small>Turma de origem</small>
             <strong>{row.sourceClassName ?? "Primeira matrícula"}</strong>
             <span>
-              {[row.sourceStageCode, row.sourceTeacher, scheduleLabel(row.sourceSchedule)]
+              {[
+                row.sourceStageName ?? row.sourceStageCode,
+                row.sourceTeacher,
+                scheduleLabel(row.sourceSchedule),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </span>
           </div>
           <ArrowRight size={16} aria-hidden="true" />
           <div>
-            <small>Destino · {board.semester.name}</small>
+            <small>
+              {row.publishedAt ? "Turma de destino" : "Turma proposta"} · {board.semester.name}
+            </small>
             <strong>
               {row.declinedAt ? "Saída registrada" : (plan?.name ?? "Turma a definir")}
             </strong>
             <span>
-              {[row.stageCode, plan?.teacherName, plan && scheduleLabel(plan.slots)]
+              {[
+                row.stageName ?? row.stageCode,
+                plan?.teacherName,
+                plan && scheduleLabel(plan.slots),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </span>

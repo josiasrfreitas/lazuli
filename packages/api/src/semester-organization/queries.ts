@@ -56,6 +56,7 @@ const PLACEMENT_COLUMNS = [
   "student.status as studentStatus",
   "student.deleted_at as studentDeletedAt",
   "targetStage.internal_code as stageCode",
+  "targetStage.name as stageName",
   "targetStage.sequence as targetSequence",
   "targetStage.track_id as targetTrackId",
   "targetStage.deleted_at as stageDeletedAt",
@@ -75,6 +76,7 @@ const PLACEMENT_COLUMNS = [
   "sourceStage.track_id as sourceTrackId",
   "sourceStage.sequence as sourceSequence",
   "sourceStage.internal_code as sourceStageCode",
+  "sourceStage.name as sourceStageName",
   "assessment.decision",
   "assessment.confirmed_at as confirmedAt",
   "assessment.deleted_at as assessmentDeletedAt",
@@ -116,6 +118,7 @@ export type PlacementRow = {
   studentStatus: StudentModel["status"];
   studentDeletedAt: Date | null;
   stageCode: string | null;
+  stageName: string | null;
   targetSequence: number | null;
   targetTrackId: string | null;
   stageDeletedAt: Date | null;
@@ -135,6 +138,7 @@ export type PlacementRow = {
   sourceTrackId: string | null;
   sourceSequence: number | null;
   sourceStageCode: string | null;
+  sourceStageName: string | null;
   decision: AssessmentModel["decision"] | null;
   confirmedAt: Date | null;
   assessmentDeletedAt: Date | null;

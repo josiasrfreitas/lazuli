@@ -3,6 +3,7 @@ import { Check, ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
 import { Badge, Checkbox } from "@lazuli/ui";
 import { StudentAvatar } from "~/components/student-avatar";
 import { formatDateOnlyBR } from "~/lib/format";
+import { attentionReasons } from "./attention-reasons";
 import { dateOnly } from "./shared";
 import { confirmationLabels, confirmationVariants, isConfirmed } from "./confirmation";
 import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
@@ -34,6 +35,11 @@ export function ReviewRow({
 }: RowProps): ReactElement {
   const plan = board.plans.find((item) => item.id === row.planId);
   const id = `review-${row.id}`;
+  const sameClass = Boolean(
+    row.sourceClassId &&
+    (row.sourceClassId === plan?.sourceClassId || row.sourceClassId === plan?.classId),
+  );
+  const shortIssue = attentionReasons(row)[0]?.label ?? "Revisar proposta";
   return (
     <li className={styles.row} data-expanded={expanded || undefined}>
       <div className={styles.summary}>
@@ -62,9 +68,17 @@ export function ReviewRow({
             <strong>{row.studentName}</strong>
           </span>
           <span className={styles.route}>
-            <span>{row.sourceClassName ?? "Nova entrada"}</span>
-            <ArrowRight size={13} aria-hidden="true" />
-            <span>{row.declinedAt ? "Saída registrada" : (plan?.name ?? "Escolher turma")}</span>
+            {row.declinedAt ? (
+              <span>Saída registrada</span>
+            ) : sameClass ? (
+              <span>Permanece na turma{row.stageName ? ` · ${row.stageName}` : ""}</span>
+            ) : (
+              <>
+                <span>{row.sourceClassName ?? "Nova entrada"}</span>
+                <ArrowRight size={13} aria-hidden="true" />
+                <span>{plan?.name ?? "Escolher turma"}</span>
+              </>
+            )}
           </span>
           <span className={styles.status}>
             <Badge variant={row.declinedAt ? "neutral" : confirmationVariants[row.confirmation]}>
@@ -76,7 +90,9 @@ export function ReviewRow({
                 ? `Vigência em ${formatDateOnlyBR(dateOnly(row.effectiveDate ?? board.semester.startDate))}`
                 : eligible
                   ? "Pronto para alocar"
-                  : row.blockers[0]}
+                  : row.declinedAt
+                    ? ""
+                    : shortIssue}
             </small>
           </span>
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
