@@ -308,6 +308,9 @@ function ReviewParties({
   billingFirstDueDate?: string | undefined;
   onEdit: (step: SetupStep) => void;
 }): ReactElement {
+  const student = fields.studentMode === "create" ? fields.studentDraftName : fields.studentName;
+  const payer = fields.payerMode === "create" ? fields.payerName : fields.payerLabel;
+  const sameName = Boolean(student.trim()) && student.trim() === payer.trim();
   return (
     <FormSection
       title="Responsável e período"
@@ -319,13 +322,15 @@ function ReviewParties({
     >
       <dl className={styles.reviewList}>
         <div>
-          <dt>Aluno</dt>
-          <dd>{fields.studentMode === "create" ? fields.studentDraftName : fields.studentName}</dd>
+          <dt>{sameName ? "Aluno e responsável financeiro" : "Aluno"}</dt>
+          <dd>{student}</dd>
         </div>
-        <div>
-          <dt>Responsável financeiro</dt>
-          <dd>{fields.payerMode === "create" ? fields.payerName : fields.payerLabel}</dd>
-        </div>
+        {!sameName && (
+          <div>
+            <dt>Responsável financeiro</dt>
+            <dd>{payer}</dd>
+          </div>
+        )}
         <div>
           <dt>Vigência</dt>
           <dd>{contractPeriodLabel(fields)}</dd>
