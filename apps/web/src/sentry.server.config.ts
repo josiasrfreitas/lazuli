@@ -1,13 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
 import { setErrorReporter } from "@lazuli/logging";
 import { sentryOptions } from "@lazuli/logging/telemetry";
+import { readServerTelemetry } from "./lib/telemetry-server/env";
 
-const options = sentryOptions({
-  dsn: process.env.SENTRY_WEB_DSN,
-  environment: process.env.LAZULI_ENV,
-  verification: process.env.SENTRY_VERIFY,
-  release: process.env.SENTRY_RELEASE,
-});
+const options = sentryOptions(readServerTelemetry());
 Sentry.init({
   ...options,
   integrations: [

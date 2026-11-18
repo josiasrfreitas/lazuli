@@ -7,13 +7,41 @@ import type { SchoolPoint } from "./settings-values";
 const SEARCH_DELAY_MS = 350;
 const MIN_QUERY_LENGTH = 3;
 
+export type SchoolAddressSearch = {
+  query: string;
+  selected: SearchSelectOption | null;
+  options: SearchSelectOption[];
+  loading: boolean;
+  failed: boolean;
+  resolving: boolean;
+  error: string;
+  select: (option: SearchSelectOption) => Promise<void>;
+  change: (value: string) => void;
+  clear: () => void;
+};
+
+function useDebouncedAddress(query: string): string {
+  const [debounced, setDebounced] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(query.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+  return debounced;
+}
+
+function queryState(query: string, delayed: string): { enabled: boolean; waiting: boolean } {
+  const trimmed = query.trim();
+  if (trimmed.length < MIN_QUERY_LENGTH) return { enabled: false, waiting: false };
+  return { enabled: trimmed === delayed, waiting: trimmed !== delayed };
+}
+
 export function useSchoolAddressSearch(input: {
   label: string;
   onSelect: (point: SchoolPoint, label: string) => void;
   onClear: () => void;
-}) {
+}): SchoolAddressSearch {
   const [query, setQuery] = useState(input.label);
-  const [debounced, setDebounced] = useState("");
+  const debounced = useDebouncedAddress(query);
   const [selected, setSelected] = useState<SearchSelectOption | null>(
     input.label ? { id: "saved", label: input.label } : null,
   );
@@ -24,20 +52,14 @@ export function useSchoolAddressSearch(input: {
     setQuery(input.label);
     setSelected(input.label ? { id: "saved", label: input.label } : null);
   }, [input.label]);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query.trim()), SEARCH_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [query]);
   useEffect(
     () => () => {
       revision.current += 1;
     },
     [],
   );
-  const enabled =
-    selected === null && debounced.length >= MIN_QUERY_LENGTH && query.trim() === debounced;
-  const waiting =
-    selected === null && query.trim().length >= MIN_QUERY_LENGTH && query.trim() !== debounced;
+  const { enabled, waiting } =
+    selected === null ? queryState(query, debounced) : { enabled: false, waiting: false };
   const search = trpc.addresses.search.useQuery(
     { query: debounced },
     { enabled, retry: false, gcTime: 0, refetchOnWindowFocus: false },

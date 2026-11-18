@@ -11,16 +11,26 @@ export type Values = {
   maxAccuracyMeters: string;
 };
 export type SettingsErrors = Partial<Record<keyof Values, string>>;
+export const DEFAULT_RADIUS_METERS = 200;
 const MAX_LATITUDE = 90;
 const MAX_LONGITUDE = 180;
 
 export function settingsValues(initial: Settings): Values {
+  if (!initial) {
+    return {
+      addressLabel: "",
+      latitude: "",
+      longitude: "",
+      radiusMeters: String(DEFAULT_RADIUS_METERS),
+      maxAccuracyMeters: "",
+    };
+  }
   return {
-    addressLabel: initial?.addressLabel ?? "",
-    latitude: String(initial?.latitude ?? ""),
-    longitude: String(initial?.longitude ?? ""),
-    radiusMeters: String(initial?.radiusMeters ?? 200),
-    maxAccuracyMeters: String(initial?.maxAccuracyMeters ?? ""),
+    addressLabel: initial.addressLabel ?? "",
+    latitude: String(initial.latitude),
+    longitude: String(initial.longitude),
+    radiusMeters: String(initial.radiusMeters),
+    maxAccuracyMeters: String(initial.maxAccuracyMeters),
   };
 }
 

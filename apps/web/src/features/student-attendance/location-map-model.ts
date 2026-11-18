@@ -7,7 +7,14 @@ const radians = (degrees: number): number => (degrees * Math.PI) / DEGREES_PER_H
 const degrees = (value: number): number => (value * DEGREES_PER_HALF_TURN) / Math.PI;
 
 /** Geographic circle in meters, rather than a screen-space radius. */
-export function schoolArea(point: SchoolPoint, radiusMeters: number) {
+export function schoolArea(
+  point: SchoolPoint,
+  radiusMeters: number,
+): {
+  type: "Feature";
+  properties: Record<string, never>;
+  geometry: { type: "Polygon"; coordinates: number[][][] };
+} {
   const latitude = radians(point.latitude);
   const longitude = radians(point.longitude);
   const distance = radiusMeters / EARTH_RADIUS_METERS;
@@ -27,8 +34,8 @@ export function schoolArea(point: SchoolPoint, radiusMeters: number) {
   });
   coordinates.push(coordinates[0]!);
   return {
-    type: "Feature" as const,
+    type: "Feature",
     properties: {},
-    geometry: { type: "Polygon" as const, coordinates: [coordinates] },
+    geometry: { type: "Polygon", coordinates: [coordinates] },
   };
 }

@@ -128,26 +128,7 @@ function appendActivity(input: TeachingProgramImport, source: SourceActivity): v
 function fromTranscription(source: Transcription): TeachingProgramImport {
   const input = emptyProgram(source);
   const { entries } = source;
-  if (source.sourceCode in teenPptPrograms) {
-    const numbers = entries.filter((entry) => /^\d+$/u.test(entry)).map(Number);
-    input.lessons = [...new Set(numbers)]
-      .sort((a, b) => a - b)
-      .map((sequence) => ({
-        key: String(sequence),
-        sequence,
-        title: `Lição ${sequence}`,
-      }));
-  }
-  if (source.sourceCode === "TH1/TH2") {
-    const keys = entries
-      .filter((entry) => /^U\d+ /u.test(entry))
-      .flatMap((entry) => sourceLessons(entry).map((lesson) => lesson.key));
-    input.lessons = [...new Set(keys)].map((key, index) => ({
-      key,
-      sequence: index + 1,
-      title: key,
-    }));
-  }
+  input.lessons = transcribedLessons(source);
   let unit = 1;
   let assessmentKey: string | null = null;
   for (const [index, raw] of entries.entries()) {
@@ -171,6 +152,31 @@ function fromTranscription(source: Transcription): TeachingProgramImport {
   return input;
 }
 
+function transcribedLessons(source: Transcription): TeachingProgramImport["lessons"] {
+  const { entries } = source;
+  if (source.sourceCode === "TH1/TH2") {
+    const keys = entries
+      .filter((entry) => /^U\d+ /u.test(entry))
+      .flatMap((entry) => sourceLessons(entry).map((lesson) => lesson.key));
+    return [...new Set(keys)].map((key, index) => ({
+      key,
+      sequence: index + 1,
+      title: key,
+    }));
+  }
+  if (source.sourceCode in teenPptPrograms) {
+    const numbers = entries.filter((entry) => /^\d+$/u.test(entry)).map(Number);
+    return [...new Set(numbers)]
+      .toSorted((left, right) => left - right)
+      .map((sequence) => ({
+        key: String(sequence),
+        sequence,
+        title: `Lição ${sequence}`,
+      }));
+  }
+  return [];
+}
+
 /** Development data only. This does not fetch or claim to synchronize with the external provider. */
 export async function seedTeachingPrograms(database: DatabaseClient): Promise<void> {
   for (const [internalCode, sourceCode, family] of sources) {
@@ -191,15 +197,17 @@ export async function seedTeachingPrograms(database: DatabaseClient): Promise<vo
       );
     }
   }
+  const teensLegacy = "Teens Legacy";
+  const teenstationLegacy = "Teenstation Legacy";
   const groups = [
-    ["Teens Legacy", "TE1/TE2", ["TE1", "TE2"]],
+    [teensLegacy, "TE1/TE2", ["TE1", "TE2"]],
     ["Teens Connect", "TC", ["C1", "C2", "C3", "C4"]],
-    ["Teenstation Legacy", "TST1/TST2", ["TS1", "TS2"]],
-    ["Teenstation Legacy", "TST3", ["TS3"]],
-    ["Teenstation Legacy", "TST4", ["TS4"]],
-    ["Teens Legacy", "TPI/TI", ["TPI", "TI"]],
-    ["Teens Legacy", "TUI/TA", ["TUI", "TA"]],
-    ["Teens Legacy", "TH1/TH2", ["TH1", "TH2"]],
+    [teenstationLegacy, "TST1/TST2", ["TS1", "TS2"]],
+    [teenstationLegacy, "TST3", ["TS3"]],
+    [teenstationLegacy, "TST4", ["TS4"]],
+    [teensLegacy, "TPI/TI", ["TPI", "TI"]],
+    [teensLegacy, "TUI/TA", ["TUI", "TA"]],
+    [teensLegacy, "TH1/TH2", ["TH1", "TH2"]],
   ] as const;
   for (const [track, sourceCode, codes] of groups) {
     const stages = await database.stage.findMany({

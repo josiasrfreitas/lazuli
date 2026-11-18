@@ -18,6 +18,8 @@ type Props = {
 export function SchoolLocationMap(props: Props): ReactElement | null {
   const map = useLocationMap(props);
   if (map.state === "error") return null;
+  const ready = map.state === "ready";
+  const locked = props.disabled || !ready;
   return (
     <section className={styles.mapFrame} aria-label="Mapa e área de presença da escola">
       <div ref={map.container} className={styles.mapCanvas} />
@@ -27,7 +29,7 @@ export function SchoolLocationMap(props: Props): ReactElement | null {
           <span>Carregando mapa…</span>
         </div>
       )}
-      {map.state === "ready" && (
+      {ready && (
         <p className={styles.mapHint}>Clique no mapa ou arraste o pino para ajustar a entrada.</p>
       )}
       <div className={styles.mapControls} aria-label="Controles do mapa">
@@ -36,7 +38,7 @@ export function SchoolLocationMap(props: Props): ReactElement | null {
           variant="secondary"
           size="icon-sm"
           aria-label="Ampliar mapa"
-          disabled={props.disabled || map.state !== "ready"}
+          disabled={locked}
           onClick={map.zoomIn}
         >
           <Plus aria-hidden="true" />
@@ -46,7 +48,7 @@ export function SchoolLocationMap(props: Props): ReactElement | null {
           variant="secondary"
           size="icon-sm"
           aria-label="Reduzir mapa"
-          disabled={props.disabled || map.state !== "ready"}
+          disabled={locked}
           onClick={map.zoomOut}
         >
           <Minus aria-hidden="true" />
@@ -56,13 +58,13 @@ export function SchoolLocationMap(props: Props): ReactElement | null {
           variant="secondary"
           size="icon-sm"
           aria-label="Centralizar na escola"
-          disabled={props.disabled || !props.point || map.state !== "ready"}
+          disabled={locked || !props.point}
           onClick={map.recenter}
         >
           <Crosshair aria-hidden="true" />
         </Button>
       </div>
-      {props.point && props.radius && map.state === "ready" && (
+      {props.point && props.radius && ready && (
         <div className={styles.mapLegend}>
           <span aria-hidden="true" />
           <span>
