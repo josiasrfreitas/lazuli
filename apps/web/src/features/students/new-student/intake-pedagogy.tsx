@@ -1,7 +1,7 @@
 import { useState, type JSX as ReactJSX } from "react";
 import type { ComponentProps } from "react";
 import Link from "next/link";
-import { CalendarDays, ClipboardCheck, ArrowUpRight, BookOpen, UserRound } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ArrowUpRight, UserRound } from "lucide-react";
 import { normalizeSearch } from "@lazuli/domain";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -107,7 +107,6 @@ export function IntakePedagogyControls({
               onChange={(stageId) => onFiltersChange({ ...filters, stageId })}
               initialOnly={!lead || lead.englishExperience === "NONE"}
               disabled={waitingPlacement || lead?.englishExperience === "SOME"}
-              labelIcon={<BookOpen className="size-4" aria-hidden="true" />}
             />
           </div>
           <div className="w-fit shrink-0">
