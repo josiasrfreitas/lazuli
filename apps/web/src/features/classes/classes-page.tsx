@@ -1,6 +1,6 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { parseAsInteger, parseAsString, useQueryStates, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@lazuli/api";
 import { Button, DataTablePage } from "@lazuli/ui";
@@ -10,8 +10,8 @@ import { classFilterFields } from "./class-filter-fields";
 import { ClassFilters } from "./class-list-filters";
 import { ClassListTable } from "./class-list-table";
 import { ClassCreateDialog } from "./create-dialog";
-import { ClassOrganizationPage } from "~/features/class-organization/page";
-import styles from "~/features/class-organization/organization.module.css";
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
 
 type ClassQueries = inferRouterOutputs<AppRouter>["classes"];
 export type InitialClassesData = {
@@ -20,47 +20,10 @@ export type InitialClassesData = {
 };
 
 export function ClassesPage({
-  organizationEnabled = false,
   initial,
 }: {
-  organizationEnabled?: boolean;
   initial?: InitialClassesData | undefined;
 }): ReactElement {
-  const [section, setSection] = useQueryState("secao", parseAsString.withDefault("lista"));
-  return (
-    <div data-page-scroll="internal" className={styles.classesArea}>
-      {organizationEnabled && (
-        <nav className={styles.areaTabs} aria-label="Área de turmas">
-          <Button
-            size="sm"
-            variant={section === "lista" ? "secondary" : "ghost"}
-            aria-pressed={section === "lista"}
-            onClick={() => void setSection("lista")}
-          >
-            Turmas
-          </Button>
-          <Button
-            size="sm"
-            variant={section === "organizacao" ? "secondary" : "ghost"}
-            aria-pressed={section === "organizacao"}
-            onClick={() => void setSection("organizacao")}
-          >
-            Organização
-          </Button>
-        </nav>
-      )}
-      <div className={styles.classesContent}>
-        {organizationEnabled && section === "organizacao" ? (
-          <ClassOrganizationPage />
-        ) : (
-          <ClassListing initial={initial} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ClassListing({ initial }: { initial?: InitialClassesData | undefined }): ReactElement {
   const [params, setParams] = useQueryStates({
     busca: parseAsString.withDefault(""),
     tipo: parseAsString,
@@ -106,12 +69,22 @@ function ClassListing({ initial }: { initial?: InitialClassesData | undefined })
         title="Turmas"
         summary={query.data ? `${query.data.total} turmas` : undefined}
         controls={
-          <ClassFilters
-            params={params}
-            fields={fields}
-            change={(value) => void setParams(value)}
-            create={() => setCreating(true)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              nativeButton={false}
+              render={<Link href="/turmas/formacao" />}
+            >
+              <CalendarDays /> Formação de turmas
+            </Button>
+            <ClassFilters
+              params={params}
+              fields={fields}
+              change={(value) => void setParams(value)}
+              create={() => setCreating(true)}
+            />
+          </div>
         }
       >
         <div className="flex h-full min-h-0 flex-col gap-2">

@@ -87,6 +87,7 @@ void it("does not duplicate an imported holiday source or lose unrelated manual 
 });
 void it("rejects a stale period version and permits the exact observed version", () => {
   const period: Period = {
+    formationRiskLimit: 4,
     id: "period",
     name: "Semester",
     startDate: new Date("2026-01-01"),

@@ -128,14 +128,14 @@ async function preparationPlan(
     where: {
       semesterId: scope.semester.id,
       deletedAt: null,
-      OR: [
-        { sourceClassId: group.id },
-        { classId: group.id },
-        { placements: { some: { deletedAt: null, sourceEnrollment: { classId: group.id } } } },
-      ],
+      OR: [{ sourceClassId: group.id }, { classId: group.id }],
     },
   });
   if (plan) return { plan, created: false };
+  const nextStage =
+    !scope.current && group.scheduleType === "REGULAR" && group.sharedStageId
+      ? await nextRegularStage(context, group.sharedStageId)
+      : null;
   const created = await context.database.semesterClassPlan.create({
     data: {
       semesterId: scope.semester.id,
@@ -144,7 +144,7 @@ async function preparationPlan(
       name: group.portalClassName,
       scheduleType: group.scheduleType,
       format: group.format,
-      sharedStageId: group.sharedStageId,
+      sharedStageId: nextStage?.id ?? group.sharedStageId,
       teacherId: group.teacherAssignments[0]?.teacherId ?? group.teacherId,
       slots,
       recordedById: context.staffUser.id,
@@ -226,10 +226,17 @@ function preparedPlacementData(
     ...inheritedContinuity(previous, plan),
     studentId: enrollment.studentId,
     trackId: progress.stage.trackId,
-    stageId: progress.stageId,
+    stageId:
+      !scope.current && plan.scheduleType === "REGULAR" ? plan.sharedStageId : progress.stageId,
     sourceProgressId: progress.id,
     sourceEnrollmentId: enrollment.id,
-    mode: "CONTINUE",
+    mode:
+      !scope.current && plan.scheduleType === "REGULAR"
+        ? plan.sharedStageId !== progress.stageId
+          ? "ADVANCE"
+          : "REPEAT"
+        : "CONTINUE",
+    attentionNote: previous?.attentionNote ?? null,
     effectiveDate: scope.current ? enrollment.entryDate : scope.semester.startDate,
     recordedById: context.staffUser.id,
     ...(scope.current
@@ -249,6 +256,12 @@ function inheritedContinuity(
   Prisma.SemesterPlacementUncheckedCreateInput,
   "planId" | "continuity" | "continuityReason"
 > {
+  if (plan.closedAt)
+    return {
+      planId: null,
+      continuity: "CHANGE",
+      continuityReason: "Turma desfeita. Aguardando novo encaixe.",
+    };
   if (!previous || previous.continuity === "STAY")
     return { planId: plan.id, continuity: "UNDECIDED", continuityReason: null };
   return {
@@ -291,7 +304,7 @@ async function carryWaitingPlacements(
       deletedAt: null,
       declinedAt: null,
       publishedAt: null,
-      sourceEnrollmentId: { not: null },
+      OR: [{ sourceEnrollmentId: { not: null } }, { mode: "ENTRY", planId: null }],
     },
   });
   let students = 0;
@@ -323,6 +336,7 @@ async function carryWaitingPlacement(
       sourceEnrollmentId: previous.sourceEnrollmentId,
       mode: previous.mode,
       notes: previous.notes,
+      attentionNote: previous.attentionNote,
       effectiveDate: scope.semester.startDate,
       continuity: previous.continuity === "STAY" ? "UNDECIDED" : previous.continuity,
       continuityReason: previous.continuity === "STAY" ? null : previous.continuityReason,
@@ -331,4 +345,17 @@ async function carryWaitingPlacement(
   });
   await recordPlacementRevision(context, { id: row.id, action: "CARRIED_FORWARD" });
   return true;
+}
+
+async function nextRegularStage(context: OrganizationContext, stageId: string) {
+  const stage = await context.database.stage.findUniqueOrThrow({ where: { id: stageId } });
+  return context.database.stage.findFirst({
+    where: {
+      trackId: stage.trackId,
+      sequence: stage.sequence + 1,
+      deletedAt: null,
+      track: { status: "ACTIVE" },
+    },
+    select: { id: true },
+  });
 }

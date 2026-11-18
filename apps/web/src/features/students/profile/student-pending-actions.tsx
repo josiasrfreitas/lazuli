@@ -68,7 +68,7 @@ export function StudentPendingActions({ studentId, pedagogy, onNavigate }: Props
       <PendingActionList
         items={items}
         destinations={destinations}
-        nextPeriod={Boolean(query.data?.futurePlacement)}
+        nextPeriod={Boolean(query.data?.futurePlacement || query.data?.undatedIntake)}
         onContinue={setStep}
         onNavigate={onNavigate}
       />
@@ -177,7 +177,7 @@ function PendingActionList({
             title={placement.publishedAt ? "Nova turma confirmada" : "Confirmar turma proposta"}
             detail={`${placement.plan?.name} · ${semester.name}`}
             action={placement.publishedAt ? "Ver turma" : "Ver proposta"}
-            href={`/organizacao?semestre=${semester.id}`}
+            href={`/turmas/formacao?semestre=${semester.id}`}
           />
         </li>
       ))}

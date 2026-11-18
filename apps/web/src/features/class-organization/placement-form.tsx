@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, JSX as ReactJSX } from "react";
-import { InlineSkeleton } from "@lazuli/ui";
+import { FormationProgress } from "./page-loading";
 import { trpc } from "~/lib/trpc";
 import { RecordState } from "~/features/class-records/shared";
 import { TaskDialog } from "~/features/shared/task-form";
@@ -74,20 +74,12 @@ function PlacementLoading({
       submitDisabled
       formId="placement-loading"
       firstField=""
-      submitLabel="Carregando…"
+      submitLabel="Salvar proposta"
       pending={false}
       onClose={onClose}
     >
       {pending ? (
-        <div className="grid gap-4 py-4" role="status" aria-label="Carregando dados do aluno">
-          <InlineSkeleton className="h-12 w-full" />
-          <InlineSkeleton className="h-12 w-full" />
-          <div className="grid grid-cols-2 gap-3">
-            <InlineSkeleton className="h-12 w-full" />
-            <InlineSkeleton className="h-12 w-full" />
-          </div>
-          <InlineSkeleton className="h-20 w-full" />
-        </div>
+        <FormationProgress label="Buscando os dados do aluno" />
       ) : (
         <RecordState pending={false} error={error} retry={retry} />
       )}

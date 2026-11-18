@@ -134,7 +134,7 @@ function SchoolChartFooter(): ReactElement {
         <br />
         Cadastros de alunos não representam contratos ou vendas.
       </p>
-      <Link className={styles.textLink} href="/organizacao">
+      <Link className={styles.textLink} href="/turmas/formacao">
         Explorar turmas
         <ArrowUpRight aria-hidden="true" />
       </Link>

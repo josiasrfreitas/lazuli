@@ -1,10 +1,10 @@
 import type { ClassPlan, Placement, OrganizationBoard } from "./model";
 
 export const confirmationExplanation =
-  "Confirmação não é renovação de contrato. Estamos apenas confirmando a intenção de continuar para fins de planejamento da turma.";
+  "Esta escolha registra a intenção do aluno para o período. A renovação do contrato é feita no financeiro.";
 export const confirmationLabels = {
   CONFIRMED: "Confirmado",
-  PRECONFIRMED: "Pré-confirmado · contrato",
+  PRECONFIRMED: "Pré-confirmado",
   PENDING: "A confirmar",
   CHANGING: "Troca de turma",
   LEAVING: "Possível saída",
@@ -27,12 +27,21 @@ export function planMetrics(
   pending: number;
   leads: number;
 } {
-  const rows = board.placements
-    .filter((row) => row.planId === plan.id && !row.declinedAt)
-    .filter((row) => row.confirmation !== "LEAVING" && row.confirmation !== "CHANGING");
+  const rows = board.placements.filter((row) => row.planId === plan.id && !row.declinedAt);
+  const confirmed = new Set(plan.enrolledStudentIds);
+  let pending = 0;
+  for (const row of rows) {
+    if (row.confirmation === "LEAVING" || row.confirmation === "CHANGING") {
+      confirmed.delete(row.studentId);
+      continue;
+    }
+    if (isConfirmed(row)) {
+      if (!row.publishedAt || row.entryStatus === "SCHEDULED") confirmed.add(row.studentId);
+    } else pending++;
+  }
   return {
-    confirmed: rows.filter((row) => isConfirmed(row)).length,
-    pending: rows.filter((row) => !isConfirmed(row)).length,
+    confirmed: confirmed.size,
+    pending,
     leads: board.waitingLeads.filter((lead) => lead.allocationPlanId === plan.id).length,
   };
 }

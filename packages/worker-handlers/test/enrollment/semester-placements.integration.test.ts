@@ -27,6 +27,8 @@ async function clean(): Promise<void> {
     where: { enrollment: { student: { fullName: { startsWith: PREFIX } } } },
   });
   await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: PREFIX } } } });
+  await db.contract.deleteMany({ where: { student: { fullName: { startsWith: PREFIX } } } });
+  await db.payer.deleteMany({ where: { name: PREFIX + "Payer" } });
   await db.student.deleteMany({ where: { fullName: { startsWith: PREFIX } } });
   await db.classScheduleSlot.deleteMany({ where: { class: { semesterId: { in: ids } } } });
   await db.class.deleteMany({ where: { semesterId: { in: ids } } });
@@ -117,7 +119,18 @@ async function fixture(): Promise<Fixture> {
     });
   const sourceClass = await makeClass(old.id, "source");
   const targetClass = await makeClass(next.id, "target");
-  const student = await db.student.create({ data: { fullName: PREFIX + "Student" } });
+  const student = await db.student.create({
+    data: {
+      fullName: PREFIX + "Student",
+      contracts: {
+        create: {
+          startsOn: old.startDate,
+          endsOn: next.endDate,
+          payer: { create: { name: PREFIX + "Payer" } },
+        },
+      },
+    },
+  });
   const plan = await db.semesterClassPlan.create({
     data: {
       semesterId: next.id,
@@ -179,6 +192,8 @@ async function fixture(): Promise<Fixture> {
         recordedById: ADMIN,
         publishedAt: new Date("2094-06-02"),
         publishedById: ADMIN,
+        continuity: "STAY",
+        publishedEvidence: { manualContinuity: true },
         enrollmentId: target.id,
         entryActionId: entry.id,
         sourceExitActionId: exit.id,
@@ -245,6 +260,15 @@ void it("keeps a published exit and entry atomic when the movement straddles the
   const students = await db.student.createManyAndReturn({
     data: Array.from({ length: 99 }, (_unused, index) => ({ fullName: `${PREFIX}Batch ${index}` })),
   });
+  const payer = await db.payer.findFirstOrThrow({ where: { name: PREFIX + "Payer" } });
+  await db.contract.createMany({
+    data: students.map((s) => ({
+      studentId: s.id,
+      payerId: payer.id,
+      startsOn: data.next.startDate,
+      endsOn: data.next.endDate,
+    })),
+  });
   const enrollments = await db.$transaction(async (database) => {
     const rows = await database.enrollment.createManyAndReturn({
       data: students.map((student) => ({
@@ -305,5 +329,25 @@ void it("keeps a published exit and entry atomic when the movement straddles the
       where: { placementId: data.placement.id, action: "REQUIRES_REVIEW" },
     }),
     0,
+  );
+});
+
+void it("returns a scheduled transfer to the queue when its target entry loses contract coverage", async () => {
+  const s = await fixture();
+  await db.contract.updateMany({
+    where: { studentId: s.student.id },
+    data: { endsOn: new Date("2094-06-30") },
+  });
+  await db.$transaction((database) => processDueEnrollmentActions({ database, now: due }));
+  const row = await db.semesterPlacement.findUniqueOrThrow({ where: { id: s.placement.id } });
+  assert.equal(row.publishedAt, null);
+  assert.equal(row.continuity, "UNDECIDED");
+  assert.equal(
+    (await db.enrollmentAction.findUniqueOrThrow({ where: { id: s.entry.id } })).status,
+    "CANCELLED",
+  );
+  assert.equal(
+    (await db.enrollmentAction.findUniqueOrThrow({ where: { id: s.exit.id } })).status,
+    "CANCELLED",
   );
 });

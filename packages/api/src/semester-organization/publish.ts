@@ -235,6 +235,7 @@ async function publicationClass(
         format: current.format,
         sharedStageId: current.sharedStageId,
         semesterId: semester.id,
+        ...(plan.sourceClassId ? { previousClassId: plan.sourceClassId } : {}),
         startDate: firstEntryDate,
         slots: current.slots,
       },
@@ -267,7 +268,7 @@ async function publicationClass(
 async function publishOne(
   context: OrganizationContext,
   options: {
-    row: PlacementRow;
+    row: BoardPlacement;
     classId: string;
     entryDate: Date;
   },
@@ -312,7 +313,7 @@ async function markPlacementPublished(
     entryActionId,
     sourceExitActionId,
   }: {
-    row: PlacementRow;
+    row: BoardPlacement;
     enrollmentId: string | null;
     entryActionId: string | null;
     sourceExitActionId: string | null;
@@ -334,6 +335,11 @@ async function markPlacementPublished(
         assessmentId: row.assessmentId,
         stagePlanId: row.stagePlanId,
         assessmentVersion: row.assessmentVersion,
+        manualContinuity: row.continuity === "STAY",
+        acceptedEarlyEnd:
+          row.continuity === "STAY" && row.attention.contractStatus === "EARLY_END"
+            ? row.attention.coverageThrough
+            : null,
       },
     },
   });
@@ -355,7 +361,7 @@ async function confirmContinuity(context: OrganizationContext, row: PlacementRow
 
 async function scheduleSourceExit(
   context: OrganizationContext,
-  { row, entryDate, immediate }: { row: PlacementRow; entryDate: Date; immediate: boolean },
+  { row, entryDate, immediate }: { row: BoardPlacement; entryDate: Date; immediate: boolean },
 ): Promise<string | null> {
   if (!row.sourceEnrollmentId) return null;
   const pending = await context.database.enrollmentAction.count({
@@ -377,7 +383,7 @@ async function scheduleSourceExit(
       effectiveDate: entryDate,
       exitReason: "TRANSFERRED",
       recordedById: context.staffUser.id,
-      justification: "Organização de turmas",
+      justification: "Formação de turmas",
     },
   });
   if (immediate)
@@ -398,7 +404,7 @@ async function openPublishedStudent(
     entryDate,
     immediate,
   }: {
-    row: PlacementRow;
+    row: BoardPlacement;
     classId: string;
     entryDate: Date;
     immediate: boolean;
@@ -460,6 +466,8 @@ export async function withdrawPlacement(
     data: {
       publishedAt: null,
       publishedById: null,
+      continuity: "UNDECIDED",
+      continuityReason: null,
       enrollmentId: null,
       entryActionId: null,
       sourceExitActionId: null,

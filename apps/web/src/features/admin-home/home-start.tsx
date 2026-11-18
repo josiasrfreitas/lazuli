@@ -63,10 +63,10 @@ export function HomeStart(): ReactElement {
           </div>
           <ArrowRight aria-hidden="true" />
         </Link>
-        <Link href="/organizacao">
+        <Link href="/turmas/formacao">
           <GraduationCap aria-hidden="true" />
           <div>
-            <h3>Organização das turmas</h3>
+            <h3>Formação de turmas</h3>
             <p>Prepare os horários e a entrada dos alunos nas turmas.</p>
           </div>
           <ArrowRight aria-hidden="true" />

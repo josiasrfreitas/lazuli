@@ -147,7 +147,7 @@ function IntakeFilterFields({
         <InterestChoice
           label="Modalidade"
           value={filters.scheduleType}
-          options={{ REGULAR: "Regular", PERSONALIZED: "PPT" }}
+          options={{ PERSONALIZED: "PPT", REGULAR: "Regular" }}
           onChange={(value) => change({ scheduleType: value as IntakeFilters["scheduleType"] })}
         />
       </div>

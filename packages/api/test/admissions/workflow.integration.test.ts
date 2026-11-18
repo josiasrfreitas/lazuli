@@ -8,6 +8,7 @@ import { assertNoTeacherConflict } from "../../src/teachers/availability.js";
 import {
   cleanEnrollmentFixtures,
   createRegularClassFor,
+  createStudentFor,
   ensureTeacherFor,
   seedCatalogFor,
   ENROLLMENT_ADMIN_ID,
@@ -91,7 +92,7 @@ async function scenario(): Promise<{
   return { id, classId: group.id, slotId: slot.id, stageId: catalog.activeStageId };
 }
 
-void it("concurrent conversion retries create exactly one student, enrollment and initial progress", async () => {
+void it("requires a contract before entry and converts a contracted student only once on concurrent retries", async () => {
   const fixture = await scenario();
   const command = {
     id: fixture.id,
@@ -108,9 +109,13 @@ void it("concurrent conversion retries create exactly one student, enrollment an
       },
     },
   };
+  await assert.rejects(caller().admissions.enroll(command), /contrato ativo/u);
+  assert.equal(await db.student.count({ where: { fullName: config.prefix + "Converted" } }), 0);
+  const student = await createStudentFor(config, { suffix: "Converted" });
+  const contracted = { ...command, student: { mode: "existing" as const, id: student.id } };
   const [first, retry] = await Promise.all([
-    caller().admissions.enroll(command),
-    caller().admissions.enroll(command),
+    caller().admissions.enroll(contracted),
+    caller().admissions.enroll(contracted),
   ]);
   assert.deepEqual(retry, first);
   assert.equal(await db.student.count({ where: { fullName: `${config.prefix}Converted` } }), 1);

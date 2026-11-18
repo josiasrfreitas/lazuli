@@ -114,7 +114,9 @@ function SlotRow({
           label={`Dia ${index + 1}`}
           value={slot.weekday}
           onChange={(value) => onUpdate("weekday", value)}
-          choices={Object.entries(weekdays).map(([value, label]) => ({ value, label }))}
+          choices={Object.entries(weekdays)
+            .filter(([key]) => key !== "SUNDAY" || slot.weekday === "SUNDAY")
+            .map(([value, label]) => ({ value, label }))}
         />
       </div>
       <div className="flex items-end gap-2">

@@ -1,4 +1,5 @@
 "use client";
+import { FormationProgress } from "./page-loading";
 import { useState, type JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Button, Input } from "@lazuli/ui";
@@ -85,7 +86,7 @@ function StudentSearchResults({
   return (
     <div className="min-h-48 max-h-80 overflow-auto" aria-busy={query.isFetching}>
       {query.isPending ? (
-        <p className={styles.small}>Carregando alunos…</p>
+        <FormationProgress label="Buscando alunos" />
       ) : (
         query.data?.rows.map((student) => (
           <button

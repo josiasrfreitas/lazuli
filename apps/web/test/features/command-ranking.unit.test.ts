@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
+import { pageCommands } from "../../src/features/command-palette/catalog.js";
 import {
   preferredCommand,
   rankCommands,
@@ -7,6 +8,20 @@ import {
   type Command,
   type RankingContext,
 } from "../../src/features/command-palette/model.js";
+
+void it("opens class formation for placement searches and contracts for renewal searches", () => {
+  const pages = pageCommands("ADMIN");
+  const context = { pathname: "/" };
+  const destination = (query: string): string | undefined =>
+    rankCommands(pages, { query, context })[0]?.href;
+  assert.equal(destination("alocação"), "/turmas/formacao");
+  assert.equal(destination("organizar semestre"), "/turmas/formacao");
+  assert.equal(destination("rematrícula"), "/contratos");
+  assert.equal(
+    pageCommands("TEACHER").some((page) => page.href === "/turmas/formacao"),
+    false,
+  );
+});
 
 function studentCommand(id: string, name: string): Command {
   return {

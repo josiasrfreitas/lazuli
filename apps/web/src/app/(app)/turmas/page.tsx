@@ -5,7 +5,8 @@ import { ClassesPage, type InitialClassesData } from "~/features/classes/classes
 import { classListQueryInput } from "~/features/classes/class-list-model";
 import { requireRole } from "~/lib/require-role";
 import { createPageCaller } from "~/lib/page-caller";
-import { classOrganizationEnabled } from "~/lib/feature-flags";
+import { redirect } from "next/navigation";
+import { formationUrl } from "~/features/class-organization/links";
 
 export const metadata: Metadata = { title: "Turmas" };
 
@@ -15,8 +16,9 @@ export default async function TurmasRoute({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<ReactNode> {
   const identity = await requireRole(["ADMIN", "SYSTEM_ADMIN"]);
-  if (Object.keys(await searchParams).length > 0)
-    return <ClassesPage organizationEnabled={classOrganizationEnabled} />;
+  const params = await searchParams;
+  if (params.secao === "organizacao") redirect(formationUrl(params));
+  if (Object.keys(params).length > 0) return <ClassesPage />;
 
   const caller = await createPageCaller(identity.email);
   const [list, options] = await Promise.all([
@@ -46,5 +48,5 @@ export default async function TurmasRoute({
     ...(list ? { list } : {}),
     ...(options ? { options } : {}),
   };
-  return <ClassesPage organizationEnabled={classOrganizationEnabled} initial={initial} />;
+  return <ClassesPage initial={initial} />;
 }

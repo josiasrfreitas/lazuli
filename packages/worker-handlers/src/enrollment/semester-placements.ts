@@ -1,7 +1,14 @@
-import type { TransactionClient } from "@lazuli/db";
-import { semesterPlacementBlockers } from "@lazuli/domain";
+import { readFormationAcademics, type TransactionClient } from "@lazuli/db";
+import {
+  contractCoverageEnd,
+  formationContractStatus,
+  meetsFormationAverages,
+  LOW_HEALTH_SCORE,
+  MISSING_ENTRY_CONTRACT,
+  semesterPlacementBlockers,
+} from "@lazuli/domain";
 import { z } from "@lazuli/validators";
-import { include, type Placement } from "./semester-placement-data.js";
+import { include, dateOnly, type Placement } from "./semester-placement-data.js";
 import { eligibility } from "./semester-placement-eligibility.js";
 import { returnToReview } from "./semester-placement-review.js";
 
@@ -26,14 +33,73 @@ export async function reconcileDueSemesterPlacements(
       include,
     });
     if (!row.publishedAt || row.entryAction?.status !== "SCHEDULED") continue;
-    const blockers = placementBlockers(row);
+    const blockers = await placementBlockers(database, row, now);
     if (blockers.length > 0)
       await returnToReview(database, { row, reason: blockers.join("; "), now });
   }
 }
 
-function placementBlockers(row: Placement): string[] {
-  const blockers = semesterPlacementBlockers(eligibility(row));
+async function placementBlockers(
+  database: TransactionClient,
+  row: Placement,
+  now: Date,
+): Promise<string[]> {
+  const input = eligibility(row);
+  const contractEnd = contractCoverageEnd(
+    row.student.contracts.map((contract) => ({
+      startsOn: contract.startsOn && dateOnly(contract.startsOn),
+      endsOn: contract.endsOn && dateOnly(contract.endsOn),
+    })),
+    input.entryOn,
+  );
+  const contract = formationContractStatus(contractEnd, {
+    from: dateOnly(row.semester.startDate),
+    through: dateOnly(row.semester.endDate),
+  });
+  const rollover = input.source && input.source.semesterId !== row.semesterId;
+  const evidence = z
+    .object({
+      manualContinuity: z.boolean().optional(),
+      acceptedEarlyEnd: z.string().nullable().optional(),
+    })
+    .safeParse(row.publishedEvidence).data;
+  const metrics =
+    row.sourceProgressId && rollover
+      ? (await readFormationAcademics(database, { progressIds: [row.sourceProgressId], now })).get(
+          row.sourceProgressId,
+        )
+      : null;
+  const healthy = meetsFormationAverages(metrics);
+  input.cohortAdvance =
+    !!row.plan?.sourceClassId &&
+    row.plan.sourceClassId === row.sourceEnrollment?.classId &&
+    healthy;
+  const blockers = semesterPlacementBlockers(input);
+  if (!contractEnd) blockers.push(MISSING_ENTRY_CONTRACT);
+  if (
+    rollover &&
+    contract === "EARLY_END" &&
+    (!evidence?.acceptedEarlyEnd || evidence.acceptedEarlyEnd > contractEnd!)
+  )
+    blockers.push("Confirme o vencimento antecipado do contrato.");
+  if (
+    rollover &&
+    !evidence?.manualContinuity &&
+    (!healthy ||
+      row.attentionNote ||
+      (row.student.healthPending?.score ?? LOW_HEALTH_SCORE) < LOW_HEALTH_SCORE)
+  )
+    blockers.push("Revise a continuidade com a coordenação.");
+  if (
+    row.semester.deletedAt ||
+    row.plan?.closedAt ||
+    input.entryOn < dateOnly(row.semester.startDate) ||
+    input.entryOn > dateOnly(row.semester.endDate) ||
+    (row.plan?.startsOn && input.entryOn < dateOnly(row.plan.startsOn))
+  )
+    blockers.push("A data ou a turma de entrada mudou.");
+  if (row.continuity === "LEAVING" || row.continuity === "CHANGE")
+    blockers.push("A intenção de continuidade mudou.");
   if (row.sourceEnrollmentId && row.sourceExitAction?.status !== "SCHEDULED")
     blockers.push("A saída de origem foi alterada");
   if (continuationEvidenceChanged(row))

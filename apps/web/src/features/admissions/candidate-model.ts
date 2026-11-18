@@ -17,7 +17,7 @@ const emptyDraft: CandidateDraft = {
   notes: "",
   stageId: null,
   studentId: null,
-  scheduleType: "REGULAR",
+  scheduleType: "PERSONALIZED",
   format: "IN_PERSON",
 };
 export function initialCandidateDraft(candidate?: Candidate): CandidateDraft {
@@ -26,7 +26,7 @@ export function initialCandidateDraft(candidate?: Candidate): CandidateDraft {
     ...candidateIdentity(candidate),
     stageId: candidate.stageId,
     studentId: candidate.studentId,
-    scheduleType: candidate.scheduleType ?? "REGULAR",
+    scheduleType: candidate.scheduleType ?? "PERSONALIZED",
     format: candidate.format ?? "IN_PERSON",
   };
 }

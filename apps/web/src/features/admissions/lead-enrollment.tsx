@@ -4,20 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, UserRoundPlus } from "lucide-react";
-import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { Button } from "@lazuli/ui";
 import { NewStudentDialog } from "~/features/students/new-student/new-student-dialog";
 import type { Candidate } from "./labels";
-const ISO_DATE_END = 10;
 
 export function LeadEnrollment({ candidate }: { candidate: Candidate }): ReactJSX.Element {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const period = candidate.allocationPlan?.semester;
-  const today = toDateOnlySaoPaulo(new Date());
-  const waitingForPeriod = Boolean(
-    period && period.startDate.toISOString().slice(0, ISO_DATE_END) > today,
-  );
+  const waitingForPlacement = candidate.englishExperience === "SOME" && !candidate.stageId;
   return (
     <>
       {candidate.studentId ? (
@@ -31,15 +25,14 @@ export function LeadEnrollment({ candidate }: { candidate: Candidate }): ReactJS
         </Button>
       ) : (
         candidate.status === "WAITING" &&
-        (waitingForPeriod && period ? (
+        (waitingForPlacement ? (
           <p className="text-caption text-muted-foreground">
-            Entrada prevista a partir de{" "}
-            {formatDateOnlyBR(period.startDate.toISOString().slice(0, ISO_DATE_END))}
+            Conclua o nivelamento para criar o aluno.
           </p>
         ) : (
           <Button size="compact-responsive" onClick={() => setOpen(true)}>
             <UserRoundPlus />
-            Concluir entrada
+            Criar aluno
           </Button>
         ))
       )}

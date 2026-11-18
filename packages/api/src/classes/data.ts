@@ -12,7 +12,7 @@ import {
 } from "./portal-name.js";
 import { timeStringToDate } from "./time.js";
 
-type ClassCreateInput = z.infer<typeof classCreateInputSchema>;
+type ClassCreateInput = z.infer<typeof classCreateInputSchema> & { previousClassId?: string };
 export type ClassDatabase = Prisma.TransactionClient;
 
 export type ClassSummary = {
@@ -125,6 +125,7 @@ function buildClassCreateData(input: BuildClassCreateDataInput): Prisma.ClassUnc
     scheduleType: input.values.scheduleType,
     format: input.values.format,
     sharedStageId: input.sharedStageId,
+    previousClassId: input.values.previousClassId ?? null,
     semesterId: input.semesterId,
     startDate: new Date(`${input.values.startDate}T00:00:00.000Z`),
     year: input.year,

@@ -17,7 +17,13 @@ export function AppBreadcrumb({ role }: AppBreadcrumbInput): ReactNode {
     return null;
   }
 
-  if (parent) return <ReturnBreadcrumb parent={parent} />;
+  if (parent)
+    return (
+      <ReturnBreadcrumb
+        parent={parent}
+        page={pathname === "/turmas/formacao" ? "Formação de turmas" : "Detalhes"}
+      />
+    );
   if (
     pathname === "/aulas" &&
     params.get("visao") === "academico" &&
@@ -117,6 +123,7 @@ function AcademicCalendarBreadcrumb({ params }: { params: ReadonlyURLSearchParam
 }
 
 type ReturnBreadcrumbProps = {
+  page: string;
   parent: { href: string; label: string };
 };
 function ReturnBreadcrumb(props: ReturnBreadcrumbProps): ReactElement {
@@ -137,7 +144,7 @@ function ReturnBreadcrumb(props: ReturnBreadcrumbProps): ReactElement {
           <ChevronRight className="size-3.5" />
         </li>
         <li aria-current="page" className="hidden font-semibold sm:block">
-          Detalhes
+          {props.page}
         </li>
       </ol>
     </nav>

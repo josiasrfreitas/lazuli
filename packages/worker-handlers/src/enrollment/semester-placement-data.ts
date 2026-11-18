@@ -1,7 +1,17 @@
 import type { Prisma } from "@lazuli/db";
 
 export const include = {
-  student: true,
+  semester: true,
+  plan: { select: { sourceClassId: true, startsOn: true, closedAt: true } },
+  student: {
+    include: {
+      healthPending: true,
+      contracts: {
+        where: { deletedAt: null, terminatedAt: null },
+        select: { startsOn: true, endsOn: true },
+      },
+    },
+  },
   stage: { include: { track: true } },
   sourceEnrollment: { include: { class: true } },
   sourceProgress: { include: { stage: true, assessment: true } },

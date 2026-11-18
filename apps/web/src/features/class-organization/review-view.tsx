@@ -42,10 +42,7 @@ function ReviewHeader({
   return (
     <div className={styles.row}>
       <div>
-        <h2 className="text-body font-semibold">Antes de aplicar as alocações</h2>
-        <p className={styles.small}>
-          Compare origem e destino. Passe sobre a mudança ou abra os detalhes.
-        </p>
+        <h2 className="text-body font-semibold">Revisão dos vínculos</h2>
       </div>
       <label className={styles.rowStart}>
         <Checkbox
@@ -93,7 +90,8 @@ function ReviewTable({
         <div className={styles.empty}>
           <h2>Nenhuma mudança nesta seleção</h2>
           <p>
-            Inclua os já alocados para consultar a composição ou organize novos alunos pela agenda.
+            Inclua os já alocados para consultar a composição ou escolha novos encaixes na grade
+            semanal.
           </p>
         </div>
       )}

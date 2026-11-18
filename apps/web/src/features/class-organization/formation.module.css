@@ -1,0 +1,595 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  background: var(--background);
+  color: var(--foreground);
+  overflow: hidden;
+}
+.header,
+.tools,
+.headerActions,
+.panelTitle,
+.find,
+.planCounts,
+.match,
+.planHeading,
+.weekControls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.header {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.heading h1 {
+  margin: 0;
+  color: var(--heading);
+  font-weight: 600;
+  font-size: var(--lz-text-h3);
+  line-height: 1.2;
+}
+.header > [data-slot="field"] {
+  width: auto;
+  min-width: 7rem;
+}
+.headerActions {
+  margin-inline-start: auto;
+}
+.menuItems {
+  width: min(16rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.125rem;
+}
+.menuItems > [data-slot="button"] {
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  text-align: start;
+  white-space: normal;
+  font-weight: 500;
+}
+.menuItems > [data-slot="button"] > span {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: 0.6rem;
+  width: 100%;
+}
+.menuItems svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+}
+.tools,
+.notice {
+  padding: 0.5rem 1rem;
+}
+.tools input {
+  max-width: 15rem;
+}
+.workspace {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(17rem, 25%, 22rem);
+}
+.schedule,
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.schedule {
+  position: relative;
+}
+.skipPanel {
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto auto 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+}
+.skipPanel:focus-visible {
+  clip-path: none;
+  width: auto;
+  height: auto;
+  padding: 0.45rem 0.85rem;
+  background: var(--card);
+  color: var(--interactive);
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.weekControls {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.85rem;
+  gap: 0.45rem;
+}
+.weekControls > :last-child {
+  width: min(12rem, 100%);
+}
+.weekScroll {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+.unscheduled {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  font-size: var(--lz-text-caption);
+}
+.week {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.week thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--table-heading);
+  text-align: start;
+  font-weight: 600;
+  color: var(--table-heading-foreground);
+  padding: 0.48rem 0.5rem;
+  border-block: 1px solid var(--border);
+  font-size: var(--lz-text-caption);
+}
+.week .hourHead {
+  width: 3.5rem;
+}
+.week tbody th {
+  padding: 0.6rem 0.4rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  font-weight: 500;
+}
+.week tbody th,
+.week td {
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.week td {
+  padding: 0.22rem;
+  border-inline-start: 1px solid var(--border-subtle);
+}
+.place {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.25rem 0.4rem;
+  border-inline-start: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--foreground);
+  text-align: start;
+  cursor: pointer;
+}
+.place + .place {
+  margin-top: 0.2rem;
+}
+.place[data-ppt="true"] {
+  border-inline-start-color: var(--interactive);
+  background: var(--accent);
+}
+.place[aria-pressed="true"],
+.place:hover,
+.item:hover:enabled,
+.dayPicker button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--interactive);
+}
+.place[aria-pressed="true"] {
+  outline: 1px solid var(--interactive);
+  outline-offset: -1px;
+}
+.place:focus-visible,
+.item:focus-visible,
+.dayPicker button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.placeName {
+  font-weight: 600;
+  font-size: var(--lz-text-caption);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.placeDetails,
+.placeCount {
+  display: flex;
+  align-items: center;
+}
+.placeDetails {
+  justify-content: space-between;
+  gap: 0.25rem;
+  font-size: var(--lz-text-micro, 0.7rem);
+  color: var(--muted-foreground);
+}
+.placeDetails > :first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.placeCount {
+  flex-shrink: 0;
+  gap: 0.13rem;
+}
+.placeCount[data-risk="true"],
+.studentFacts .warning,
+.notice {
+  color: var(--warning);
+}
+.panel {
+  border-inline-start: 1px solid var(--border);
+  background: var(--card);
+}
+.panelTitle {
+  padding: 0.5rem 0.85rem;
+  min-height: 2.75rem;
+}
+.panelTitle h2 {
+  flex: 1;
+  font-weight: 600;
+  color: var(--heading);
+  font-size: var(--lz-text-body);
+}
+.panelTitle h2:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.count,
+.planCounts,
+.planHeading,
+.item small,
+.item svg {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.panelControls,
+.studentFacts {
+  padding: 0.15rem 0.85rem 0.6rem;
+  display: grid;
+  gap: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+.find > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+.panelScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.panelFooter {
+  flex: none;
+  display: grid;
+  padding: 0.55rem 0.85rem;
+  border-top: 1px solid var(--border);
+}
+.personSummary {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.25rem 0.85rem 0.7rem;
+  font-size: var(--lz-text-caption);
+  overflow-wrap: anywhere;
+}
+.personReasons {
+  color: var(--muted-foreground);
+}
+.personActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+}
+.suggestions {
+  border-top: 1px solid var(--border);
+}
+.suggestions h3 {
+  padding: 0.65rem 0.85rem 0.25rem;
+  color: var(--heading);
+  font-size: var(--lz-text-caption);
+  font-weight: 600;
+}
+.suggestions .item {
+  padding-block: 0.4rem;
+}
+.suggestions .item strong {
+  font-size: var(--lz-text-caption);
+}
+.item:disabled {
+  cursor: default;
+}
+.item > svg {
+  flex: none;
+}
+.suggestionNote,
+.emptyDay {
+  padding: 0.6rem 0.85rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: start;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+.item span {
+  display: grid;
+  gap: 0.1rem;
+}
+.item strong,
+.zero h2,
+.zero h3,
+.gate h3 {
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+  color: var(--heading);
+}
+.planHeading {
+  justify-content: space-between;
+}
+.match {
+  padding: 0.25rem 0.85rem;
+  color: var(--interactive);
+  font-size: var(--lz-text-caption);
+}
+.zero,
+.gate {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 0.5rem;
+  padding: 1.5rem;
+}
+.gate {
+  flex: 1;
+  overflow: auto;
+  padding-block-start: clamp(2rem, 8vh, 5rem);
+  max-width: 36rem;
+  align-self: center;
+}
+.gate h2 {
+  font-size: var(--lz-text-h3);
+  color: var(--heading);
+  font-weight: 600;
+}
+.gate section {
+  margin-top: 1rem;
+}
+.gate p,
+.studentFacts p,
+.zero p {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.panel a,
+.gate li a {
+  color: var(--interactive);
+}
+.feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border-top: 1px solid var(--border);
+  background: var(--accent);
+  padding: 0.3rem 0.85rem;
+  font-size: var(--lz-text-caption);
+}
+.mobileTools,
+.dayPicker,
+.emptyDay {
+  display: none;
+}
+@media (max-width: 52rem) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  .mobileTools {
+    display: flex;
+    padding: 0.3rem 0.65rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .workspace[data-mobile="grade"] .panel,
+  .workspace[data-mobile="painel"] .schedule {
+    display: none;
+  }
+  .schedule,
+  .panel {
+    flex: 1;
+    border-inline-start: 0;
+  }
+  .header {
+    gap: 0.4rem;
+    padding: 0.5rem 0.65rem;
+    flex-wrap: wrap;
+  }
+  .heading h1 {
+    font-size: var(--lz-text-body);
+  }
+  .weekControls {
+    padding-inline: 0.65rem;
+  }
+  .weekControls > :last-child {
+    width: min(10rem, 100%);
+  }
+  .dayPicker {
+    display: flex;
+    border-top: 1px solid var(--border);
+  }
+  .skipPanel {
+    display: none;
+  }
+  .emptyDay {
+    display: block;
+    padding-block: 1rem;
+  }
+  .dayPicker button {
+    flex: 1;
+    padding: 0.45rem 0.2rem;
+    font-size: var(--lz-text-caption);
+  }
+  .week [data-day-selected="false"],
+  .week [data-day-empty="true"] {
+    display: none;
+  }
+  .placeName,
+  .placeDetails {
+    font-size: var(--lz-text-caption);
+  }
+  .place {
+    padding: 0.4rem 0.6rem;
+  }
+}
+@media (max-width: 29rem) {
+  .weekControls > :last-child {
+    width: 100%;
+  }
+  .headerActions {
+    gap: 0.1rem;
+  }
+}
+
+.saturday {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 400;
+}
+.week td[data-closed="true"] {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--border-subtle) 6px 7px);
+}
+.board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity var(--lz-duration-fast) var(--lz-ease-standard);
+}
+.board[aria-busy="true"] {
+  opacity: 0.65;
+}
+.header .weekControls {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0.3rem;
+}
+.progress {
+  overflow: hidden;
+  height: 2px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.progress span {
+  display: block;
+  width: 36%;
+  height: 100%;
+  opacity: 0;
+  background: var(--interactive);
+  animation: formation-progress 1.15s linear 160ms infinite;
+}
+@keyframes formation-progress {
+  from {
+    opacity: 0.75;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 0.75;
+    transform: translateX(280%);
+  }
+}
+:global(html[data-formation-panel]) .panel {
+  view-transition-name: formation-panel;
+}
+:global(html[data-formation-panel]::view-transition-old(root)),
+:global(html[data-formation-panel]::view-transition-new(root)) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:global(html[data-formation-panel]::view-transition-group(formation-panel)) {
+  overflow: clip;
+}
+:global(html[data-formation-panel="forward"]::view-transition-old(formation-panel)),
+:global(html[data-formation-panel="backward"]::view-transition-new(formation-panel)) {
+  animation: formation-panel-back 160ms var(--lz-ease-standard) both;
+}
+:global(html[data-formation-panel="forward"]::view-transition-new(formation-panel)),
+:global(html[data-formation-panel="backward"]::view-transition-old(formation-panel)) {
+  animation: formation-panel-forward 160ms var(--lz-ease-standard) both;
+}
+:global(html[data-formation-panel="backward"]::view-transition-new(formation-panel)),
+:global(html[data-formation-panel="backward"]::view-transition-old(formation-panel)) {
+  animation-direction: reverse;
+}
+@keyframes formation-panel-back {
+  to {
+    opacity: 0;
+    transform: translateX(-3%);
+  }
+}
+@keyframes formation-panel-forward {
+  from {
+    opacity: 0;
+    transform: translateX(3%);
+  }
+}
+@media (max-width: 72rem) {
+  .header {
+    flex-wrap: wrap;
+  }
+  .header .weekControls {
+    order: 2;
+    flex-basis: 100%;
+    padding: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board {
+    transition: none;
+  }
+  .progress span {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+.placeTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+.placeTitle small {
+  flex-shrink: 0;
+  font-size: var(--lz-text-micro, 0.68rem);
+  color: var(--muted-foreground);
+}

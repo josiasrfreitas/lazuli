@@ -207,12 +207,6 @@
   background: var(--accent);
   box-shadow: inset 2px 0 var(--interactive);
 }
-.detail {
-  padding: 16px;
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
 .facts {
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr);
@@ -257,37 +251,6 @@
   color: var(--muted-foreground);
   font-size: var(--lz-text-caption);
   max-width: 54ch;
-}
-.loading {
-  height: 100%;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 350px;
-  gap: 1px;
-  background: var(--border);
-}
-.skeletonGrid {
-  background: var(--background);
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: 32px repeat(6, 1fr);
-  gap: 1px;
-  padding: 12px;
-}
-.skeletonGrid span {
-  background: var(--muted);
-  opacity: 0.45;
-}
-.skeletonPanel {
-  background: var(--card);
-  padding: 16px;
-  display: grid;
-  align-content: start;
-  gap: 14px;
-}
-.skeletonPanel span {
-  height: 36px;
-  background: var(--muted);
 }
 .busy {
   font-size: var(--lz-text-micro);
@@ -516,27 +479,12 @@
   .stats {
     font-size: var(--lz-text-micro);
   }
-  .loading {
-    grid-template-columns: 1fr;
-  }
-  .skeletonPanel {
-    display: none;
-  }
 }
 @media (prefers-reduced-motion: no-preference) {
   .queueItem {
     transition:
       background-color 120ms ease-out,
       border-color 120ms ease-out;
-  }
-  .skeletonGrid span,
-  .skeletonPanel span {
-    animation: org-pulse 1.6s ease-in-out infinite alternate;
-  }
-  @keyframes org-pulse {
-    to {
-      opacity: 0.25;
-    }
   }
 }
 
@@ -562,9 +510,6 @@
 .suggestions {
   display: grid;
   gap: 8px;
-}
-.suggestions .queueItem {
-  padding: 12px 0;
 }
 .person + svg {
   flex: none;
@@ -735,14 +680,8 @@
   font-size: var(--lz-text-micro);
   color: var(--muted-foreground);
 }
-.queueDetails {
-  background: var(--muted);
-}
 .queueEntry[open] .person strong {
   white-space: normal;
-}
-.queueEntry .detail > button {
-  justify-self: start;
 }
 
 .classExpansion {

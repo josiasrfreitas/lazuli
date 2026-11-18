@@ -25,7 +25,7 @@ export function MaterialPurchaseNotice({ needs }: { needs: Needs }): ReactJSX.El
               {formatDateOnlyBR(need.plannedEndOn)}
               {need.nextStage
                 ? ` · ${need.mode === "PERSONALIZED" ? "próximo livro previsto" : "próximo estágio"}: ${need.nextStage}`
-                : " · destino ainda não definido na organização de turmas"}
+                : " · destino ainda não definido na formação de turmas"}
             </span>
           </p>
         </div>

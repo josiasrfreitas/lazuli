@@ -2,6 +2,7 @@ export type SemesterEligibility = {
   semesterId: string;
   entryOn: string;
   studentActive: boolean;
+  cohortAdvance?: boolean;
   mode: "ENTRY" | "CONTINUE" | "ADVANCE" | "REPEAT";
   stage: { id: string; trackId: string; sequence: number } | null;
   source: {
@@ -69,7 +70,8 @@ function academicDecisionBlockers(input: SemesterEligibility, source: Source): s
   const blockers: string[] = [];
   const advancing = input.mode === "ADVANCE";
   const decision = advancing ? "APPROVED" : "REPEAT";
-  if (!source.confirmed || source.decision !== decision)
+  const earnedAdvance = advancing && input.cohortAdvance && !source.decision;
+  if (!earnedAdvance && (!source.confirmed || source.decision !== decision))
     blockers.push(
       advancing ? "Aprovação pedagógica pendente" : "Confirmação de repetência pendente",
     );

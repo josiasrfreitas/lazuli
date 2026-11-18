@@ -139,7 +139,9 @@ A planned allocation reserves that portion; confirmed delivery compensates it.
 An attributed record of contact with a student or responsible adult about attendance, including
 its outcome and any planned follow-up.
 
-## Class organization terms
+## Class formation terms
+
+**Formação de turmas** groups recurring weekly teaching slots, pending placements and continuity decisions for one Period.
 
 **Period**:
 An academic window with a start and end date, normally six months long. Every class belongs to one Period.
@@ -149,14 +151,14 @@ _Avoid_: Semester (as the entity name)
 A student's intention to continue in a class for a specific Period. It is independent of contract renewal and of applying the student's class membership.
 
 **Contract Preconfirmation**:
-The default continuity indication when an unterminated contract covers the first three calendar months of the target Period. An explicit intention to change classes or leave takes precedence.
+The default continuity indication when continuous contract coverage reaches the fourth month of the target Period, the student meets grade and attendance thresholds and has no open engagement concern. A contract expiring in months one through three requires an explicit decision. An explicit intention to change classes or leave takes precedence.
 
 **Contract Renewal**:
 A new contractual agreement extending the student's commercial commitment. Confirming continuity for class planning does not renew the contract.
 _Avoid_: Rematrícula (as a synonym for continuity confirmation)
 
 **Lead Class Interest**:
-A lead's proposed class while awaiting entry. Future entrants remain leads until entry in a current Period.
+A lead's proposed class while awaiting entry. Once the entry stage has been determined, a student can wait for a class in the current or next Period. An intention can wait for the next Period to be defined in the academic calendar.
 
 ## Pedagogical terms
 
