@@ -40,7 +40,7 @@ export function AppShell({
       )}
       <Sidebar identity={identity} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <AssessmentUploadProvider userId={identity.id}>
+        <AssessmentUploadProvider userId={identity.id} email={identity.email}>
           <TopBar identity={identity} />
           <main className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto">{children}</main>
           {identity.role === "TEACHER" && <TeacherNavigation />}

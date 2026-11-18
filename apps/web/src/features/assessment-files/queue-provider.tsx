@@ -7,6 +7,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { ListChecks, RefreshCw, Trash2, UploadCloud } from "lucide-react";
 import { useAssessmentFileNotices } from "./job-notices";
 import { isFileProcessingStale, notifyFileJob } from "~/features/shared/file-job-toast";
+import { authClient } from "~/lib/auth-client";
 import { trpc } from "~/lib/trpc";
 import {
   readPendingFiles,
@@ -268,7 +269,7 @@ function queueIsActive(items: QueueItem[]): boolean {
   );
 }
 
-function useQueueController(userId: string): QueueController {
+function useQueueController(userId: string, email: string): QueueController {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [storageError, setStorageError] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -276,8 +277,15 @@ function useQueueController(userId: string): QueueController {
   const dismissed = useRef(new Set<string>());
   const utils = trpc.useUtils();
   const active = queueIsActive(items);
+  const session = authClient.useSession();
+  const sessionMatches = !session.isPending && !session.error && session.data?.user.email === email;
   const recent = trpc.assessmentFiles.recent.useQuery(undefined, {
-    refetchInterval: active ? ACTIVE_QUEUE_REFRESH_INTERVAL_MS : IDLE_QUEUE_REFRESH_INTERVAL_MS,
+    enabled: sessionMatches,
+    retry: (attempt, error) => error.data?.code !== "UNAUTHORIZED" && attempt < 3,
+    refetchInterval: (query) => {
+      if (query.state.error?.data?.code === "UNAUTHORIZED") return false;
+      return active ? ACTIVE_QUEUE_REFRESH_INTERVAL_MS : IDLE_QUEUE_REFRESH_INTERVAL_MS;
+    },
   });
   const retry = trpc.assessmentFiles.retry.useMutation({
     onSuccess: () => utils.assessmentFiles.invalidate(),
@@ -325,7 +333,7 @@ function useQueueController(userId: string): QueueController {
     retryError: retry.error?.message,
     retryPending: retry.isPending,
     refreshRecent: () => {
-      void recent.refetch();
+      if (sessionMatches) void recent.refetch();
     },
     retryItem: (id) => retry.mutate({ id }),
   };
@@ -490,12 +498,14 @@ function QueuePanel(queue: QueueController): ReactJSX.Element | null {
 
 export function AssessmentUploadProvider({
   userId,
+  email,
   children,
 }: {
   userId: string;
+  email: string;
   children: ReactNode;
 }): ReactJSX.Element {
-  const queue = useQueueController(userId);
+  const queue = useQueueController(userId, email);
   return (
     <UploadContext.Provider value={{ add: queue.add }}>
       {children}
