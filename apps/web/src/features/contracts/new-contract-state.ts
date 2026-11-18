@@ -19,6 +19,7 @@ import type { FormProps } from "./contract-form-fields";
 import {
   contractInputFromFields,
   contractPreview,
+  durationFromDates,
   emptyContractFields,
   suggestMonthlyAmount,
   type ContractFields,
@@ -252,11 +253,21 @@ export function useContractFormState(
     if (name === "endsOn") endDateEdited.current = true;
     if (name === "monthlyAmount") monthlyAmountEdited.current = true;
     const updateEnd = name === "firstDueDate" && !endDateEdited.current;
-    setFields((current) => ({
-      ...current,
-      [name]: value,
-      ...(updateEnd ? { endsOn: suggestedContractEnd(value) } : {}),
-    }));
+    setFields((current) => {
+      const next = {
+        ...current,
+        [name]: value,
+        ...(updateEnd ? { endsOn: suggestedContractEnd(value) } : {}),
+      };
+      if (name === "firstDueDate" || name === "endsOn") {
+        const duration = durationFromDates(next);
+        if (Number.isInteger(duration) && duration !== durationFromDates(current)) {
+          next.paymentPlan = "common";
+          next.installmentCount = "";
+        }
+      }
+      return next;
+    });
     setErrors((current) => clearedErrors(current, { name, updateEnd }));
     setSubmissionError("");
   };
