@@ -146,18 +146,24 @@ function validateInstallmentCount(
 }
 
 function validateMaterialFields(fields: ContractFields, errors: SetupErrors): void {
-  if (!fields.materialBooks && fields.materialPayment !== "NONE") {
-    if (errors.materialCardFeePct) delete errors.materialTotal;
-    if (fields.materialStageIds.split(",").some((id) => !id)) {
-      errors.materialStageIds = "Selecione o livro ou remova a linha vazia.";
-    }
-    if (!fields.materialCategory) errors.materialCategory = "Escolha a tabela de preços.";
-    if ((!fields.materialQuoteVersion || !fields.materialTotal) && !errors.materialCardFeePct) {
-      errors.materialTotal = "Confira os livros e os valores do material antes de continuar.";
-    }
-    if (fields.materialScholarshipMode !== "NONE" && !fields.materialScholarshipAgreement.trim()) {
-      errors.materialScholarshipAgreement = "Descreva o acordo da bolsa de material.";
-    }
+  if (fields.materialBooks || fields.materialPayment === "NONE") return;
+  if (fields.materialStageIds.split(",").some((id) => !id)) {
+    errors.materialStageIds = "Selecione o livro ou remova a linha vazia.";
+  }
+  if (!fields.materialCategory) errors.materialCategory = "Escolha a tabela de preços.";
+  validateMaterialTotal(fields, errors);
+  if (fields.materialScholarshipMode !== "NONE" && !fields.materialScholarshipAgreement.trim()) {
+    errors.materialScholarshipAgreement = "Descreva o acordo da bolsa de material.";
+  }
+}
+
+function validateMaterialTotal(fields: ContractFields, errors: SetupErrors): void {
+  if (errors.materialCardFeePct) {
+    delete errors.materialTotal;
+    return;
+  }
+  if (!fields.materialQuoteVersion || !fields.materialTotal) {
+    errors.materialTotal = "Confira os livros e os valores do material antes de continuar.";
   }
 }
 

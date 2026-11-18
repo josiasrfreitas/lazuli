@@ -57,14 +57,19 @@ void it("rejects duplicate or unfinished book choices", () => {
   }
 });
 
-void it("requires material in a new contract and permits renewal without a new acquisition", () => {
+void it("reserves books for both semesters without an immediate acquisition on creation or renewal", () => {
   const fields = { ...base, materialPayment: "NONE" };
   const initial = contractInputFromFields(fields, command);
-  assert.equal(initial.success, false);
-  assert.deepEqual(initial.error.issues[0]!.path, ["material", "stageIds"]);
   const renewal = contractInputFromFields(fields, command, books[0]);
-  assert.equal(renewal.success, true);
-  assert.equal(renewal.data.material, undefined);
+  const deferredBooks = [
+    { stageId: null, acquisitionSemester: null },
+    { stageId: null, acquisitionSemester: null },
+  ];
+  for (const parsed of [initial, renewal]) {
+    assert.equal(parsed.success, true);
+    assert.deepEqual(parsed.data.books, deferredBooks);
+    assert.equal(parsed.data.material, undefined);
+  }
 });
 
 void it("submits a negotiated acquisition price independently of the reference and installments", () => {

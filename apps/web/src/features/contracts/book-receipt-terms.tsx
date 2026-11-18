@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState } from "react";
+import { useId, useState, type ReactElement } from "react";
 import type { ContractMaterialInput } from "@lazuli/validators";
 import { SelectControl } from "~/features/classes/form-controls";
 import { formatBRLFromCents as money } from "~/lib/format";
@@ -24,6 +24,8 @@ export function initialBookTerms(stage: Stage, prices: Prices): ContractMaterial
   };
 }
 
+const MAX_CARD_FEE_PERCENT = 100;
+
 export function BookReceiptTerms({
   terms,
   prices,
@@ -34,13 +36,12 @@ export function BookReceiptTerms({
   prices: Prices;
   allowAgreement?: boolean;
   change: (terms: ContractMaterialInput) => void;
-}) {
+}): ReactElement {
   const id = useId();
   const methods = trpc.finance.paymentMethods.useQuery();
   const [error, setError] = useState("");
-  const manual = terms.quoteVersion === "AGREED_PRICE";
   const amount = bookQuote(terms, prices).charged;
-  function update(next: ContractMaterialInput) {
+  function update(next: ContractMaterialInput): void {
     try {
       const quote = bookQuote(next, prices);
       change({
@@ -49,8 +50,8 @@ export function BookReceiptTerms({
         receivedMethod: quote.charged === 0 ? undefined : (next.receivedMethod ?? ""),
       });
       setError("");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Confira os valores do livro.");
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : "Confira os valores do livro.");
     }
   }
   return (
@@ -60,9 +61,14 @@ export function BookReceiptTerms({
           name={id}
           label="Forma de pagamento"
           value={terms.receivedMethod ?? ""}
-          choices={(methods.data ?? []).map((m) => ({ value: m.code, label: m.name }))}
+          choices={(methods.data ?? []).map((method) => ({
+            value: method.code,
+            label: method.name,
+          }))}
           onChange={(code) => {
-            const card = methods.data?.find((m) => m.code === code)?.allowsExternalInstallments;
+            const card = methods.data?.find(
+              (method) => method.code === code,
+            )?.allowsExternalInstallments;
             update({
               ...terms,
               receivedMethod: code,
@@ -73,36 +79,8 @@ export function BookReceiptTerms({
           }}
         />
       )}
-      {manual && terms.payment === "INSTALLMENTS" && (
-        <label className="grid gap-1">
-          Taxa do cartão (%)
-          <input
-            className="h-9 rounded-sm border border-input bg-field px-2"
-            type="number"
-            min="0"
-            max="99.99"
-            step="0.01"
-            value={terms.cardFeeOverridePct ?? ""}
-            onChange={(e) => {
-              const n = e.target.valueAsNumber;
-              if (n >= 0 && n < 100) update({ ...terms, cardFeeOverridePct: n });
-            }}
-          />
-        </label>
-      )}
       {terms.payment === "INSTALLMENTS" && (
-        <SelectControl
-          name={id + "-parcelas"}
-          label="Parcelas no cartão"
-          value={String(terms.installmentCount)}
-          choices={(manual
-            ? Array.from({ length: 12 }, (_, i) => String(i + 1))
-            : Object.keys(prices.cardFeeRates)
-          )
-            .sort((a, b) => Number(a) - Number(b))
-            .map((n) => ({ value: n, label: n + "×" }))}
-          onChange={(n) => update({ ...terms, installmentCount: Number(n) })}
-        />
+        <BookCardTerms id={id} terms={terms} prices={prices} update={update} />
       )}
       <p className="self-end text-sm">
         {amount > 0 ? "Valor pago" : "Bolsa integral"} · <strong>{money(amount)}</strong>
@@ -114,6 +92,54 @@ export function BookReceiptTerms({
         </button>
       )}
       {error && <p role="alert">{error}</p>}
+    </>
+  );
+}
+
+function BookCardTerms({
+  id,
+  terms,
+  prices,
+  update,
+}: {
+  id: string;
+  terms: ContractMaterialInput;
+  prices: Prices;
+  update: (terms: ContractMaterialInput) => void;
+}): ReactElement {
+  const manual = terms.quoteVersion === "AGREED_PRICE";
+  return (
+    <>
+      {manual && (
+        <label className="grid gap-1">
+          Taxa do cartão (%)
+          <input
+            className="h-9 rounded-sm border border-input bg-field px-2"
+            type="number"
+            min="0"
+            max="99.99"
+            step="0.01"
+            value={terms.cardFeeOverridePct ?? ""}
+            onChange={(event) => {
+              const rate = event.target.valueAsNumber;
+              if (rate >= 0 && rate < MAX_CARD_FEE_PERCENT)
+                update({ ...terms, cardFeeOverridePct: rate });
+            }}
+          />
+        </label>
+      )}
+      <SelectControl
+        name={id + "-parcelas"}
+        label="Parcelas no cartão"
+        value={String(terms.installmentCount)}
+        choices={(manual
+          ? Array.from({ length: 12 }, (_entry, index) => String(index + 1))
+          : Object.keys(prices.cardFeeRates)
+        )
+          .toSorted((left, right) => Number(left) - Number(right))
+          .map((count) => ({ value: count, label: count + "×" }))}
+        onChange={(count) => update({ ...terms, installmentCount: Number(count) })}
+      />
     </>
   );
 }

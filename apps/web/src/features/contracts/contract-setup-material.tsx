@@ -204,9 +204,7 @@ export function useSetupMaterial({
   const enabled = fields.materialPayment !== "NONE";
   const { prices, status, stages } = useMaterialQueries(fields);
   const suggested =
-    autoSuggest && fields.materialPayment !== "NONE"
-      ? (suggestedStageId ?? status.data?.suggestedStageId)
-      : null;
+    autoSuggest && enabled ? (suggestedStageId ?? status.data?.suggestedStageId) : null;
   useSuggestedStage({ fields, change, stages, suggested });
   const count = fields.materialStageIds.split(",").filter(Boolean).length;
   const unit = priceForCategory(fields.materialCategory, prices.data);
@@ -214,11 +212,11 @@ export function useSetupMaterial({
   const priceError = materialPriceError(fields);
   const effective = effectiveMaterialQuote({ fields, quote, prices: prices.data });
   const total = quotedMaterialTotal(fields, quote);
-  const version = enabled ? (unit?.version ?? "") : "";
-  useSyncMaterialQuote({ fields, change, version, total });
+  const version = enabled ? unit?.version : undefined;
+  useSyncMaterialQuote({ fields, change, version: version ?? "", total });
   const { plan, installmentError } = installmentPlan(fields, effective);
   const feeError = materialCardFeeError(fields, prices.data?.cardFeeRates);
-  const referenceCents = unit ? unit.cashCents * count : null;
+  const referenceCents = materialReferenceCents(unit, count);
   return {
     prices,
     stages,
@@ -232,6 +230,13 @@ export function useSetupMaterial({
     referenceCents,
     feeError,
   };
+}
+
+function materialReferenceCents(
+  unit: ReturnType<typeof priceForCategory>,
+  count: number,
+): number | null {
+  return unit ? unit.cashCents * count : null;
 }
 
 function quotedMaterialTotal(
