@@ -64,9 +64,9 @@ void it("submits a real named form with calendar controls", () => {
     inputs.map((tag) => /name="([^"]+)"/u.exec(tag)?.[1]),
     [
       "payerSearch",
-      "agreedOn",
       "firstDueDate",
       "endsOn",
+      "agreedOn",
       "monthlyAmount",
       "enrollmentFee",
       "material-stage-0",

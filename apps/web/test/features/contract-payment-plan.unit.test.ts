@@ -135,7 +135,7 @@ void it("shows nominal calendar entries and a truthful variable summary", () => 
       change: () => {},
     }),
   );
-  assert.match(markup, /3 parcelas · valores variáveis/);
+  assert.match(markup, /2 × R\$\s333,33 \+ 1 × R\$\s333,34/u);
   assert.match(markup, /aria-label="Calendário de parcelas"/);
   assert.doesNotMatch(markup, /Ver calendário completo/);
   assert.match(markup, /31\/01\/2026/);
