@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import {
   ArrowLeft,
   CalendarDays,
@@ -41,7 +42,10 @@ type FilterProps = {
 };
 export function OrganizationPageView({ model }: ModelProps): ReactElement {
   const { board, semesterId, action, setAction } = model;
-  const [reviewScope, setReviewScope] = useState<ReviewScope>("pending");
+  const [reviewScope, setReviewScope] = useQueryState(
+    "vinculos",
+    parseAsStringLiteral(["pending", "published", "all"] as const).withDefault("pending"),
+  );
   const [scope, setScope] = useState("all");
   const [weekSearch, setWeekSearch] = useState("");
   const clearFilters = (): void => {
@@ -330,7 +334,8 @@ function PeriodContent({
   switching,
 }: ModelProps & FilterProps & { switching: boolean }): ReactElement | null {
   const { periods, board, semesterId, query, setAction, prepare } = model;
-  if (periods.isPending || (semesterId && query.isPending)) return <OrganizationLoading />;
+  if (periods.isPending || (semesterId && query.isPending))
+    return <OrganizationLoading review={model.tab === "review"} />;
   if (!semesterId && !periods.error) return <CalendarGate />;
   if (!board) return null;
   return (
