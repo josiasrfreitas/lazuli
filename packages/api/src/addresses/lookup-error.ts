@@ -12,8 +12,9 @@ export function addressLookupError(
   const message = expired
     ? "Amazon Location: a sessão AWS expirou."
     : "Amazon Location: credenciais AWS indisponíveis.";
+  delete details.error_stack;
   return {
-    details: { ...details, error_stack: undefined },
+    details,
     message:
       expired && localProfile === "lazuli"
         ? message + " Execute aws login --profile lazuli."
