@@ -1,3 +1,4 @@
+import { QrCode } from "lucide-react";
 import { toastManager } from "@lazuli/ui";
 
 const SESSION_KEY = "lazuli:mobile-upload-hint-seen";
@@ -16,8 +17,13 @@ export function showMobileUploadHint(): (() => void) | undefined {
   const id = toastManager.add({
     type: "onboarding",
     title: "Envie também pelo celular",
-    description:
-      "Escaneie o QR code para enviar fotos pela câmera do celular. Abra o código pelo ícone no painel de anexos.",
+    description: (
+      <>
+        No painel de anexos, clique no ícone de QR code{" "}
+        <QrCode aria-hidden="true" className="inline-block size-4 align-text-bottom" />. Escaneie o
+        código com o celular para enviar fotos pela câmera.
+      </>
+    ),
     timeout: 6500,
   });
   return () => toastManager.close(id);
