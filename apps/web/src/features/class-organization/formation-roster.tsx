@@ -25,7 +25,7 @@ export function FormationPersonRow({
 }): ReactElement {
   const reasons = attentionReasons(row);
   const primary = reasons.find((reason) => reason.kind === filter) ?? reasons[0];
-  const issue = primary?.label ?? row.blockers[0];
+  const issue = primary?.label ?? (row.blockers.length ? "Vínculo a revisar" : null);
   const listed = compact
     ? issue
       ? [issue]
@@ -39,7 +39,9 @@ export function FormationPersonRow({
       data-compact={compact}
       type="button"
       data-formation-focus={`person-${row.id}`}
-      aria-label={`Revisar ${row.studentName} · ${confirmationLabels[row.confirmation]}`}
+      aria-label={[`Revisar ${row.studentName}`, confirmationLabels[row.confirmation], issue]
+        .filter(Boolean)
+        .join(" · ")}
       onClick={(event) => onSelect({ kind: "student", id: row.id }, event.currentTarget)}
     >
       {!compact && <StudentAvatar size="md" name={row.studentName} colorKey={row.studentId} />}

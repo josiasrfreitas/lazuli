@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import {
   Check,
   TriangleAlert,
@@ -277,11 +277,14 @@ function WeekGrid({
   const [day, setDay] = useState<TeachingDay>(days[0] ?? "MONDAY");
   const [hovered, setHovered] = useState<string | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
-  const hours = weeklyPlaces(plans);
+  const hours = useMemo(() => weeklyPlaces(plans), [plans]);
   const unscheduled = plans.filter(
     (plan) => plan.slots.length === 0 || plan.slots.some((slot) => !formationTeachingDay(slot)),
   );
-  const metrics = new Map(plans.map((plan) => [plan.id, planMetrics(board, plan)]));
+  const metrics = useMemo(
+    () => new Map(plans.map((plan) => [plan.id, planMetrics(board, plan)])),
+    [plans, board],
+  );
   return (
     <>
       <DayPicker day={day} days={days} setDay={setDay} />
