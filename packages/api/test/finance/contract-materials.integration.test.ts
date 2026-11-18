@@ -677,7 +677,7 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
       assert.equal(summary.materialNeeds.length, 1);
       assert.equal(summary.materialNeeds[0]!.plannedEndOn, "2026-02-28");
       assert.equal(summary.materialNeeds[0]!.nextStage, "Essentials 2");
-      const moveEnd = (end: string) =>
+      const moveEnd = (end: string): Promise<object> =>
         scheduleType === "REGULAR"
           ? tx.period.update({ where: { id: semester.id }, data: { endDate: new Date(end) } })
           : tx.stagePlan.update({ where: { id: plan.id }, data: { plannedEndOn: new Date(end) } });
@@ -970,11 +970,11 @@ void it("settles payment at signing and receives scheduled and open-date books o
     await service.createMonthlyContract(input);
     assert.equal(await tx.paymentEntry.count({ where: { payerId: values.payerId } }), 1);
     assert.equal(contract.materials.length, 1);
-    for (const [i, book] of later.entries()) {
+    for (const [index, book] of later.entries()) {
       const payment = {
         commandId: randomUUID(),
         contractId: contract.id,
-        semester: i + 2,
+        semester: index + 2,
         firstDueDate: "2026-02-03",
         material: { ...terms, stageIds: [book.id], priceOverrideCents: 50000 },
       };
@@ -990,7 +990,11 @@ void it("settles payment at signing and receives scheduled and open-date books o
       orderBy: { date: "asc" },
     });
     assert.deepEqual(
-      payments.map((p) => [p.method, p.amountCents, p.date.toISOString().slice(0, 10)]),
+      payments.map((payment) => [
+        payment.method,
+        payment.amountCents,
+        payment.date.toISOString().slice(0, 10),
+      ]),
       [
         ["PIX", price.cashCents, values.agreedOn],
         ["PIX", 50000, "2026-02-03"],

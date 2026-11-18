@@ -8,6 +8,7 @@ import {
   type ContractServiceStatus,
 } from "@lazuli/domain";
 
+import { timeOnly } from "../../class-records/data.js";
 import { toDateOnlyString } from "./shared.js";
 
 export type ContractListRow = {
@@ -166,7 +167,7 @@ function classSchedule(
 ): string {
   const daysByTime = new Map<string, string[]>();
   for (const slot of slots) {
-    const hours = `${slot.startTime.toISOString().slice(11, 16)} às ${slot.endTime.toISOString().slice(11, 16)}`;
+    const hours = `${timeOnly(slot.startTime)} às ${timeOnly(slot.endTime)}`;
     const days = daysByTime.get(hours) ?? [];
     days.push(weekdays[slot.weekday]);
     daysByTime.set(hours, days);
@@ -231,20 +232,20 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
   const materialOrders = row.orders.filter(
     (entry) => entry.kind === "MATERIAL" && !entry.cancelledAt,
   );
-  const amounts = contractAmounts(order, materialOrders, now);
+  const amounts = contractAmounts(order, { materialOrders, now });
   const tuition = tuitionDetails({ order, row, now });
   return {
     id: row.id,
-    plannedBooks: row.plannedBooks.map((b) => ({
-      semester: b.semester,
-      stageId: b.stageId,
-      name: b.stage?.name ?? null,
-      acquisitionSemester: b.acquisitionSemester,
+    plannedBooks: row.plannedBooks.map((book) => ({
+      semester: book.semester,
+      stageId: book.stageId,
+      name: book.stage?.name ?? null,
+      acquisitionSemester: book.acquisitionSemester,
       acquired: materialOrders.some(
-        (o) =>
-          b.stageId &&
-          (o.material?.stageId === b.stageId ||
-            o.material?.items.some((i) => i.stageId === b.stageId)),
+        (order) =>
+          book.stageId &&
+          (order.material?.stageId === book.stageId ||
+            order.material?.items.some((item) => item.stageId === book.stageId)),
       ),
     })),
     payer: row.payer,
@@ -314,8 +315,7 @@ export function orderFinancialSummary(
 
 function contractAmounts(
   order: SelectedContract["orders"][number] | undefined,
-  materialOrders: SelectedContract["orders"],
-  now: Date,
+  { materialOrders, now }: { materialOrders: SelectedContract["orders"]; now: Date },
 ): Pick<ContractListRow, "principalAmountCents" | "materialAmountCents" | "materials"> {
   return {
     principalAmountCents:
@@ -326,30 +326,37 @@ function contractAmounts(
         0,
       ),
     materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
-    materials: materialOrders.map((entry) => ({
-      stageIds: entry.material?.items.length
-        ? entry.material.items.map((item) => item.stageId)
-        : entry.material
-          ? [entry.material.stageId]
-          : [],
-      id: entry.id,
-      name:
-        entry.material?.items.map((item) => item.name).join(" + ") ||
-        entry.material?.name ||
-        "Material",
-      paymentLabel:
-        entry.principalAmountCents === 0
-          ? "Sem cobrança"
-          : orderFinancialSummary(entry, now).status === "QUITADO"
-            ? "Pago"
-            : orderFinancialSummary(entry, now).status === "SEM_SALDO"
-              ? "Sem saldo"
-              : "Não pago",
-      totalCents: entry.principalAmountCents,
-      count: entry.installmentCount ?? entry.installments.length,
-      installmentCents: uniformInstallmentAmount(entry),
-    })),
+    materials: materialOrders.map((entry) => materialSummary(entry, now)),
   };
+}
+
+function materialSummary(
+  entry: SelectedContract["orders"][number],
+  now: Date,
+): ContractListRow["materials"][number] {
+  const material = entry.material;
+  return {
+    stageIds: materialStageIds(material),
+    id: entry.id,
+    name: material?.items.map((item) => item.name).join(" + ") || material?.name || "Material",
+    paymentLabel: materialPaymentLabel(entry, now),
+    totalCents: entry.principalAmountCents,
+    count: entry.installmentCount ?? entry.installments.length,
+    installmentCents: uniformInstallmentAmount(entry),
+  };
+}
+
+function materialStageIds(material: SelectedContract["orders"][number]["material"]): string[] {
+  if (!material) return [];
+  if (material.items.length > 0) return material.items.map((item) => item.stageId);
+  return [material.stageId];
+}
+
+function materialPaymentLabel(entry: SelectedContract["orders"][number], now: Date): string {
+  if (entry.principalAmountCents === 0) return "Sem cobrança";
+  const { status } = orderFinancialSummary(entry, now);
+  if (status === "QUITADO") return "Pago";
+  return status === "SEM_SALDO" ? "Sem saldo" : "Não pago";
 }
 
 function contractServiceStatus(row: SelectedContract, now: Date): ContractListRow["serviceStatus"] {

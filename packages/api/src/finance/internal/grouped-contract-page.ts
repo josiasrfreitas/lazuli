@@ -9,11 +9,18 @@ import {
 } from "./contract-status-page.js";
 import type { FinanceDatabase } from "./shared.js";
 
+const STUDENTS_PER_PAGE = 25;
+
 /** Page students before hydrating their contracts so each disclosure owns the complete group. */
 export async function groupedContractPage(
   database: FinanceDatabase,
   options: ContractStatusPageOptions & { followUp?: boolean | undefined },
-) {
+): Promise<{
+  total: number;
+  ids: string[];
+  renewals: Set<string | null>;
+  materials: Map<string, string | null>;
+}> {
   const today = saoPauloDateOnly(options.now);
   const rows = await database.$queryRaw<
     Array<{
@@ -42,14 +49,14 @@ export async function groupedContractPage(
         ${upcomingMaterial(Prisma.sql`candidates.student_id`)}
       ) need ON true
     ), eligible AS (SELECT * FROM students ${options.followUp ? Prisma.sql`WHERE renewal OR material IS NOT NULL` : Prisma.empty}),
-    page AS (SELECT * FROM eligible ORDER BY next_end NULLS LAST,student_id LIMIT 25 OFFSET ${(options.page - 1) * 25})
+    page AS (SELECT * FROM eligible ORDER BY next_end NULLS LAST,student_id LIMIT ${STUDENTS_PER_PAGE} OFFSET ${(options.page - 1) * STUDENTS_PER_PAGE})
     SELECT totals.total, m.id, m.student_id, m.renewal, page.material FROM (SELECT count(*) AS total FROM eligible) totals
     LEFT JOIN page ON true LEFT JOIN matches m ON m.student_id=page.student_id ORDER BY page.next_end NULLS LAST,page.student_id,m.ends_on DESC,m.id
   `);
   return {
     total: Number(rows[0]?.total ?? 0),
-    ids: rows.flatMap((r) => (r.id ? [r.id] : [])),
-    renewals: new Set(rows.filter((r) => r.renewal).map((r) => r.id)),
-    materials: new Map(rows.map((r) => [r.student_id, r.material])),
+    ids: rows.flatMap((row) => (row.id ? [row.id] : [])),
+    renewals: new Set(rows.filter((row) => row.renewal).map((row) => row.id)),
+    materials: new Map(rows.map((row) => [row.student_id, row.material])),
   };
 }

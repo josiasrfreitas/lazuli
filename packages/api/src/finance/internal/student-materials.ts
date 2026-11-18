@@ -135,28 +135,14 @@ export async function readStudentMaterials(
   const { current, next, nextAcquisitions, add } = createCollector({ catalog, acquired, asOf });
   applyCoverage({ enrollments, placements, catalog, add });
   const unpaidOrders = acquisitions.filter((sale) => sale.balanceCents > 0).map((sale) => sale.id);
-  const openRows = unpaidOrders.length
-    ? await ledgerQuery({
-        kysely: database.$kysely,
-        businessDate: asOf,
-        studentId,
-        search: undefined,
-      })
-        .selectFrom("ledger")
-        .selectAll()
-        .where("orderId", "in", unpaidOrders)
-        .where("collectibleBalanceCents", ">", 0)
-        .orderBy("dueDate")
-        .execute()
-    : [];
-  const beneficiaries = {
-    byOrder: new Map(
-      unpaidOrders.map((id) => [id, [{ studentId: student.id, fullName: student.fullName }]]),
-    ),
-    ordered: [],
-  };
+  const openMaterialRows = await openMaterialBalances(database, {
+    studentId,
+    fullName: student.fullName,
+    asOf,
+    unpaidOrders,
+  });
   return {
-    openMaterialRows: openRows.map((row) => toPublicRow(row, beneficiaries)),
+    openMaterialRows,
     plannedBooks: slots.map((slot) => ({
       contractId: slot.contractId,
       semester: slot.semester,
@@ -175,13 +161,49 @@ export async function readStudentMaterials(
   };
 }
 
+async function openMaterialBalances(
+  database: FinanceDatabase,
+  {
+    studentId,
+    fullName,
+    asOf,
+    unpaidOrders,
+  }: { studentId: string; fullName: string; asOf: string; unpaidOrders: string[] },
+): Promise<FinanceInstallmentRow[]> {
+  const openRows =
+    unpaidOrders.length > 0
+      ? await ledgerQuery({
+          kysely: database.$kysely,
+          businessDate: asOf,
+          studentId,
+          search: undefined,
+        })
+          .selectFrom("ledger")
+          .selectAll()
+          .where("orderId", "in", unpaidOrders)
+          .where("collectibleBalanceCents", ">", 0)
+          .orderBy("dueDate")
+          .execute()
+      : [];
+  const beneficiaries = {
+    byOrder: new Map(
+      unpaidOrders.map((id) => [id, [{ studentId: studentId, fullName: fullName }]]),
+    ),
+    ordered: [],
+  };
+  return openRows.map((row) => toPublicRow(row, beneficiaries));
+}
+
 function toAcquisition(sale: MaterialSale, now: Date): Acquisition {
   const { financialSummary } = orderFinancialSummary(sale.order, now);
   const receipts = sale.order.installments
     .flatMap((line) => line.allocations)
-    .filter((row) => row.amountCents > row.reversals.reduce((sum, r) => sum + r.amountCents, 0))
+    .filter(
+      (row) =>
+        row.amountCents > row.reversals.reduce((sum, reversal) => sum + reversal.amountCents, 0),
+    )
     .map((row) => row.paymentEntry)
-    .sort((a, b) => b.date.getTime() - a.date.getTime());
+    .toSorted((left, right) => right.date.getTime() - left.date.getTime());
   const latest = receipts[0];
   return {
     id: sale.orderId,

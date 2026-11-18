@@ -11,7 +11,12 @@ import type { FinanceSettings, Prisma } from "@lazuli/db";
 import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
-import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import {
+  contractSelect,
+  toRow,
+  type ContractListRow,
+  type SelectedContract,
+} from "./contracts-select.js";
 import { groupedContractPage } from "./grouped-contract-page.js";
 import { contractStatusPage } from "./contract-status-page.js";
 import { createStudent } from "../../students/data.js";
@@ -267,6 +272,14 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
     },
     select: contractSelect,
   });
+  return recordContractBookReceipts(input, contract);
+}
+
+async function recordContractBookReceipts(
+  input: PersistContractInput,
+  contract: SelectedContract,
+): Promise<ContractListRow> {
+  const { database, values } = input;
   const received = (values.books ?? []).flatMap((book) =>
     book.acquisition?.receivedMethod ? [book.acquisition] : [],
   );
@@ -275,7 +288,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
     if (!order) throw new Error("Cobrança do material não encontrada.");
     await receiveNewMaterial({ ...input, order, material, date: values.agreedOn });
   }
-  if (received.length)
+  if (received.length > 0)
     return toRow(
       await database.contract.findUniqueOrThrow({
         where: { id: contract.id },

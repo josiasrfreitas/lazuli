@@ -1,7 +1,26 @@
+import type { Prisma } from "@lazuli/db";
 import type { FinanceDatabase } from "./shared.js";
 import { contractMaterialOptions } from "./contract-materials.js";
 
-export async function renewalMaterials(database: FinanceDatabase, contractId: string) {
+type MaterialTerms = Prisma.MaterialOrderGetPayload<Prisma.MaterialOrderDefaultArgs>;
+type RenewalMaterials = {
+  stageIds: string[];
+  acquisitionSemesters: (number | null)[];
+  missingCount: number;
+  category: MaterialTerms["category"];
+  payment: MaterialTerms["payment"];
+  installmentCount: number;
+  scholarshipPct: number;
+  scholarshipAgreement: string | null;
+  priceOverrideCents: number | null;
+  cardFeePct: number | null;
+};
+type Stage = { id: string; trackId: string; sequence: number };
+
+export async function renewalMaterials(
+  database: FinanceDatabase,
+  contractId: string,
+): Promise<RenewalMaterials | null> {
   const [sales, catalog, planned] = await Promise.all([
     database.materialOrder.findMany({
       where: { order: { contractId, deletedAt: null, cancelledAt: null } },
@@ -18,17 +37,30 @@ export async function renewalMaterials(database: FinanceDatabase, contractId: st
       include: { stage: { select: { id: true, trackId: true, sequence: true } } },
     }),
   ]);
-  if (!sales.length && !planned.length) return null;
+  if (sales.length === 0 && planned.length === 0) return null;
   const books = new Map(
     sales.flatMap((sale) =>
-      (sale.items.length ? sale.items.map((item) => item.stage) : [sale.stage]).map(
+      (sale.items.length > 0 ? sale.items.map((item) => item.stage) : [sale.stage]).map(
         (stage) => [stage.id, stage] as const,
       ),
     ),
   );
   for (const slot of planned) if (slot.stage) books.set(slot.stage.id, slot.stage);
+  const stageIds = suggestedStages(books.values(), { catalog, minimumSlots: planned.length });
+  return {
+    stageIds,
+    acquisitionSemesters: planned.map((slot) => slot.acquisitionSemester),
+    missingCount: stageIds.filter((id) => !id).length,
+    ...renewalTerms(sales[0]),
+  };
+}
+
+function suggestedStages(
+  books: Iterable<Stage>,
+  { catalog, minimumSlots }: { catalog: Stage[]; minimumSlots: number },
+): string[] {
   const tracks = new Map<string, { count: number; last: number }>();
-  for (const book of books.values()) {
+  for (const book of books) {
     const track = tracks.get(book.trackId) ?? { count: 0, last: -1 };
     tracks.set(book.trackId, { count: track.count + 1, last: Math.max(track.last, book.sequence) });
   }
@@ -41,18 +73,31 @@ export async function renewalMaterials(database: FinanceDatabase, contractId: st
       );
     }
   }
-  while (stageIds.length < planned.length) stageIds.push("");
-  const terms = sales[0];
+  while (stageIds.length < minimumSlots) stageIds.push("");
+  return stageIds;
+}
+
+function renewalTerms(
+  terms: MaterialTerms | undefined,
+): Omit<RenewalMaterials, "stageIds" | "acquisitionSemesters" | "missingCount"> {
+  if (!terms) {
+    return {
+      category: "ADULT",
+      payment: "CASH",
+      installmentCount: 1,
+      scholarshipPct: 0,
+      scholarshipAgreement: null,
+      priceOverrideCents: null,
+      cardFeePct: null,
+    };
+  }
   return {
-    stageIds,
-    acquisitionSemesters: planned.map((slot) => slot.acquisitionSemester),
-    missingCount: stageIds.filter((id) => !id).length,
-    category: terms?.category ?? "ADULT",
-    payment: terms?.payment ?? "CASH",
-    installmentCount: terms?.quotedInstallments ?? 1,
-    scholarshipPct: Number(terms?.scholarshipPct ?? 0),
-    scholarshipAgreement: terms?.scholarshipAgreement ?? null,
-    priceOverrideCents: terms?.priceOverrideCents ?? null,
-    cardFeePct: terms?.cardFeePct == null ? null : Number(terms.cardFeePct),
+    category: terms.category,
+    payment: terms.payment,
+    installmentCount: terms.quotedInstallments,
+    scholarshipPct: Number(terms.scholarshipPct),
+    scholarshipAgreement: terms.scholarshipAgreement,
+    priceOverrideCents: terms.priceOverrideCents,
+    cardFeePct: terms.cardFeePct === null ? null : Number(terms.cardFeePct),
   };
 }
