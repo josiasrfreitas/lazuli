@@ -128,7 +128,7 @@ function appendActivity(input: TeachingProgramImport, source: SourceActivity): v
 function fromTranscription(source: Transcription): TeachingProgramImport {
   const input = emptyProgram(source);
   const { entries } = source;
-  input.lessons = transcribedLessons(source);
+  input.lessons = transcribedLessons(source) ?? input.lessons;
   let unit = 1;
   let assessmentKey: string | null = null;
   for (const [index, raw] of entries.entries()) {
@@ -152,7 +152,7 @@ function fromTranscription(source: Transcription): TeachingProgramImport {
   return input;
 }
 
-function transcribedLessons(source: Transcription): TeachingProgramImport["lessons"] {
+function transcribedLessons(source: Transcription): TeachingProgramImport["lessons"] | undefined {
   const { entries } = source;
   if (source.sourceCode === "TH1/TH2") {
     const keys = entries
@@ -174,7 +174,7 @@ function transcribedLessons(source: Transcription): TeachingProgramImport["lesso
         title: `Lição ${sequence}`,
       }));
   }
-  return [];
+  return undefined;
 }
 
 /** Development data only. This does not fetch or claim to synchronize with the external provider. */
