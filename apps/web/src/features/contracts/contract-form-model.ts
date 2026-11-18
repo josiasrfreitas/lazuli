@@ -135,6 +135,11 @@ export function durationFromDates(fields: ContractFields, monthsPerUnit = 1): nu
   return start && end ? nearestContractUnits(start, end, monthsPerUnit) : Number.NaN;
 }
 
+export function boundedInstallmentInput(value: string, duration: number): string {
+  if (!/^\d+$/.test(value) || !Number.isFinite(duration)) return "";
+  return String(Math.min(Number(value), duration));
+}
+
 export function contractPeriodLabel(fields: ContractFields): string {
   const months = durationFromDates(fields);
   if (!Number.isFinite(months)) return "Período a definir";

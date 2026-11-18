@@ -10,7 +10,13 @@ import { parseDateBR } from "~/lib/masks";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
 import { selectedMaterialCardFee } from "./material-card-fee";
-import { materialPriceInput, scholarshipInput, paymentPlanLabel } from "./contract-form-model";
+import {
+  boundedInstallmentInput,
+  durationFromDates,
+  materialPriceInput,
+  scholarshipInput,
+  paymentPlanLabel,
+} from "./contract-form-model";
 
 const CENTS_PER_REAL = 100;
 
@@ -248,7 +254,12 @@ function AdvancedPaymentControls({
               size="sm"
               value={fields.installmentCount}
               invalid={Boolean(errors.installmentCount)}
-              onChange={(event) => change("installmentCount", event.target.value)}
+              onChange={(event) =>
+                change(
+                  "installmentCount",
+                  boundedInstallmentInput(event.target.value, durationFromDates(fields)),
+                )
+              }
               aria-describedby={`${id}-help`}
             />
             <p id={`${id}-help`} className="text-caption text-muted-foreground">

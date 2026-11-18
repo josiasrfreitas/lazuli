@@ -23,7 +23,11 @@ import {
   TermFields,
   type FormProps,
 } from "./contract-form-fields";
-import { contractPeriodLabel, durationFromDates } from "./contract-form-model";
+import {
+  boundedInstallmentInput,
+  contractPeriodLabel,
+  durationFromDates,
+} from "./contract-form-model";
 import { TextField } from "./contract-text-field";
 import { ContractScholarshipFields } from "./contract-scholarship-fields";
 import { ContractPayerFields } from "./contract-payer-fields";
@@ -139,8 +143,9 @@ function TuitionPaymentPlan({ fields, errors, change }: FormProps): ReactElement
           value={fullScholarship ? "0" : count}
           invalid={!fullScholarship && Boolean(errors.installmentCount)}
           onChange={(event) => {
-            change("installmentCount", event.target.value);
-            change("paymentPlan", event.target.value === defaultCount ? "common" : "special");
+            const next = boundedInstallmentInput(event.target.value, duration);
+            change("installmentCount", next);
+            change("paymentPlan", next === defaultCount ? "common" : "special");
           }}
         />
         {!fullScholarship && errors.installmentCount && (
