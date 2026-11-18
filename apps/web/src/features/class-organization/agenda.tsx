@@ -444,7 +444,7 @@ function TeachingSlot({
     >
       <span className={styles.placeTitle}>
         <span className={styles.placeName}>{title}</span>
-        <small>até {endTime}</small>
+        <small>{endTime}</small>
       </span>
       <span className={styles.placeDetails}>
         <span>{professor}</span>
