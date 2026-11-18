@@ -189,7 +189,7 @@ function renewalMaterialFields(data: RenewalTerms): Partial<ContractFields> {
           materialBooks: JSON.stringify(
             material.stageIds.map((stageId, index) => ({
               stageId: stageId || null,
-              acquisitionSemester: material.acquisitionSemesters[index] ?? null,
+              acquisitionSemester: index === 0 ? 1 : (material.acquisitionSemesters[index] ?? null),
             })),
           ),
         }

@@ -33,7 +33,7 @@ export function SemesterBooks({
   const rows: Book[] = Array.from({ length: count }, (_entry, index) => {
     const book = stored[index] ?? {
       stageId: suggestions[index] || null,
-      acquisitionSemester: null,
+      acquisitionSemester: index === 0 ? 1 : null,
     };
     const stage = catalog.find((stage) => stage.id === book.stageId);
     if (!stage || !prices || book.acquisition || book.agreedPriceCents !== undefined) return book;
@@ -100,7 +100,10 @@ function SemesterBookRow({
         pending={material.stages.isLoading}
         failed={material.stages.isError}
         onChange={(stageId) =>
-          update({ stageId: stageId || null, acquisitionSemester: book.acquisitionSemester })
+          update({
+            stageId: stageId || null,
+            acquisitionSemester: index === 0 ? 1 : book.acquisitionSemester,
+          })
         }
       />
       <SelectControl
@@ -108,9 +111,9 @@ function SemesterBookRow({
         label="Pagamento"
         value={book.acquisition ? "now" : String(book.acquisitionSemester ?? "open")}
         choices={[
-          { value: "open", label: "Data em aberto" },
+          ...(index === 0 ? [] : [{ value: "open", label: "Data em aberto" }]),
           ...(book.stageId && prices ? [{ value: "now", label: "Pago no ato" }] : []),
-          ...rows.map((_entry, semesterIndex) => ({
+          ...rows.slice(0, index === 0 ? 1 : rows.length).map((_entry, semesterIndex) => ({
             value: String(semesterIndex + 1),
             label: `No ${semesterIndex + 1}º semestre`,
           })),

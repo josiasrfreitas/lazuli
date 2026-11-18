@@ -209,6 +209,14 @@ export const createMonthlyContractInputSchema = z
     }
   })
   .superRefine((input, context) => {
+    const firstBook = input.books?.[0];
+    if (firstBook && !firstBook.acquisition && firstBook.acquisitionSemester !== 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["books", 0, "acquisitionSemester"],
+        message: "O pagamento do primeiro livro deve ocorrer no primeiro semestre.",
+      });
+    }
     if (input.books && (input.material || !booksMatchContract(input.books, input.durationMonths))) {
       context.addIssue({
         code: "custom",

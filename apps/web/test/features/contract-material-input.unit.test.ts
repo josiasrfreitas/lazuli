@@ -62,13 +62,25 @@ void it("reserves books for both semesters without an immediate acquisition on c
   const initial = contractInputFromFields(fields, command);
   const renewal = contractInputFromFields(fields, command, books[0]);
   const deferredBooks = [
-    { stageId: null, acquisitionSemester: null },
+    { stageId: null, acquisitionSemester: 1 },
     { stageId: null, acquisitionSemester: null },
   ];
   for (const parsed of [initial, renewal]) {
     assert.equal(parsed.success, true);
     assert.deepEqual(parsed.data.books, deferredBooks);
     assert.equal(parsed.data.material, undefined);
+  }
+});
+
+void it("rejects an open or later payment semester for the first book", () => {
+  for (const acquisitionSemester of [null, 2]) {
+    const materialBooks = JSON.stringify([
+      { stageId: books[0], acquisitionSemester },
+      { stageId: books[1], acquisitionSemester: null },
+    ]);
+    const parsed = contractInputFromFields({ ...base, materialBooks }, command);
+    assert.equal(parsed.success, false);
+    assert.deepEqual(parsed.error.issues[0]?.path, ["books", 0, "acquisitionSemester"]);
   }
 });
 
