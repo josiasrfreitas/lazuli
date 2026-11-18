@@ -158,14 +158,20 @@ void it("closes manual attendance with page-free regular content and preserves t
   });
   assert.equal(await db.attendance.count({ where: { classSessionId: fixtureData.session.id } }), 0);
   await caller().classRecords.save(input);
-  await caller("2076-02-16T12:00:00Z").planning.saveWindow({
+  const afterEncounter = caller("2076-02-16T12:00:00Z");
+  const revision = {
     ...target,
     version: 2,
     plannedStartOn: "2076-02-01",
     plannedEndOn: "2076-06-30",
     objective: "Objetivo alterado depois da aula.",
     reason: "Reorganização posterior.",
-  });
+  };
+  await assert.rejects(
+    afterEncounter.planning.saveWindow({ ...revision, plannedStartOn: "2076-02-17" }),
+    { code: "BAD_REQUEST", message: /O início só pode ser alterado/ },
+  );
+  await afterEncounter.planning.saveWindow(revision);
   const record = await caller().classRecords.detail({ sessionId: fixtureData.session.id });
   assert.equal(record.snapshot.sharedContent?.kind, "REVIEW");
   assert.equal(record.snapshot.sharedContent?.pageFrom, null);

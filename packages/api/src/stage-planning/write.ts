@@ -39,7 +39,12 @@ export async function savePlanWindow(
   input: StagePlanWindow,
 ): Promise<VersionedResult> {
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
-  if (plan && (dateOnly(plan.plannedStartOn) <= scope.today || input.plannedStartOn <= scope.today))
+  const previousStart = plan ? dateOnly(plan.plannedStartOn) : null;
+  if (
+    previousStart !== null &&
+    previousStart !== input.plannedStartOn &&
+    (previousStart <= scope.today || input.plannedStartOn <= scope.today)
+  )
     throw badRequest("O início só pode ser alterado enquanto ainda estiver no futuro.");
   input = windowInSemester(input, scope);
   const rows = await windowProgramRows(context, { scope, plan, input });
