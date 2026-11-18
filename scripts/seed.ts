@@ -1,4 +1,4 @@
-import { includeNextSeedSemester } from "./config.mjs";
+import { includeNextSeedSemester } from "./seed/config.js";
 import { createDbClient } from "../packages/db/src/client.js";
 import { getWorkspaceInitializationKey } from "../packages/db/src/config.js";
 import { saoPauloTodayIso } from "../packages/db/src/seed-dev-support.js";

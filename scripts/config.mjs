@@ -16,7 +16,3 @@ export function getGitIndependentProcessEnvironment(overrides = {}) {
 export const workspaceComposeHealthTimeoutMs = Number(
   process.env.LAZULI_COMPOSE_HEALTH_TIMEOUT_MS ?? DEFAULT_WORKSPACE_COMPOSE_HEALTH_TIMEOUT_MS,
 );
-
-export function includeNextSeedSemester() {
-  return process.env.LAZULI_SEED_SKIP_NEXT_SEMESTER !== "1";
-}
