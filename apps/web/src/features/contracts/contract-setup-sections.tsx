@@ -57,7 +57,13 @@ export function SetupParties(
       <FormSection title="Período do contrato">
         <div className={styles.dates}>
           <TermFields {...props} />
-          {!props.billingFirstDueDate && (
+          {props.billingFirstDueDate ? (
+            <RenewalFirstDueDate
+              value={props.billingFirstDueDate.value}
+              onChange={props.billingFirstDueDate.onChange}
+              error={props.dueError}
+            />
+          ) : (
             <TextField
               name="billingFirstDueDate"
               label="Primeiro vencimento"
@@ -70,13 +76,6 @@ export function SetupParties(
             />
           )}
         </div>
-        {props.billingFirstDueDate && (
-          <RenewalFirstDueDate
-            value={props.billingFirstDueDate.value}
-            onChange={props.billingFirstDueDate.onChange}
-            error={props.dueError}
-          />
-        )}
       </FormSection>
     </div>
   );

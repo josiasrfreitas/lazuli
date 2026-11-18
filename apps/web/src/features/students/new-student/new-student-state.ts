@@ -150,8 +150,16 @@ export type EnrollmentContract = {
   offer: ReturnType<typeof useContractOffer>;
 };
 
-export function useEnrollmentContract(flow: EnrollmentFlow): EnrollmentContract {
-  const contractState = useContractFormState(flow.step === "contract");
+export function useEnrollmentContract(
+  flow: EnrollmentFlow,
+  contractStart: string | undefined,
+): EnrollmentContract {
+  const contractState = useContractFormState(
+    flow.step === "contract",
+    undefined,
+    true,
+    contractStart,
+  );
   const contract = {
     ...contractState,
     change: (...args: Parameters<typeof contractState.change>): void => {

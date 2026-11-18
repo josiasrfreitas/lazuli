@@ -196,21 +196,29 @@ export type ContractFormState = {
 function useInitialContractDates(
   open: boolean,
   setFields: Dispatch<SetStateAction<ContractFields>>,
+  suggestedStart: string | undefined,
 ): void {
+  const previousDefault = useRef("");
   useEffect(() => {
     if (!open) return;
     const today = formatDateOnlyBR(toDateOnlySaoPaulo(new Date()));
+    const defaultStart = suggestedStart ? formatDateOnlyBR(suggestedStart) : today;
+    const previous = previousDefault.current;
+    previousDefault.current = defaultStart;
     setFields((current) => {
-      if (current.agreedOn && current.firstDueDate && current.endsOn) return current;
-      const firstDueDate = current.firstDueDate || today;
-      return {
-        ...current,
-        agreedOn: current.agreedOn || today,
-        firstDueDate,
-        endsOn: current.endsOn || suggestedContractEnd(firstDueDate),
-      };
+      const shiftDefault =
+        previous !== defaultStart &&
+        current.firstDueDate === previous &&
+        (!current.endsOn || current.endsOn === suggestedContractEnd(previous));
+      const firstDueDate =
+        !current.firstDueDate || shiftDefault ? defaultStart : current.firstDueDate;
+      const endsOn =
+        !current.endsOn || shiftDefault ? suggestedContractEnd(firstDueDate) : current.endsOn;
+      if (current.agreedOn && current.firstDueDate === firstDueDate && current.endsOn === endsOn)
+        return current;
+      return { ...current, agreedOn: current.agreedOn || today, firstDueDate, endsOn };
     });
-  }, [open, setFields]);
+  }, [open, setFields, suggestedStart]);
 }
 
 function useSuggestedMonthlyAmount(
@@ -239,10 +247,12 @@ function clearedErrors(
 
 export function useContractFormState(
   open: boolean,
-  ...[initialFields = emptyContractFields, suggestAgreementDate = true]: [ContractFields?, boolean?]
+  initialFields: ContractFields = emptyContractFields,
+  suggestAgreementDate = true,
+  suggestedStart?: string,
 ): ContractFormState {
   const [fields, setFields] = useState<ContractFields>(initialFields);
-  useInitialContractDates(open && suggestAgreementDate, setFields);
+  useInitialContractDates(open && suggestAgreementDate, setFields, suggestedStart);
   const [errors, setErrors] = useState<Errors>({});
   const [submissionError, setSubmissionError] = useState("");
   const commandId = useRef(crypto.randomUUID());

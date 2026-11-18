@@ -222,16 +222,6 @@ export function TermFields({ fields, errors, change, maskedDates }: FormProps): 
   return (
     <>
       <TextField
-        name="agreedOn"
-        label="Data do acordo"
-        placeholder="dd/mm/aaaa"
-        date
-        maskedDate={maskedDates}
-        value={fields.agreedOn}
-        onChange={(value) => change("agreedOn", value)}
-        error={errors.agreedOn}
-      />
-      <TextField
         name="firstDueDate"
         label="Início da vigência"
         placeholder="dd/mm/aaaa"
@@ -250,6 +240,16 @@ export function TermFields({ fields, errors, change, maskedDates }: FormProps): 
         value={fields.endsOn}
         onChange={(value) => change("endsOn", value)}
         error={errors.endsOn}
+      />
+      <TextField
+        name="agreedOn"
+        label="Data do acordo"
+        placeholder="dd/mm/aaaa"
+        date
+        maskedDate={maskedDates}
+        value={fields.agreedOn}
+        onChange={(value) => change("agreedOn", value)}
+        error={errors.agreedOn}
       />
     </>
   );

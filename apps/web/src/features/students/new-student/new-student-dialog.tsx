@@ -82,13 +82,17 @@ function EnrollmentDialog(props: NewStudentDialogProps): ReactJSX.Element {
 function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel {
   const today = toDateOnlySaoPaulo(new Date());
   const { identity, flow, documents } = useEnrollmentDraft(props);
-  const contractData = useEnrollmentContract(flow);
   const { existingSources, leadSources, classSources } = useEnrollmentSources({
     existingStudentId: props.existingStudentId,
     identity,
     flow,
     today,
   });
+  const contractStart =
+    identity.entryPeriod === "NEXT"
+      ? classSources.options.data?.semester?.startDate.toISOString().slice(0, 10)
+      : undefined;
+  const contractData = useEnrollmentContract(flow, contractStart);
   useEffect(() => {
     if (existingSources.existingContract && flow.step === "contract") flow.setStep("pedagogy");
   }, [existingSources.existingContract, flow.step, flow.setStep]);
