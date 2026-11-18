@@ -74,6 +74,7 @@ async function clean(): Promise<void> {
   await db.pedagogicalProgress.deleteMany({ where: { enrollment: { classId: { in: classIds } } } });
   await db.attendance.deleteMany({ where: { classSession: { classId: { in: classIds } } } });
   await db.classSession.deleteMany({ where: { classId: { in: classIds } } });
+  await db.classAppointmentSeries.deleteMany({ where: { classId: { in: classIds } } });
   await db.enrollment.deleteMany({ where: { classId: { in: classIds } } });
   await db.stagePlanRevision.deleteMany({
     where: { plan: { stage: { name: { startsWith: config.prefix } } } },
@@ -626,7 +627,7 @@ void it("requires an explicit decision for a short contract and never admits wit
 void it("postpones an entry, then dissolves a future class into the same waiting list without closing its source", async () => {
   const scope = await fixture(),
     student = await scope.student("Transfer");
-  await caller().semesterOrganization.publish({
+  const publication = await caller().semesterOrganization.publish({
     planId: scope.plan.id,
     version: 1,
     placements: [{ id: student.proposal.id, version: 1 }],
@@ -639,11 +640,18 @@ void it("postpones an entry, then dissolves a future class into the same waiting
   let board = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
   assert.equal(board.placements[0]?.publishedAt, null);
   assert.equal(board.placements[0]?.effectiveDate?.toISOString().slice(0, 10), "2085-07-15");
-  await caller().semesterOrganization.planStatus({
+  const extraDate = new Date("2086-01-07");
+  await seedOffPeriodExtra(publication.classId, extraDate);
+  const dissolved = await caller().semesterOrganization.planStatus({
     id: scope.plan.id,
     version: board.plans[0]!.version,
     open: false,
   });
+  assert.ok(dissolved.reconciliationRequestId);
+  const request = await db.calendarReconciliationRequest.findUniqueOrThrow({
+    where: { id: dissolved.reconciliationRequestId },
+  });
+  assert.equal(request.throughDate.getTime(), extraDate.getTime());
   board = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
   assert.equal(board.plans[0]?.active, false);
   assert.equal(board.placements[0]?.planId, null);
@@ -653,6 +661,29 @@ void it("postpones an entry, then dissolves a future class into the same waiting
   });
   assert.equal(source.exitDate, null);
 });
+async function seedOffPeriodExtra(classId: string, date: Date): Promise<void> {
+  const series = await db.classAppointmentSeries.create({
+    data: {
+      classId,
+      teacherId: config.teacherId,
+      scheduledById: admin.id,
+      fromDate: date,
+      throughDate: date,
+      schedule: [],
+      reason: "Aula extra após o período",
+    },
+  });
+  await db.classSession.create({
+    data: {
+      classId,
+      appointmentSeriesId: series.id,
+      date,
+      startTime: new Date("1970-01-01T14:00Z"),
+      endTime: new Date("1970-01-01T15:00Z"),
+    },
+  });
+}
+
 void it("keeps a manual engagement concern independent of passing marks, attendance and contract", async () => {
   const scope = await fixture(),
     student = await scope.student("Acompanhamento", false);

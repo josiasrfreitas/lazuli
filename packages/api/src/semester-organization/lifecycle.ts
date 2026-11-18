@@ -158,24 +158,46 @@ export async function changePlanStatus(
       description: input.open ? "Turma aberta para receber alunos." : "Turma encerrada.",
     },
   });
-  const reconciliation =
-    !input.open && classId
-      ? await context.database.calendarReconciliationRequest.create({
-          data: {
-            semesterId: semester.id,
-            fromDate: new Date(saoPauloDateOnly(context.now)),
-            throughDate: semester.endDate,
-            reason: "Turma desfeita.",
-            requestedById: context.staffUser.id,
-          },
-        })
-      : null;
-  return { classId, generationRequestId, reconciliationRequestId: reconciliation?.id ?? null };
+  const reconciliationRequestId =
+    input.open || classId === null
+      ? null
+      : await requestDissolutionReconciliation(context, { classId, semester });
+  return { classId, generationRequestId, reconciliationRequestId };
 }
 
 type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
 type Period = Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
 type PlanStatus = { classId: string | null; generationRequestId: string | null };
+
+async function requestDissolutionReconciliation(
+  context: OrganizationContext,
+  { classId, semester }: { classId: string; semester: Period },
+): Promise<string> {
+  const fromDate = new Date(saoPauloDateOnly(context.now));
+  // Explicit collective extras can be later than the academic period.
+  const lastExtra = await context.database.classSession.findFirst({
+    where: {
+      classId,
+      date: { gte: fromDate, gt: semester.endDate },
+      deletedAt: null,
+      status: "SCHEDULED",
+      appointmentSeriesId: { not: null },
+    },
+    orderBy: { date: "desc" },
+    select: { date: true },
+  });
+  const request = await context.database.calendarReconciliationRequest.create({
+    data: {
+      semesterId: semester.id,
+      fromDate,
+      throughDate: lastExtra?.date ?? (semester.endDate >= fromDate ? semester.endDate : fromDate),
+      reason: "Turma desfeita.",
+      requestedById: context.staffUser.id,
+    },
+    select: { id: true },
+  });
+  return request.id;
+}
 
 async function openClassPlan(
   context: OrganizationContext,
