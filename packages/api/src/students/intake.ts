@@ -44,18 +44,27 @@ type EnrollResult = {
 type Candidate = Awaited<ReturnType<typeof readCandidate>>;
 type ClassModel = Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>;
 
-export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult> {
-  const { database, values, now } = input;
-  const enrollmentDatabase = captureEnrollmentTransaction(database);
+async function lockEnrollmentIntake({
+  database,
+  values,
+  now,
+}: EnrollInput): ReturnType<typeof lockIntakeSemester> {
   // A direct, unallocated intake writes only this new student’s placement.
   const directIntake =
     !values.classId && !values.planId && !values.candidateId && !values.leadRegistration;
   const lockMode = directIntake ? "shared" : "exclusive";
   const semester =
     values.entryPeriod === "NEXT"
-      ? await lockNextIntakeSemester(database, now, lockMode)
-      : await lockIntakeSemester(database, now, lockMode);
+      ? await lockNextIntakeSemester(database, { now, mode: lockMode })
+      : await lockIntakeSemester(database, { now, mode: lockMode });
   if (!directIntake) await lockTeacher(database, "");
+  return semester;
+}
+
+export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult> {
+  const { database, values, now } = input;
+  const enrollmentDatabase = captureEnrollmentTransaction(database);
+  const semester = await lockEnrollmentIntake(input);
   await lockCreationCommand(database, values.commandId);
   await assertCreationCommandOwner(database, { id: values.commandId, owner: "studentCompletion" });
   const fingerprint = intakeFingerprint(values);
@@ -343,7 +352,7 @@ export async function allocateIntakeStudent({
   recordedById: string;
   now: Date;
 }): Promise<{ studentId: string; enrollmentId: string }> {
-  const semester = await lockIntakeSemester(database, now);
+  const semester = await lockIntakeSemester(database, { now });
   await lockTeacher(database, "");
   const candidate = await allocationCandidate(database, values.studentId);
   const today = saoPauloDateOnly(now);
@@ -471,8 +480,8 @@ export async function resumeStudentIntake({
 }): Promise<{ studentId: string; contractId: string | null }> {
   const semester =
     values.entryPeriod === "NEXT"
-      ? await lockNextIntakeSemester(database, now)
-      : await lockIntakeSemester(database, now);
+      ? await lockNextIntakeSemester(database, { now })
+      : await lockIntakeSemester(database, { now });
   await lockTeacher(database, "");
   await database.$executeRaw`SELECT id FROM "Student" WHERE id = ${values.studentId}::uuid FOR UPDATE`;
   const state = await readStudentPendingActions(database, { id: values.studentId, now });

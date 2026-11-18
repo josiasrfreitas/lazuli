@@ -1,3 +1,4 @@
+import { z } from "../packages/validators/src/index.js";
 import { readHomePending } from "../packages/api/src/dashboard/home-pending.js";
 import { readPendingLessonSummaries } from "../packages/api/src/dashboard/home-lessons.js";
 import { readFile } from "node:fs/promises";
@@ -6,13 +7,20 @@ import { saoPauloTodayIso, utcDate } from "../packages/db/src/seed-dev-support.j
 import { listContracts } from "../packages/api/src/finance/internal/contracts.js";
 import { getStorage } from "../packages/storage/src/index.js";
 
+const workspaceSchema = z.object({ urls: z.object({ web: z.string() }) });
+const PHOTO_PREVIEW_COUNT = 3;
+
+function writeStatus(message: string): void {
+  process.stdout.write(`${message}\n`);
+}
+
 const database = createDbClient();
 try {
   const today = saoPauloTodayIso();
   const date = utcDate(today);
   const now = new Date();
-  const workspace = JSON.parse(
-    await readFile(new URL("../.lazuli/workspace.json", import.meta.url), "utf8"),
+  const workspace = workspaceSchema.parse(
+    JSON.parse(await readFile(new URL("../.lazuli/workspace.json", import.meta.url), "utf8")),
   );
   const current = await database.period.findFirstOrThrow({
     where: { deletedAt: null, startDate: { lte: date }, endDate: { gte: date } },
@@ -66,20 +74,20 @@ try {
       where: { kind: { not: "photo" }, status: "READY", deletedAt: null },
     }),
   ]);
-  console.log(`Escola em ${today} · ${current.name} · ${workspace.urls.web}`);
-  console.log(
+  writeStatus(`Escola em ${today} · ${current.name} · ${workspace.urls.web}`);
+  writeStatus(
     `${students} alunos · ${teachers} professores · ${classes} turmas · ${entries} matrículas · ${records} registros de aula · ${future} aulas futuras`,
   );
-  console.log(
-    `Contratos inadimplentes: ${overdue.total}/${contracts}. Notas: ${grades._count}, média ${grades._avg.score?.toFixed(1)}, de ${grades._min.score} a ${grades._max.score}.`,
+  writeStatus(
+    `Contratos inadimplentes: ${overdue.total}/${contracts}. Notas: ${grades._count}, média ${grades._avg.score?.toFixed(1)}, de ${grades._min.score?.toString() ?? "—"} a ${grades._max.score?.toString() ?? "—"}.`,
   );
-  console.log("Frequência:", attendance.map((row) => `${row.status}: ${row._count}`).join(" · "));
+  writeStatus(`Frequência: ${attendance.map((row) => `${row.status}: ${row._count}`).join(" · ")}`);
   const [registration, materials, lessons] = await Promise.all([
     readHomePending(database, { kind: "documents", page: 1, now }),
     readHomePending(database, { kind: "materials", page: 1, now }),
     readPendingLessonSummaries(database, now),
   ]);
-  console.log(
+  writeStatus(
     `Pendências da Home: ${registration.total} cadastros com anexos faltantes, ${materials.total} alunos a adquirir o próximo livro, ${lessons.reduce((sum, teacher) => sum + teacher.total, 0)} aulas sem registro.`,
   );
   const [books] = await database.$queryRaw<{ contracts: number }[]>`
@@ -93,18 +101,18 @@ try {
         AND a.deleted_at IS NULL AND p.deleted_at IS NULL
       GROUP BY c.id HAVING count(DISTINCT o.id) = 2
     ) paid_at_signing`;
-  console.log(`Contratos com dois livros pagos no ato: ${books?.contracts ?? 0}.`);
+  writeStatus(`Contratos com dois livros pagos no ato: ${books?.contracts ?? 0}.`);
   for (const file of [...photos, ...documents, ...assessmentFiles]) {
     if (!file.bucket || !file.key) throw new Error(`Arquivo sem referência: ${file.id}`);
     const result = await getStorage().read({ bucket: file.bucket, key: file.key });
-    if (!result.bytes.length || result.bytes.length !== file.byteLength)
+    if (result.bytes.length === 0 || result.bytes.length !== file.byteLength)
       throw new Error(`Arquivo incompleto: ${file.id}`);
   }
-  console.log(
+  writeStatus(
     `Arquivos conferidos: ${photos.length} fotos, ${documents.length} documentos e ${assessmentFiles.length} anexos de avaliações.`,
   );
-  for (const item of photos.slice(0, 3))
-    console.log(
+  for (const item of photos.slice(0, PHOTO_PREVIEW_COUNT))
+    writeStatus(
       `${item.session.student?.fullName}: ${workspace.urls.web}/alunos/${item.session.studentId}`,
     );
 } finally {

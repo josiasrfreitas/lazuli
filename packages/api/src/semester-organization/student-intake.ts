@@ -14,8 +14,7 @@ const ISO_MINUTE_END_INDEX = 16;
 /** Keep the same lock order as allocation: period, teaching schedule, student. */
 export async function lockIntakeSemester(
   database: TransactionClient,
-  now: Date,
-  mode: IntakeLockMode = "exclusive",
+  { now, mode = "exclusive" }: { now: Date; mode?: IntakeLockMode },
 ): Promise<Period | null> {
   await lockIntakeCalendar(database, mode);
   const today = new Date(saoPauloDateOnly(now));
@@ -23,7 +22,8 @@ export async function lockIntakeSemester(
     where: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
     orderBy: { startDate: "desc" },
   });
-  if (semester) await lockIntakeResource(database, `semester-organization:${semester.id}`, mode);
+  if (semester)
+    await lockIntakeResource(database, { key: `semester-organization:${semester.id}`, mode });
   return semester;
 }
 

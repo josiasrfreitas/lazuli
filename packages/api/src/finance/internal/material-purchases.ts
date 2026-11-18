@@ -13,13 +13,13 @@ export function studentMaterialSaleWhere(studentIds: string[]): Prisma.MaterialO
 
 /** Older orders stored a single book directly on the sale; newer orders have item lines. */
 export function purchasedBooks<Book>(items: Book[], legacyBook: Book): Book[] {
-  return items.length ? items : [legacyBook];
+  return items.length > 0 ? items : [legacyBook];
 }
 
 export async function readAcquiredStages(
   database: Pick<FinanceDatabase, "materialOrder">,
   studentIds: string[],
-) {
+): Promise<Map<string, Set<string>>> {
   const sales = await database.materialOrder.findMany({
     where: studentMaterialSaleWhere(studentIds),
     select: {

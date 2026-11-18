@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { after, before, it } from "node:test";
 import { db, type TransactionClient } from "@lazuli/db";
-import { readAcquiredStages } from "../../src/finance/internal/material-purchases.js";
+import { readAcquiredStages } from "../../src/finance/index.js";
 import { finance } from "../../src/finance/index.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
 
@@ -1036,7 +1036,8 @@ void it("matches formation material coverage to purchased contract books, includ
     const order = await tx.order.findFirstOrThrow({
       where: { contractId: contract.id, kind: "MATERIAL" },
     });
-    const read = () => readAcquiredStages(tx, [values.studentId, other.id]);
+    const read = (): ReturnType<typeof readAcquiredStages> =>
+      readAcquiredStages(tx, [values.studentId, other.id]);
     const initial = await read();
     assert.deepEqual(initial.get(values.studentId), new Set([stageId, second.id]));
     assert.equal(initial.has(other.id), false);
@@ -1046,11 +1047,13 @@ void it("matches formation material coverage to purchased contract books, includ
       create: { contractId: contract.id, semester: 2, stageId: second.id, acquisitionSemester: 2 },
       update: { stageId: second.id, acquisitionSemester: 2 },
     });
-    assert.deepEqual((await read()).get(values.studentId), new Set([stageId]));
+    const legacy = await read();
+    assert.deepEqual(legacy.get(values.studentId), new Set([stageId]));
     await tx.order.update({
       where: { id: order.id },
       data: { cancelledAt: NOW, cancelledReason: "Compra cancelada" },
     });
-    assert.equal((await read()).has(values.studentId), false);
+    const cancelled = await read();
+    assert.equal(cancelled.has(values.studentId), false);
   });
 });

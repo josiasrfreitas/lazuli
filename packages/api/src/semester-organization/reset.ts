@@ -9,7 +9,10 @@ import {
 } from "./data.js";
 import { readSemester } from "./queries.js";
 
-async function resetScope(context: OrganizationContext, semesterId: string) {
+type ResetPreview = { fingerprint: string; release: number; leads: number; keep: number };
+type ResetScope = { ids: string[]; leadIds: string[]; preview: ResetPreview };
+
+async function resetScope(context: OrganizationContext, semesterId: string): Promise<ResetScope> {
   const { placements, waitingLeads } = await readSemester(context, semesterId);
   const assigned = placements.filter((row) => row.planId && !row.declinedAt);
   const provisional = assigned.filter(
@@ -22,11 +25,11 @@ async function resetScope(context: OrganizationContext, semesterId: string) {
   );
   const versions = provisional
     .map(({ id, version }) => [id, version] as const)
-    .sort(([left], [right]) => left.localeCompare(right));
+    .toSorted(([left], [right]) => left.localeCompare(right));
   const interests = waitingLeads
     .filter((lead) => lead.allocationPlanId !== null)
     .map((lead) => [lead.id, lead.allocationPlanId] as const)
-    .sort(([left], [right]) => left.localeCompare(right));
+    .toSorted(([left], [right]) => left.localeCompare(right));
   const fingerprint = createHash("sha256")
     .update(JSON.stringify([semesterId, versions, interests]))
     .digest("hex");
@@ -42,16 +45,20 @@ async function resetScope(context: OrganizationContext, semesterId: string) {
   };
 }
 
-export async function previewFormationReset(context: OrganizationContext, semesterId: string) {
+export async function previewFormationReset(
+  context: OrganizationContext,
+  semesterId: string,
+): Promise<ResetPreview> {
   await requireFutureSemester(context, semesterId);
-  return (await resetScope(context, semesterId)).preview;
+  const { preview } = await resetScope(context, semesterId);
+  return preview;
 }
 
 /** Remove provisional destinations only. Published enrollments have separate reversal rules. */
 export async function resetFormation(
   context: OrganizationContext,
   input: { semesterId: string; fingerprint: string },
-) {
+): Promise<{ released: number; leads: number }> {
   const semester = await lockSemester(context, input.semesterId);
   const { ids, leadIds, preview } = await resetScope(context, input.semesterId);
   if (preview.fingerprint !== input.fingerprint)
@@ -59,7 +66,7 @@ export async function resetFormation(
       code: "CONFLICT",
       message: "As propostas mudaram. Confira a prévia atualizada antes de reiniciar.",
     });
-  if (!ids.length && !leadIds.length) return { released: 0, leads: 0 };
+  if (ids.length === 0 && leadIds.length === 0) return { released: 0, leads: 0 };
   const released = await context.database.semesterPlacement.updateManyAndReturn({
     where: {
       semesterId: input.semesterId,
@@ -77,12 +84,11 @@ export async function resetFormation(
   });
   await context.database.semesterPlacementRevision.createMany({
     data: released.map((row) =>
-      placementRevisionData(
-        context,
+      placementRevisionData(context, {
         row,
-        "FORMATION_RESET",
-        "Destino provisório retirado no reinício da formação.",
-      ),
+        action: "FORMATION_RESET",
+        reason: "Destino provisório retirado no reinício da formação.",
+      }),
     ),
   });
   const leads = await context.database.admissionCandidate.updateMany({

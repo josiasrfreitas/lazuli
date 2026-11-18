@@ -301,3 +301,5 @@ export {
   WAIVED_INSTALLMENT_ADJUSTMENT_MESSAGE,
   WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
 } from "./internal/shared.js";
+
+export { readAcquiredStages } from "./internal/material-purchases.js";

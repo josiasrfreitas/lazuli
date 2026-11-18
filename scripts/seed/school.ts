@@ -24,9 +24,9 @@ import { seedSemesterOrganization } from "./semester-organization.js";
 /** Shared by initial provisioning and the destructive pnpm seed entry point. */
 export async function seedSchool(
   database: DatabaseClient,
-  todayIso: string,
-  options: { includeNextSemester: boolean },
+  options: { todayIso: string; includeNextSemester: boolean },
 ): Promise<void> {
+  const { todayIso } = options;
   await seedCourseCatalog(database);
   await seedTeachingPrograms(database);
   await seedDevData(database, {

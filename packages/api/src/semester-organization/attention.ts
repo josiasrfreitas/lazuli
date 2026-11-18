@@ -1,4 +1,4 @@
-import { readAcquiredStages } from "../finance/internal/material-purchases.js";
+import { readAcquiredStages } from "../finance/index.js";
 import {
   emptyFormationAcademics,
   readFormationAcademics,

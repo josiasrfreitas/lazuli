@@ -66,28 +66,9 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
         },
         label,
       );
-    } else if (
-      result.error.code === "INTERNAL_SERVER_ERROR" &&
-      isTransactionExpiry(result.error.cause)
-    ) {
-      logger.warn(
-        {
-          ...fields,
-          status: "error",
-          error_code: "TIMEOUT",
-          error_cause_code: "P2028",
-        },
-        "Database transaction exceeded its time limit",
-      );
-      return {
-        ...result,
-        error: new TRPCError({
-          code: "TIMEOUT",
-          message: "O banco excedeu o tempo para concluir a operação. Tente novamente.",
-          cause: result.error.cause,
-        }),
-      };
     } else if (result.error.code === "INTERNAL_SERVER_ERROR") {
+      if (isTransactionExpiry(result.error.cause))
+        return { ...result, error: transactionTimeout(result.error, fields) };
       reportError(result.error.cause ?? result.error, { procedure: path, service: "web" });
     } else
       logger.warn(
@@ -181,7 +162,22 @@ function httpOperation(type: string): "GET" | "POST" {
   return type === "query" ? "GET" : "POST";
 }
 
-function isTransactionExpiry(cause: unknown): boolean {
+function transactionTimeout(
+  error: TRPCError,
+  fields: Record<string, string | number | undefined>,
+): TRPCError {
+  logger.warn(
+    { ...fields, status: "error", error_code: "TIMEOUT", error_cause_code: "P2028" },
+    "Database transaction exceeded its time limit",
+  );
+  return new TRPCError({
+    code: "TIMEOUT",
+    message: "O banco excedeu o tempo para concluir a operação. Tente novamente.",
+    cause: error.cause,
+  });
+}
+
+function isTransactionExpiry(cause: TRPCError["cause"]): boolean {
   return (
     cause instanceof Error &&
     "code" in cause &&

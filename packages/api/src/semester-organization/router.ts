@@ -133,7 +133,7 @@ export const semesterOrganizationRouter = router({
     .input(semesterScopeSchema)
     .query(({ ctx, input }) => previewFormationReset(context(ctx), input.semesterId)),
   reset: adminProcedure
-    .input(semesterScopeSchema.extend({ fingerprint: z.string().length(64) }))
+    .input(semesterScopeSchema.extend({ fingerprint: z.hash("sha256") }))
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) => resetFormation({ ...context(ctx), database }, input), {
         isolationLevel: "Serializable",

@@ -1,3 +1,4 @@
+import { includeNextSeedSemester } from "./config.mjs";
 import { createDbClient } from "../packages/db/src/client.js";
 import { getWorkspaceInitializationKey } from "../packages/db/src/config.js";
 import { saoPauloTodayIso } from "../packages/db/src/seed-dev-support.js";
@@ -9,8 +10,9 @@ const workspaceInitializationKey = getWorkspaceInitializationKey();
 const todayIso = saoPauloTodayIso();
 
 try {
-  await seedSchool(database, todayIso, {
-    includeNextSemester: process.env.LAZULI_SEED_SKIP_NEXT_SEMESTER !== "1",
+  await seedSchool(database, {
+    todayIso,
+    includeNextSemester: includeNextSeedSemester(),
   });
   if (workspaceInitializationKey !== undefined) {
     await database.$executeRawUnsafe(

@@ -353,7 +353,8 @@ void it("keeps future class interest as a lead and scopes it to the chosen perio
     released: 0,
     leads: 1,
   });
-  const [returned] = (await service.detail(input)).waitingLeads;
+  const { waitingLeads } = await service.detail(input);
+  const [returned] = waitingLeads;
   assert.equal(returned?.id, lead.id);
   assert.equal(returned.allocationPlanId, null);
   assert.equal(returned.allocationPendingReason, "Aguarda o próximo período");
@@ -819,7 +820,8 @@ void it("restarts provisional placements while keeping real confirmations, marks
   );
   const preview = await service.resetPreview(input);
   assert.equal(preview.keep, 3);
-  assert.equal((await service.reset({ ...input, fingerprint: preview.fingerprint })).released, 1);
+  const reset = await service.reset({ ...input, fingerprint: preview.fingerprint });
+  assert.equal(reset.released, 1);
   const board = await service.detail(input);
   const byStudent = new Map(board.placements.map((row) => [row.studentId, row]));
   assert.equal(byStudent.get(pending.id)?.planId, null);
@@ -831,7 +833,8 @@ void it("restarts provisional placements while keeping real confirmations, marks
   assert.equal(byStudent.get(scheduled.id)?.entryStatus, "SCHEDULED");
   const history = await service.history({ id: pending.proposal.id });
   assert.equal(history[0]?.action, "FORMATION_RESET");
-  assert.equal((await service.resetPreview(input)).release, 0);
+  const afterReset = await service.resetPreview(input);
+  assert.equal(afterReset.release, 0);
   await service.prepare(input);
   const refreshed = await service.detail(input);
   assert.equal(refreshed.placements.find((row) => row.id === pending.proposal.id)?.planId, null);

@@ -7,6 +7,7 @@ import {
 } from "@lazuli/integrations/address-search";
 import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import { adminProcedure, router } from "../trpc/init.js";
+import { localAddressProfile } from "./config.js";
 import { addressLookupError } from "./lookup-error.js";
 import type { Context } from "../trpc/context.js";
 
@@ -41,10 +42,7 @@ async function lookup<T>(options: {
     });
     return result;
   } catch (error) {
-    const failure = addressLookupError(
-      error,
-      process.env.NODE_ENV === "development" ? process.env.AWS_PROFILE : undefined,
-    );
+    const failure = addressLookupError(error, localAddressProfile);
     logger.error(
       {
         request_id: options.context.requestId,

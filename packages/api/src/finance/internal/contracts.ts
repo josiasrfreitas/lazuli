@@ -225,6 +225,22 @@ type PersistContractInput = {
   terms: ReadyTerms;
 };
 
+function plannedBooksData(
+  books: PersistContractInput["values"]["books"],
+): Pick<Prisma.ContractUncheckedCreateInput, "plannedBooks"> {
+  if (!books) return {};
+  return {
+    plannedBooks: {
+      create: books.map((book, index) => ({
+        semester: index + 1,
+        stageId: book.stageId,
+        acquisitionSemester: book.acquisitionSemester,
+        agreedPriceCents: book.agreedPriceCents ?? null,
+      })),
+    },
+  };
+}
+
 async function persistContract(input: PersistContractInput): Promise<ContractListRow> {
   const { database, values, terms } = input;
   const { settings, preview } = terms;
@@ -250,24 +266,13 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
     standardPunctualityDiscountPct: settings.punctualityDiscountPct,
     interestRatePctMonthly: settings.interestRatePctMonthly,
     cancellationFeePct: settings.cancellationFeePct,
-    ...(values.books
-      ? {
-          plannedBooks: {
-            create: values.books.map((book, index) => ({
-              semester: index + 1,
-              stageId: book.stageId,
-              acquisitionSemester: book.acquisitionSemester,
-              agreedPriceCents: book.agreedPriceCents ?? null,
-            })),
-          },
-        }
-      : {}),
+    ...plannedBooksData(values.books),
     orders: { create: orders },
   };
   const received = (values.books ?? []).flatMap((book) =>
     book.acquisition?.receivedMethod ? [book.acquisition] : [],
   );
-  if (!received.length)
+  if (received.length === 0)
     return toRow(await database.contract.create({ data, select: contractSelect }));
 
   // Only material installment IDs and amounts are needed to post receipts.

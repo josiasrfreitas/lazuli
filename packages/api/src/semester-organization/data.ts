@@ -60,15 +60,21 @@ export async function recordPlacementRevision(
 
   const row = await context.database.semesterPlacement.findUniqueOrThrow({ where: { id } });
   await context.database.semesterPlacementRevision.create({
-    data: placementRevisionData(context, row, action, reason),
+    data: placementRevisionData(context, { row, action, reason }),
   });
 }
 
 export function placementRevisionData(
   context: OrganizationContext,
-  row: Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>,
-  action: string,
-  reason?: string,
+  {
+    row,
+    action,
+    reason,
+  }: {
+    row: Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
+    action: string;
+    reason?: string | undefined;
+  },
 ): Prisma.SemesterPlacementRevisionCreateManyInput {
   return {
     placementId: row.id,

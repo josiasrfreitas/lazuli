@@ -1,3 +1,4 @@
+import type { CreateMonthlyContractInput } from "../../packages/validators/src/index.js";
 import { finance } from "../../packages/api/src/finance/index.js";
 import { readMaterialPrice } from "../../packages/api/src/finance/internal/settings.js";
 import { priceAfterDiscountCents } from "../../packages/domain/src/monthly-contract.js";
@@ -11,6 +12,7 @@ import {
 import { monthlyDueDate } from "../../packages/db/src/seed-dev-finance.js";
 import { addDays, isoOf, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
+const DEFER_SECOND_BOOK_EVERY = 5;
 const STANDARD_MONTHLY_PRICE = 25_000;
 const NEGOTIATED_MONTHLY_PRICE_240 = 24_000;
 const NEGOTIATED_MONTHLY_PRICE_230 = 23_000;
@@ -157,7 +159,7 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
   const books = await seedContractBooks(transaction, {
     student,
     prices: input.materialPrices,
-    payBoth: index % 5 !== 0,
+    payBoth: index % DEFER_SECOND_BOOK_EVERY !== 0,
     planSecond: index % 2 === 0,
   });
   const contract = await finance(transaction, adminId).createMonthlyContract({
@@ -174,6 +176,8 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
   await seedPayments(transaction, { ...input, contractId: contract.id, payerId });
 }
 
+type SeedBook = NonNullable<CreateMonthlyContractInput["books"]>[number];
+
 async function seedContractBooks(
   database: TransactionClient,
   input: {
@@ -182,7 +186,7 @@ async function seedContractBooks(
     payBoth: boolean;
     planSecond: boolean;
   },
-) {
+): Promise<SeedBook[]> {
   const { student, prices } = input;
   const code = seededStageCode(student);
   const stage = await database.stage.findFirst({
@@ -205,7 +209,7 @@ async function seedContractBooks(
     orderBy: { sequence: "asc" },
     select: { id: true },
   });
-  const paidBook = (stageId: string) => ({
+  const paidBook = (stageId: string): SeedBook => ({
     stageId,
     acquisitionSemester: null,
     acquisition: {
