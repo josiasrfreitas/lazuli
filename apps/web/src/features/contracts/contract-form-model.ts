@@ -11,6 +11,7 @@ import { materialCardFeeInput } from "./material-card-fee";
 
 const CENTS_PER_REAL = 100;
 const MONTHS_PER_YEAR = 12;
+export const MONTHS_PER_SEMESTER = 6;
 
 export type ContractFields = {
   // Comma-separated UUID draft keeps the shared string-field form interface; commas preserve empty book slots.
@@ -195,32 +196,7 @@ export function contractInputFromFields(
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
     ...(renewedFromId ? { renewedFromId } : {}),
-    ...(Number.isInteger(durationFromDates(fields) / 6) &&
-    (fields.materialBooks || fields.materialPayment === "NONE")
-      ? {
-          books: fields.materialBooks
-            ? JSON.parse(fields.materialBooks)
-            : Array.from({ length: durationFromDates(fields) / 6 }, () => ({
-                stageId: null,
-                acquisitionSemester: null,
-              })),
-        }
-      : fields.materialPayment === "NONE"
-        ? {}
-        : {
-            material: {
-              ...scholarshipInput(fields, true),
-              ...materialPriceInput(fields),
-              ...materialCardFeeInput(fields),
-              stageIds: fields.materialStageIds.split(","),
-              quoteVersion: fields.materialQuoteVersion,
-              category: fields.materialCategory,
-              payment: fields.materialPayment,
-              installmentCount: materialInstallmentCount(fields),
-              expectedTotalCents:
-                fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
-            },
-          }),
+    ...contractMaterialInput(fields),
     ...(fields.paymentPlan === "special" && fields.scholarshipMode !== "FULL"
       ? { installmentCount: Number(fields.installmentCount) }
       : {}),
@@ -241,6 +217,32 @@ export function contractInputFromFields(
       : {}),
   });
   return parsed;
+}
+
+function contractMaterialInput(fields: ContractFields): object {
+  const semesters = durationFromDates(fields) / MONTHS_PER_SEMESTER;
+  if (Number.isInteger(semesters) && (fields.materialBooks || fields.materialPayment === "NONE")) {
+    const books = fields.materialBooks
+      ? (JSON.parse(fields.materialBooks) as z.input<
+          typeof createMonthlyContractInputSchema
+        >["books"])
+      : Array.from({ length: semesters }, () => ({ stageId: null, acquisitionSemester: null }));
+    return { books };
+  }
+  if (fields.materialPayment === "NONE") return {};
+  return {
+    material: {
+      ...scholarshipInput(fields, true),
+      ...materialPriceInput(fields),
+      ...materialCardFeeInput(fields),
+      stageIds: fields.materialStageIds.split(","),
+      quoteVersion: fields.materialQuoteVersion,
+      category: fields.materialCategory,
+      payment: fields.materialPayment,
+      installmentCount: materialInstallmentCount(fields),
+      expectedTotalCents: fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
+    },
+  };
 }
 
 export function contractPreview(

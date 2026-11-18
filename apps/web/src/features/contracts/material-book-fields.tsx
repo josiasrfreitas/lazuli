@@ -15,6 +15,8 @@ type Props = Pick<FormProps, "fields" | "change" | "errors"> & {
   retry: () => void;
 };
 
+const MAX_BOOK_SUGGESTIONS = 5;
+
 export function MaterialStages(props: Props): ReactElement {
   const selected =
     props.fields.materialPayment === "NONE" ? [] : props.fields.materialStageIds.split(",");
@@ -32,9 +34,9 @@ export function MaterialStages(props: Props): ReactElement {
           onClick={() => {
             props.change(
               "materialStageIds",
-              selected.length ? `${props.fields.materialStageIds},` : "",
+              selected.length > 0 ? `${props.fields.materialStageIds},` : "",
             );
-            if (!selected.length) props.change("materialPayment", "CASH");
+            if (selected.length === 0) props.change("materialPayment", "CASH");
           }}
         >
           <Plus aria-hidden="true" /> Adicionar livro
@@ -187,7 +189,7 @@ export function MaterialBookSelection({
               (book.id === id || !selected.includes(book.id)) &&
               normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
           )
-          .slice(0, 5)}
+          .slice(0, MAX_BOOK_SUGGESTIONS)}
         onSelect={(book) => select(book.id)}
         onClear={remove}
         loading={pending}

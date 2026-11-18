@@ -1,7 +1,6 @@
 "use client";
 
 import { SemesterBooks } from "./semester-books";
-import { durationFromDates } from "./contract-form-model";
 import {
   useEffect,
   useId,
@@ -15,7 +14,11 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
 import { ToastAlert, Button } from "@lazuli/ui";
 import { parseDateBR } from "~/lib/masks";
 import type { FormProps } from "./contract-form-fields";
-import { contractInputFromFields } from "./contract-form-model";
+import {
+  contractInputFromFields,
+  durationFromDates,
+  MONTHS_PER_SEMESTER,
+} from "./contract-form-model";
 import type { ContractFormState, ContractOperation } from "./new-contract-state";
 import { validatePrice } from "./new-contract-state";
 import {
@@ -148,10 +151,10 @@ function collectSetupErrors({
       props.parseInput?.() ??
       contractInputFromFields(fields, state.commandId.current, props.renewedFromId),
   });
-  if (!fields.materialBooks && fields.materialPayment !== "NONE" && material.installmentError)
-    all.materialInstallments = material.installmentError;
-  if (!fields.materialBooks && fields.materialPayment !== "NONE" && material.priceError)
-    all.materialCustomPrice = material.priceError;
+  if (!fields.materialBooks && fields.materialPayment !== "NONE") {
+    if (material.installmentError) all.materialInstallments = material.installmentError;
+    if (material.priceError) all.materialCustomPrice = material.priceError;
+  }
   if (props.deferStudentValidation) removeStudentErrors(all);
   return step === "review"
     ? all
@@ -507,7 +510,10 @@ function SetupStepFields({
     );
   if (step === "tuition")
     return <SetupTuition {...formProps} allowEnrollmentFee={props.allowEnrollmentFee ?? false} />;
-  if (step === "material" && Number.isInteger(durationFromDates(formProps.fields) / 6))
+  if (
+    step === "material" &&
+    Number.isInteger(durationFromDates(formProps.fields) / MONTHS_PER_SEMESTER)
+  )
     return <SemesterBooks {...formProps} material={material} />;
   if (step === "material")
     return (

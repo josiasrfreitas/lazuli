@@ -254,6 +254,9 @@ function ContractSearch({ filters }: { filters: ContractFilters }): ReactElement
   );
 }
 
+const FOLLOW_UP_INLINE_MIN_WIDTH = 840;
+const NEW_CONTRACT_LABEL_MIN_WIDTH = 600;
+
 export function ContractsToolbar({
   filters,
   onNew,
@@ -274,13 +277,15 @@ export function ContractsToolbar({
     return () => observer.disconnect();
   }, []);
   const inlineThreshold: Record<string, number> = {
-    followUp: 840,
+    followUp: FOLLOW_UP_INLINE_MIN_WIDTH,
     status: 990,
     scheduleType: 1120,
   };
   const visibleFields = fields.map((field) => ({
     ...field,
-    promoted: Boolean(field.promoted && width >= (inlineThreshold[field.id] ?? 840)),
+    promoted: Boolean(
+      field.promoted && width >= (inlineThreshold[field.id] ?? FOLLOW_UP_INLINE_MIN_WIDTH),
+    ),
   }));
   return (
     <div
@@ -306,7 +311,9 @@ export function ContractsToolbar({
         />
         <Button onClick={onNew} size="sm">
           <Plus aria-hidden="true" className="size-4" />
-          <span className={width < 600 ? "sr-only" : undefined}>Novo contrato</span>
+          <span className={width < NEW_CONTRACT_LABEL_MIN_WIDTH ? "sr-only" : undefined}>
+            Novo contrato
+          </span>
         </Button>
       </div>
     </div>

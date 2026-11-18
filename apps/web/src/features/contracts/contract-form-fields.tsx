@@ -17,7 +17,7 @@ import {
 import { Info, UserMinus, UserPlus } from "lucide-react";
 import { formatBRLFromCents } from "~/lib/format";
 import { addCalendarMonths } from "@lazuli/domain";
-import { durationFromDates } from "./contract-form-model";
+import { durationFromDates, MONTHS_PER_SEMESTER } from "./contract-form-model";
 import { formatDateOnlyBR } from "~/lib/format";
 import { parseDateBR, maskPhoneBR } from "~/lib/masks";
 import { PersonDocumentField } from "~/components/person-document-field";
@@ -222,6 +222,7 @@ function PartiesSection({ fields, errors, change }: FormProps): ReactElement {
 }
 
 export function TermFields({ fields, errors, change, maskedDates }: FormProps): ReactElement {
+  const semesters = durationFromDates(fields) / MONTHS_PER_SEMESTER;
   return (
     <>
       <TextField
@@ -250,22 +251,22 @@ export function TermFields({ fields, errors, change, maskedDates }: FormProps): 
           name="semestres"
           className="h-9 rounded-sm border border-border bg-background px-2"
           disabled={!parseDateBR(fields.firstDueDate)}
-          value={
-            Number.isInteger(durationFromDates(fields) / 6) ? durationFromDates(fields) / 6 : ""
-          }
+          value={Number.isInteger(semesters) ? semesters : ""}
           onChange={(event) => {
             const start = parseDateBR(fields.firstDueDate);
             if (start && event.target.value)
               change(
                 "endsOn",
-                formatDateOnlyBR(addCalendarMonths(start, Number(event.target.value) * 6)),
+                formatDateOnlyBR(
+                  addCalendarMonths(start, Number(event.target.value) * MONTHS_PER_SEMESTER),
+                ),
               );
           }}
         >
           <option value="">Selecione</option>
-          {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {n} {n === 1 ? "semestre · 1 livro" : `semestres · ${n} livros`}
+          {Array.from({ length: 20 }, (_entry, index) => index + 1).map((count) => (
+            <option key={count} value={count}>
+              {count} {count === 1 ? "semestre · 1 livro" : `semestres · ${count} livros`}
             </option>
           ))}
         </select>

@@ -14,6 +14,7 @@ import {
   DataTable,
   type BadgeVariant,
   type DataTableColumn,
+  type DataTableState,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { abbreviatedPersonName } from "~/lib/format";
@@ -21,6 +22,7 @@ import { paymentPlanLabel } from "./contract-form-model";
 import type { ContractFilters } from "./contract-filters";
 
 const PAGE_SIZE = 25;
+const MILLISECONDS_PER_DAY = 86_400_000;
 const FULL_SCHOLARSHIP_PERCENT = 100;
 export type ContractRow = RouterOutputs["finance"]["listContracts"]["rows"][number];
 
@@ -117,7 +119,7 @@ const COLUMN_WIDTHS = {
 } as const satisfies Record<string, NonNullable<DataTableColumn<ContractRow>["width"]>>;
 
 function termHint(end: string): string {
-  const days = (Date.parse(end) - Date.parse(saoPauloDateOnly(new Date()))) / 86_400_000;
+  const days = (Date.parse(end) - Date.parse(saoPauloDateOnly(new Date()))) / MILLISECONDS_PER_DAY;
   if (days === 0) return "A vigência termina hoje";
   const duration = Math.abs(days) === 1 ? "1 dia" : `${Math.abs(days)} dias`;
   return days > 0 ? `Termina em ${duration}` : `Terminou há ${duration}`;
@@ -239,7 +241,11 @@ function ContractGroup({
           </h2>
           <span className="text-xs text-muted-foreground">
             {first.student.placements
-              .map((p) => [p.modality, p.description ?? p.stageCode].filter(Boolean).join(" · "))
+              .map((placement) =>
+                [placement.modality, placement.description ?? placement.stageCode]
+                  .filter(Boolean)
+                  .join(" · "),
+              )
               .join(" · ")}
           </span>
         </div>
@@ -249,116 +255,131 @@ function ContractGroup({
           .filter((row) => !followUp || row.renewalPending || (row === first && row.materialDue))
           .map((row) => (
             <section key={row.id} className="divide-y divide-border">
-              {(!followUp || row.renewalPending) && (
-                <div className={contractLine}>
-                  <h3 className={contractLabel}>
-                    <FileText aria-hidden="true" size={16} />
-                    Contrato
-                  </h3>
-                  <div className={facts}>
-                    <div>
-                      <span className={caption}>Vigência</span>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <strong title={termHint(row.endsOn)}>
-                          {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
-                        </strong>
-                        {row.renewalPending && (
-                          <Badge variant="warning">{termHint(row.endsOn)}</Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <span className={caption}>Mensalidades</span>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="whitespace-nowrap text-sm">
-                          {paymentPlanLabel(
-                            row.installmentCount,
-                            row.uniformInstallmentAmountCents,
-                          )}
-                        </span>
-                        {row.status !== "INADIMPLENTE" && <ContractFinancialStatus row={row} />}
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    className={buttonVariants({
-                      variant: row.renewalPending ? "primary" : "secondary",
-                      size: "sm",
-                    })}
-                    href={row.renewalPending ? href + "&renovarContrato=" + row.id : href}
-                  >
-                    {row.renewalPending ? (
-                      <RotateCw aria-hidden="true" />
-                    ) : (
-                      <ArrowRight aria-hidden="true" />
-                    )}
-                    {row.renewalPending ? "Rematricular" : "Abrir financeiro"}
-                  </Link>
-                </div>
-              )}
+              {(!followUp || row.renewalPending) && <ContractTerms row={row} href={href} />}
               {(!followUp || (row === first && row.materialDue)) && (
-                <div className={contractLine}>
-                  <h3 className={contractLabel}>
-                    <BookOpen aria-hidden="true" size={16} />
-                    Material
-                  </h3>
-                  <div className={facts}>
-                    <div className="min-w-0 text-sm">
-                      {row.materialDue && (
-                        <>
-                          <span className={caption}>Próximo livro</span>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <strong>{row.materialDue}</strong>
-                            <Badge variant="info">A adquirir</Badge>
-                          </div>
-                        </>
-                      )}
-                      {!followUp &&
-                        row.plannedBooks
-                          ?.filter(
-                            (book) =>
-                              !book.acquired && (!row.materialDue || book.name !== row.materialDue),
-                          )
-                          .map((book) => (
-                            <p key={book.semester}>
-                              {book.name ?? "Livro a definir"} ·{" "}
-                              {book.acquisitionSemester
-                                ? `Pagamento no ${book.acquisitionSemester}º semestre`
-                                : "Data de pagamento em aberto"}
-                            </p>
-                          ))}
-                      {!row.materialDue && !row.plannedBooks?.some((book) => !book.acquired) && (
-                        <>
-                          <span className={caption}>Próximo livro</span>
-                          <p className="text-muted-foreground">Sem aquisição prevista</p>
-                        </>
-                      )}
-                    </div>
-                    <div className="min-w-0 text-sm">
-                      <span className={caption}>Livros anteriores</span>
-                      {(followUp ? history : row.materials).map((material) => (
-                        <p key={material.id}>
-                          {material.name} · {material.paymentLabel}
-                        </p>
-                      ))}
-                      {!(followUp ? history : row.materials).length && (
-                        <p className="text-muted-foreground">Nenhuma aquisição registrada</p>
-                      )}
-                    </div>
-                  </div>
-                  <Link
-                    className={buttonVariants({ variant: "secondary", size: "sm" })}
-                    href={href + "&material=1"}
-                  >
-                    Conferir material
-                    <ArrowRight aria-hidden="true" />
-                  </Link>
-                </div>
+                <ContractMaterial
+                  row={row}
+                  purchases={followUp ? history : row.materials}
+                  showPlanned={!followUp}
+                  href={href}
+                />
               )}
             </section>
           ))}
       </div>
     </section>
+  );
+}
+
+function ContractTerms({ row, href }: { row: ContractRow; href: string }): ReactElement {
+  return (
+    <div className={contractLine}>
+      <h3 className={contractLabel}>
+        <FileText aria-hidden="true" size={16} />
+        Contrato
+      </h3>
+      <div className={facts}>
+        <div>
+          <span className={caption}>Vigência</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <strong title={termHint(row.endsOn)}>
+              {shortCivilDate(row.startsOn)} → {shortCivilDate(row.endsOn)}
+            </strong>
+            {row.renewalPending && <Badge variant="warning">{termHint(row.endsOn)}</Badge>}
+          </div>
+        </div>
+        <div>
+          <span className={caption}>Mensalidades</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="whitespace-nowrap text-sm">
+              {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
+            </span>
+            {row.status !== "INADIMPLENTE" && <ContractFinancialStatus row={row} />}
+          </div>
+        </div>
+      </div>
+      <Link
+        className={buttonVariants({
+          variant: row.renewalPending ? "primary" : "secondary",
+          size: "sm",
+        })}
+        href={row.renewalPending ? href + "&renovarContrato=" + row.id : href}
+      >
+        {row.renewalPending ? <RotateCw aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
+        {row.renewalPending ? "Rematricular" : "Abrir financeiro"}
+      </Link>
+    </div>
+  );
+}
+
+function ContractMaterial({
+  row,
+  purchases,
+  showPlanned,
+  href,
+}: {
+  row: ContractRow;
+  purchases: ContractRow["materials"];
+  showPlanned: boolean;
+  href: string;
+}): ReactElement {
+  return (
+    <div className={contractLine}>
+      <h3 className={contractLabel}>
+        <BookOpen aria-hidden="true" size={16} />
+        Material
+      </h3>
+      <div className={facts}>
+        <div className="min-w-0 text-sm">
+          {row.materialDue && (
+            <>
+              <span className={caption}>Próximo livro</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <strong>{row.materialDue}</strong>
+                <Badge variant="info">A adquirir</Badge>
+              </div>
+            </>
+          )}
+          {showPlanned &&
+            row.plannedBooks
+              ?.filter(
+                (book) => !book.acquired && (!row.materialDue || book.name !== row.materialDue),
+              )
+              .map((book) => (
+                <p key={book.semester}>
+                  {book.name ?? "Livro a definir"} ·{" "}
+                  {book.acquisitionSemester
+                    ? `Pagamento no ${book.acquisitionSemester}º semestre`
+                    : "Data de pagamento em aberto"}
+                </p>
+              ))}
+          {!row.materialDue && !row.plannedBooks?.some((book) => !book.acquired) && (
+            <>
+              <span className={caption}>Próximo livro</span>
+              <p className="text-muted-foreground">Sem aquisição prevista</p>
+            </>
+          )}
+        </div>
+        <div className="min-w-0 text-sm">
+          <span className={caption}>Livros anteriores</span>
+          {purchases.map((material) => (
+            <p key={material.id}>
+              {material.name} · {material.paymentLabel}
+            </p>
+          ))}
+          {purchases.length === 0 && (
+            <p className="text-muted-foreground">Nenhuma aquisição registrada</p>
+          )}
+        </div>
+      </div>
+      <Link
+        className={buttonVariants({ variant: "secondary", size: "sm" })}
+        href={href + "&material=1"}
+      >
+        Conferir material
+        <ArrowRight aria-hidden="true" />
+      </Link>
+    </div>
   );
 }
 
@@ -377,47 +398,26 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
     endsTo,
     status,
   });
-  const filtered = Boolean(
-    filters.followUp ||
-    filters.materialState ||
-    filters.scheduleType ||
-    search.trim() ||
-    payerId ||
-    studentId ||
-    startsFrom ||
-    endsTo ||
+  const filtered = [
+    filters.followUp,
+    filters.materialState,
+    filters.scheduleType,
+    search.trim(),
+    payerId,
+    studentId,
+    startsFrom,
+    endsTo,
     status,
-  );
-  const byStudent = new Map<string, ContractRow[]>();
-  for (const row of list.data?.rows ?? []) {
-    const rows = byStudent.get(row.student.id);
-    if (rows) rows.push(row);
-    else byStudent.set(row.student.id, [row]);
-  }
-  const groups = list.data && Array.from(byStudent, ([id, rows]) => ({ id, rows }));
-  if (list.data && groups?.length && !list.isError) {
+  ].some(Boolean);
+  const groups = list.data ? groupContracts(list.data.rows) : undefined;
+  if (list.data && groups && groups.length > 0 && !list.isError) {
     return (
-      <TableContainer
-        viewportBound
-        className="border-0 bg-transparent"
-        aria-busy={list.isFetching}
-        footer={
-          <TablePagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            pageCount={Math.max(1, Math.ceil(list.data.total / PAGE_SIZE))}
-            totalItems={list.data.total}
-            onPageChange={filters.setPage}
-            itemLabel={{ singular: "aluno", plural: "alunos" }}
-          />
-        }
-      >
-        <div className="w-0 min-w-full space-y-3 pb-3 pr-3">
-          {groups.map((group) => (
-            <ContractGroup key={group.id} rows={group.rows} followUp={filters.followUp} />
-          ))}
-        </div>
-      </TableContainer>
+      <ContractGroups
+        groups={groups}
+        total={list.data.total}
+        fetching={list.isFetching}
+        filters={filters}
+      />
     );
   }
   return (
@@ -430,15 +430,7 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
           cell: (group) => <ContractGroup rows={group.rows} followUp={filters.followUp} />,
         },
       ]}
-      state={
-        list.isError
-          ? { kind: "error" }
-          : !groups
-            ? { kind: "loading" }
-            : groups.length
-              ? { kind: "data", rows: groups }
-              : { kind: filtered ? "noResults" : "empty" }
-      }
+      state={contractListState({ groups, filtered, failed: list.isError })}
       errorTitle="Não foi possível carregar os contratos"
       empty={{
         title: "Nenhum contrato cadastrado",
@@ -458,5 +450,68 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
           : { loading: true }),
       }}
     />
+  );
+}
+
+type StudentContractGroup = { id: string; rows: ContractRow[] };
+
+function groupContracts(rows: ContractRow[]): StudentContractGroup[] {
+  const byStudent = new Map<string, ContractRow[]>();
+  for (const row of rows) {
+    const contracts = byStudent.get(row.student.id);
+    if (contracts) contracts.push(row);
+    else byStudent.set(row.student.id, [row]);
+  }
+  return Array.from(byStudent, ([id, contracts]) => ({ id, rows: contracts }));
+}
+
+function contractListState({
+  groups,
+  filtered,
+  failed,
+}: {
+  groups: StudentContractGroup[] | undefined;
+  filtered: boolean;
+  failed: boolean;
+}): DataTableState<StudentContractGroup> {
+  if (failed) return { kind: "error" };
+  if (groups === undefined) return { kind: "loading" };
+  if (groups.length > 0) return { kind: "data", rows: groups };
+  return { kind: filtered ? "noResults" : "empty" };
+}
+
+function ContractGroups({
+  groups,
+  total,
+  fetching,
+  filters,
+}: {
+  groups: StudentContractGroup[];
+  total: number;
+  fetching: boolean;
+  filters: ContractFilters;
+}): ReactElement {
+  return (
+    <TableContainer
+      viewportBound
+      className="border-0 bg-transparent"
+      aria-busy={fetching}
+      footer={
+        <TablePagination
+          page={filters.page}
+          pageSize={PAGE_SIZE}
+          pageCount={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+          totalItems={total}
+          onPageChange={filters.setPage}
+          itemLabel={{ singular: "aluno", plural: "alunos" }}
+        />
+      }
+    >
+      <div className="w-0 min-w-full space-y-3 pb-3 pr-3">
+        {groups.map((group) => (
+          <ContractGroup key={group.id} rows={group.rows} followUp={filters.followUp} />
+        ))}
+      </div>
+    </TableContainer>
   );
 }

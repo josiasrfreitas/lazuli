@@ -6,10 +6,8 @@ import { SelectControl } from "~/features/classes/form-controls";
 import { useEffect, useState, type ReactElement } from "react";
 import type { ContractMaterialInput } from "@lazuli/validators";
 import type { FormProps } from "./contract-form-fields";
-import { durationFromDates } from "./contract-form-model";
+import { durationFromDates, MONTHS_PER_SEMESTER } from "./contract-form-model";
 import type { SetupMaterial } from "./contract-setup-material";
-
-const MONTHS_PER_SEMESTER = 6;
 
 type Book = {
   stageId: string | null;

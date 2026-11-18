@@ -417,7 +417,7 @@ function ReviewMaterial({
   const stageIds = fields.materialStageIds.split(",");
   const books = stageIds
     .map((id) => material.stages.data?.find((stage) => stage.id === id)?.internalCode)
-    .filter(Boolean);
+    .filter((code): code is string => Boolean(code));
   return (
     <FormSection
       title="Material"
@@ -428,41 +428,84 @@ function ReviewMaterial({
       }
     >
       {fields.materialBooks ? (
-        <ol>
-          {contractBooks(fields.materialBooks).map((b, i) => (
-            <li key={i}>
-              {i + 1}º semestre ·{" "}
-              {material.stages.data?.find((s) => s.id === b.stageId)?.name ?? "Livro a definir"} ·{" "}
-              {b.acquisition
-                ? `Pago no ato · ${money(material.prices.data ? bookQuote(b.acquisition, material.prices.data).charged : b.acquisition.expectedTotalCents)}`
-                : b.acquisitionSemester
-                  ? `Previsto para o ${b.acquisitionSemester}º semestre`
-                  : "Data em aberto"}
-            </li>
-          ))}
-        </ol>
-      ) : fields.materialPayment === "NONE" ? (
-        <p className={styles.help}>Sem nova aquisição.</p>
+        <ContractBooksReview value={fields.materialBooks} material={material} />
       ) : (
-        <>
-          <p className={styles.bookNames}>{books.join(" · ") || "Livros a definir"}</p>
-          <MaterialQuoteSummary fields={fields} material={material} />
-          {fields.materialScholarshipMode !== "NONE" && (
-            <p className={styles.help}>
-              Bolsa de{" "}
-              {fields.materialScholarshipMode === "FULL" ? "100" : fields.materialScholarshipPct}% ·{" "}
-              {fields.materialScholarshipAgreement}
-            </p>
-          )}
-          {material.effective && material.effective.receivableCents > 0 && (
-            <p className={styles.help}>
-              Valor do material a receber: {money(material.effective.receivableCents)}, com
-              vencimento em{" "}
-              {billingFirstDueDate ?? fields.billingFirstDueDate ?? fields.firstDueDate}.
-            </p>
-          )}
-        </>
+        <MaterialQuoteReview
+          fields={fields}
+          material={material}
+          bookCodes={books}
+          billingFirstDueDate={billingFirstDueDate}
+        />
       )}
     </FormSection>
+  );
+}
+
+function ContractBooksReview({
+  value,
+  material,
+}: {
+  value: string;
+  material: SetupMaterial;
+}): ReactElement {
+  return (
+    <ol>
+      {contractBooks(value).map((book, index) => (
+        <li key={index}>
+          {index + 1}º semestre ·{" "}
+          {material.stages.data?.find((stage) => stage.id === book.stageId)?.name ??
+            "Livro a definir"}{" "}
+          · {bookPaymentLabel(book, material.prices.data)}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function bookPaymentLabel(
+  book: ReturnType<typeof contractBooks>[number],
+  prices: SetupMaterial["prices"]["data"],
+): string {
+  if (book.acquisition) {
+    const cents = prices
+      ? bookQuote(book.acquisition, prices).charged
+      : book.acquisition.expectedTotalCents;
+    return `Pago no ato · ${money(cents)}`;
+  }
+  return book.acquisitionSemester
+    ? `Previsto para o ${book.acquisitionSemester}º semestre`
+    : "Data em aberto";
+}
+
+function MaterialQuoteReview({
+  fields,
+  material,
+  bookCodes,
+  billingFirstDueDate,
+}: {
+  fields: FormProps["fields"];
+  material: SetupMaterial;
+  bookCodes: string[];
+  billingFirstDueDate: string | undefined;
+}): ReactElement {
+  if (fields.materialPayment === "NONE") return <p className={styles.help}>Sem nova aquisição.</p>;
+  return (
+    <>
+      <p className={styles.bookNames}>{bookCodes.join(" · ") || "Livros a definir"}</p>
+      <MaterialQuoteSummary fields={fields} material={material} />
+      {fields.materialScholarshipMode !== "NONE" && (
+        <p className={styles.help}>
+          Bolsa de{" "}
+          {fields.materialScholarshipMode === "FULL" ? "100" : fields.materialScholarshipPct}% ·{" "}
+          {fields.materialScholarshipAgreement}
+        </p>
+      )}
+      {material.effective && material.effective.receivableCents > 0 && (
+        <p className={styles.help}>
+          Valor do material a receber: {money(material.effective.receivableCents)}, com vencimento
+          em {billingFirstDueDate ?? fields.billingFirstDueDate ?? fields.firstDueDate}.
+        </p>
+      )}
+    </>
   );
 }
