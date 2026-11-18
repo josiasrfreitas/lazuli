@@ -55,6 +55,21 @@ export async function savePlanWindow(
     if (rows) await persistProgramSchedule(context, { planId: plan.id, rows, plan });
     return recordRevision(context, { scope, planId: plan.id, reason: input.reason! });
   }
+  return createPlanWindow(context, { scope, data, rows });
+}
+
+async function createPlanWindow(
+  context: PlanningContext,
+  {
+    scope,
+    data,
+    rows,
+  }: {
+    scope: PlanningScope;
+    data: { plannedStartOn: Date; plannedEndOn: Date; objective: string | null };
+    rows: Awaited<ReturnType<typeof windowProgramRows>>;
+  },
+): Promise<VersionedResult> {
   const created = await context.database.stagePlan.create({
     data: {
       ...data,

@@ -18,17 +18,46 @@ import {
 } from "./adjustment-data.js";
 import type { ExtraClassesInput } from "./adjustment-schema.js";
 
-export async function previewExtraClasses(context: PlanningContext, input: ExtraClassesInput) {
-  const { data, remainingMinutes, uncertain } = await adjustmentPlanning(context, input.classId);
-  if (input.from < data.scope.today) throw badRequest("Escolha uma data a partir de hoje.");
+const MILLISECONDS_PER_DAY = 86_400_000;
+const MAX_EXTRA_ENCOUNTERS = 52;
+const MINUTES_PER_HOUR = 60;
+type CandidateMeeting = { date: string; startTime: string; endTime: string };
+type ExtraClassesPreview = {
+  fingerprint: string;
+  dates: string[];
+  skipped: { date: string; reason: string }[];
+  outside: number;
+  addedMinutes: number;
+  remainingMinutes: number;
+  availableMinutes: number;
+  margin: number;
+  uncertain: boolean;
+};
+
+function extraDates(input: ExtraClassesInput): string[] {
   const dates: string[] = [];
-  for (let day = Date.parse(input.from); day <= Date.parse(input.through); day += 86400000) {
+  for (
+    let day = Date.parse(input.from);
+    day <= Date.parse(input.through);
+    day += MILLISECONDS_PER_DAY
+  ) {
     const date = dateOnly(new Date(day));
     if (input.weekdays.some((weekday) => Number(weekday) === new Date(day).getUTCDay() + 1))
       dates.push(date);
   }
-  if (!dates.length || dates.length > 52)
+  if (dates.length === 0 || dates.length > MAX_EXTRA_ENCOUNTERS)
     throw badRequest("Escolha uma recorrência com 1 a 52 encontros.");
+  return dates;
+}
+
+async function extraMeetings(
+  context: PlanningContext,
+  input: ExtraClassesInput,
+): Promise<{
+  candidates: CandidateMeeting[];
+  skipped: ExtraClassesPreview["skipped"];
+}> {
+  const dates = extraDates(input);
   const closures = await context.database.schoolClosedDay.findMany({
     where: {
       deletedAt: null,
@@ -43,17 +72,35 @@ export async function previewExtraClasses(context: PlanningContext, input: Extra
   const candidates = dates
     .filter((date) => !skipped.some((row) => row.date === date))
     .map((date) => ({ date, startTime: input.startTime, endTime: input.endTime }));
-  const planningStart =
-    data.plan?.plannedStartOn ?? data.preview?.plannedStartOn ?? data.scope.classStartOn;
+  return { candidates, skipped };
+}
+
+function assertExtraMeetingDates(
+  candidates: CandidateMeeting[],
+  { planningStart, now }: { planningStart: string; now: Date },
+): void {
   if (candidates.some((row) => row.date < planningStart))
     throw badRequest("As aulas extras devem começar a partir do início da programação.");
-  if (!candidates.length) throw badRequest("Todos os encontros coincidem com dias de fechamento.");
+  if (candidates.length === 0)
+    throw badRequest("Todos os encontros coincidem com dias de fechamento.");
   if (
-    candidates.some(
-      (row) => sessionEndInstant({ date: row.date, endTime: row.startTime }) <= context.now,
-    )
+    candidates.some((row) => sessionEndInstant({ date: row.date, endTime: row.startTime }) <= now)
   )
     throw badRequest("Um dos horários já começou. Escolha um início futuro.");
+}
+
+export async function previewExtraClasses(
+  context: PlanningContext,
+  input: ExtraClassesInput,
+): Promise<ExtraClassesPreview> {
+  const { data, remainingMinutes, uncertain } = await adjustmentPlanning(context, input.classId);
+  if (input.from < data.scope.today) throw badRequest("Escolha uma data a partir de hoje.");
+  const { candidates, skipped } = await extraMeetings(context, input);
+  assertExtraMeetingDates(candidates, {
+    planningStart:
+      data.plan?.plannedStartOn ?? data.preview?.plannedStartOn ?? data.scope.classStartOn,
+    now: context.now,
+  });
   await assertTeacherEligible({
     database: context.database,
     teacherId: input.teacherId,
@@ -67,7 +114,7 @@ export async function previewExtraClasses(context: PlanningContext, input: Extra
     slots: [],
     candidateMeetings: candidates,
   });
-  await assertRosterAvailable(context, input, candidates);
+  await assertRosterAvailable(context, { input, candidates });
   const outside = candidates.filter(
     (row) => row.date < data.scope.semester.startOn || row.date > data.scope.semester.endOn,
   ).length;
@@ -91,7 +138,10 @@ export async function previewExtraClasses(context: PlanningContext, input: Extra
   };
 }
 
-export async function scheduleExtraClasses(context: PlanningContext, input: ExtraClassesInput) {
+export async function scheduleExtraClasses(
+  context: PlanningContext,
+  input: ExtraClassesInput,
+): Promise<{ id: string }> {
   await lockTeacher(context.database, input.teacherId);
   const existing = await context.database.classAppointmentSeries.findUnique({
     where: { id: input.id },
@@ -146,18 +196,26 @@ export async function scheduleExtraClasses(context: PlanningContext, input: Extr
     action: "appointments.scheduleClass",
     details: {
       subject: { type: "class", id: input.classId, name: name.portalClassName },
-      description: `${sessions.length} encontros coletivos · ${preview.addedMinutes / 60}h · ${input.from} a ${input.through}. ${input.reason}`,
+      description: `${sessions.length} encontros coletivos · ${preview.addedMinutes / MINUTES_PER_HOUR}h · ${input.from} a ${input.through}. ${input.reason}`,
     },
   });
-  await saveAdjustedProjection(context, input.classId, input.reason);
+  await saveAdjustedProjection(context, { classId: input.classId, reason: input.reason });
   return { id: input.id };
 }
 
-async function assertRosterAvailable(
+type RosterEnrollment = { studentId: string; entryDate: Date; exitDate: Date | null };
+type StudentEncounter = { studentId: string | null; date: Date; startTime: Date; endTime: Date };
+type RosterSchedule = {
+  enrollments: RosterEnrollment[];
+  others: (RosterEnrollment & { classId: string })[];
+  meetings: Awaited<ReturnType<typeof meetingsBetween>>;
+  encounters: StudentEncounter[];
+};
+
+async function readRosterSchedule(
   context: PlanningContext,
   input: ExtraClassesInput,
-  candidates: { date: string; startTime: string; endTime: string }[],
-) {
+): Promise<RosterSchedule> {
   const enrollments = await context.database.enrollment.findMany({
     where: {
       classId: input.classId,
@@ -202,26 +260,43 @@ async function assertRosterAvailable(
     through: input.through,
     now: context.now,
   });
-  const active = (row: { entryDate: Date; exitDate: Date | null }, date: string) =>
-    dateOnly(row.entryDate) <= date && (!row.exitDate || dateOnly(row.exitDate) > date);
+  return {
+    enrollments,
+    others,
+    meetings,
+    encounters: [
+      ...appointments,
+      ...visits.map((row) => ({ ...row, studentId: row.candidate.studentId })),
+    ],
+  };
+}
+
+function activeEnrollment(row: RosterEnrollment, date: string): boolean {
+  return dateOnly(row.entryDate) <= date && (!row.exitDate || dateOnly(row.exitDate) > date);
+}
+
+async function assertRosterAvailable(
+  context: PlanningContext,
+  { input, candidates }: { input: ExtraClassesInput; candidates: CandidateMeeting[] },
+): Promise<void> {
+  const { enrollments, others, meetings, encounters } = await readRosterSchedule(context, input);
   for (const candidate of candidates) {
     const roster = new Set(
-      enrollments.filter((row) => active(row, candidate.date)).map((row) => row.studentId),
+      enrollments
+        .filter((row) => activeEnrollment(row, candidate.date))
+        .map((row) => row.studentId),
     );
-    if (!roster.size) throw badRequest(`A turma não tem alunos matriculados em ${candidate.date}.`);
+    if (roster.size === 0)
+      throw badRequest(`A turma não tem alunos matriculados em ${candidate.date}.`);
     const classes = new Set(
       others
-        .filter((row) => roster.has(row.studentId) && active(row, candidate.date))
+        .filter((row) => roster.has(row.studentId) && activeEnrollment(row, candidate.date))
         .map((row) => row.classId),
     );
     const meeting = meetings.find(
       (row) =>
         classes.has(row.classId) && row.date === candidate.date && intervalsOverlap(candidate, row),
     );
-    const encounters = [
-      ...appointments,
-      ...visits.map((row) => ({ ...row, studentId: row.candidate.studentId })),
-    ];
     if (
       meeting ||
       encounters.some(

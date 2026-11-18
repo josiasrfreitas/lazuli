@@ -41,30 +41,11 @@ export async function previewProgramSchedule(
   context: PlanningContext,
   { scope, startOn, plan }: ScheduleInput,
 ): Promise<ProgramPreview | null> {
-  const linked = plan?.items.find((item) => item.programActivityId)?.programActivityId;
-  const previous = linked
-    ? await context.database.programActivity.findUnique({
-        where: { id: linked },
-        select: { programId: true },
-      })
-    : null;
-  const programs = await context.database.teachingProgram.findMany({
-    where: {
-      stageId: scope.stage.id,
-      scheduleType: scope.class.scheduleType,
-      deletedAt: null,
-      ...(previous ? { id: previous.programId } : { retiredAt: null }),
-    },
-    select: { id: true },
-  });
-  if (programs.length === 0) return null;
-  if (programs.length > 1)
-    throw badRequest(
-      "Há mais de uma programação para este estágio. Defina a modalidade da turma antes de distribuir as aulas.",
-    );
+  const programId = await programForSchedule(context, { scope, startOn, plan });
+  if (!programId) return null;
   const [activities, sessions, closedDays] = await Promise.all([
     context.database.programActivity.findMany({
-      where: { programId: programs[0]!.id, deletedAt: null },
+      where: { programId, deletedAt: null },
       orderBy: { sequence: "asc" },
       include: { unit: true, teachingHour: true },
     }),
@@ -112,6 +93,34 @@ export async function previewProgramSchedule(
     pageTo: null,
   }));
   return { rows, activities, missingMinutes: result.missingMinutes };
+}
+
+async function programForSchedule(
+  context: PlanningContext,
+  { scope, plan }: ScheduleInput,
+): Promise<string | null> {
+  const linked = plan?.items.find((item) => item.programActivityId)?.programActivityId;
+  const previous = linked
+    ? await context.database.programActivity.findUnique({
+        where: { id: linked },
+        select: { programId: true },
+      })
+    : null;
+  const programs = await context.database.teachingProgram.findMany({
+    where: {
+      stageId: scope.stage.id,
+      scheduleType: scope.class.scheduleType,
+      deletedAt: null,
+      ...(previous ? { id: previous.programId } : { retiredAt: null }),
+    },
+    select: { id: true },
+  });
+
+  if (programs.length > 1)
+    throw badRequest(
+      "Há mais de uma programação para este estágio. Defina a modalidade da turma antes de distribuir as aulas.",
+    );
+  return programs[0]?.id ?? null;
 }
 
 export async function persistProgramSchedule(

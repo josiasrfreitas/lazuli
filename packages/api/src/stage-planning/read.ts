@@ -2,7 +2,12 @@ import { readActivityContexts, type ActivityContext } from "../teaching-programs
 import { previewProgramSchedule, type ProgramPreview } from "./program-schedule.js";
 import { programActivityKind } from "./program-activity.js";
 import type { Prisma } from "@lazuli/db";
-import type { PlanningClassContext, PlanningDetail, PlanningRevision } from "./types.js";
+import type {
+  PlanningClassContext,
+  PlanningDetail,
+  PlanningRevision,
+  PreviewItem,
+} from "./types.js";
 import type { RevisionPage } from "../class-records/types.js";
 import { timeOnly } from "../class-records/data.js";
 import type { StagePlanTarget } from "@lazuli/validators";
@@ -132,16 +137,45 @@ export async function readPlanning(
   const startOn = plan
     ? dateOnly(plan.plannedStartOn)
     : (scope.progressStartOn ?? scope.classStartOn);
-  const candidate = plan
-    ? null
-    : await previewProgramSchedule(context, { scope, startOn, plan: null });
-  const preview = candidate?.missingMinutes ? candidate : null;
+  const preview = plan ? null : await unscheduledPreview(context, { scope, startOn });
   const labels = await readActivityContexts(context.database, planningActivityIds(plan, preview));
   const calendar = await planningCalendar(context, { scope, startOn, hasPlan: Boolean(plan) });
   const records = plan ? await planningRecords(context, { scope, plan }) : [];
   const snapshot = planningSnapshot(plan, labels);
   const previewSnapshot = planningPreview({ preview, startOn, labels });
   const items = snapshot?.items ?? previewSnapshot?.items ?? [];
+  return {
+    scope,
+    preview: previewSnapshot,
+    plan: snapshot,
+    records,
+    projection: projectItems(records, { items, sessions: calendar.availableSessions }),
+    ...calendar,
+  };
+}
+
+async function unscheduledPreview(
+  context: PlanningContext,
+  { scope, startOn }: { scope: PlanningScope; startOn: string },
+): Promise<ProgramPreview | null> {
+  const candidate = await previewProgramSchedule(context, { scope, startOn, plan: null });
+  return candidate?.missingMinutes ? candidate : null;
+}
+
+function activitySequence(item: PreviewItem): number {
+  return item.curriculum?.sequence ?? 0;
+}
+
+function projectItems(
+  records: PlanningDetail["records"],
+  {
+    items,
+    sessions,
+  }: {
+    items: PreviewItem[];
+    sessions: PlanningDetail["availableSessions"];
+  },
+): PlanningDetail["projection"] {
   const completed = new Set(
     records.flatMap((record) =>
       recordedActivities(record.content)
@@ -151,7 +185,7 @@ export async function readPlanning(
   );
   const pending = items
     .filter((item) => !completed.has(item.id))
-    .toSorted((a, b) => (a.curriculum?.sequence ?? 0) - (b.curriculum?.sequence ?? 0));
+    .toSorted((left, right) => activitySequence(left) - activitySequence(right));
   const projected = pending.some((item) => !item.curriculum)
     ? { scheduled: [] }
     : scheduleProgram(
@@ -159,23 +193,16 @@ export async function readPlanning(
           id: item.id,
           durationMinutes: item.curriculum!.durationMinutes,
         })),
-        calendar.availableSessions,
+        sessions,
       );
-  return {
-    scope,
-    preview: previewSnapshot,
-    plan: snapshot,
-    records,
-    projection: pending.map((item) => {
-      const encounter = projected.scheduled.find((row) => row.activity.id === item.id);
-      return {
-        itemId: item.id,
-        date: encounter?.date ?? null,
-        sessionId: encounter?.sessionId ?? null,
-      };
-    }),
-    ...calendar,
-  };
+  return pending.map((item) => {
+    const encounter = projected.scheduled.find((row) => row.activity.id === item.id);
+    return {
+      itemId: item.id,
+      date: encounter?.date ?? null,
+      sessionId: encounter?.sessionId ?? null,
+    };
+  });
 }
 function planningPreview({
   preview,
@@ -274,49 +301,72 @@ async function planningCalendar(
         })
       : [],
   ]);
+  return summarizePlanningCalendar(context.now, {
+    sessions,
+    closures,
+    complements,
+    scope,
+    hasPlan,
+  });
+}
+
+type DatedSession = { id: string; date: Date; startTime: Date; endTime: Date };
+type PlanningCalendar = Pick<PlanningDetail, "calendar" | "upcoming" | "availableSessions">;
+
+function remainingSessionMinutes(session: DatedSession, now: Date): number {
+  return Math.max(
+    0,
+    Math.min(
+      (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
+      (sessionEndInstant(session).getTime() - now.getTime()) / MILLISECONDS_PER_MINUTE,
+    ),
+  );
+}
+
+function summarizePlanningCalendar(
+  now: Date,
+  {
+    sessions,
+    closures,
+    complements,
+    scope,
+    hasPlan,
+  }: {
+    sessions: (DatedSession & { classRecord: { id: string } | null })[];
+    closures: { date: Date }[];
+    complements: DatedSession[];
+    scope: PlanningScope;
+    hasPlan: boolean;
+  },
+): PlanningCalendar {
   const closed = new Set(closures.map((day) => dateOnly(day.date)));
   const eligible = [
     ...sessions.filter((session) => !closed.has(dateOnly(session.date))),
     ...complements.map((row) => ({ ...row, classRecord: null })),
-  ].sort(
-    (a, b) => a.date.getTime() - b.date.getTime() || a.startTime.getTime() - b.startTime.getTime(),
+  ].toSorted(
+    (left, right) =>
+      left.date.getTime() - right.date.getTime() ||
+      left.startTime.getTime() - right.startTime.getTime(),
   );
-  const future = eligible.filter((session) => sessionEndInstant(session) > context.now);
+  const future = eligible.filter((session) => sessionEndInstant(session) > now);
+  const availableSessions = future.map((session) => ({
+    startTime: timeOnly(session.startTime),
+    endTime: timeOnly(session.endTime),
+    id: session.id,
+    date: dateOnly(session.date),
+    minutes: remainingSessionMinutes(session, now),
+  }));
+  const last = eligible.at(-1);
   return {
-    availableSessions: future.map((session) => ({
-      startTime: timeOnly(session.startTime),
-      endTime: timeOnly(session.endTime),
-      id: session.id,
-      date: dateOnly(session.date),
-      minutes: Math.max(
-        0,
-        Math.min(
-          (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
-          (sessionEndInstant(session).getTime() - context.now.getTime()) / MILLISECONDS_PER_MINUTE,
-        ),
-      ),
-    })),
+    availableSessions,
     calendar: {
-      endOn: eligible.at(-1) ? dateOnly(eligible.at(-1)!.date) : scope.semester.endOn,
-      availableMinutes: future.reduce(
-        (sum, session) =>
-          sum +
-          Math.max(
-            0,
-            Math.min(
-              (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
-              (sessionEndInstant(session).getTime() - context.now.getTime()) /
-                MILLISECONDS_PER_MINUTE,
-            ),
-          ),
-        0,
-      ),
+      endOn: last ? dateOnly(last.date) : scope.semester.endOn,
+      availableMinutes: availableSessions.reduce((sum, session) => sum + session.minutes, 0),
       remainingSessions: future.length,
       unrecordedSessions: scope.student
         ? 0
         : eligible.filter(
-            (session) =>
-              sessionEndInstant(session) <= context.now && (!hasPlan || !session.classRecord),
+            (session) => sessionEndInstant(session) <= now && (!hasPlan || !session.classRecord),
           ).length,
     },
     upcoming: future.slice(0, UPCOMING_DATES).map((session) => ({

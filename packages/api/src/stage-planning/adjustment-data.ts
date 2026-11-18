@@ -4,9 +4,17 @@ import { requireAppointmentAdmin } from "../appointments/data.js";
 import { badRequest } from "../trpc/errors.js";
 import { loadPlanningScope, assertEditable, type PlanningContext } from "./data.js";
 import { recordRevision } from "./write.js";
+import type { PlanningDetail } from "./types.js";
 import { readPlanning } from "./read.js";
 
-export async function adjustmentPlanning(context: PlanningContext, classId: string) {
+export async function adjustmentPlanning(
+  context: PlanningContext,
+  classId: string,
+): Promise<{
+  data: PlanningDetail;
+  remainingMinutes: number;
+  uncertain: boolean;
+}> {
   requireAppointmentAdmin(context);
   const scope = await loadPlanningScope(context, { classId, lock: true });
   assertEditable(scope);
@@ -36,22 +44,21 @@ export async function adjustmentPlanning(context: PlanningContext, classId: stri
       data.records.some((record) => recordedActivities(record.content).length === 0),
   };
 }
-export const adjustmentFingerprint = (value: unknown): string =>
+export const adjustmentFingerprint = (value: object): string =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 /** Adjust only outstanding dates; performed content and earlier revisions remain intact. */
 export async function saveAdjustedProjection(
   context: PlanningContext,
-  classId: string,
-  reason: string,
-) {
+  { classId, reason }: { classId: string; reason: string },
+): Promise<void> {
   const data = await readPlanning(context, { classId });
   if (!data.plan) return;
   const changed = data.projection.filter((row) => {
     const item = data.plan!.items.find((item) => item.id === row.itemId);
     return row.date && (item?.plannedOn !== row.date || item.plannedSessionId !== row.sessionId);
   });
-  if (!changed.length) return;
+  if (changed.length === 0) return;
   for (const row of changed)
     await context.database.stagePlanItem.update({
       where: { id: row.itemId },
@@ -59,7 +66,7 @@ export async function saveAdjustedProjection(
     });
   const lastDate = data.projection
     .flatMap((row) => (row.date ? [row.date] : []))
-    .sort()
+    .toSorted()
     .at(-1);
   await context.database.stagePlan.update({
     where: { id: data.plan.id },

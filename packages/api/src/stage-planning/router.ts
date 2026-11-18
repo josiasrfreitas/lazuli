@@ -35,7 +35,7 @@ const context = (ctx: {
 export const planningRouter = router({
   previewExtra: adminProcedure.input(extraClassesSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) => previewExtraClasses({ ...context(ctx), database }, input), {
-      timeout: 30000,
+      timeout: 30_000,
     }),
   ),
   scheduleExtra: adminProcedure
@@ -43,17 +43,17 @@ export const planningRouter = router({
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction(
         (database) => scheduleExtraClasses({ ...context(ctx), database }, input),
-        { timeout: 30000 },
+        { timeout: 30_000 },
       ),
     ),
   previewEnd: adminProcedure.input(endClassesSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) => previewEndClasses({ ...context(ctx), database }, input), {
-      timeout: 30000,
+      timeout: 30_000,
     }),
   ),
   endClasses: adminProcedure.input(confirmEndClassesSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) => endClasses({ ...context(ctx), database }, input), {
-      timeout: 30000,
+      timeout: 30_000,
     }),
   ),
   prepare: staffProcedure.input(stagePlanTargetSchema).mutation(({ ctx, input }) =>

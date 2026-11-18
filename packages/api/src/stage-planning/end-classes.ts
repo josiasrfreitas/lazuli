@@ -23,7 +23,23 @@ const evidence = {
     },
   },
 } as const;
-export async function previewEndClasses(context: PlanningContext, input: EndClassesInput) {
+const MINUTES_PER_HOUR = 60;
+type EndClassesPreview = {
+  count: number;
+  preserved: number;
+  from: string | null;
+  through: string | null;
+  remainingMinutes: number;
+  availableMinutes: number;
+  blocked: string | null;
+  confirmation: string;
+  fingerprint: string;
+  sessionIds: string[];
+};
+export async function previewEndClasses(
+  context: PlanningContext,
+  input: EndClassesInput,
+): Promise<EndClassesPreview> {
   const { data, remainingMinutes, uncertain } = await adjustmentPlanning(context, input.classId);
   if (input.lastDate < data.scope.today)
     throw badRequest("A última aula deve ser hoje ou em uma data futura.");
@@ -53,13 +69,12 @@ export async function previewEndClasses(context: PlanningContext, input: EndClas
   const availableMinutes = data.availableSessions
     .filter((row) => row.date <= input.lastDate)
     .reduce((sum, row) => sum + row.minutes, 0);
-  const blocked = uncertain
-    ? "Confira os registros e a duração dos conteúdos antes de antecipar o encerramento."
-    : availableMinutes < remainingMinutes
-      ? `Ainda faltariam ${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format((remainingMinutes - availableMinutes) / 60)}h para acomodar o conteúdo até essa data.`
-      : cancellable.length === 0
-        ? "Não há aulas futuras sem registros para cancelar depois dessa data."
-        : null;
+  const blocked = endClassesBlocker({
+    uncertain,
+    availableMinutes,
+    remainingMinutes,
+    count: cancellable.length,
+  });
   return {
     count: cancellable.length,
     preserved: sessions.length - cancellable.length,
@@ -78,10 +93,29 @@ export async function previewEndClasses(context: PlanningContext, input: EndClas
     sessionIds: cancellable.map((row) => row.id),
   };
 }
+function endClassesBlocker(input: {
+  uncertain: boolean;
+  availableMinutes: number;
+  remainingMinutes: number;
+  count: number;
+}): string | null {
+  if (input.uncertain)
+    return "Confira os registros e a duração dos conteúdos antes de antecipar o encerramento.";
+  const deficit = input.remainingMinutes - input.availableMinutes;
+  if (deficit > 0) {
+    const hours = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(
+      deficit / MINUTES_PER_HOUR,
+    );
+    return `Ainda faltariam ${hours}h para acomodar o conteúdo até essa data.`;
+  }
+  return input.count === 0
+    ? "Não há aulas futuras sem registros para cancelar depois dessa data."
+    : null;
+}
 export async function endClasses(
   context: PlanningContext,
   input: EndClassesInput & { fingerprint: string; confirmation: string },
-) {
+): Promise<{ cancelled: number }> {
   await lockTeacher(context.database, "");
   const request = { classId: input.classId, lastDate: input.lastDate, reason: input.reason };
   const initial = await previewEndClasses(context, request);
@@ -113,6 +147,6 @@ export async function endClasses(
       description: `Última aula em ${input.lastDate}. ${preview.count} aulas canceladas; ${preview.preserved} preservadas. ${input.reason}`,
     },
   });
-  await saveAdjustedProjection(context, input.classId, input.reason);
+  await saveAdjustedProjection(context, { classId: input.classId, reason: input.reason });
   return { cancelled: preview.count };
 }
