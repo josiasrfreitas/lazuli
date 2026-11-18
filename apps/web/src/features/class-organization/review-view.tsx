@@ -9,6 +9,7 @@ type ReviewProps = {
   rows: Placement[];
   eligible: Placement[];
   selected: Placement[];
+  showSelection: boolean;
   scope: "pending" | "published" | "all";
   working: boolean;
   error: string | null;
@@ -55,7 +56,7 @@ export function ReviewView(props: ReviewProps): ReactElement {
           </p>
         )}
       </div>
-      {props.scope !== "published" && (
+      {props.showSelection && (
         <footer className={styles.footer}>
           <label>
             <Checkbox

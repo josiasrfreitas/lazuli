@@ -339,6 +339,7 @@ function PeriodContent({
         <OrganizationReview
           key={semesterId}
           board={board}
+          ended={model.ended}
           scope={reviewScope}
           query={model.search}
           onAction={setAction}

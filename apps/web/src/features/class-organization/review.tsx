@@ -8,12 +8,14 @@ import { ReviewView } from "./review-view";
 
 export function OrganizationReview({
   board,
+  ended,
   query,
   scope,
   onAction,
   onFeedback,
 }: {
   board: OrganizationBoard;
+  ended: boolean;
   query: string;
   scope: "pending" | "published" | "all";
   onAction: (action: OrganizationAction) => void;
@@ -30,6 +32,7 @@ export function OrganizationReview({
   );
   const eligible = rows.filter(
     (row) =>
+      !ended &&
       !row.publishedAt &&
       !row.declinedAt &&
       row.continuity !== "LEAVING" &&
@@ -49,6 +52,7 @@ export function OrganizationReview({
       rows={rows}
       eligible={eligible}
       selected={selected}
+      showSelection={!ended && scope !== "published"}
       scope={scope}
       working={working}
       error={error}
