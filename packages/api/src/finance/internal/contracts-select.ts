@@ -146,7 +146,7 @@ export const contractSelect = {
       },
     },
   },
-} as const;
+} satisfies Prisma.ContractSelect;
 
 export type SelectedContract = Prisma.ContractGetPayload<{ select: typeof contractSelect }>;
 

@@ -23,7 +23,12 @@ function scenario(completed: number): Input {
   return {
     plan: { items },
     scope: { today: "2026-11-15" },
-    calendar: { availableMinutes: 840, remainingSessions: 7, unrecordedSessions: 0 },
+    calendar: {
+      availableMinutes: 840,
+      remainingSessions: 7,
+      unrecordedSessions: 0,
+      endOn: "2026-12-18",
+    },
     records: [
       {
         id: "r",

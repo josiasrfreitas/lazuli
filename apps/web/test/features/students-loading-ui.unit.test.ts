@@ -66,6 +66,7 @@ const filters: StudentsFilters = {
   setPage: () => {},
   setPageSize: () => {},
   situations: [],
+  scheduleType: undefined,
   classIds: [],
   teacherIds: [],
   scholarship: [],

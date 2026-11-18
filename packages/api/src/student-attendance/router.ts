@@ -31,13 +31,19 @@ export const studentAttendanceRouter = router({
   settings: adminProcedure.query(({ ctx }) =>
     ctx.db.attendanceSettings.findUnique({ where: { key: "school" } }),
   ),
-  saveSettings: adminProcedure.input(attendanceSettingsSchema).mutation(({ ctx, input }) =>
-    ctx.db.attendanceSettings.upsert({
+  saveSettings: adminProcedure.input(attendanceSettingsSchema).mutation(({ ctx, input }) => {
+    const { addressLabel, ...location } = input;
+    const values = {
+      ...location,
+      ...(addressLabel === undefined ? {} : { addressLabel }),
+      updatedById: ctx.staffUser.id,
+    };
+    return ctx.db.attendanceSettings.upsert({
       where: { key: "school" },
-      create: { key: "school", ...input, updatedById: ctx.staffUser.id },
-      update: { ...input, updatedById: ctx.staffUser.id },
-    }),
-  ),
+      create: { key: "school", ...values },
+      update: values,
+    });
+  }),
   projection: publicProcedure
     .input(attendanceTokenSchema)
     .mutation(({ ctx, input }) =>

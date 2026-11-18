@@ -251,16 +251,18 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       standardPunctualityDiscountPct: settings.punctualityDiscountPct,
       interestRatePctMonthly: settings.interestRatePctMonthly,
       cancellationFeePct: settings.cancellationFeePct,
-      plannedBooks: values.books
+      ...(values.books
         ? {
-            create: values.books.map((book, index) => ({
-              semester: index + 1,
-              stageId: book.stageId,
-              acquisitionSemester: book.acquisitionSemester,
-              agreedPriceCents: book.agreedPriceCents ?? null,
-            })),
+            plannedBooks: {
+              create: values.books.map((book, index) => ({
+                semester: index + 1,
+                stageId: book.stageId,
+                acquisitionSemester: book.acquisitionSemester,
+                agreedPriceCents: book.agreedPriceCents ?? null,
+              })),
+            },
           }
-        : undefined,
+        : {}),
       orders: { create: orders },
     },
     select: contractSelect,

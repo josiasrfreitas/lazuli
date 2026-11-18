@@ -25,6 +25,7 @@ void it("uses a three-day cutoff and groups exact seven-day priority by teacher 
     deletedAt: null,
     classId: teacherId === "teacher-b" ? "other-class" : "class",
     scheduleSlotId: null,
+    appointmentSeriesId: null,
     status: "SCHEDULED",
     cancelReason: null,
     cancelledAt: null,
