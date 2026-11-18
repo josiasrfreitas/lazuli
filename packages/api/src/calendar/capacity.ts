@@ -125,12 +125,7 @@ function classCapacity(
       closed: state.closed,
     });
   }
-  for (const session of input.extraSessions) {
-    const date = civil(session.date);
-    if (date <= through || date < from || session.status === "CANCELLED") continue;
-    if (state.closed.has(date) && !session.classRecord) continue;
-    availableMinutes += minutes(session.startTime, session.endTime);
-  }
+  availableMinutes += extraCapacity(input.extraSessions, { from, through, closed: state.closed });
   const { unknownItems, requiredMinutes } = planRequirements(plan);
   return {
     classId: row.id,
@@ -142,6 +137,20 @@ function classCapacity(
       requiredMinutes === null ? null : Math.max(0, requiredMinutes - availableMinutes),
   };
 }
+function extraCapacity(
+  sessions: CapacitySession[],
+  { from, through, closed }: { from: string; through: string; closed: Set<string> },
+): number {
+  let availableMinutes = 0;
+  for (const session of sessions) {
+    const date = civil(session.date);
+    if (date <= through || date < from || session.status === "CANCELLED") continue;
+    if (closed.has(date) && !session.classRecord) continue;
+    availableMinutes += minutes(session.startTime, session.endTime);
+  }
+  return availableMinutes;
+}
+
 function dateCapacity(
   row: CapacityClass,
   input: { date: string; actual: CapacitySession[]; closed: Set<string> },

@@ -54,20 +54,13 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
   await lockTeacher(database, "");
   await lockCreationCommand(database, values.commandId);
   await assertCreationCommandOwner(database, { id: values.commandId, owner: "studentCompletion" });
-  const { leadRegistration, ...existingIntake } = values;
-  const fingerprint = createHash("sha256")
-    .update(JSON.stringify(leadRegistration ? values : existingIntake))
-    .digest("hex");
+  const fingerprint = intakeFingerprint(values);
   const previous = await existingIntakeResult(database, { values, fingerprint });
   if (previous) return previous;
   const today = saoPauloDateOnly(now);
   assertBirthDate(values.student.birthDate, today);
   const candidate = await captureIntakeCandidate(input);
-  if (candidate?.englishExperience === "SOME") {
-    await assertPlacementReady(database, candidate);
-    if (values.stageId !== candidate.stageId)
-      throw badRequest("Use o estágio definido no nivelamento.");
-  }
+  await assertCandidatePlacementStage(database, { stageId: values.stageId, candidate });
   const target =
     values.entryPeriod === "CURRENT" && values.classId
       ? await intakeTarget(database, {
@@ -90,6 +83,23 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
     fingerprint,
   });
   return { ...created, classId: target?.id ?? null };
+}
+
+function intakeFingerprint(values: EnrollValues): string {
+  const { leadRegistration, ...existingIntake } = values;
+  return createHash("sha256")
+    .update(JSON.stringify(leadRegistration ? values : existingIntake))
+    .digest("hex");
+}
+
+async function assertCandidatePlacementStage(
+  database: TransactionClient,
+  { stageId, candidate }: { stageId: EnrollValues["stageId"]; candidate: Candidate | null },
+): Promise<void> {
+  if (candidate?.englishExperience === "SOME") {
+    await assertPlacementReady(database, candidate);
+    if (stageId !== candidate.stageId) throw badRequest("Use o estágio definido no nivelamento.");
+  }
 }
 
 function assertBirthDate(birthDate: Date | null | undefined, today: string): void {

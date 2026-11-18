@@ -220,7 +220,7 @@ void it("allows a new placement in the same track after an unfinished proposal w
 async function seedPassingResults(
   scope: Fixture,
   students: Pick<FixtureStudent, "id" | "source">[],
-) {
+): Promise<void> {
   const date = new Date("2085-05-15");
   const session = await db.classSession.create({
     data: {
@@ -587,6 +587,8 @@ void it("serializes duplicate publication and rejects a stale proposal version w
   );
 });
 
+type FormationCaller = ReturnType<typeof caller>["semesterOrganization"];
+
 void it("requires an explicit decision for a short contract and never admits without entry coverage", async () => {
   const scope = await fixture();
   const student = await scope.student("Early renewal", false);
@@ -596,7 +598,7 @@ void it("requires an explicit decision for a short contract and never admits wit
     where: { id: contract.id },
     data: { endsOn: new Date("2085-09-30") },
   });
-  const publish = (version: number) =>
+  const publish = (version: number): ReturnType<FormationCaller["publish"]> =>
     caller().semesterOrganization.publish({
       planId: scope.plan.id,
       version: 1,
@@ -618,15 +620,16 @@ void it("requires an explicit decision for a short contract and never admits wit
     where: { id: contract.id },
     data: { endsOn: new Date("2085-09-30") },
   });
-  assert.equal((await publish(2)).count, 1);
+  const result = await publish(2);
+  assert.equal(result.count, 1);
 });
 void it("postpones an entry, then dissolves a future class into the same waiting list without closing its source", async () => {
   const scope = await fixture(),
-    s = await scope.student("Transfer");
+    student = await scope.student("Transfer");
   await caller().semesterOrganization.publish({
     planId: scope.plan.id,
     version: 1,
-    placements: [{ id: s.proposal.id, version: 1 }],
+    placements: [{ id: student.proposal.id, version: 1 }],
   });
   await caller().semesterOrganization.postpone({
     planId: scope.plan.id,
@@ -645,25 +648,28 @@ void it("postpones an entry, then dissolves a future class into the same waiting
   assert.equal(board.plans[0]?.active, false);
   assert.equal(board.placements[0]?.planId, null);
   assert.equal(board.placements[0]?.continuity, "CHANGE");
-  assert.equal(
-    (await db.enrollment.findUniqueOrThrow({ where: { id: s.source.enrollment.id } })).exitDate,
-    null,
-  );
+  const source = await db.enrollment.findUniqueOrThrow({
+    where: { id: student.source.enrollment.id },
+  });
+  assert.equal(source.exitDate, null);
 });
 void it("keeps a manual engagement concern independent of passing marks, attendance and contract", async () => {
   const scope = await fixture(),
-    s = await scope.student("Acompanhamento", false);
-  await seedPassingResults(scope, [s]);
-  const detail = () => caller().semesterOrganization.detail({ semesterId: scope.semester.id });
-  assert.equal((await detail()).placements[0]?.confirmation, "PRECONFIRMED");
+    student = await scope.student("Acompanhamento", false);
+  await seedPassingResults(scope, [student]);
+  const detail = (): ReturnType<FormationCaller["detail"]> =>
+    caller().semesterOrganization.detail({ semesterId: scope.semester.id });
+  const initialBoard = await detail();
+  assert.equal(initialBoard.placements[0]?.confirmation, "PRECONFIRMED");
   await caller().semesterOrganization.continuity({
     semesterId: scope.semester.id,
-    id: s.proposal.id,
+    id: student.proposal.id,
     version: 1,
     continuity: "UNDECIDED",
     attentionNote: "Família pediu contato.",
   });
-  const row = (await detail()).placements[0]!;
+  const afterAttention = await detail();
+  const row = afterAttention.placements[0]!;
   assert.equal(row.confirmation, "PENDING");
   assert.ok(row.blockers.some((reason) => reason.includes("acompanhamento")));
   await caller().semesterOrganization.riskLimit({
@@ -671,7 +677,8 @@ void it("keeps a manual engagement concern independent of passing marks, attenda
     previous: 4,
     limit: 3,
   });
-  assert.equal((await detail()).semester.formationRiskLimit, 3);
+  const afterRiskLimit = await detail();
+  assert.equal(afterRiskLimit.semester.formationRiskLimit, 3);
 });
 
 void it("keeps an unassigned new student in the next period's queue across repeated preparation", async () => {
@@ -717,7 +724,8 @@ void it("carries a healthy regular cohort forward to the next stage with its tea
     classId: scope.sourceClass.id,
   });
   await seedPassingResults(scope, [{ ...student, source }]);
-  const prepare = () => caller().semesterOrganization.prepare({ semesterId: scope.semester.id });
+  const prepare = (): ReturnType<FormationCaller["prepare"]> =>
+    caller().semesterOrganization.prepare({ semesterId: scope.semester.id });
   assert.deepEqual(await prepare(), { plans: 1, students: 1 });
   assert.deepEqual(await prepare(), { plans: 0, students: 0 });
   const board = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
@@ -730,12 +738,10 @@ void it("carries a healthy regular cohort forward to the next stage with its tea
   assert.equal(row?.confirmation, "PRECONFIRMED");
   assert.equal(row?.mode, "ADVANCE");
   const result = await caller().semesterOrganization.publish({
-    planId: plan!.id,
-    version: plan!.version,
-    placements: [{ id: row!.id, version: row!.version }],
+    planId: plan.id,
+    version: plan.version,
+    placements: [{ id: row.id, version: row.version }],
   });
-  assert.equal(
-    (await db.class.findUniqueOrThrow({ where: { id: result.classId } })).previousClassId,
-    scope.sourceClass.id,
-  );
+  const published = await db.class.findUniqueOrThrow({ where: { id: result.classId } });
+  assert.equal(published.previousClassId, scope.sourceClass.id);
 });

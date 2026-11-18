@@ -47,10 +47,12 @@ function renderStudentDialogs(props: Props): ReactJSX.Element | null {
 function renderPlanDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose } = props;
   switch (action.kind) {
-    case "riskLimit":
+    case "riskLimit": {
       return <RiskLimitDialog {...props} />;
-    case "postpone":
+    }
+    case "postpone": {
       return <PostponeDialog {...props} plan={action.plan} />;
+    }
     case "planStatus": {
       return (
         <PlanStatusDialog

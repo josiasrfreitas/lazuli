@@ -7,5 +7,5 @@ export function formationUrl(values: Record<string, string | string[] | undefine
     const value = values[key];
     if (typeof value === "string") params.set(key, value);
   }
-  return "/turmas/formacao" + (params.size ? "?" + params.toString() : "");
+  return "/turmas/formacao" + (params.size > 0 ? "?" + params.toString() : "");
 }

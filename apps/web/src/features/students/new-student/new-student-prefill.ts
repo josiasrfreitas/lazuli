@@ -70,13 +70,13 @@ function selectedStageId(
   pending: PendingActions,
   future: PendingActions["futurePlacement"] | null,
 ): string | null {
-  return (
-    future?.stageId ??
-    pending.undatedIntake?.stageId ??
-    pending.lead?.stageId ??
-    pending.enrollment?.class?.sharedStage?.id ??
-    null
-  );
+  const candidates = [
+    future?.stageId,
+    pending.undatedIntake?.stageId,
+    pending.lead?.stageId,
+    pending.enrollment?.class?.sharedStage?.id,
+  ];
+  return candidates.find((stageId) => typeof stageId === "string") ?? null;
 }
 
 function selectionClassFormat(

@@ -150,8 +150,7 @@ async function cancelSessions(
   const { sessions, blocked, request, now } = input;
   let cancelledSessions = 0;
   for (const original of sessions) {
-    if (!blocked(original.date, original.appointmentSeriesId ? undefined : original.class))
-      continue;
+    if (!sessionBlocked(original, blocked)) continue;
     await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`class-record:${original.id}`},0))`;
     const row = await database.classSession.findUniqueOrThrow({
       where: { id: original.id },
@@ -177,6 +176,11 @@ async function cancelSessions(
     cancelledSessions++;
   }
   return cancelledSessions;
+}
+function sessionBlocked(session: Session, blocked: BlockedDate): boolean {
+  // Explicit extras keep their dates across period edits. Dissolution ends the class calendar.
+  if (session.class.status === "ARCHIVED") return true;
+  return blocked(session.date, session.appointmentSeriesId ? undefined : session.class);
 }
 function sessionRecorded(row: Session): boolean {
   return Boolean(

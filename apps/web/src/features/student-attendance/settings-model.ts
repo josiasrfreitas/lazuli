@@ -49,12 +49,7 @@ export function useSettingsForm(initial: Settings): SettingsModel {
     if (save.isPending) return;
     save.reset();
     setLocationError("");
-    setErrors((current) => {
-      const errors = { ...current };
-      delete errors.latitude;
-      delete errors.longitude;
-      return errors;
-    });
+    setErrors(({ latitude: _latitude, longitude: _longitude, ...rest }) => rest);
     setFields((current) => ({
       ...current,
       latitude: String(point.latitude),

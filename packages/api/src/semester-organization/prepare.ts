@@ -230,12 +230,7 @@ function preparedPlacementData(
       !scope.current && plan.scheduleType === "REGULAR" ? plan.sharedStageId : progress.stageId,
     sourceProgressId: progress.id,
     sourceEnrollmentId: enrollment.id,
-    mode:
-      !scope.current && plan.scheduleType === "REGULAR"
-        ? plan.sharedStageId !== progress.stageId
-          ? "ADVANCE"
-          : "REPEAT"
-        : "CONTINUE",
+    mode: placementMode(scope, { plan, progress }),
     attentionNote: previous?.attentionNote ?? null,
     effectiveDate: scope.current ? enrollment.entryDate : scope.semester.startDate,
     recordedById: context.staffUser.id,
@@ -247,6 +242,14 @@ function preparedPlacementData(
         }
       : {}),
   };
+}
+
+function placementMode(
+  scope: PreparationScope,
+  { plan, progress }: { plan: ClassPlan; progress: PreparationProgress },
+): "CONTINUE" | "ADVANCE" | "REPEAT" {
+  if (scope.current || plan.scheduleType !== "REGULAR") return "CONTINUE";
+  return plan.sharedStageId === progress.stageId ? "REPEAT" : "ADVANCE";
 }
 
 function inheritedContinuity(
@@ -347,7 +350,10 @@ async function carryWaitingPlacement(
   return true;
 }
 
-async function nextRegularStage(context: OrganizationContext, stageId: string) {
+async function nextRegularStage(
+  context: OrganizationContext,
+  stageId: string,
+): Promise<{ id: string } | null> {
   const stage = await context.database.stage.findUniqueOrThrow({ where: { id: stageId } });
   return context.database.stage.findFirst({
     where: {

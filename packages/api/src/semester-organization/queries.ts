@@ -536,13 +536,11 @@ function placementViewBlockers(
   },
 ): string[] {
   const entryOn = dateOnly(row.effectiveDate ?? semester.startDate);
-  const blockers: string[] = [];
-  if (row.continuity === "LEAVING" && !row.publishedAt)
-    blockers.push("Conversar sobre a possível saída");
-  if (!row.publishedAt && !row.declinedAt && entryOn < saoPauloDateOnly(context.now))
-    blockers.push("Revise a vigência: a data proposta já passou");
-  if (!row.declinedAt && outsideSemester(entryOn, semester) && !row.publishedAt)
-    blockers.push("Vigência fora do período letivo");
+  const blockers = pendingPlacementBlockers(row, {
+    entryOn,
+    semester,
+    today: saoPauloDateOnly(context.now),
+  });
   if (plan?.startsOn && entryOn < dateOnly(plan.startsOn))
     blockers.push("A entrada antecede o início da turma.");
   const cohortAdvance =
@@ -550,6 +548,19 @@ function placementViewBlockers(
     !!plan?.sourceClassId &&
     plan.sourceClassId === row.sourceClassId;
   return [...blockers, ...placementBlockers(row, { plan, entryOn, cohortAdvance })];
+}
+
+function pendingPlacementBlockers(
+  row: PlacementRow,
+  { entryOn, semester, today }: { entryOn: string; semester: Period; today: string },
+): string[] {
+  if (row.publishedAt) return [];
+  const blockers: string[] = [];
+  if (row.continuity === "LEAVING") blockers.push("Conversar sobre a possível saída");
+  if (row.declinedAt) return blockers;
+  if (entryOn < today) blockers.push("Revise a vigência: a data proposta já passou");
+  if (outsideSemester(entryOn, semester)) blockers.push("Vigência fora do período letivo");
+  return blockers;
 }
 
 function outsideSemester(entryOn: string, semester: Period): boolean {

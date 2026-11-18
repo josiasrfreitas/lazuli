@@ -39,7 +39,12 @@ function planned(date: string): ImpactPlan {
   };
 }
 function rows(dates: string[]): ImpactRows {
-  return { sessions: [], appointments: [], visits: [], plannedItems: dates.map(planned) };
+  return {
+    sessions: [],
+    appointments: [],
+    visits: [],
+    plannedItems: dates.map((date) => planned(date)),
+  };
 }
 function state(): CalendarChangeState {
   return {

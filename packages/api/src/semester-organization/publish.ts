@@ -242,7 +242,10 @@ async function publicationClass(
     }));
   const earlierEntry =
     existingClass !== null &&
-    firstEntryDate < dateOnly(existingClass.startDate ?? semester.startDate);
+    startsEarlier(firstEntryDate, {
+      scheduled: existingClass.startDate,
+      periodStart: semester.startDate,
+    });
   if (earlierEntry)
     await context.database.class.update({
       where: { id: classRow.id },
@@ -265,6 +268,13 @@ async function publicationClass(
   }
   return { classId: classRow.id, generationRequestId };
 }
+function startsEarlier(
+  entry: string,
+  dates: { scheduled: Date | null; periodStart: Date },
+): boolean {
+  return entry < dateOnly(dates.scheduled ?? dates.periodStart);
+}
+
 async function publishOne(
   context: OrganizationContext,
   options: {

@@ -150,7 +150,7 @@ void it("keeps a tested lead pending until correction, then carries next-period 
   const caller = harness.caller(undefined, now);
   const registration = values.leadRegistration!;
   const lead = await caller.admissions.capture(registration);
-  const { leadRegistration: _, ...withoutLead } = values;
+  const { leadRegistration: _leadRegistration, ...withoutLead } = values;
   const next = {
     ...withoutLead,
     entryPeriod: "NEXT" as const,
@@ -181,10 +181,8 @@ void it("keeps a tested lead pending until correction, then carries next-period 
   await db.admissionCandidate.update({ where: { id: lead.id }, data: { stageId: base.stageId } });
   const result = await caller.students.enrollNew(next);
   assert.equal(result.enrollmentId, null);
-  assert.equal(
-    (await caller.students.pendingActions({ id: result.studentId })).undatedIntake?.stageId,
-    base.stageId,
-  );
+  const pending = await caller.students.pendingActions({ id: result.studentId });
+  assert.equal(pending.undatedIntake?.stageId, base.stageId);
   const change = {
     action: "period" as const,
     name: harness.ns.prefix + "Next",

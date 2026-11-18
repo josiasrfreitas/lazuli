@@ -2,7 +2,7 @@ import {
   emptyFormationAcademics,
   readFormationAcademics,
   type FormationAcademics,
-} from "@lazuli/db";
+} from "@lazuli/db/formation";
 import {
   contractCoverageEnd,
   formationContractStatus,

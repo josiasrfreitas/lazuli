@@ -58,7 +58,7 @@ export async function saveContinuity(
     data: {
       continuity: input.continuity,
       continuityReason: input.reason || null,
-      ...(input.attentionNote !== undefined ? { attentionNote: input.attentionNote || null } : {}),
+      ...(input.attentionNote === undefined ? {} : { attentionNote: input.attentionNote || null }),
       version: { increment: 1 },
     },
   });

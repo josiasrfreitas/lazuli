@@ -4,7 +4,7 @@ import { assertTrackAvailable } from "./eligibility.js";
 import type { enrollmentCreateInputSchema, z } from "@lazuli/validators";
 
 import { loadActiveStage } from "../classes/guards.js";
-import { contractAt } from "@lazuli/db";
+import { contractAt } from "@lazuli/db/formation";
 import { MISSING_ENTRY_CONTRACT, saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {

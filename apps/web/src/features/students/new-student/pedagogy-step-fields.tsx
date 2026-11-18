@@ -81,12 +81,8 @@ function SemesterField({
           if (value) onChange(value);
         }}
       >
-        <SegmentedControlItem value={current?.id ?? "current"} disabled={!current}>
-          Atual{current ? ` · ${current.name}` : ""}
-        </SegmentedControlItem>
-        <SegmentedControlItem value={next?.id ?? "future"} disabled={!next}>
-          Próximo{next ? ` · ${next.name}` : ""}
-        </SegmentedControlItem>
+        <SemesterOptionItem option={current} fallback="current" label="Atual" />
+        <SemesterOptionItem option={next} fallback="future" label="Próximo" />
       </SegmentedControl>
       <FieldError match={Boolean(semesterError)}>{semesterError}</FieldError>
       {!failed && !next && (
@@ -95,6 +91,23 @@ function SemesterField({
         </p>
       )}
     </Field>
+  );
+}
+
+function SemesterOptionItem({
+  option,
+  fallback,
+  label,
+}: {
+  option: SemesterOption;
+  fallback: string;
+  label: string;
+}): ReactJSX.Element {
+  return (
+    <SegmentedControlItem value={option?.id ?? fallback} disabled={!option}>
+      {label}
+      {option ? ` · ${option.name}` : ""}
+    </SegmentedControlItem>
   );
 }
 

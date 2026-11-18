@@ -96,13 +96,15 @@ async function createIntakePlacement(
     input: StudentPedagogyIntake;
   },
 ): Promise<void> {
+  const stageId = stage?.id ?? null;
+  const planId = plan?.id ?? null;
   const row = await database.semesterPlacement.create({
     data: {
       semesterId: semester.id,
       studentId,
-      stageId: stage?.id ?? null,
+      stageId,
       trackId: stage?.trackId ?? null,
-      planId: plan?.id ?? null,
+      planId,
       mode: "ENTRY",
       effectiveDate: new Date(
         [today, semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH)].toSorted().at(-1)!,
@@ -115,8 +117,8 @@ async function createIntakePlacement(
     placementId: row.id,
     version: row.version,
     studentId,
-    stageId: stage?.id ?? null,
-    planId: plan?.id ?? null,
+    stageId,
+    planId,
     notes: input.notes,
     recordedById,
   });

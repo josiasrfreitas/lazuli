@@ -18,7 +18,9 @@ export function OrganizationReview({
 }): ReactJSX.Element {
   const [ids, setIds] = useState<string[]>(() =>
     board.placements
-      .filter((row) => !row.publishedAt && !row.declinedAt && row.planId && !row.blockers.length)
+      .filter(
+        (row) => !row.publishedAt && !row.declinedAt && row.planId && row.blockers.length === 0,
+      )
       .map((row) => row.id),
   );
   const [showAll, setShowAll] = useState(false);

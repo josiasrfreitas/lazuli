@@ -31,6 +31,7 @@ import {
 } from "./lifecycle.js";
 
 const MAX_STUDENT_SEARCH_LENGTH = 100;
+const MAX_FORMATION_RISK_LIMIT = 50;
 
 const ISO_DATE_LENGTH = 10;
 
@@ -54,7 +55,7 @@ export const semesterOrganizationRouter = router({
   riskLimit: adminProcedure
     .input(
       semesterScopeSchema.extend({
-        limit: z.number().int().min(1).max(50),
+        limit: z.number().int().min(1).max(MAX_FORMATION_RISK_LIMIT),
         previous: z.number().int(),
       }),
     )
