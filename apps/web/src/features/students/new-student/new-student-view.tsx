@@ -80,6 +80,7 @@ export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): Rea
         }}
       />
     );
+  if (model.capturingLead) return <EnrollmentLeadCapture model={model} />;
   const reviewing = Boolean(model.confirmation || model.discarding);
   return (
     <>
@@ -93,7 +94,6 @@ export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): Rea
           <DialogPortal>
             <DialogBackdrop />
             <EnrollmentMainContent model={model} />
-            {model.capturingLead && <EnrollmentLeadCapture model={model} />}
           </DialogPortal>
         </Dialog>
       )}
