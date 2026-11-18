@@ -1,5 +1,5 @@
 "use client";
-import { CurrencyInput, Field, Label } from "@lazuli/ui";
+import { CurrencyInput, Field, Label, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { MaterialBookSelection, materialBookOptions } from "./material-book-fields";
 import { BookReceiptTerms, initialBookTerms } from "./book-receipt-terms";
 import { SelectControl } from "~/features/classes/form-controls";
@@ -51,7 +51,7 @@ export function SemesterBooks({
     );
   return (
     <section className="grid gap-4">
-      <p>Indique quando cada livro será pago.</p>
+      <p>Registre os livros pagos no ato. Os demais podem ser pagos depois pelo perfil do aluno.</p>
       {!prices && !material.prices.isLoading && (
         <p className="text-sm text-muted-foreground">
           Para registrar um pagamento agora, confira os preços em Ajustes financeiros. Você pode
@@ -106,20 +106,43 @@ function SemesterBookRow({
           })
         }
       />
-      <SelectControl
-        name={`book-timing-${index}`}
-        label="Pagamento"
-        value={book.acquisition ? "now" : String(book.acquisitionSemester ?? "open")}
-        choices={[
-          ...(index === 0 ? [] : [{ value: "open", label: "Data em aberto" }]),
-          ...(book.stageId && prices ? [{ value: "now", label: "Pago no ato" }] : []),
-          ...rows.slice(0, index === 0 ? 1 : rows.length).map((_entry, semesterIndex) => ({
-            value: String(semesterIndex + 1),
-            label: `No ${semesterIndex + 1}º semestre`,
-          })),
-        ]}
-        onChange={(value) => update(bookForPayment({ book, value, catalog, prices }))}
-      />
+      <div className="grid content-start justify-items-start gap-1">
+        <span>Pagamento do livro</span>
+        <SegmentedControl
+          size="sm"
+          aria-label={`Pagamento do livro do ${index + 1}º semestre`}
+          value={book.acquisition ? "now" : "later"}
+          onValueChange={(mode) => {
+            if (!mode) return;
+            const value = mode === "now" ? "now" : index === 0 ? "1" : "open";
+            update(bookForPayment({ book, value, catalog, prices }));
+          }}
+        >
+          <SegmentedControlItem value="later">Registrar depois</SegmentedControlItem>
+          <SegmentedControlItem value="now" disabled={!book.stageId || !prices}>
+            Registrar agora
+          </SegmentedControlItem>
+        </SegmentedControl>
+        {!book.stageId && <small>Selecione o livro para registrar o pagamento agora.</small>}
+      </div>
+      {!book.acquisition &&
+        (index === 0 ? (
+          <p className="self-center text-sm">Pagamento previsto no 1º semestre</p>
+        ) : (
+          <SelectControl
+            name={`book-timing-${index}`}
+            label="Previsão de pagamento"
+            value={String(book.acquisitionSemester ?? "open")}
+            choices={[
+              { value: "open", label: "Data em aberto" },
+              ...rows.map((_entry, semesterIndex) => ({
+                value: String(semesterIndex + 1),
+                label: `No ${semesterIndex + 1}º semestre`,
+              })),
+            ]}
+            onChange={(value) => update(bookForPayment({ book, value, catalog, prices }))}
+          />
+        ))}
       {!book.acquisition && book.stageId && (
         <Field name={`book-price-${index}`} className="max-w-48">
           <Label>Valor combinado</Label>
