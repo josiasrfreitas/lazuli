@@ -66,6 +66,27 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
         },
         label,
       );
+    } else if (
+      result.error.code === "INTERNAL_SERVER_ERROR" &&
+      isTransactionExpiry(result.error.cause)
+    ) {
+      logger.warn(
+        {
+          ...fields,
+          status: "error",
+          error_code: "TIMEOUT",
+          error_cause_code: "P2028",
+        },
+        "Database transaction exceeded its time limit",
+      );
+      return {
+        ...result,
+        error: new TRPCError({
+          code: "TIMEOUT",
+          message: "O banco excedeu o tempo para concluir a operação. Tente novamente.",
+          cause: result.error.cause,
+        }),
+      };
     } else if (result.error.code === "INTERNAL_SERVER_ERROR") {
       reportError(result.error.cause ?? result.error, { procedure: path, service: "web" });
     } else
@@ -158,4 +179,13 @@ export const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 function httpOperation(type: string): "GET" | "POST" {
   return type === "query" ? "GET" : "POST";
+}
+
+function isTransactionExpiry(cause: unknown): boolean {
+  return (
+    cause instanceof Error &&
+    "code" in cause &&
+    cause.code === "P2028" &&
+    /expired transaction|transaction[^\n]*timed out/i.test(cause.message)
+  );
 }

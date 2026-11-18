@@ -36,6 +36,7 @@ import { readStudentHealth, readStudentHealthBatch } from "./health.js";
 import { TRPCError } from "@trpc/server";
 import { readStudentAgenda } from "./agenda.js";
 
+const INTAKE_CONTRACT_TIMEOUT_MS = 30_000;
 const FILTER_OPTION_LIMIT = 50;
 const HEALTH_PAGE_LIMIT = 50;
 const MAX_AGENDA_DAYS = 31;
@@ -113,6 +114,7 @@ export const studentsRouter = router({
   resumeIntake: adminProcedure.input(studentIntakeResumeSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.resumeIntake",
+      options: input.contract ? { timeout: INTAKE_CONTRACT_TIMEOUT_MS } : undefined,
       work: async (database) => {
         const result = await resumeStudentIntake({
           database,
@@ -180,6 +182,7 @@ export const studentsRouter = router({
   enrollNew: adminProcedure.input(studentIntakeEnrollSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.enrollNew",
+      options: input.contract ? { timeout: INTAKE_CONTRACT_TIMEOUT_MS } : undefined,
       work: async (database) => {
         const result = await enrollNewStudent({
           database,

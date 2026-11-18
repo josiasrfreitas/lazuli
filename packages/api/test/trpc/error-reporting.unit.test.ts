@@ -45,3 +45,32 @@ void it("keeps authorization and business rejections out of exception monitoring
   );
   assert.deepEqual(received, []);
 });
+
+void it("returns a retryable timeout for expired transactions and preserves other transaction failures", async () => {
+  const received: Error[] = [];
+  setErrorReporter((error) => received.push(error));
+  const expired = Object.assign(
+    new Error("A query cannot be executed on an expired transaction."),
+    { code: "P2028" },
+  );
+  const other = Object.assign(new Error("Transaction not found."), { code: "P2028" });
+  const caller = createCallerFactory(
+    router({
+      expired: publicProcedure.mutation(() => {
+        throw expired;
+      }),
+      other: publicProcedure.mutation(() => {
+        throw other;
+      }),
+    }),
+  )(context);
+  await assert.rejects(
+    caller.expired(),
+    (error) => error instanceof TRPCError && error.code === "TIMEOUT" && error.cause === expired,
+  );
+  await assert.rejects(
+    caller.other(),
+    (error) => error instanceof TRPCError && error.code === "INTERNAL_SERVER_ERROR",
+  );
+  assert.deepEqual(received, [other]);
+});

@@ -105,6 +105,7 @@ export function sentryOptions(input: {
               "job_name",
               "procedure",
               "error_code",
+              "error_cause_code",
               "checkpoint",
               "status",
               "duration_ms",
