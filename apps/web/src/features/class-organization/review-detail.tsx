@@ -4,7 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
+import { formatAttendancePercent, formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { dateOnly, scheduleLabel } from "./shared";
 import type { OrganizationAction, OrganizationBoard, Placement } from "./model";
 import { HistoryRow } from "./action-dialogs";
@@ -180,7 +180,7 @@ function ReviewMetrics({ row }: { row: Placement }) {
         <dd>
           {row.attention.attendance == null
             ? "Sem registros"
-            : score.format(row.attention.attendance) + "%"}
+            : formatAttendancePercent(row.attention.attendance)}
         </dd>
       </div>
     </dl>
