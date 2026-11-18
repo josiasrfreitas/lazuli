@@ -286,7 +286,7 @@ export function SetupReview({
         billingFirstDueDate={billingFirstDueDate}
       />
       <p className={styles.help}>
-        Ao concluir, as cobranças serão criadas. Registre os recebimentos quando forem pagos.
+        Ao concluir, os pagamentos informados no ato serão registrados no financeiro.
       </p>
     </div>
   );
