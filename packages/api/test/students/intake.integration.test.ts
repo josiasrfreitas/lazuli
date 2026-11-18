@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { after, beforeEach, it } from "node:test";
 import type { RouterInputs } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import { studentIntakeEnrollSchema } from "@lazuli/validators";
+import { enrollNewStudent } from "../../src/students/intake.js";
 import { createHarness, defineNamespace } from "../support/attendance-test-support.js";
 
 const harness = createHarness(
@@ -121,6 +123,36 @@ void it("commits a beginner lead and documented student once and leaves the clas
     /identificador de lead já foi utilizado/u,
   );
   assert.equal(await db.student.count({ where: { commandId: values.commandId } }), 1);
+});
+
+void it("allows independent intakes to share the calendar while excluding semester edits", async () => {
+  const { semesterId } = await harness.seedBaseScenario();
+  const values = studentIntakeEnrollSchema.parse({ ...input(), leadRegistration: null });
+  await db.$transaction(async (database) => {
+    await enrollNewStudent({ database, values, now, recordedById: harness.ns.admin.id });
+    const [locks] = await db.$queryRaw<
+      Array<{
+        scheduleFree: boolean;
+        calendarWritable: boolean;
+        semesterWritable: boolean;
+        calendarReadable: boolean;
+        semesterReadable: boolean;
+      }>
+    >`
+      SELECT pg_try_advisory_xact_lock(hashtextextended('lazuli:teaching-schedule', 158)) AS "scheduleFree",
+        pg_try_advisory_xact_lock(hashtextextended('formation:undated-intake', 0)) AS "calendarWritable",
+        pg_try_advisory_xact_lock(hashtextextended(${`semester-organization:${semesterId}`}, 0)) AS "semesterWritable",
+        pg_try_advisory_xact_lock_shared(hashtextextended('formation:undated-intake', 0)) AS "calendarReadable",
+        pg_try_advisory_xact_lock_shared(hashtextextended(${`semester-organization:${semesterId}`}, 0)) AS "semesterReadable"
+    `;
+    assert.deepEqual(locks, {
+      scheduleFree: true,
+      calendarWritable: false,
+      semesterWritable: false,
+      calendarReadable: true,
+      semesterReadable: true,
+    });
+  });
 });
 
 void it("rolls back nested lead and placement when the final student validation fails", async () => {

@@ -6,15 +6,16 @@ import { badRequest } from "../trpc/errors.js";
 export async function lockNextIntakeSemester(
   database: Prisma.TransactionClient,
   now: Date,
+  mode: IntakeLockMode = "exclusive",
 ): Promise<Period | null> {
-  await lockIntakeCalendar(database);
+  await lockIntakeCalendar(database, mode);
   const today = new Date(saoPauloDateOnly(now));
   const semester = await database.period.findFirst({
     where: { deletedAt: null, startDate: { gt: today } },
     orderBy: { startDate: "asc" },
   });
   if (!semester) return null;
-  await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${semester.id}`}, 0))`;
+  await lockIntakeResource(database, `semester-organization:${semester.id}`, mode);
   return semester;
 }
 
@@ -209,8 +210,25 @@ export async function clearOtherStudentIntake(
   }
 }
 
-export async function lockIntakeCalendar(database: Prisma.TransactionClient): Promise<void> {
-  await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('formation:undated-intake', 0))`;
+export type IntakeLockMode = "shared" | "exclusive";
+
+export async function lockIntakeResource(
+  database: Prisma.TransactionClient,
+  key: string,
+  mode: IntakeLockMode,
+): Promise<void> {
+  if (mode === "shared") {
+    await database.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${key}, 0))`;
+  } else {
+    await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+  }
+}
+
+export function lockIntakeCalendar(
+  database: Prisma.TransactionClient,
+  mode: IntakeLockMode = "exclusive",
+): Promise<void> {
+  return lockIntakeResource(database, "formation:undated-intake", mode);
 }
 
 /** Calendar creation and intake share a lock, so a request cannot miss a just-created period. */

@@ -1,7 +1,11 @@
 import type { Prisma, Period, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { AdmissionCandidate } from "../admissions/candidates.js";
-import { lockIntakeCalendar } from "./future-student-intake.js";
+import {
+  lockIntakeCalendar,
+  lockIntakeResource,
+  type IntakeLockMode,
+} from "./future-student-intake.js";
 import { readSlots } from "./data.js";
 
 const ISO_TIME_START_INDEX = 11;
@@ -11,15 +15,15 @@ const ISO_MINUTE_END_INDEX = 16;
 export async function lockIntakeSemester(
   database: TransactionClient,
   now: Date,
+  mode: IntakeLockMode = "exclusive",
 ): Promise<Period | null> {
-  await lockIntakeCalendar(database);
+  await lockIntakeCalendar(database, mode);
   const today = new Date(saoPauloDateOnly(now));
   const semester = await database.period.findFirst({
     where: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
     orderBy: { startDate: "desc" },
   });
-  if (semester)
-    await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${semester.id}`}, 0))`;
+  if (semester) await lockIntakeResource(database, `semester-organization:${semester.id}`, mode);
   return semester;
 }
 

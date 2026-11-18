@@ -47,11 +47,15 @@ type ClassModel = Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>;
 export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult> {
   const { database, values, now } = input;
   const enrollmentDatabase = captureEnrollmentTransaction(database);
+  // A direct, unallocated intake writes only this new student’s placement.
+  const directIntake =
+    !values.classId && !values.planId && !values.candidateId && !values.leadRegistration;
+  const lockMode = directIntake ? "shared" : "exclusive";
   const semester =
     values.entryPeriod === "NEXT"
-      ? await lockNextIntakeSemester(database, now)
-      : await lockIntakeSemester(database, now);
-  await lockTeacher(database, "");
+      ? await lockNextIntakeSemester(database, now, lockMode)
+      : await lockIntakeSemester(database, now, lockMode);
+  if (!directIntake) await lockTeacher(database, "");
   await lockCreationCommand(database, values.commandId);
   await assertCreationCommandOwner(database, { id: values.commandId, owner: "studentCompletion" });
   const fingerprint = intakeFingerprint(values);

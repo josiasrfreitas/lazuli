@@ -11,12 +11,7 @@ import type { FinanceSettings, Prisma } from "@lazuli/db";
 import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
-import {
-  contractSelect,
-  toRow,
-  type ContractListRow,
-  type SelectedContract,
-} from "./contracts-select.js";
+import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
 import { groupedContractPage } from "./grouped-contract-page.js";
 import { contractStatusPage } from "./contract-status-page.js";
 import { createStudent } from "../../students/data.js";
@@ -234,68 +229,77 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
   const { database, values, terms } = input;
   const { settings, preview } = terms;
   const orders = await contractOrders(input);
-  const contract = await database.contract.create({
-    data: {
-      commandId: values.commandId,
-      commandFingerprint: contractFingerprint(values),
-      renewedFromId: values.renewedFromId ?? null,
-      payerId: input.payerId,
-      studentId: input.studentId,
-      agreedOn: toDateOnly(values.agreedOn),
-      startsOn: toDateOnly(values.startsOn),
-      durationMonths: values.durationMonths,
-      endsOn: toDateOnly(preview.endsOn),
-      monthlyAmountCents: preview.chargedMonthlyCents,
-      baseMonthlyAmountCents: values.monthlyAmountCents,
-      scholarshipPct: values.scholarshipPct ?? 0,
-      scholarshipAgreement: values.scholarshipAgreement?.trim() || null,
-      tuitionCeilingCents: settings.tuitionCeilingCents,
-      maximumDiscountPct: settings.maximumDiscountPct,
-      punctualityDiscountPct:
-        (values.scholarshipPct ?? 0) > 0 ? 0 : Number(settings.punctualityDiscountPct),
-      standardPunctualityDiscountPct: settings.punctualityDiscountPct,
-      interestRatePctMonthly: settings.interestRatePctMonthly,
-      cancellationFeePct: settings.cancellationFeePct,
-      ...(values.books
-        ? {
-            plannedBooks: {
-              create: values.books.map((book, index) => ({
-                semester: index + 1,
-                stageId: book.stageId,
-                acquisitionSemester: book.acquisitionSemester,
-                agreedPriceCents: book.agreedPriceCents ?? null,
-              })),
-            },
-          }
-        : {}),
-      orders: { create: orders },
-    },
-    select: contractSelect,
-  });
-  return recordContractBookReceipts(input, contract);
-}
-
-async function recordContractBookReceipts(
-  input: PersistContractInput,
-  contract: SelectedContract,
-): Promise<ContractListRow> {
-  const { database, values } = input;
+  const data: Prisma.ContractUncheckedCreateInput = {
+    commandId: values.commandId,
+    commandFingerprint: contractFingerprint(values),
+    renewedFromId: values.renewedFromId ?? null,
+    payerId: input.payerId,
+    studentId: input.studentId,
+    agreedOn: toDateOnly(values.agreedOn),
+    startsOn: toDateOnly(values.startsOn),
+    durationMonths: values.durationMonths,
+    endsOn: toDateOnly(preview.endsOn),
+    monthlyAmountCents: preview.chargedMonthlyCents,
+    baseMonthlyAmountCents: values.monthlyAmountCents,
+    scholarshipPct: values.scholarshipPct ?? 0,
+    scholarshipAgreement: values.scholarshipAgreement?.trim() || null,
+    tuitionCeilingCents: settings.tuitionCeilingCents,
+    maximumDiscountPct: settings.maximumDiscountPct,
+    punctualityDiscountPct:
+      (values.scholarshipPct ?? 0) > 0 ? 0 : Number(settings.punctualityDiscountPct),
+    standardPunctualityDiscountPct: settings.punctualityDiscountPct,
+    interestRatePctMonthly: settings.interestRatePctMonthly,
+    cancellationFeePct: settings.cancellationFeePct,
+    ...(values.books
+      ? {
+          plannedBooks: {
+            create: values.books.map((book, index) => ({
+              semester: index + 1,
+              stageId: book.stageId,
+              acquisitionSemester: book.acquisitionSemester,
+              agreedPriceCents: book.agreedPriceCents ?? null,
+            })),
+          },
+        }
+      : {}),
+    orders: { create: orders },
+  };
   const received = (values.books ?? []).flatMap((book) =>
     book.acquisition?.receivedMethod ? [book.acquisition] : [],
   );
+  if (!received.length)
+    return toRow(await database.contract.create({ data, select: contractSelect }));
+
+  // Only material installment IDs and amounts are needed to post receipts.
+  // Load the contract summary once, after all allocations are visible.
+  const contract = await database.contract.create({
+    data,
+    select: {
+      id: true,
+      orders: {
+        where: { kind: "MATERIAL", deletedAt: null },
+        select: {
+          material: { select: { stageId: true } },
+          installments: {
+            where: { deletedAt: null },
+            orderBy: { sequenceNumber: "asc" },
+            select: { id: true, amountCents: true },
+          },
+        },
+      },
+    },
+  });
   for (const material of received) {
     const order = contract.orders.find((row) => row.material?.stageId === material.stageIds[0]);
     if (!order) throw new Error("Cobrança do material não encontrada.");
     await receiveNewMaterial({ ...input, order, material, date: values.agreedOn });
   }
-  if (received.length > 0)
-    return toRow(
-      await database.contract.findUniqueOrThrow({
-        where: { id: contract.id },
-        select: contractSelect,
-      }),
-    );
-  return toRow(contract);
+  return toRow(
+    await database.contract.findUniqueOrThrow({
+      where: { id: contract.id },
+      select: contractSelect,
+    }),
+  );
 }
 
 async function contractOrders(
