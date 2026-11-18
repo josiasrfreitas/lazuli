@@ -71,15 +71,18 @@ export async function readFormationAcademics(
     });
     for (const row of group) {
       const grades = row.assessment && !row.assessment.deletedAt ? row.assessment.grades : [];
-      const status = assessmentStatus(
-        assessmentResults(grades.map((grade) => ({ ...grade, score: Number(grade.score) }))),
+      const results = assessmentResults(
+        grades.map((grade) => ({ ...grade, score: Number(grade.score) })),
+      );
+      const effectiveScores = results.flatMap(({ effective }) =>
+        effective === null ? [] : [effective],
       );
       const presence = attendance.get(row.enrollment.id);
       result.set(row.id, {
-        grades: status,
+        grades: assessmentStatus(results),
         gradeAverage:
-          grades.length > 0
-            ? grades.reduce((sum, grade) => sum + Number(grade.score), 0) / grades.length
+          effectiveScores.length > 0
+            ? effectiveScores.reduce((sum, score) => sum + score, 0) / effectiveScores.length
             : null,
         ...presenceMetrics(presence),
       });
