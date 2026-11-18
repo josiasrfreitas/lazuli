@@ -4,7 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { toDateOnlySaoPaulo } from "~/lib/format";
+import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { dateOnly, scheduleLabel } from "./shared";
 import type { OrganizationAction, OrganizationBoard, Placement } from "./model";
 import { HistoryRow } from "./action-dialogs";
@@ -244,6 +244,12 @@ function ReviewProfileActions({
 
 function ReviewHistory({ row, onAction }: Pick<Props, "row" | "onAction">) {
   const history = trpc.semesterOrganization.history.useQuery({ id: row.id });
+  const followUp = trpc.interventions.list.useQuery({
+    studentId: row.studentId,
+    search: "",
+    page: 1,
+  });
+  const lastIntervention = followUp.data?.rows[0];
   return (
     <section className={styles.history}>
       <h3>Histórico deste vínculo</h3>
@@ -266,6 +272,16 @@ function ReviewHistory({ row, onAction }: Pick<Props, "row" | "onAction">) {
         <Button size="sm" variant="link" onClick={() => onAction({ kind: "history", row })}>
           Ver histórico completo ({history.data.length})
         </Button>
+      )}
+      {lastIntervention && (
+        <div className={styles.profileActions}>
+          <small>Última intervenção pedagógica</small>
+          <strong>{lastIntervention.title}</strong>
+          <p>
+            {formatDateOnlyBR(dateOnly(lastIntervention.performedOn))} ·{" "}
+            {lastIntervention.responsible.name}
+          </p>
+        </div>
       )}
     </section>
   );
