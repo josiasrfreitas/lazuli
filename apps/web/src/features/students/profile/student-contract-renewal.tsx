@@ -55,14 +55,13 @@ export function StudentContractRenewal({
       ) : (
         <RenewalChooser {...{ contracts, choosing, setChoosing, setContractId }} />
       )}
-      {negotiating && (
+      {negotiating ? (
         <TreatmentDialog studentId={studentId} onClose={() => setNegotiating(false)} />
-      )}
-      {!negotiating &&
-        activeContractId &&
-        (overdueCents > 0 && acknowledged !== activeContractId ? (
-          <RenewalDebtNotice
-            overdueCents={overdueCents}
+      ) : (
+        activeContractId && (
+          <SelectedContractRenewal
+            contractId={activeContractId}
+            overdueCents={acknowledged === activeContractId ? 0 : overdueCents}
             onClose={closeRenewal}
             onReview={() => {
               setNegotiating(true);
@@ -70,14 +69,34 @@ export function StudentContractRenewal({
             }}
             onContinue={() => setAcknowledged(activeContractId)}
           />
-        ) : (
-          <RenewalDialog
-            contractId={activeContractId}
-            onClose={closeRenewal}
-            onSaved={() => toastManager.add({ title: "Rematrícula concluída", type: "success" })}
-          />
-        ))}
+        )
+      )}
     </div>
+  );
+}
+
+function SelectedContractRenewal({
+  contractId,
+  overdueCents,
+  onClose,
+  onReview,
+  onContinue,
+}: {
+  contractId: string;
+  overdueCents: number;
+  onClose: () => void;
+  onReview: () => void;
+  onContinue: () => void;
+}): ReactElement {
+  if (overdueCents > 0) {
+    return <RenewalDebtNotice {...{ overdueCents, onClose, onReview, onContinue }} />;
+  }
+  return (
+    <RenewalDialog
+      contractId={contractId}
+      onClose={onClose}
+      onSaved={() => toastManager.add({ title: "Rematrícula concluída", type: "success" })}
+    />
   );
 }
 

@@ -56,7 +56,7 @@ export function FinanceDetails({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          finalFocus={() => document.getElementById("student-finance-actions")}
+          finalFocus={() => document.querySelector<HTMLElement>("#student-finance-actions")}
           className="finance-details-dialog"
           motion="subtle"
           showCloseButton={!pending}
