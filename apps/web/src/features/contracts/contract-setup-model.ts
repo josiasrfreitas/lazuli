@@ -4,7 +4,7 @@ import type { FormProps } from "./contract-form-fields";
 import {
   contractInputFromFields,
   durationFromDates,
-  paymentPlanLabel,
+  installmentBreakdown,
   scholarshipInput,
   type ContractFields,
 } from "./contract-form-model";
@@ -79,11 +79,7 @@ function validDuration(duration: number): boolean {
 export function setupPlanLabel(preview: FormProps["preview"]): string {
   if (!preview) return "Valores a definir";
   if (preview.installments.length === 0) return "Bolsa integral";
-  const first = preview.installments[0]?.amountCents ?? null;
-  return paymentPlanLabel(
-    preview.installments.length,
-    preview.installments.every((row) => row.amountCents === first) ? first : null,
-  );
+  return installmentBreakdown(preview.installments);
 }
 
 export function setupValidation({

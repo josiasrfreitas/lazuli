@@ -15,7 +15,7 @@ import {
   durationFromDates,
   materialPriceInput,
   scholarshipInput,
-  paymentPlanLabel,
+  installmentBreakdown,
 } from "./contract-form-model";
 
 const CENTS_PER_REAL = 100;
@@ -64,10 +64,6 @@ function PaymentPreview({ preview }: { preview: NonNullable<FormProps["preview"]
         mensalidade.
       </p>
     );
-  const firstAmount = preview.installments[0]?.amountCents ?? null;
-  const uniformAmount = preview.installments.every((row) => row.amountCents === firstAmount)
-    ? firstAmount
-    : null;
   return (
     <>
       <div
@@ -78,7 +74,7 @@ function PaymentPreview({ preview }: { preview: NonNullable<FormProps["preview"]
           Vigência até {formatDateOnlyBR(preview.endsOn)} · mensalidades{" "}
           {formatBRLFromCents(preview.principalAmountCents)}
         </p>
-        <p>{paymentPlanLabel(preview.installments.length, uniformAmount)}</p>
+        <p>{installmentBreakdown(preview.installments)}</p>
         <p className="text-muted-foreground">
           Mensalidade de referência em dia {formatBRLFromCents(preview.onTimeMonthlyCents)} · piso
           da mensalidade acordada {formatBRLFromCents(preview.floorCents)}

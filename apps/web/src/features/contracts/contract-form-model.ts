@@ -120,6 +120,14 @@ export function paymentPlanLabel(count: number, uniformAmountCents: number | nul
     : `${count} × ${formatBRLFromCents(uniformAmountCents)}`;
 }
 
+export function installmentBreakdown(installments: readonly { amountCents: number }[]): string {
+  const counts = new Map<number, number>();
+  for (const { amountCents } of installments) {
+    counts.set(amountCents, (counts.get(amountCents) ?? 0) + 1);
+  }
+  return Array.from(counts, ([amount, count]) => paymentPlanLabel(count, amount)).join(" + ");
+}
+
 export function suggestMonthlyAmount(
   fields: ContractFields,
   input: { tuitionCeilingCents: number; edited: boolean },
