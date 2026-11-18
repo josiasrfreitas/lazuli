@@ -7,7 +7,7 @@ Os loaders internos não são comandos incrementais de atualização.
 
 Para conferir a escola existente, rode `pnpm seed:status` na raiz. O relatório consulta o banco do workspace, lê os anexos no armazenamento privado e imprime links para perfis com foto. Ele mostra turmas, histórico, aulas futuras, frequência, distribuição das notas e inadimplência usando a mesma consulta da página de contratos. Os nove retratos são sintéticos e acompanham o repositório. Cada perfil com retrato tem um PDF que abre na ficha do aluno, e há roteiros de prática escrita vinculados a avaliações lançadas.
 
-Use `pnpm seed` quando quiser voltar ao cenário de referência com as datas atualizadas. Entre reconstruções, o relógio do aplicativo continua real e os exemplos podem ser editados normalmente.
+Use `pnpm seed` quando quiser voltar ao cenário de referência com as datas atualizadas. Para ensaiar a criação do próximo semestre desde o início, use `pnpm seed --sem-proximo-semestre`. Esse comando também reconstrói a base local, mas gera apenas o semestre vigente, com suas turmas e seus alunos. O próximo período, seus planos e suas alocações ficam por criar. Entre reconstruções, o relógio do aplicativo continua real e os exemplos podem ser editados normalmente.
 
 Este cenário sustenta a operação cotidiana de uma escola de inglês de aproximadamente 250 alunos.
 Todos os nomes e contatos são sintéticos. A data de referência é o dia civil da escola em
