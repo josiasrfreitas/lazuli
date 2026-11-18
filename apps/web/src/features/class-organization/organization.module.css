@@ -276,77 +276,6 @@
   border-top: 1px solid var(--border);
   background: var(--accent);
 }
-.review {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 12px 16px 0;
-  gap: 10px;
-}
-.reviewTable {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  border: 1px solid var(--border);
-}
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--lz-text-caption);
-}
-.table th {
-  text-align: left;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--muted);
-  padding: 9px 12px;
-  font-size: var(--lz-text-micro);
-  color: var(--muted-foreground);
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-.table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  vertical-align: top;
-}
-.table tr:hover td {
-  background: var(--accent);
-}
-.table td:first-child,
-.table th:first-child {
-  width: 34px;
-  padding-right: 0;
-}
-.origin {
-  color: var(--muted-foreground);
-  display: grid;
-  gap: 4px;
-}
-.destination {
-  display: grid;
-  gap: 4px;
-}
-.changed {
-  color: var(--interactive);
-  font-weight: 600;
-}
-.diffDetails {
-  max-width: 330px;
-  display: grid;
-  gap: 8px;
-  font-size: var(--lz-text-caption);
-}
-.diffLine {
-  display: grid;
-  grid-template-columns: 1fr 16px 1fr;
-  align-items: start;
-  gap: 6px;
-}
 .months {
   display: grid;
   grid-template-columns: repeat(3, minmax(210px, 1fr));
@@ -472,9 +401,6 @@
   }
   .formRow {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .review {
-    padding: 8px;
   }
   .stats {
     font-size: var(--lz-text-micro);

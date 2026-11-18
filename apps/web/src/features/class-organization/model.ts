@@ -1,13 +1,8 @@
-import { formatDateOnlyBR } from "~/lib/format";
 import {
   type ClassPlan,
   type Placement,
   type OrganizationBoard,
 } from "~/features/class-organization/shared";
-
-const ISO_DATE_LENGTH = 10;
-const MILLISECONDS_PER_DAY = 86_400_000;
-const RENEWAL_WARNING_DAYS = 45;
 
 export type { ClassPlan, Placement, OrganizationBoard } from "~/features/class-organization/shared";
 export type OrganizationAction =
@@ -52,28 +47,4 @@ export function suggestedPlans(row: Placement, board: OrganizationBoard): ClassP
         Number(right.sourceClassId === row.sourceClassId) -
           Number(left.sourceClassId === row.sourceClassId),
     );
-}
-export function changeLabel(row: Placement, board: OrganizationBoard): string {
-  if (row.declinedAt) return "Não continuará";
-  if (!row.planId) return "Sem turma";
-  if (!row.sourceClassId) return "Nova entrada";
-  const plan = board.plans.find((item) => item.id === row.planId);
-  if (plan?.sourceClassId === row.sourceClassId || plan?.classId === row.sourceClassId)
-    return "Continuidade";
-  return "Transferência";
-}
-export function contractLabel(row: Placement): { label: string; warning: boolean } {
-  if (!row.contract && row.upcomingContract?.startsOn)
-    return {
-      label: `Contrato começa em ${formatDateOnlyBR(row.upcomingContract.startsOn.toISOString().slice(0, ISO_DATE_LENGTH))}`,
-      warning: true,
-    };
-  if (!row.contract)
-    return { label: row.lastContract ? "Renovar contrato" : "Sem contrato", warning: true };
-  const days = row.contract.endsOn
-    ? Math.ceil((new Date(row.contract.endsOn).getTime() - Date.now()) / MILLISECONDS_PER_DAY)
-    : null;
-  return days !== null && days <= RENEWAL_WARNING_DAYS
-    ? { label: `Vence em ${Math.max(0, days)} dias`, warning: true }
-    : { label: "Contrato vigente", warning: false };
 }
