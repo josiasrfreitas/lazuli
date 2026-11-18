@@ -776,3 +776,47 @@ void it("carries a healthy regular cohort forward to the next stage with its tea
   const published = await db.class.findUniqueOrThrow({ where: { id: result.classId } });
   assert.equal(published.previousClassId, scope.sourceClass.id);
 });
+
+void it("restarts provisional placements while keeping real confirmations, marks, scheduled entries and student follow-up", async () => {
+  const scope = await fixture();
+  const service = caller().semesterOrganization;
+  const input = { semesterId: scope.semester.id };
+  const pending = await scope.student("Awaiting conversation", false);
+  const confirmed = await scope.student("Confirmed a place");
+  const preconfirmed = await scope.student("Qualified for automatic confirmation", false);
+  const scheduled = await scope.student("Scheduled entry");
+  await seedPassingResults(scope, [preconfirmed, scheduled]);
+  await service.publish({
+    planId: scope.plan.id,
+    version: 1,
+    placements: [{ id: scheduled.proposal.id, version: 1 }],
+  });
+  const oldPreview = await service.resetPreview(input);
+  assert.equal(oldPreview.release, 1);
+  await service.continuity({
+    ...input,
+    id: pending.proposal.id,
+    version: 1,
+    continuity: "UNDECIDED",
+    attentionNote: "Retomar contato na sexta-feira.",
+  });
+  await assert.rejects(
+    service.reset({ ...input, fingerprint: oldPreview.fingerprint }),
+    (error) => error instanceof TRPCError && error.code === "CONFLICT",
+  );
+  const preview = await service.resetPreview(input);
+  assert.equal(preview.keep, 3);
+  assert.equal((await service.reset({ ...input, fingerprint: preview.fingerprint })).released, 1);
+  const board = await service.detail(input);
+  const byStudent = new Map(board.placements.map((row) => [row.studentId, row]));
+  assert.equal(byStudent.get(pending.id)?.planId, null);
+  assert.equal(byStudent.get(pending.id)?.attentionNote, "Retomar contato na sexta-feira.");
+  assert.equal(byStudent.get(confirmed.id)?.confirmation, "CONFIRMED");
+  const automatic = byStudent.get(preconfirmed.id);
+  assert.equal(automatic?.confirmation, "PRECONFIRMED");
+  assert.equal(automatic?.planId, scope.plan.id);
+  assert.equal(byStudent.get(scheduled.id)?.entryStatus, "SCHEDULED");
+  const history = await service.history({ id: pending.proposal.id });
+  assert.equal(history[0]?.action, "FORMATION_RESET");
+  assert.equal((await service.resetPreview(input)).release, 0);
+});

@@ -60,33 +60,42 @@ export async function recordPlacementRevision(
 
   const row = await context.database.semesterPlacement.findUniqueOrThrow({ where: { id } });
   await context.database.semesterPlacementRevision.create({
-    data: {
-      placementId: id,
-      version: row.version,
-      action,
-      reason: reason ?? null,
-      recordedById: context.staffUser.id,
-      createdAt: context.now,
-      snapshot: {
-        planId: row.planId,
-        attentionNote: row.attentionNote,
-        effectiveDate: row.effectiveDate ? dateOnly(row.effectiveDate) : null,
-        declinedAt: row.declinedAt?.toISOString() ?? null,
-        declinedReason: row.declinedReason,
-        studentId: row.studentId,
-        mode: row.mode,
-        stageId: row.stageId,
-        sourceProgressId: row.sourceProgressId,
-        enrollmentId: row.enrollmentId,
-        entryActionId: row.entryActionId,
-        sourceExitActionId: row.sourceExitActionId,
-        publishedAt: row.publishedAt?.toISOString() ?? null,
-        notes: row.notes,
-        continuity: row.continuity,
-        continuityReason: row.continuityReason,
-      },
-    },
+    data: placementRevisionData(context, row, action, reason),
   });
+}
+
+export function placementRevisionData(
+  context: OrganizationContext,
+  row: Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>,
+  action: string,
+  reason?: string,
+): Prisma.SemesterPlacementRevisionCreateManyInput {
+  return {
+    placementId: row.id,
+    version: row.version,
+    action,
+    reason: reason ?? null,
+    recordedById: context.staffUser.id,
+    createdAt: context.now,
+    snapshot: {
+      planId: row.planId,
+      attentionNote: row.attentionNote,
+      effectiveDate: row.effectiveDate ? dateOnly(row.effectiveDate) : null,
+      declinedAt: row.declinedAt?.toISOString() ?? null,
+      declinedReason: row.declinedReason,
+      studentId: row.studentId,
+      mode: row.mode,
+      stageId: row.stageId,
+      sourceProgressId: row.sourceProgressId,
+      enrollmentId: row.enrollmentId,
+      entryActionId: row.entryActionId,
+      sourceExitActionId: row.sourceExitActionId,
+      publishedAt: row.publishedAt?.toISOString() ?? null,
+      notes: row.notes,
+      continuity: row.continuity,
+      continuityReason: row.continuityReason,
+    },
+  };
 }
 
 type PlanModel = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;

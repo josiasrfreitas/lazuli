@@ -2,6 +2,7 @@ import { dispatchCalendarReconciliation } from "../calendar/dispatch.js";
 import { postponeClass, postponeSchema } from "./postpone.js";
 import { TRPCError } from "@trpc/server";
 import { assignLeadInterest, leadInterestSchema } from "./lead-interest.js";
+import { previewFormationReset, resetFormation } from "./reset.js";
 import { prepareSemester } from "./prepare.js";
 import { moveSchema, declineSchema, movePlacements, declinePlacements } from "./commands.js";
 import {
@@ -128,6 +129,17 @@ export const semesterOrganizationRouter = router({
       });
       return placements.map((placement) => ({ semester: placement.semester, placement }));
     }),
+  resetPreview: adminProcedure
+    .input(semesterScopeSchema)
+    .query(({ ctx, input }) => previewFormationReset(context(ctx), input.semesterId)),
+  reset: adminProcedure
+    .input(semesterScopeSchema.extend({ fingerprint: z.string().length(64) }))
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => resetFormation({ ...context(ctx), database }, input), {
+        isolationLevel: "Serializable",
+        timeout: 30_000,
+      }),
+    ),
   prepare: adminProcedure
     .input(semesterScopeSchema)
     .mutation(({ ctx, input }) =>

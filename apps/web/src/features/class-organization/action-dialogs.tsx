@@ -135,6 +135,7 @@ function ReasonDialogView({
   );
 }
 const actions: Record<string, string> = {
+  FORMATION_RESET: "Destino provisório retirado no reinício da formação",
   INHERITED: "Continuidade herdada",
   CONTINUITY: "Intenção de continuidade",
   CARRIED_FORWARD: "Pendência trazida do período anterior",
