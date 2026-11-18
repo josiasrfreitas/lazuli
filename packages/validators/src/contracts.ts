@@ -96,7 +96,7 @@ export const contractMaterialInputSchema = z
       context.addIssue({
         code: "custom",
         path: ["scholarshipAgreement"],
-        message: "Descreva o acordo da bolsa de material.",
+        message: "Informe o motivo da bolsa do material.",
       });
     if (!(input.scholarshipPct ?? 0) && input.scholarshipAgreement?.trim())
       context.addIssue({

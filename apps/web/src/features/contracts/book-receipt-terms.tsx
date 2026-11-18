@@ -4,7 +4,7 @@ import type { ContractMaterialInput } from "@lazuli/validators";
 import { SelectControl } from "~/features/classes/form-controls";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { trpc } from "~/lib/trpc";
-import { BookAgreement, bookQuote } from "./book-agreement";
+import { BookAgreement, BookPercentField, bookQuote } from "./book-agreement";
 import type { SetupMaterial } from "./contract-setup-material";
 
 type Prices = NonNullable<SetupMaterial["prices"]["data"]>;
@@ -23,8 +23,6 @@ export function initialBookTerms(stage: Stage, prices: Prices): ContractMaterial
     receivedMethod: "",
   };
 }
-
-const MAX_CARD_FEE_PERCENT = 100;
 
 export function BookReceiptTerms({
   terms,
@@ -111,22 +109,13 @@ function BookCardTerms({
   return (
     <>
       {manual && (
-        <label className="grid gap-1">
-          Taxa do cartão (%)
-          <input
-            className="h-9 rounded-sm border border-input bg-field px-2"
-            type="number"
-            min="0"
-            max="99.99"
-            step="0.01"
-            value={terms.cardFeeOverridePct ?? ""}
-            onChange={(event) => {
-              const rate = event.target.valueAsNumber;
-              if (rate >= 0 && rate < MAX_CARD_FEE_PERCENT)
-                update({ ...terms, cardFeeOverridePct: rate });
-            }}
-          />
-        </label>
+        <BookPercentField
+          label="Taxa do cartão (%)"
+          placeholder="Ex.: 2,5"
+          maximum={99.9999}
+          value={terms.cardFeeOverridePct}
+          change={(rate) => update({ ...terms, cardFeeOverridePct: rate })}
+        />
       )}
       <SelectControl
         name={id + "-parcelas"}

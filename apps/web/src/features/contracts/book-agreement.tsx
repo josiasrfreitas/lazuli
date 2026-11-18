@@ -1,13 +1,12 @@
-import type { ReactElement } from "react";
+import { useId, useState, type ReactElement } from "react";
+import { CurrencyInput, Field, Input, Label } from "@lazuli/ui";
 import { materialFinalPriceQuote, materialFinalSaleQuote } from "@lazuli/domain";
 import type { ContractMaterialInput } from "@lazuli/validators";
 import type { SetupMaterial } from "./contract-setup-material";
 
 type Prices = NonNullable<SetupMaterial["prices"]["data"]>;
 
-const CENTS_PER_REAL = 100;
 const FULL_PERCENT = 100;
-const AGREEMENT_FIELD_CLASS = "h-9 rounded-sm border border-border bg-background px-2";
 
 export function bookQuote(
   terms: ContractMaterialInput,
@@ -37,102 +36,93 @@ type AgreementProps = {
 };
 
 export function BookAgreement({ terms, change }: AgreementProps): ReactElement {
+  const id = useId();
   return (
-    <details className="sm:col-span-2">
-      <summary className="cursor-pointer">Condições especiais do livro</summary>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <NegotiatedBookPrice terms={terms} change={change} />
-        <BookScholarship terms={terms} change={change} />
+    <details className="min-w-0 sm:col-span-2">
+      <summary className="w-fit cursor-pointer text-sm font-medium">Ajustar preço e bolsa</summary>
+      <div className="mt-3 flex flex-wrap items-start gap-x-4 gap-y-3">
+        <Field name={id + "-price"} className="w-36 max-w-full">
+          <Label>Preço negociado</Label>
+          <CurrencyInput
+            size="xs"
+            value={terms.priceOverrideCents ?? null}
+            placeholder="R$ 0,00"
+            onValueChange={(value) => change({ ...terms, priceOverrideCents: value ?? undefined })}
+          />
+        </Field>
+        {terms.payment === "INSTALLMENTS" && (
+          <BookPercentField
+            label="Taxa do cartão (%)"
+            placeholder="Ex.: 2,5"
+            value={terms.cardFeeOverridePct}
+            maximum={99.9999}
+            change={(value) => change({ ...terms, cardFeeOverridePct: value })}
+          />
+        )}
+        <BookPercentField
+          label="Bolsa do material (%)"
+          placeholder="Ex.: 25"
+          value={terms.scholarshipPct}
+          maximum={FULL_PERCENT}
+          change={(value) =>
+            change({
+              ...terms,
+              scholarshipPct: value || undefined,
+              scholarshipAgreement: value ? terms.scholarshipAgreement : undefined,
+              ...(value === FULL_PERCENT
+                ? { payment: "CASH", installmentCount: 1, cardFeeOverridePct: undefined }
+                : {}),
+            })
+          }
+        />
       </div>
+      {Boolean(terms.scholarshipPct) && (
+        <Field name={id + "-reason"} className="mt-3 w-full max-w-sm">
+          <Label>Motivo da bolsa</Label>
+          <Input
+            size="xs"
+            placeholder="Ex.: convênio com a escola"
+            value={terms.scholarshipAgreement ?? ""}
+            onChange={(event) => change({ ...terms, scholarshipAgreement: event.target.value })}
+          />
+        </Field>
+      )}
     </details>
   );
 }
 
-function NegotiatedBookPrice({ terms, change }: AgreementProps): ReactElement {
+export function BookPercentField({
+  label,
+  placeholder,
+  value,
+  maximum,
+  change,
+}: {
+  label: string;
+  placeholder: string;
+  value: number | null | undefined;
+  maximum: number;
+  change: (value: number | undefined) => void;
+}): ReactElement {
+  const id = useId();
+  const [draft, setDraft] = useState<string | null>(null);
   return (
-    <>
-      <label className="grid">
-        Preço negociado (R$)
-        <input
-          className={AGREEMENT_FIELD_CLASS}
-          type="number"
-          min="0.01"
-          step="0.01"
-          value={
-            terms.priceOverrideCents === undefined || terms.priceOverrideCents === null
-              ? ""
-              : terms.priceOverrideCents / CENTS_PER_REAL
-          }
-          onChange={(event) => {
-            const value = event.target.valueAsNumber;
-            if (!event.target.value || value > 0)
-              change({
-                ...terms,
-                priceOverrideCents: event.target.value
-                  ? Math.round(value * CENTS_PER_REAL)
-                  : undefined,
-              });
-          }}
-        />
-      </label>
-      {terms.payment === "INSTALLMENTS" && (
-        <label className="grid">
-          Taxa do cartão (%)
-          <input
-            className={AGREEMENT_FIELD_CLASS}
-            type="number"
-            min="0"
-            max="99.9999"
-            step="0.0001"
-            value={terms.cardFeeOverridePct ?? ""}
-            onChange={(event) => {
-              const value = event.target.valueAsNumber;
-              if (!event.target.value || (value >= 0 && value < FULL_PERCENT))
-                change({ ...terms, cardFeeOverridePct: event.target.value ? value : undefined });
-            }}
-          />
-        </label>
-      )}
-    </>
-  );
-}
-
-function BookScholarship({ terms, change }: AgreementProps): ReactElement {
-  return (
-    <>
-      <label className="grid">
-        Bolsa de material (%)
-        <input
-          className={AGREEMENT_FIELD_CLASS}
-          type="number"
-          min="0"
-          max="100"
-          step="0.0001"
-          value={terms.scholarshipPct ?? ""}
-          onChange={(event) => {
-            const value = Number(event.target.value);
-            if (value >= 0 && value <= FULL_PERCENT)
-              change({
-                ...terms,
-                scholarshipPct: value || undefined,
-                scholarshipAgreement: value ? terms.scholarshipAgreement : undefined,
-                ...(value === FULL_PERCENT
-                  ? { payment: "CASH", installmentCount: 1, cardFeeOverridePct: undefined }
-                  : {}),
-              });
-          }}
-        />
-      </label>
-      {Boolean(terms.scholarshipPct) && (
-        <label className="grid">
-          Acordo da bolsa
-          <input
-            className={AGREEMENT_FIELD_CLASS}
-            value={terms.scholarshipAgreement ?? ""}
-            onChange={(event) => change({ ...terms, scholarshipAgreement: event.target.value })}
-          />
-        </label>
-      )}
-    </>
+    <Field name={id} className="w-36 max-w-full">
+      <Label>{label}</Label>
+      <Input
+        size="xs"
+        inputMode="decimal"
+        placeholder={placeholder}
+        value={draft ?? String(value ?? "").replace(".", ",")}
+        onChange={(event) => {
+          const text = event.target.value.replace(".", ",");
+          const number = Number(text.replace(",", "."));
+          if (!/^\d{0,3}(?:,\d{0,4})?$/.test(text) || number > maximum) return;
+          setDraft(text);
+          change(text && Number.isFinite(number) ? number : undefined);
+        }}
+        onBlur={() => setDraft(null)}
+      />
+    </Field>
   );
 }

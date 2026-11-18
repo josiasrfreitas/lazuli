@@ -150,7 +150,7 @@ function validateMaterialFields(fields: ContractFields, errors: SetupErrors): vo
   if (!fields.materialCategory) errors.materialCategory = "Escolha a tabela de preços.";
   validateMaterialTotal(fields, errors);
   if (fields.materialScholarshipMode !== "NONE" && !fields.materialScholarshipAgreement.trim()) {
-    errors.materialScholarshipAgreement = "Descreva o acordo da bolsa de material.";
+    errors.materialScholarshipAgreement = "Informe o motivo da bolsa do material.";
   }
 }
 

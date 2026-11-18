@@ -29,6 +29,8 @@ void test("pasted BRL text, deletion, and empty values preserve integer centavos
   assert.equal(parseCurrencyDigits("R$ 1.234,56"), SAMPLE_CENTS);
   assert.equal(parseCurrencyDigits("1"), 1);
   assert.equal(parseCurrencyDigits(""), null);
+  for (const invalid of ["abc", "2e3", "-15", "R$ 1O,00"])
+    assert.equal(parseCurrencyDigits(invalid), undefined);
   assert.equal(parseCurrencyDigits("999999999999999999999"), undefined);
   assert.equal(appendCurrencyDigit(Number.MAX_SAFE_INTEGER, "9"), Number.MAX_SAFE_INTEGER);
   assert.equal(removeCurrencyDigit(THREE_DIGIT_CENTS), TWELVE_CENTS);
