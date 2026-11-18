@@ -100,9 +100,11 @@ void it("closes the membership after the final covered day even without a schedu
     where: { studentId: enrollment.studentId },
     data: { endsOn: new Date("2026-10-07") },
   });
-  const membership = () => db.enrollment.findUniqueOrThrow({ where: { id: enrollment.id } });
+  const membership = (): Promise<typeof enrollment> =>
+    db.enrollment.findUniqueOrThrow({ where: { id: enrollment.id } });
   await processAllDueEnrollmentActions({ database: db, now: new Date("2026-10-08T02:59:59Z") });
-  assert.equal((await membership()).exitDate, null);
+  const active = await membership();
+  assert.equal(active.exitDate, null);
   await processAllDueEnrollmentActions({ database: db, now: new Date("2026-10-08T03:00:00Z") });
   const closed = await membership();
   assert.equal(closed.exitReason, "SUSPENDED");

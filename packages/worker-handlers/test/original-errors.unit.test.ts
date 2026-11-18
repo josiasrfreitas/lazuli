@@ -20,7 +20,7 @@ void it("retains the original database exception and trace after recording a fai
         return Promise.resolve({ count: 1 });
       },
     },
-  } as unknown as DatabaseClient;
+  } as Partial<DatabaseClient> as DatabaseClient;
   await assert.rejects(
     processSessionGeneration({
       database,

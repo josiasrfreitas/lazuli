@@ -4,9 +4,9 @@ import { sanitizeTelemetry, sentryOptions, telemetryEnabled } from "../src/telem
 
 void it("sends automatically only in prod and allows an explicit local verification", () => {
   for (const environment of [undefined, "development", "test", "staging", "production"]) {
-    assert.equal(telemetryEnabled(environment, undefined), false, String(environment));
+    assert.equal(telemetryEnabled(environment), false, String(environment));
   }
-  assert.equal(telemetryEnabled("prod", undefined), true);
+  assert.equal(telemetryEnabled("prod"), true);
   assert.equal(telemetryEnabled("development", "1"), true);
   assert.equal(sentryOptions({ environment: "prod" }).enabled, false);
   assert.equal(
@@ -46,15 +46,16 @@ void it("preserves the exact diagnostic and source frames while removing private
     extra: { content: "private" },
     breadcrumbs: [{ message: "private" }],
   });
-  assert.equal(event.exception?.values?.[0]?.value, "Cannot read the schedule revision");
-  assert.equal(event.exception?.values?.[0]?.stacktrace?.frames?.[0]?.lineno, 42);
-  assert.equal(
-    event.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename,
-    "packages/domain/src/program-schedule.ts",
-  );
+  const exception = event.exception.values[0];
+  assert.ok(exception);
+  const frame = exception.stacktrace.frames[0];
+  assert.ok(frame);
+  assert.equal(exception.value, "Cannot read the schedule revision");
+  assert.equal(frame.lineno, 42);
+  assert.equal(frame.filename, "packages/domain/src/program-schedule.ts");
   assert.deepEqual(event.request, { url: "https://school.invalid/api/trpc", method: "POST" });
   assert.equal(event.user, undefined);
   assert.equal(event.extra, undefined);
   assert.equal(event.breadcrumbs, undefined);
-  assert.equal(event.exception?.values?.[0]?.stacktrace?.frames?.[0]?.vars, undefined);
+  assert.equal(frame.vars, undefined);
 });

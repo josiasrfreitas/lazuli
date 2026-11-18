@@ -2,12 +2,9 @@ import * as Sentry from "@sentry/node";
 import { setErrorReporter } from "@lazuli/logging";
 import { sentryOptions } from "@lazuli/logging/telemetry";
 
-const options = sentryOptions({
-  dsn: process.env.SENTRY_WORKER_DSN,
-  environment: process.env.LAZULI_ENV,
-  verification: process.env.SENTRY_VERIFY,
-  release: process.env.SENTRY_RELEASE,
-});
+import { readWorkerTelemetry } from "./env.js";
+
+const options = sentryOptions(readWorkerTelemetry());
 Sentry.init({
   ...options,
   integrations: [

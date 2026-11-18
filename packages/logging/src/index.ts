@@ -16,6 +16,8 @@ type LogObject = Parameters<NonNullable<NonNullable<LoggerOptions["formatters"]>
 
 const requestIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+type LogMethod = NonNullable<NonNullable<LoggerOptions["hooks"]>["logMethod"]>;
+const ERROR_LOG_LEVEL = 50;
 const errorCodePattern = /^[A-Z][A-Z0-9_]{0,63}$/u;
 
 /** The proxy owns HTTP IDs; this fallback also covers callers outside Next requests. */
@@ -43,10 +45,10 @@ export function createServiceLogger(
       },
     },
     hooks: {
-      logMethod(args, method, level) {
+      logMethod(...[args, method, level]: Parameters<LogMethod>) {
         const fields = args[0];
         if (
-          level >= 50 &&
+          level >= ERROR_LOG_LEVEL &&
           typeof fields === "object" &&
           fields !== null &&
           originalError in fields

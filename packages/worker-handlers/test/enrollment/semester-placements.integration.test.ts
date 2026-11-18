@@ -262,8 +262,8 @@ void it("keeps a published exit and entry atomic when the movement straddles the
   });
   const payer = await db.payer.findFirstOrThrow({ where: { name: PREFIX + "Payer" } });
   await db.contract.createMany({
-    data: students.map((s) => ({
-      studentId: s.id,
+    data: students.map((student) => ({
+      studentId: student.id,
       payerId: payer.id,
       startsOn: data.next.startDate,
       endsOn: data.next.endDate,
@@ -333,21 +333,17 @@ void it("keeps a published exit and entry atomic when the movement straddles the
 });
 
 void it("returns a scheduled transfer to the queue when its target entry loses contract coverage", async () => {
-  const s = await fixture();
+  const data = await fixture();
   await db.contract.updateMany({
-    where: { studentId: s.student.id },
+    where: { studentId: data.student.id },
     data: { endsOn: new Date("2094-06-30") },
   });
   await db.$transaction((database) => processDueEnrollmentActions({ database, now: due }));
-  const row = await db.semesterPlacement.findUniqueOrThrow({ where: { id: s.placement.id } });
+  const row = await db.semesterPlacement.findUniqueOrThrow({ where: { id: data.placement.id } });
   assert.equal(row.publishedAt, null);
   assert.equal(row.continuity, "UNDECIDED");
-  assert.equal(
-    (await db.enrollmentAction.findUniqueOrThrow({ where: { id: s.entry.id } })).status,
-    "CANCELLED",
-  );
-  assert.equal(
-    (await db.enrollmentAction.findUniqueOrThrow({ where: { id: s.exit.id } })).status,
-    "CANCELLED",
-  );
+  const entry = await db.enrollmentAction.findUniqueOrThrow({ where: { id: data.entry.id } });
+  const exit = await db.enrollmentAction.findUniqueOrThrow({ where: { id: data.exit.id } });
+  assert.equal(entry.status, "CANCELLED");
+  assert.equal(exit.status, "CANCELLED");
 });

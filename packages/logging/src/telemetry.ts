@@ -1,4 +1,5 @@
 import type {
+  ClientOptions,
   Event,
   ErrorEvent,
   EventHint,
@@ -21,20 +22,17 @@ export const privateDataCollection: DataCollection = {
   mcp: { inputs: false, outputs: false },
 };
 
-export function telemetryEnabled(
-  environment: string | undefined,
-  verification: string | undefined,
-): boolean {
+export function telemetryEnabled(environment: string | undefined, verification?: string): boolean {
   return environment === "prod" || verification === "1";
 }
 
 /** Keep the diagnostic message, but remove common identifying values and credential-bearing URLs. */
 export function redactDiagnostic(value: string): string {
   return value
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, "[email]")
-    .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/gu, "[document]")
-    .replace(/(https?:\/\/|postgres(?:ql)?:\/\/)[^\s/@]+:[^\s/@]+@/giu, "$1[credentials]@")
-    .replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/giu, "$1[credential]");
+    .replaceAll(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, "[email]")
+    .replaceAll(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/gu, "[document]")
+    .replaceAll(/(https?:\/\/|postgres(?:ql)?:\/\/)[^\s/@]+:[^\s/@]+@/giu, "$1[credentials]@")
+    .replaceAll(/\b(Bearer\s+)[A-Za-z0-9._~+/-]+=*/giu, "$1[credential]");
 }
 
 export function sanitizeTelemetry<T extends Event | TransactionEvent>(event: T): T {
@@ -48,15 +46,35 @@ export function sanitizeTelemetry<T extends Event | TransactionEvent>(event: T):
       ...(event.request.method ? { method: event.request.method } : {}),
     };
   }
-  if (event.exception?.values) {
-    for (const exception of event.exception.values) {
-      if (exception.value) exception.value = redactDiagnostic(exception.value);
-      for (const frame of exception.stacktrace?.frames ?? []) delete frame.vars;
-    }
-  }
+  redactExceptions(event.exception?.values ?? []);
   if (event.message) event.message = redactDiagnostic(event.message);
   return event;
 }
+
+function redactExceptions(
+  exceptions: NonNullable<NonNullable<Event["exception"]>["values"]>,
+): void {
+  for (const exception of exceptions) {
+    if (exception.value) exception.value = redactDiagnostic(exception.value);
+    for (const frame of exception.stacktrace?.frames ?? []) delete frame.vars;
+  }
+}
+
+type TelemetryOptions = Pick<
+  ClientOptions,
+  | "dsn"
+  | "enabled"
+  | "environment"
+  | "release"
+  | "traceLifecycle"
+  | "tracesSampleRate"
+  | "dataCollection"
+  | "beforeSend"
+  | "beforeSendTransaction"
+  | "beforeSendLog"
+  | "beforeBreadcrumb"
+>;
+const PRODUCTION_TRACE_SAMPLE_RATE = 0.1;
 
 /** Technical tags only: never attach inputs, user names, documents or database values. */
 export function sentryOptions(input: {
@@ -64,14 +82,14 @@ export function sentryOptions(input: {
   environment?: string | undefined;
   verification?: string | undefined;
   release?: string | undefined;
-}) {
+}): TelemetryOptions {
   return {
     dsn: input.dsn,
     enabled: Boolean(input.dsn) && telemetryEnabled(input.environment, input.verification),
     environment: input.verification === "1" ? "verification" : input.environment,
     release: input.release,
-    traceLifecycle: "static" as const,
-    tracesSampleRate: input.verification === "1" ? 1 : 0.1,
+    traceLifecycle: "static",
+    tracesSampleRate: input.verification === "1" ? 1 : PRODUCTION_TRACE_SAMPLE_RATE,
     dataCollection: privateDataCollection,
     beforeSend: (event: ErrorEvent, _hint: EventHint) => sanitizeTelemetry(event),
     beforeSendTransaction: (event: TransactionEvent) => sanitizeTelemetry(event),

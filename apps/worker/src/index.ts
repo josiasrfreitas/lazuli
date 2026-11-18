@@ -25,6 +25,8 @@ import { createPeriodicTasks } from "./periodic-tasks.js";
 import { reportError, safeError } from "@lazuli/logging";
 import { logger } from "./logger.js";
 
+const TELEMETRY_FLUSH_TIMEOUT_MS = 2000;
+
 type GenerationResult = Awaited<ReturnType<typeof processSessionGeneration>>;
 async function start(): Promise<void> {
   const hatchet = await getHatchetClient();
@@ -119,6 +121,6 @@ try {
 } catch (error) {
   if (error instanceof Error) reportError(error, { service: "worker", operation: "startup" });
   logger.fatal(safeError(error), "Worker startup failed");
-  await flush(2_000);
+  await flush(TELEMETRY_FLUSH_TIMEOUT_MS);
   process.exitCode = 1;
 }

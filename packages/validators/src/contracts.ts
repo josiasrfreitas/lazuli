@@ -7,6 +7,8 @@ import { studentCreateInputSchema } from "./student.js";
 const MAX_PERCENT = 100;
 const PERCENT_DECIMAL_PLACES = 4;
 const MAX_DURATION_MONTHS = 120;
+const MAX_PLANNED_BOOKS = 20;
+const MONTHS_PER_SEMESTER = 6;
 const MAX_MONTHLY_AMOUNT_CENTS = 1_000_000_000;
 const MAX_PERSISTED_AMOUNT_CENTS = 2_147_483_647;
 const MAX_SEARCH_LENGTH = 80;
@@ -116,6 +118,32 @@ export const addContractMaterialInputSchema = z
 export type ContractMaterialInput = z.infer<typeof contractMaterialInputSchema>;
 export type AddContractMaterialInput = z.infer<typeof addContractMaterialInputSchema>;
 
+type PlannedBook = {
+  stageId: string | null;
+  acquisitionSemester: number | null;
+  acquisition?: ContractMaterialInput | undefined;
+};
+
+function booksMatchContract(books: readonly PlannedBook[], months: number): boolean {
+  const stageIds = books.flatMap(({ stageId }) => (stageId ? [stageId] : []));
+  return (
+    books.length * MONTHS_PER_SEMESTER === months &&
+    new Set(stageIds).size === stageIds.length &&
+    books.every((book) => bookMatchesSemester(book, books.length))
+  );
+}
+
+function bookMatchesSemester(book: PlannedBook, semesters: number): boolean {
+  if ((book.acquisitionSemester ?? 0) > semesters) return false;
+  const acquisition = book.acquisition;
+  return (
+    !acquisition ||
+    (book.acquisitionSemester === null &&
+      acquisition.stageIds.length === 1 &&
+      acquisition.stageIds[0] === book.stageId)
+  );
+}
+
 export const createMonthlyContractInputSchema = z
   .object({
     commandId: z.string().uuid(),
@@ -133,7 +161,7 @@ export const createMonthlyContractInputSchema = z
           .strict(),
       )
       .min(1)
-      .max(20)
+      .max(MAX_PLANNED_BOOKS)
       .optional(),
     studentId: z.string().uuid().optional(),
     payerId: z.string().uuid().optional(),
@@ -179,26 +207,14 @@ export const createMonthlyContractInputSchema = z
         message: "O total do contrato ultrapassa o limite permitido.",
       });
     }
-    if (input.books) {
-      const ids = input.books.flatMap((book) => (book.stageId ? [book.stageId] : []));
-      if (
-        input.material ||
-        input.books.length * 6 !== input.durationMonths ||
-        new Set(ids).size !== ids.length ||
-        input.books.some(
-          (book) =>
-            (book.acquisitionSemester ?? 0) > input.books!.length ||
-            (book.acquisition &&
-              (book.acquisitionSemester !== null ||
-                book.acquisition.stageIds.length !== 1 ||
-                book.acquisition.stageIds[0] !== book.stageId)),
-        )
-      )
-        context.addIssue({
-          code: "custom",
-          path: ["books"],
-          message: "Confira o livro e a aquisição de cada semestre.",
-        });
+  })
+  .superRefine((input, context) => {
+    if (input.books && (input.material || !booksMatchContract(input.books, input.durationMonths))) {
+      context.addIssue({
+        code: "custom",
+        path: ["books"],
+        message: "Confira o livro e a aquisição de cada semestre.",
+      });
     }
     if (!input.books && !input.renewedFromId && !input.material) {
       context.addIssue({
@@ -207,6 +223,8 @@ export const createMonthlyContractInputSchema = z
         message: "Inclua o material para criar um novo contrato.",
       });
     }
+  })
+  .superRefine((input, context) => {
     if (input.renewedFromId && (input.enrollmentFeeCents ?? 0) > 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

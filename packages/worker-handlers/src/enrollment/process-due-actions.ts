@@ -57,20 +57,7 @@ export async function processDueEnrollmentActions(input: {
       (action.kind === "ENTRY" || action.kind === "RETURN") &&
       !(await entryHasCoverage(input.database, action))
     ) {
-      const cancelled = await input.database.enrollmentAction.updateMany({
-        where: { id: action.id, status: "SCHEDULED" },
-        data: { status: "CANCELLED", cancelledAt: input.now },
-      });
-      if (cancelled.count) {
-        await input.database.pedagogicalProgress.updateMany({
-          where: { enrollmentId: action.enrollmentId, deletedAt: null },
-          data: { deletedAt: input.now },
-        });
-        await input.database.enrollment.update({
-          where: { id: action.enrollmentId },
-          data: { deletedAt: input.now },
-        });
-      }
+      await cancelUncoveredEntry(input, action);
       continue;
     }
     const claimed = await input.database.enrollmentAction.updateMany({
@@ -78,31 +65,57 @@ export async function processDueEnrollmentActions(input: {
       data: { status: "APPLIED" },
     });
     if (claimed.count === 0) continue;
-    if (action.kind === "PAUSE" || action.kind === "EXIT") {
-      const reason = exitReason(action);
-      const enrollment = await input.database.enrollment.findUnique({
-        where: { id: action.enrollmentId },
-        select: { exitDate: true, deletedAt: true },
-      });
-      if (enrollment?.deletedAt !== null || enrollment.exitDate !== null) {
-        await input.database.enrollmentAction.update({
-          where: { id: action.id },
-          data: { status: "CANCELLED", cancelledAt: input.now },
-        });
-        continue;
-      }
-      await input.database.pedagogicalProgress.updateMany({
-        where: { enrollmentId: action.enrollmentId, endDate: null, deletedAt: null },
-        data: { endDate: action.effectiveDate, endReason: reason },
-      });
-      await input.database.enrollment.update({
-        where: { id: action.enrollmentId },
-        data: { exitDate: action.effectiveDate, exitReason: reason },
-      });
-    }
+    if ((action.kind === "PAUSE" || action.kind === "EXIT") && !(await applyExit(input, action)))
+      continue;
     applied += 1;
   }
   return applied;
+}
+
+async function cancelUncoveredEntry(
+  input: { database: Database; now: Date },
+  action: DueAction,
+): Promise<void> {
+  const cancelled = await input.database.enrollmentAction.updateMany({
+    where: { id: action.id, status: "SCHEDULED" },
+    data: { status: "CANCELLED", cancelledAt: input.now },
+  });
+  if (cancelled.count) {
+    await input.database.pedagogicalProgress.updateMany({
+      where: { enrollmentId: action.enrollmentId, deletedAt: null },
+      data: { deletedAt: input.now },
+    });
+    await input.database.enrollment.update({
+      where: { id: action.enrollmentId },
+      data: { deletedAt: input.now },
+    });
+  }
+}
+async function applyExit(
+  input: { database: Database; now: Date },
+  action: DueAction,
+): Promise<boolean> {
+  const reason = exitReason(action);
+  const enrollment = await input.database.enrollment.findUnique({
+    where: { id: action.enrollmentId },
+    select: { exitDate: true, deletedAt: true },
+  });
+  if (enrollment?.deletedAt !== null || enrollment.exitDate !== null) {
+    await input.database.enrollmentAction.update({
+      where: { id: action.id },
+      data: { status: "CANCELLED", cancelledAt: input.now },
+    });
+    return false;
+  }
+  await input.database.pedagogicalProgress.updateMany({
+    where: { enrollmentId: action.enrollmentId, endDate: null, deletedAt: null },
+    data: { endDate: action.effectiveDate, endReason: reason },
+  });
+  await input.database.enrollment.update({
+    where: { id: action.enrollmentId },
+    data: { exitDate: action.effectiveDate, exitReason: reason },
+  });
+  return true;
 }
 
 function exitReason(action: DueAction): "SUSPENDED" | "TRANSFERRED" | "DROPPED" {

@@ -69,9 +69,7 @@ function continuationBlockers(input: SemesterEligibility, source: Source): strin
 function academicDecisionBlockers(input: SemesterEligibility, source: Source): string[] {
   const blockers: string[] = [];
   const advancing = input.mode === "ADVANCE";
-  const decision = advancing ? "APPROVED" : "REPEAT";
-  const earnedAdvance = advancing && input.cohortAdvance && !source.decision;
-  if (!earnedAdvance && (!source.confirmed || source.decision !== decision))
+  if (!hasAcademicDecision(input, source))
     blockers.push(
       advancing ? "Aprovação pedagógica pendente" : "Confirmação de repetência pendente",
     );
@@ -80,6 +78,12 @@ function academicDecisionBlockers(input: SemesterEligibility, source: Source): s
   if (input.mode === "REPEAT" && source.stageId !== input.stage?.id)
     blockers.push("Repetência deve manter o estágio");
   return blockers;
+}
+
+function hasAcademicDecision(input: SemesterEligibility, source: Source): boolean {
+  const advancing = input.mode === "ADVANCE";
+  if (advancing && input.cohortAdvance && !source.decision) return true;
+  return source.confirmed && source.decision === (advancing ? "APPROVED" : "REPEAT");
 }
 
 function isNextStage(stage: SemesterEligibility["stage"], source: Source): boolean {

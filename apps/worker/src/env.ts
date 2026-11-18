@@ -6,3 +6,18 @@ export function workerReadinessEnabled(): boolean {
   }
   return path !== undefined;
 }
+
+/** Local telemetry stays off unless verification is explicitly enabled. */
+export function readWorkerTelemetry(): {
+  dsn: string | undefined;
+  environment: string | undefined;
+  verification: string | undefined;
+  release: string | undefined;
+} {
+  return {
+    dsn: process.env.SENTRY_WORKER_DSN,
+    environment: process.env.LAZULI_ENV,
+    verification: process.env.SENTRY_VERIFY,
+    release: process.env.SENTRY_RELEASE,
+  };
+}

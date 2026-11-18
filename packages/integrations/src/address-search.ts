@@ -7,6 +7,8 @@ import {
 import { readAddressSearchRegion } from "./address-search/env.js";
 
 const ADDRESS_SEARCH_TIMEOUT_MS = 5000;
+const MAX_LATITUDE = 90;
+const MAX_LONGITUDE = 180;
 
 export interface AddressSuggestion {
   id: string;
@@ -65,8 +67,8 @@ export async function resolveAddressLocation(placeId: string): Promise<{
     longitude === undefined ||
     !Number.isFinite(latitude) ||
     !Number.isFinite(longitude) ||
-    Math.abs(latitude) > 90 ||
-    Math.abs(longitude) > 180
+    Math.abs(latitude) > MAX_LATITUDE ||
+    Math.abs(longitude) > MAX_LONGITUDE
   )
     throw new Error("Address coordinates unavailable");
   return { label: result.Address.Label ?? "", latitude, longitude };

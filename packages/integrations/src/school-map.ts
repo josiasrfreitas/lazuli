@@ -3,6 +3,9 @@ import { readAddressSearchRegion } from "./address-search/env.js";
 
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_ZOOM = 22;
+const MAP_STYLE_PATH_LENGTH = 4;
+const TILE_PATH_LENGTH = 6;
+const COORDINATE_OFFSET = 3;
 let client: GeoMapsClient | undefined;
 type MapCommand = GetStyleDescriptorCommand | GetTileCommand;
 export type MapAsset = { body: Uint8Array; contentType: string; cacheControl: string };
@@ -11,7 +14,7 @@ export type MapAsset = { body: Uint8Array; contentType: string; cacheControl: st
 export function mapAssetCommand(path: string[], dark: boolean): MapCommand | null {
   if (path[0] !== "v2") return null;
   if (
-    path.length === 4 &&
+    path.length === MAP_STYLE_PATH_LENGTH &&
     path[1] === "styles" &&
     path[2] === "Standard" &&
     path[3] === "descriptor"
@@ -20,17 +23,26 @@ export function mapAssetCommand(path: string[], dark: boolean): MapCommand | nul
       Style: "Standard",
       ColorScheme: dark ? "Dark" : "Light",
     });
-  if (path.length === 6 && path[1] === "tiles" && path[2] === "vector.basemap")
+  if (path.length === TILE_PATH_LENGTH && path[1] === "tiles" && path[2] === "vector.basemap")
     return tileCommand(path);
   return null;
 }
 
 function tileCommand(path: string[]): GetTileCommand | null {
-  const coordinates = path.slice(3);
+  const coordinates = path.slice(COORDINATE_OFFSET);
   if (coordinates.some((value) => !/^\d+$/u.test(value))) return null;
+  const [zoomKey, horizontalKey, verticalKey] = coordinates;
   const [zoom, horizontal, vertical] = coordinates.map(Number);
   if (zoom! > MAX_ZOOM || horizontal! >= 2 ** zoom! || vertical! >= 2 ** zoom!) return null;
-  return new GetTileCommand({ Tileset: "vector.basemap", Z: path[3]!, X: path[4]!, Y: path[5]! });
+  const zoomField = "Z";
+  const horizontalField = "X";
+  const verticalField = "Y";
+  return new GetTileCommand({
+    Tileset: "vector.basemap",
+    [zoomField]: zoomKey!,
+    [horizontalField]: horizontalKey!,
+    [verticalField]: verticalKey!,
+  });
 }
 
 export async function readSchoolMapAsset(input: {

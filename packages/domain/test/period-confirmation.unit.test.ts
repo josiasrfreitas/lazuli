@@ -9,7 +9,7 @@ import { periodConfirmation } from "../src/period-confirmation.js";
 
 const base = { continuity: "UNDECIDED" as const, declined: false, enrolled: false, ready: false };
 void it("requires explicit confirmation through the last day of the third calendar month", () => {
-  const status = (end: string | null) =>
+  const status = (end: string | null): ReturnType<typeof formationContractStatus> =>
     formationContractStatus(end, { from: "2027-01-01", through: "2027-06-30" });
   assert.equal(status(null), "MISSING");
   assert.equal(status("2027-03-31"), "EARLY_END");
