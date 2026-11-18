@@ -593,3 +593,156 @@
   font-size: var(--lz-text-micro, 0.68rem);
   color: var(--muted-foreground);
 }
+
+.workspace[data-formation-expanded] {
+  display: flex;
+  flex-direction: column;
+}
+.workspace[data-formation-expanded] .mobileTools,
+.workspace[data-formation-expanded] .schedule,
+.page:has(.workspace[data-formation-expanded]) .weekControls {
+  display: none;
+}
+.workspace[data-formation-expanded] .panel {
+  display: flex;
+  flex: 1;
+  border-inline-start: 0;
+}
+.workspace[data-formation-expanded] .panelTitle {
+  border-bottom: 1px solid var(--border);
+}
+.workspace[data-formation-expanded] .panelControls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  padding-block: 0.55rem;
+}
+.workspace[data-formation-expanded] .panelControls .find {
+  width: min(100%, 18rem);
+}
+.workspace[data-formation-expanded] .studentFacts {
+  padding: 0.85rem 1rem;
+}
+.workspace[data-formation-expanded] .studentFacts > :is(button, a) {
+  justify-self: start;
+}
+.place[data-highlighted="true"] {
+  background: var(--accent);
+  outline: 2px solid var(--interactive);
+  outline-offset: -2px;
+}
+.preconfirmed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: var(--lz-text-micro);
+  color: var(--interactive);
+}
+.personRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(9rem, 1fr) auto minmax(12rem, 1.5fr) auto;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  padding: 0.55rem 1rem;
+  text-align: start;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+.personRow:hover {
+  background: var(--accent);
+}
+.personRow:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.personIdentity {
+  display: grid;
+  min-width: 0;
+}
+.personIdentity strong,
+.rosterGroup h3 {
+  color: var(--heading);
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.personIdentity small,
+.gradeValue,
+.personBadges small,
+.personRow > svg,
+.rosterGroup header :is(small, p) {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.gradeValue strong {
+  color: var(--foreground);
+}
+.personBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+.personRow[data-compact="true"] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem;
+  padding: 0.55rem 0.85rem;
+}
+.personRow[data-compact="true"] .personBadges {
+  grid-column: 1;
+}
+.personRow[data-compact="true"] > svg {
+  grid-row: 1 / 3;
+  grid-column: 2;
+}
+.groupScroll {
+  overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.rosterGroup > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: var(--table-heading);
+  border-block-end: 1px solid var(--border);
+}
+.rosterGroup h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.groupScroll > .rosterGroup > header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+@media (max-width: 48rem) {
+  .personRow:not([data-compact="true"]) {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+  }
+  .personRow:not([data-compact="true"]) .personBadges {
+    grid-column: 2 / 4;
+  }
+  .personRow:not([data-compact="true"]) > svg {
+    grid-column: 4;
+    grid-row: 1 / 3;
+  }
+  .workspace[data-formation-expanded] .panelControls .find {
+    width: 100%;
+  }
+}
+
+.reviewControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.reviewControls input {
+  width: min(14rem, 100%);
+}

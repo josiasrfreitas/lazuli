@@ -1,6 +1,13 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { TriangleAlert, CalendarDays, ClipboardList, Search, UsersRound } from "lucide-react";
+import {
+  Check,
+  TriangleAlert,
+  CalendarDays,
+  ClipboardList,
+  Search,
+  UsersRound,
+} from "lucide-react";
 import { Button, Input, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { formationTeachingDay } from "@lazuli/domain";
 import { dateOnly } from "./shared";
@@ -75,6 +82,8 @@ export function OrganizationAgenda(props: Props): ReactElement {
   const { board, selected, onAction, onFeedback, prepare, preparing, clearFilters } = props;
   const {
     panel,
+    grouped,
+    expandQueue,
     mobile,
     setMobile,
     workspace,
@@ -91,6 +100,7 @@ export function OrganizationAgenda(props: Props): ReactElement {
     <div
       className={styles.workspace}
       data-mobile={mobile}
+      data-formation-expanded={grouped || plan || panel ? "" : undefined}
       data-formation-workspace=""
       ref={workspace}
     >
@@ -133,6 +143,8 @@ export function OrganizationAgenda(props: Props): ReactElement {
         board={board}
         plan={plan}
         selection={panel}
+        grouped={grouped}
+        expandQueue={expandQueue}
         ended={ended}
         onAction={onAction}
         onFeedback={onFeedback}
@@ -263,6 +275,8 @@ function WeekGrid({
   onSelect: (choice: ClassPlan, origin: HTMLElement) => void;
 }): ReactElement {
   const [day, setDay] = useState<TeachingDay>(days[0] ?? "MONDAY");
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [focused, setFocused] = useState<string | null>(null);
   const hours = weeklyPlaces(plans);
   const unscheduled = plans.filter(
     (plan) => plan.slots.length === 0 || plan.slots.some((slot) => !formationTeachingDay(slot)),
@@ -291,6 +305,10 @@ function WeekGrid({
                         plan={plan}
                         clock={{ start, endTime, day: weekday }}
                         count={metrics.get(plan.id)!.confirmed}
+                        preconfirmed={metrics.get(plan.id)!.preconfirmed}
+                        highlighted={plan.id === (hovered ?? focused)}
+                        onHover={setHovered}
+                        onFocusPlan={setFocused}
                         limit={board.semester.formationRiskLimit}
                         selected={selected === plan.id}
                         onSelect={onSelect}
@@ -366,6 +384,10 @@ function TeachingSlot({
   plan,
   clock,
   count,
+  preconfirmed,
+  highlighted,
+  onHover,
+  onFocusPlan,
   limit,
   selected,
   onSelect,
@@ -373,6 +395,10 @@ function TeachingSlot({
   plan: ClassPlan;
   clock: { start: string; endTime: string; day: TeachingDay };
   count: number;
+  preconfirmed: number;
+  highlighted: boolean;
+  onHover: (id: string | null) => void;
+  onFocusPlan: (id: string | null) => void;
   limit: number;
   selected: boolean;
   onSelect: (plan: ClassPlan, origin: HTMLElement) => void;
@@ -389,9 +415,14 @@ function TeachingSlot({
     <button
       type="button"
       className={styles.place}
+      data-highlighted={highlighted}
+      onMouseEnter={() => onHover(plan.id)}
+      onMouseLeave={() => onHover(null)}
+      onFocus={() => onFocusPlan(plan.id)}
+      onBlur={() => onFocusPlan(null)}
       data-ppt={plan.scheduleType === "PERSONALIZED"}
       aria-pressed={selected}
-      aria-label={`${title} · ${plan.name} · ${professor} · ${weekdayLabel(day)} ${interval} · ${count} confirmados${risk ? ", turma em risco" : ""}`}
+      aria-label={`${title} · ${plan.name} · ${professor} · ${weekdayLabel(day)} ${interval} · ${count - preconfirmed} confirmados, ${preconfirmed} pré-confirmados${risk ? ", turma em risco" : ""}`}
       title={`${plan.name} · ${interval} · ${professor}`}
       aria-controls="formation-panel"
       data-formation-focus={`slot-${plan.id}-${day}-${start}`}
@@ -403,10 +434,19 @@ function TeachingSlot({
       </span>
       <span className={styles.placeDetails}>
         <span>{professor}</span>
-        <span className={styles.placeCount} data-risk={risk}>
+        <span
+          className={styles.placeCount}
+          data-risk={risk}
+          title={`${count - preconfirmed} confirmados · ${preconfirmed} pré-confirmados`}
+        >
           {risk ? <TriangleAlert size={12} /> : <UsersRound size={12} />} {count}
         </span>
       </span>
+      {preconfirmed > 0 && (
+        <span className={styles.preconfirmed}>
+          <Check size={12} /> {preconfirmed} pré-confirmado{preconfirmed === 1 ? "" : "s"}
+        </span>
+      )}
     </button>
   );
 }

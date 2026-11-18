@@ -1,7 +1,5 @@
 import type { ClassPlan, Placement, OrganizationBoard } from "./model";
 
-export const confirmationExplanation =
-  "Esta escolha registra a intenção do aluno para o período. A renovação do contrato é feita no financeiro.";
 export const confirmationLabels = {
   CONFIRMED: "Confirmado",
   PRECONFIRMED: "Pré-confirmado",
@@ -24,6 +22,7 @@ export function planMetrics(
   plan: ClassPlan,
 ): {
   confirmed: number;
+  preconfirmed: number;
   pending: number;
   leads: number;
 } {
@@ -41,6 +40,11 @@ export function planMetrics(
   }
   return {
     confirmed: confirmed.size,
+    preconfirmed: new Set(
+      rows
+        .filter((row) => row.confirmation === "PRECONFIRMED" && confirmed.has(row.studentId))
+        .map((row) => row.studentId),
+    ).size,
     pending,
     leads: board.waitingLeads.filter((lead) => lead.allocationPlanId === plan.id).length,
   };

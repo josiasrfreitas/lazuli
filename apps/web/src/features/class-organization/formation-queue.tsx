@@ -1,10 +1,11 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { CheckCheck, ChevronRight, Filter, Plus, Search } from "lucide-react";
+import { ArrowLeft, CheckCheck, Filter, Plus, Search, Rows3 } from "lucide-react";
 import { Button, Input } from "@lazuli/ui";
 import { normalizeSearch } from "@lazuli/domain";
 import { SelectControl } from "~/features/classes/form-controls";
-import { confirmationLabels } from "./confirmation";
+import { needsPlace, matchesFilter } from "./attention-reasons";
+import { FormationPersonRow, GroupedQueue, LeadItem } from "./formation-roster";
 import type { OrganizationBoard, OrganizationAction, Placement } from "./model";
 import type { PanelPerson } from "./use-formation-navigation";
 import styles from "./formation.module.css";
@@ -13,6 +14,9 @@ type QueueProps = {
   board: OrganizationBoard;
   ended: boolean;
   hidden: boolean;
+  grouped: boolean;
+  expandQueue: (origin: HTMLElement) => void;
+  onBack: () => void;
   onAction: (action: OrganizationAction) => void;
   onSelect: (selection: PanelPerson, origin: HTMLElement) => void;
 };
@@ -28,55 +32,6 @@ const filters = [
   ["all", "Todos os alunos"],
 ] as const;
 
-type AttentionReason = { kind: string; label: string };
-function needsPlace(row: Placement): boolean {
-  return !row.planId || row.continuity === "CHANGE";
-}
-export function attentionReasons(row: Placement): AttentionReason[] {
-  const { attention } = row;
-  const reasons: AttentionReason[] = [];
-  if (needsPlace(row)) reasons.push({ kind: "unassigned", label: "Sem turma" });
-  if (attention.contractStatus === "MISSING")
-    reasons.push({ kind: "contract", label: "Sem contrato vigente" });
-  if (attention.contractStatus === "EARLY_END")
-    reasons.push({ kind: "contract", label: "Vencimento antecipado" });
-  if (row.sourceProgressId) reasons.push(...academicReasons(attention));
-  if (row.attentionNote || row.continuity === "LEAVING")
-    reasons.push({ kind: "engagement", label: "Acompanhamento manual" });
-  if (attention.lowHealth)
-    reasons.push({ kind: "engagement", label: `Health Score ${attention.healthScore}` });
-  return reasons;
-}
-function academicReasons(attention: Placement["attention"]): AttentionReason[] {
-  const reasons: AttentionReason[] = [];
-  if (attention.grades !== "SUFFICIENT")
-    reasons.push({
-      kind: "grades",
-      label: attention.grades === "INCOMPLETE" ? "Notas incompletas" : "Média insuficiente",
-    });
-  if (attention.attendanceFlagged || attention.attendance === null)
-    reasons.push({
-      kind: "attendance",
-      label: attention.attendance === null ? "Presença sem registros" : "Presença abaixo da média",
-    });
-  return reasons;
-}
-function matchesFilter(row: Placement, filter: string): boolean {
-  if (filter === "all") return true;
-  if (filter === "material") return row.attention.materialMissing;
-  const reasons = attentionReasons(row);
-  if (filter === "pending")
-    return reasons.length > 0 || (!row.publishedAt && row.blockers.length > 0);
-  return reasons.some((reason) => reason.kind === filter);
-}
-function rowReason(row: Placement, filter: string): string {
-  if (filter === "material") return "Material sem compra registrada";
-  const reasons = attentionReasons(row);
-  return (
-    (reasons.find((reason) => reason.kind === filter) ?? reasons[0])?.label ??
-    confirmationLabels[row.confirmation]
-  );
-}
 type QueueCriteria = { filter: string; query: string; stage: string; stageKind: string };
 function matchingPeople(
   board: OrganizationBoard,
@@ -123,6 +78,9 @@ export function FormationQueue({
   board,
   ended,
   hidden,
+  grouped,
+  expandQueue,
+  onBack,
   onAction,
   onSelect,
 }: QueueProps): ReactElement | null {
@@ -137,10 +95,25 @@ export function FormationQueue({
   return (
     <>
       <div className={styles.panelTitle}>
+        {grouped && (
+          <Button size="sm" variant="ghost" onClick={onBack}>
+            <ArrowLeft size={14} /> Voltar à grade
+          </Button>
+        )}
         <h2 id="formation-panel-heading" tabIndex={-1}>
-          Pendências
+          {grouped ? "Pendências por turma" : "Pendências"}
         </h2>
         <span className={styles.count}>{count}</span>
+        {!grouped && (
+          <Button
+            size="sm"
+            variant="secondary"
+            data-formation-focus="expand-queue"
+            onClick={(event) => expandQueue(event.currentTarget)}
+          >
+            <Rows3 size={14} /> Por turma
+          </Button>
+        )}
         {!ended && (
           <Button
             size="sm"
@@ -168,14 +141,18 @@ export function FormationQueue({
           onAction={onAction}
         />
       )}
-      <QueueResults
-        rows={rows}
-        leads={leads}
-        filter={criteria.filter}
-        isDefault={criteria.filter === "pending" && !criteria.query && criteria.stage === "all"}
-        onSelect={onSelect}
-        reset={() => setCriteria({ ...initialCriteria, filter: "all" })}
-      />
+      {grouped && count > 0 ? (
+        <GroupedQueue rows={rows} leads={leads} onSelect={onSelect} filter={criteria.filter} />
+      ) : (
+        <QueueResults
+          rows={rows}
+          leads={leads}
+          filter={criteria.filter}
+          isDefault={criteria.filter === "pending" && !criteria.query && criteria.stage === "all"}
+          onSelect={onSelect}
+          reset={() => setCriteria({ ...initialCriteria, filter: "all" })}
+        />
+      )}
     </>
   );
 }
@@ -298,19 +275,7 @@ function QueueResults({
   return (
     <div className={styles.panelScroll} data-formation-scroll="">
       {rows.map((row) => (
-        <button
-          key={row.id}
-          className={styles.item}
-          type="button"
-          data-formation-focus={`person-${row.id}`}
-          onClick={(event) => onSelect({ kind: "student", id: row.id }, event.currentTarget)}
-        >
-          <span>
-            <strong>{row.studentName}</strong>
-            <small>{[row.stageCode, rowReason(row, filter)].filter(Boolean).join(" · ")}</small>
-          </span>
-          <ChevronRight size={14} />
-        </button>
+        <FormationPersonRow key={row.id} row={row} filter={filter} onSelect={onSelect} compact />
       ))}
       {leads.map((lead) => (
         <LeadItem key={lead.id} lead={lead} onSelect={onSelect} />
@@ -325,30 +290,5 @@ function QueueResults({
         </div>
       )}
     </div>
-  );
-}
-export function LeadItem({
-  lead,
-  onSelect,
-}: {
-  lead: OrganizationBoard["waitingLeads"][number];
-  onSelect: QueueProps["onSelect"];
-}): ReactElement {
-  return (
-    <button
-      type="button"
-      className={styles.item}
-      data-formation-focus={`lead-${lead.id}`}
-      onClick={(event) => onSelect({ kind: "lead", id: lead.id }, event.currentTarget)}
-    >
-      <span>
-        <strong>{lead.fullName}</strong>
-        <small>
-          Lead · {lead.stage?.internalCode ?? "Estágio a definir"}
-          {lead.allocationPlanId ? " · Turma proposta" : ""}
-        </small>
-      </span>
-      <ChevronRight size={14} />
-    </button>
   );
 }

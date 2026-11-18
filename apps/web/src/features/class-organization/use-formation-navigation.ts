@@ -6,6 +6,7 @@ export type PanelPerson = { kind: "student" | "lead"; id: string };
 type PanelView = {
   planId: string | null;
   person: PanelPerson | null;
+  grouped: boolean;
 };
 type ReturnPoint = PanelView & {
   mobile: string;
@@ -14,6 +15,7 @@ type ReturnPoint = PanelView & {
   weekScroll: number;
 };
 const queueStart: ReturnPoint = {
+  grouped: false,
   person: null,
   planId: null,
   mobile: "painel",
@@ -28,6 +30,8 @@ export type FormationNavigation = {
   setMobile: (value: string) => void;
   workspace: RefObject<HTMLDivElement | null>;
   goBack: () => void;
+  grouped: boolean;
+  expandQueue: (origin: HTMLElement) => void;
   reset: () => void;
   selectPerson: (person: PanelPerson, origin: HTMLElement) => void;
   showPlan: (plan: ClassPlan, origin: HTMLElement) => void;
@@ -65,6 +69,7 @@ export function useFormationNavigation(
   setPlan: (id: string | null) => void,
 ): FormationNavigation {
   const [panel, setPanel] = useState<PanelPerson | null>(null);
+  const [grouped, setGrouped] = useState(false);
   const [mobile, setMobile] = useState(planId ? "painel" : "grade");
   const workspace = useRef<HTMLDivElement>(null);
   const history = useRef<ReturnPoint[]>([]);
@@ -77,10 +82,10 @@ export function useFormationNavigation(
     if (!root || !target) return;
     pendingFocus.current = null;
     focusReturnPoint(root, target);
-  }, [mobile, panel, planId]);
+  }, [mobile, panel, planId, grouped]);
 
   function open(view: PanelView, origin: HTMLElement): void {
-    const point = captureReturnPoint({ person: panel, planId }, origin);
+    const point = captureReturnPoint({ person: panel, planId, grouped }, origin);
     const replacingPlan = Boolean(planId && view.planId);
     transition(replacingPlan ? "next" : "previous", {
       next: "next",
@@ -88,6 +93,7 @@ export function useFormationNavigation(
         if (!replacingPlan) history.current.push(point);
         pendingFocus.current = "heading";
         setMobile("painel");
+        setGrouped(view.grouped);
         setPanel(view.person);
         setPlan(view.planId);
         if (view.planId && view.planId === planId && mobile === "painel") {
@@ -103,6 +109,7 @@ export function useFormationNavigation(
       update: () => {
         const point = history.current.pop() ?? queueStart;
         pendingFocus.current = point;
+        setGrouped(point.grouped);
         setPanel(point.person);
         setPlan(point.planId);
         setMobile(point.mobile);
@@ -112,6 +119,7 @@ export function useFormationNavigation(
   function reset(): void {
     history.current = [];
     pendingFocus.current = null;
+    setGrouped(false);
     setPanel(null);
     setPlan(null);
   }
@@ -122,9 +130,11 @@ export function useFormationNavigation(
     workspace,
     goBack,
     reset,
+    grouped,
+    expandQueue: (origin) => open({ person: null, planId: null, grouped: true }, origin),
     selectPerson: (person: PanelPerson, origin: HTMLElement) =>
-      open({ person, planId: null }, origin),
+      open({ person, planId: null, grouped: false }, origin),
     showPlan: (plan: ClassPlan, origin: HTMLElement) =>
-      open({ person: panel, planId: plan.id }, origin),
+      open({ person: panel, planId: plan.id, grouped: false }, origin),
   };
 }

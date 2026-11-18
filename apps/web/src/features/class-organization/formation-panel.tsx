@@ -1,9 +1,9 @@
 "use client";
 import { type ReactElement } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, UsersRound } from "lucide-react";
+import { ArrowLeft, Check, UsersRound } from "lucide-react";
 import { Button } from "@lazuli/ui";
-import { FormationQueue, LeadItem } from "./formation-queue";
+import { FormationQueue } from "./formation-queue";
 import { formatDateOnlyBR } from "~/lib/format";
 import { PendingLead, PendingStudent } from "./queue-details";
 import { dateOnly, scheduleLabel } from "./shared";
@@ -16,8 +16,9 @@ import {
 } from "./model";
 import { CompositionMenu } from "./composition-sections";
 import { useCompositionModel } from "./composition-model";
-import { confirmationLabels, planMetrics } from "./confirmation";
+import { planMetrics } from "./confirmation";
 import type { PanelPerson } from "./use-formation-navigation";
+import { FormationPersonRow, LeadItem } from "./formation-roster";
 import styles from "./formation.module.css";
 
 type Props = {
@@ -25,6 +26,8 @@ type Props = {
   plan: ClassPlan | undefined;
   selection: PanelPerson | null;
   ended: boolean;
+  grouped: boolean;
+  expandQueue: (origin: HTMLElement) => void;
   onSelect: (value: PanelPerson, origin: HTMLElement) => void;
   onSelectPlan: (plan: ClassPlan, origin: HTMLElement) => void;
   onBack: () => void;
@@ -41,6 +44,9 @@ export function FormationPanel(props: Props): ReactElement {
     <aside id="formation-panel" className={styles.panel} aria-label="Painel de formação">
       <FormationQueue
         board={board}
+        grouped={props.grouped}
+        expandQueue={props.expandQueue}
+        onBack={onBack}
         hidden={Boolean(title)}
         ended={props.ended}
         onAction={props.onAction}
@@ -48,8 +54,13 @@ export function FormationPanel(props: Props): ReactElement {
       />
       {title && (
         <div className={styles.panelTitle}>
-          <Button size="sm" variant="ghost" onClick={onBack} aria-label="Voltar no painel">
-            <ArrowLeft size={16} />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onBack}
+            aria-label="Voltar à visualização anterior"
+          >
+            <ArrowLeft size={16} /> Voltar
           </Button>
           <h2 id="formation-panel-heading" tabIndex={-1}>
             {title}
@@ -134,7 +145,8 @@ function PlanDetail({
         </p>
         <div className={styles.planCounts}>
           <UsersRound size={15} />
-          {metrics.confirmed} confirmados · {metrics.pending} a confirmar
+          {metrics.confirmed - metrics.preconfirmed} confirmados · <Check size={14} />{" "}
+          {metrics.preconfirmed} pré-confirmados · {metrics.pending} a confirmar
         </div>
         {plan.active && metrics.confirmed <= board.semester.formationRiskLimit && (
           <p className={styles.warning}>
@@ -146,23 +158,18 @@ function PlanDetail({
         {model.error && <p role="alert">{model.error}</p>}
         {plan.classId && <Link href={`/turmas/${plan.classId}`}>Abrir cadastro da turma</Link>}
       </div>
-      {model.rows.map((row) => (
-        <button
-          key={row.id}
-          type="button"
-          className={styles.item}
-          data-formation-focus={`person-${row.id}`}
-          onClick={(event) => onSelect({ kind: "student", id: row.id }, event.currentTarget)}
-        >
-          <span>
-            <strong>{row.studentName}</strong>
-            <small>
-              {confirmationLabels[row.confirmation]} · {row.stageCode}
-            </small>
-          </span>
-          <ChevronRight size={14} />
-        </button>
-      ))}
+      <div className={styles.rosterGroup}>
+        <header>
+          <h3>Alunos da turma</h3>
+          <small>{model.rows.length}</small>
+        </header>
+        {model.rows.map((row) => (
+          <FormationPersonRow key={row.id} row={row} onSelect={onSelect} />
+        ))}
+        {model.rows.length === 0 && (
+          <p className={styles.suggestionNote}>Nenhum aluno proposto para esta turma.</p>
+        )}
+      </div>
       {model.leads.map((lead) => (
         <LeadItem key={lead.id} lead={lead} onSelect={onSelect} />
       ))}
