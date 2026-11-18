@@ -1,7 +1,7 @@
 import { useState, type JSX as ReactJSX } from "react";
 import type { ComponentProps } from "react";
 import Link from "next/link";
-import { CalendarDays, ClipboardCheck, ArrowUpRight, UserRound } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ArrowUpRight } from "lucide-react";
 import { normalizeSearch } from "@lazuli/domain";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -209,11 +209,7 @@ function TeacherSearch({
   return (
     <div className="w-48 min-w-0 shrink-0">
       <Field>
-        <Label>
-          <span className="inline-flex items-center gap-1.5">
-            <UserRound className="size-4" aria-hidden="true" /> Professor
-          </span>
-        </Label>
+        <Label>Professor</Label>
         <SearchSelect
           name="teacherId"
           placeholder="Buscar professor"
