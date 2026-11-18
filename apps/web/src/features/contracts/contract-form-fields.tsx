@@ -16,10 +16,7 @@ import {
 } from "@lazuli/ui";
 import { Info, UserMinus, UserPlus } from "lucide-react";
 import { formatBRLFromCents } from "~/lib/format";
-import { addCalendarMonths } from "@lazuli/domain";
-import { durationFromDates, MONTHS_PER_SEMESTER } from "./contract-form-model";
-import { formatDateOnlyBR } from "~/lib/format";
-import { parseDateBR, maskPhoneBR } from "~/lib/masks";
+import { maskPhoneBR } from "~/lib/masks";
 import { PersonDocumentField } from "~/components/person-document-field";
 import type { ContractFields } from "./contract-form-model";
 import { PaymentSection } from "./contract-payment-section";
@@ -222,7 +219,6 @@ function PartiesSection({ fields, errors, change }: FormProps): ReactElement {
 }
 
 export function TermFields({ fields, errors, change, maskedDates }: FormProps): ReactElement {
-  const semesters = durationFromDates(fields) / MONTHS_PER_SEMESTER;
   return (
     <>
       <TextField
@@ -245,32 +241,6 @@ export function TermFields({ fields, errors, change, maskedDates }: FormProps): 
         onChange={(value) => change("firstDueDate", value)}
         error={errors.firstDueDate}
       />
-      <Field name="semestres">
-        <Label>Semestres de contrato</Label>
-        <select
-          name="semestres"
-          className="h-9 rounded-sm border border-border bg-background px-2"
-          disabled={!parseDateBR(fields.firstDueDate)}
-          value={Number.isInteger(semesters) ? semesters : ""}
-          onChange={(event) => {
-            const start = parseDateBR(fields.firstDueDate);
-            if (start && event.target.value)
-              change(
-                "endsOn",
-                formatDateOnlyBR(
-                  addCalendarMonths(start, Number(event.target.value) * MONTHS_PER_SEMESTER),
-                ),
-              );
-          }}
-        >
-          <option value="">Selecione</option>
-          {Array.from({ length: 20 }, (_entry, index) => index + 1).map((count) => (
-            <option key={count} value={count}>
-              {count} {count === 1 ? "semestre · 1 livro" : `semestres · ${count} livros`}
-            </option>
-          ))}
-        </select>
-      </Field>
       <TextField
         name="endsOn"
         label="Fim da vigência"
