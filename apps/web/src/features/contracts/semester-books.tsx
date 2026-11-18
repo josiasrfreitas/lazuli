@@ -111,7 +111,8 @@ function SemesterBookRow({
         <SegmentedControl
           size="sm"
           aria-label={`Pagamento do livro do ${index + 1}º semestre`}
-          value={book.acquisition ? "now" : "later"}
+          disabled={!book.stageId}
+          value={!book.stageId ? null : book.acquisition ? "now" : "later"}
           onValueChange={(mode) => {
             if (!mode) return;
             const value = mode === "now" ? "now" : index === 0 ? "1" : "open";
@@ -123,9 +124,10 @@ function SemesterBookRow({
             Registrar agora
           </SegmentedControlItem>
         </SegmentedControl>
-        {!book.stageId && <small>Selecione o livro para registrar o pagamento agora.</small>}
+        {!book.stageId && <small>Selecione o livro para definir o pagamento.</small>}
       </div>
-      {!book.acquisition &&
+      {book.stageId &&
+        !book.acquisition &&
         (index === 0 ? (
           <p className="self-center text-sm">Pagamento previsto no 1º semestre</p>
         ) : (
