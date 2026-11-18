@@ -5,8 +5,9 @@ import {
   resolveAddress,
   resolveAddressLocation,
 } from "@lazuli/integrations/address-search";
-import { createServiceLogger, logDevelopmentProcess, safeError } from "@lazuli/logging";
+import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import { adminProcedure, router } from "../trpc/init.js";
+import { addressLookupError } from "./lookup-error.js";
 import type { Context } from "../trpc/context.js";
 
 const MIN_QUERY_LENGTH = 3;
@@ -40,6 +41,10 @@ async function lookup<T>(options: {
     });
     return result;
   } catch (error) {
+    const failure = addressLookupError(
+      error,
+      process.env.NODE_ENV === "development" ? process.env.AWS_PROFILE : undefined,
+    );
     logger.error(
       {
         request_id: options.context.requestId,
@@ -48,10 +53,10 @@ async function lookup<T>(options: {
         operation: "API",
         duration_ms: Math.round(performance.now() - started),
         status: "error",
-        ...safeError(error),
+        ...failure.details,
         diagnostic_state: { integration: "Amazon Location Places", operation: options.resource },
       },
-      "Address lookup failed",
+      failure.message,
     );
     throw new TRPCError({
       code: "SERVICE_UNAVAILABLE",
