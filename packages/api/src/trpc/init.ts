@@ -62,7 +62,7 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
           ...fields,
           status: "ok",
           process_step: label,
-          ...(Array.isArray(result.data) ? { facts: { items: result.data.length } } : {}),
+          ...resultFacts(result.data),
         },
         label,
       );
@@ -160,6 +160,10 @@ export const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 function httpOperation(type: string): "GET" | "POST" {
   return type === "query" ? "GET" : "POST";
+}
+
+function resultFacts(data: Parameters<typeof safeError>[0]): { facts?: { items: number } } {
+  return Array.isArray(data) ? { facts: { items: data.length } } : {};
 }
 
 function transactionTimeout(

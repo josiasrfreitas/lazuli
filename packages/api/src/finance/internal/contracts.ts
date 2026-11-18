@@ -225,6 +225,10 @@ type PersistContractInput = {
   terms: ReadyTerms;
 };
 
+function normalizedAgreement(agreement: string | null | undefined): string | null {
+  return agreement?.trim() || null;
+}
+
 function plannedBooksData(
   books: PersistContractInput["values"]["books"],
 ): Pick<Prisma.ContractUncheckedCreateInput, "plannedBooks"> {
@@ -258,7 +262,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
     monthlyAmountCents: preview.chargedMonthlyCents,
     baseMonthlyAmountCents: values.monthlyAmountCents,
     scholarshipPct: values.scholarshipPct ?? 0,
-    scholarshipAgreement: values.scholarshipAgreement?.trim() || null,
+    scholarshipAgreement: normalizedAgreement(values.scholarshipAgreement),
     tuitionCeilingCents: settings.tuitionCeilingCents,
     maximumDiscountPct: settings.maximumDiscountPct,
     punctualityDiscountPct:

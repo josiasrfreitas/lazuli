@@ -31,6 +31,8 @@ import {
   changePlanStatus,
 } from "./lifecycle.js";
 
+const FORMATION_FINGERPRINT_LENGTH = 64;
+
 const MAX_STUDENT_SEARCH_LENGTH = 100;
 const MAX_FORMATION_RISK_LIMIT = 50;
 
@@ -133,7 +135,9 @@ export const semesterOrganizationRouter = router({
     .input(semesterScopeSchema)
     .query(({ ctx, input }) => previewFormationReset(context(ctx), input.semesterId)),
   reset: adminProcedure
-    .input(semesterScopeSchema.extend({ fingerprint: z.hash("sha256") }))
+    .input(
+      semesterScopeSchema.extend({ fingerprint: z.string().length(FORMATION_FINGERPRINT_LENGTH) }),
+    )
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) => resetFormation({ ...context(ctx), database }, input), {
         isolationLevel: "Serializable",
