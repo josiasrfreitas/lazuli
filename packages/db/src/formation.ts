@@ -77,9 +77,10 @@ export async function readFormationAcademics(
       const presence = attendance.get(row.enrollment.id);
       result.set(row.id, {
         grades: status,
-        gradeAverage: grades.length
-          ? grades.reduce((sum, grade) => sum + Number(grade.score), 0) / grades.length
-          : null,
+        gradeAverage:
+          grades.length > 0
+            ? grades.reduce((sum, grade) => sum + Number(grade.score), 0) / grades.length
+            : null,
         ...presenceMetrics(presence),
       });
     }

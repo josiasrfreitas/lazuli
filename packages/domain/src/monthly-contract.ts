@@ -37,13 +37,20 @@ export function addCalendarMonths(value: string, months: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(sourceDay, lastDay)).padStart(2, "0")}`;
 }
 
+const ISO_YEAR_END = 4;
+const ISO_MONTH_START = 5;
+const ISO_MONTH_END = 7;
+
 /** Compare the actual calendar anniversaries, including short months and leap years. */
-export function nearestContractUnits(start: string, end: string, monthsPerUnit = 1): number {
+export function nearestContractUnits(
+  { start, end }: { start: string; end: string },
+  monthsPerUnit = 1,
+): number {
   if (end <= start) return Number.NaN;
   const months =
-    (Number(end.slice(0, 4)) - Number(start.slice(0, 4))) * MONTHS_PER_YEAR +
-    Number(end.slice(5, 7)) -
-    Number(start.slice(5, 7));
+    (Number(end.slice(0, ISO_YEAR_END)) - Number(start.slice(0, ISO_YEAR_END))) * MONTHS_PER_YEAR +
+    Number(end.slice(ISO_MONTH_START, ISO_MONTH_END)) -
+    Number(start.slice(ISO_MONTH_START, ISO_MONTH_END));
   const lower = addCalendarMonths(start, months) > end ? months - 1 : months;
   const before = Date.parse(addCalendarMonths(start, lower));
   const after = Date.parse(addCalendarMonths(start, lower + 1));

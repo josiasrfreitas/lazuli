@@ -212,14 +212,15 @@ export const createMonthlyContractInputSchema = z
   })
   .superRefine((input, context) => {
     const end = input.endsOn ?? addCalendarMonths(input.startsOn, input.durationMonths);
-    if (nearestContractUnits(input.startsOn, end) !== input.durationMonths) {
+    if (nearestContractUnits({ start: input.startsOn, end }) !== input.durationMonths) {
       context.addIssue({
         code: "custom",
         path: ["durationMonths"],
         message: "Confira a vigência do contrato.",
       });
     }
-    const semesters = nearestContractUnits(input.startsOn, end, MONTHS_PER_SEMESTER);
+  })
+  .superRefine((input, context) => {
     const firstBook = input.books?.[0];
     if (firstBook && !firstBook.acquisition && firstBook.acquisitionSemester !== 1) {
       context.addIssue({
@@ -228,6 +229,10 @@ export const createMonthlyContractInputSchema = z
         message: "O pagamento do primeiro livro deve ocorrer no primeiro semestre.",
       });
     }
+  })
+  .superRefine((input, context) => {
+    const end = input.endsOn ?? addCalendarMonths(input.startsOn, input.durationMonths);
+    const semesters = nearestContractUnits({ start: input.startsOn, end }, MONTHS_PER_SEMESTER);
     if (input.books && (input.material || !booksMatchContract(input.books, semesters))) {
       context.addIssue({
         code: "custom",

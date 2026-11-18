@@ -140,7 +140,7 @@ export function suggestMonthlyAmount(
 export function durationFromDates(fields: ContractFields, monthsPerUnit = 1): number {
   const start = parseDateBR(fields.firstDueDate);
   const end = parseDateBR(fields.endsOn);
-  return start && end ? nearestContractUnits(start, end, monthsPerUnit) : Number.NaN;
+  return start && end ? nearestContractUnits({ start, end }, monthsPerUnit) : Number.NaN;
 }
 
 export function boundedInstallmentInput(value: string, duration: number): string {

@@ -60,14 +60,17 @@ export async function seedDevData(
   await seedMakeups(context);
 }
 
+const SEMESTER_DAYS_ELAPSED = 112;
+const SEMESTER_DAYS_REMAINING = 56;
+
 function currentSemesterSeed(todayIso: string): SemesterSeed {
   const today = utcDate(todayIso);
   const year = today.getUTCFullYear();
   const secondHalf = today.getUTCMonth() >= SECOND_HALF_MONTH;
   return {
     name: `${year}.${secondHalf ? 2 : 1}`,
-    startIso: isoOf(addDays(today, -112)),
-    endIso: isoOf(addDays(today, 56)),
+    startIso: isoOf(addDays(today, -SEMESTER_DAYS_ELAPSED)),
+    endIso: isoOf(addDays(today, SEMESTER_DAYS_REMAINING)),
     year,
   };
 }
