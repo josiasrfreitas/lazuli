@@ -39,43 +39,20 @@ export function PlanningAdjustments({
   const [message, setMessage] = useState("");
   const utils = trpc.useUtils();
   const status = semesterOutlook(data).status;
-  const recommended =
-    status === "shortfall" ? "extra" : status === "margin" || status === "complete" ? "end" : null;
-  const canStart =
-    !data.scope.readOnly &&
-    (data.plan?.plannedStartOn ?? data.preview?.plannedStartOn ?? data.scope.classStartOn) >
-      data.scope.today;
-  const saved = async (message: string) => {
+  const recommended = recommendedAction(status);
+  const saved = async (message: string): Promise<void> => {
     await utils.invalidate();
     setMode(null);
     setMessage(message);
   };
   return (
     <>
-      <div className={styles.actions}>
-        {message && (
-          <span role="status" className={styles.success}>
-            <Check size={15} aria-hidden="true" />
-            {message}
-          </span>
-        )}
-        {canStart && (
-          <Button size="sm" variant="ghost" onClick={onStart}>
-            <CalendarDays aria-hidden="true" />
-            Alterar início
-          </Button>
-        )}
-        {data.scope.canAdjust && !data.scope.readOnly && (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setMode(data.scope.student ? "individual" : "choose")}
-          >
-            <SlidersHorizontal aria-hidden="true" />
-            Ajustar aulas
-          </Button>
-        )}
-      </div>
+      <AdjustmentButtons
+        data={data}
+        message={message}
+        onStart={onStart}
+        onAdjust={() => setMode(data.scope.student ? "individual" : "choose")}
+      />
       {mode === "individual" && data.scope.student && (
         <ScheduleAppointmentDialog
           student={{ id: data.scope.student.id, name: data.scope.student.fullName }}
@@ -83,57 +60,7 @@ export function PlanningAdjustments({
           onClose={() => setMode(null)}
         />
       )}
-      {mode === "choose" && (
-        <Dialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setMode(null);
-          }}
-        >
-          <DialogPortal>
-            <DialogBackdrop />
-            <DialogContent className="md:max-w-xl">
-              <DialogHeader>
-                <DialogTitle>Ajustar as aulas da turma</DialogTitle>
-                <DialogDescription>
-                  Escolha como acomodar o conteúdo no calendário.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogBody>
-                <div className={styles.choices}>
-                  <button type="button" onClick={() => setMode("extra")}>
-                    <CalendarPlus aria-hidden="true" />
-                    <span>
-                      <strong>
-                        Adicionar aulas
-                        {recommended === "extra" && <Badge variant="info">Recomendado</Badge>}
-                      </strong>
-                      <span>
-                        Atendimentos para a turma inteira, uma vez ou toda semana. Inclusive nas
-                        férias.
-                      </span>
-                    </span>
-                    <ArrowRight aria-hidden="true" />
-                  </button>
-                  <button type="button" onClick={() => setMode("end")}>
-                    <CalendarCheck aria-hidden="true" />
-                    <span>
-                      <strong>
-                        Encerrar antes
-                        {recommended === "end" && <Badge variant="info">Recomendado</Badge>}
-                      </strong>
-                      <span>
-                        Defina a última aula e confira os cancelamentos antes de confirmar.
-                      </span>
-                    </span>
-                    <ArrowRight aria-hidden="true" />
-                  </button>
-                </div>
-              </DialogBody>
-            </DialogContent>
-          </DialogPortal>
-        </Dialog>
-      )}
+      {mode === "choose" && <AdjustmentChoices recommended={recommended} choose={setMode} />}
       {mode === "extra" && (
         <ExtraClassesForm
           data={data}
@@ -151,5 +78,105 @@ export function PlanningAdjustments({
         />
       )}
     </>
+  );
+}
+
+function AdjustmentButtons({
+  data,
+  message,
+  onStart,
+  onAdjust,
+}: {
+  data: Planning;
+  message: string;
+  onStart: () => void;
+  onAdjust: () => void;
+}): ReactElement {
+  const startOn =
+    data.plan?.plannedStartOn ?? data.preview?.plannedStartOn ?? data.scope.classStartOn;
+  const canStart = !data.scope.readOnly && startOn > data.scope.today;
+  return (
+    <div className={styles.actions}>
+      {message && (
+        <span role="status" className={styles.success}>
+          <Check size={15} aria-hidden="true" />
+          {message}
+        </span>
+      )}
+      {canStart && (
+        <Button size="sm" variant="ghost" onClick={onStart}>
+          <CalendarDays aria-hidden="true" />
+          Alterar início
+        </Button>
+      )}
+      {data.scope.canAdjust && !data.scope.readOnly && (
+        <Button size="sm" variant="secondary" onClick={onAdjust}>
+          <SlidersHorizontal aria-hidden="true" />
+          Ajustar aulas
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function recommendedAction(
+  status: ReturnType<typeof semesterOutlook>["status"],
+): "extra" | "end" | null {
+  if (status === "shortfall") return "extra";
+  return status === "margin" || status === "complete" ? "end" : null;
+}
+
+function AdjustmentChoices({
+  recommended,
+  choose,
+}: {
+  recommended: "extra" | "end" | null;
+  choose: (mode: "extra" | "end" | null) => void;
+}): ReactElement {
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) choose(null);
+      }}
+    >
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogContent className="md:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Ajustar as aulas da turma</DialogTitle>
+            <DialogDescription>Escolha como acomodar o conteúdo no calendário.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className={styles.choices}>
+              <button type="button" onClick={() => choose("extra")}>
+                <CalendarPlus aria-hidden="true" />
+                <span>
+                  <strong>
+                    Adicionar aulas
+                    {recommended === "extra" && <Badge variant="info">Recomendado</Badge>}
+                  </strong>
+                  <span>
+                    Atendimentos para a turma inteira, uma vez ou toda semana. Inclusive nas férias.
+                  </span>
+                </span>
+                <ArrowRight aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => choose("end")}>
+                <CalendarCheck aria-hidden="true" />
+                <span>
+                  <strong>
+                    Encerrar antes
+                    {recommended === "end" && <Badge variant="info">Recomendado</Badge>}
+                  </strong>
+                  <span>Defina a última aula e confira os cancelamentos antes de confirmar.</span>
+                </span>
+                <ArrowRight aria-hidden="true" />
+              </button>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }

@@ -7,8 +7,7 @@ import styles from "./adjustments.module.css";
 export const weekLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 export function scheduledDays(
   data: Planning,
-  from: string,
-  through: string,
+  { from, through }: { from: string; through: string },
 ): Planning["availableSessions"] {
   return data.availableSessions.filter(
     (session) => session.date >= from && session.date <= through,
@@ -40,13 +39,16 @@ export function ExistingSchedule({
         <CalendarDays size={15} aria-hidden="true" />
         Já tem aula neste intervalo
       </p>
-      {groups.size ? (
+      {groups.size > 0 ? (
         <ul>
           {[...groups.entries()].map(([time, group]) => (
-            <li key={time} title={[...new Set(group.dates)].map(dateLabel).join(" · ")}>
+            <li
+              key={time}
+              title={[...new Set(group.dates)].map((date) => dateLabel(date)).join(" · ")}
+            >
               <strong>
                 {[...group.days]
-                  .sort((a, b) => a - b)
+                  .toSorted((left, right) => left - right)
                   .map((day) => weekLabels[day])
                   .join(" e ")}
               </strong>

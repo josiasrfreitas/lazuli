@@ -7,11 +7,12 @@ import { dateLabel } from "./shared";
 import { semesterOutlook } from "./outlook-model";
 import styles from "./adjustments.module.css";
 
+export const MINUTES_PER_HOUR = 60;
 export type ExtraPreview = RouterOutputs["planning"]["previewExtra"];
 export const encounterLabel = (count: number): string =>
   `${count} ${count === 1 ? "encontro" : "encontros"}`;
 export const hourLabel = (minutes: number): string =>
-  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / 60)}h`;
+  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / MINUTES_PER_HOUR)}h`;
 export function CompactExtraCapacity({
   preview,
   loading,
@@ -21,19 +22,7 @@ export function CompactExtraCapacity({
   loading: boolean;
   error: string | null;
 }): ReactElement {
-  const message = loading
-    ? "Conferindo horários…"
-    : error
-      ? "Revise os horários selecionados"
-      : !preview
-        ? "Selecione os dias para calcular as horas"
-        : preview.uncertain
-          ? "Saldo de conteúdo a confirmar"
-          : preview.margin < 0
-            ? `Ainda faltam ${hourLabel(-preview.margin)}`
-            : preview.margin === 0
-              ? "Conteúdo acomodado, sem folga"
-              : `${hourLabel(preview.margin)} de folga para concluir`;
+  const message = compactMessage({ preview, loading, error });
   return (
     <div
       className={styles.compactCapacity}
@@ -51,6 +40,27 @@ export function CompactExtraCapacity({
     </div>
   );
 }
+function compactMessage({
+  preview,
+  loading,
+  error,
+}: {
+  preview: ExtraPreview | null;
+  loading: boolean;
+  error: string | null;
+}): string {
+  if (loading) return "Conferindo horários…";
+  if (error) return "Revise os horários selecionados";
+  if (preview === null) return "Selecione os dias para calcular as horas";
+  if (preview.uncertain) return "Saldo de conteúdo a confirmar";
+  return capacityBalance(preview.margin);
+}
+
+function capacityBalance(balance: number): string {
+  if (balance < 0) return `Ainda faltam ${hourLabel(-balance)}`;
+  if (balance === 0) return "Conteúdo acomodado, sem folga";
+  return `${hourLabel(balance)} de folga para concluir`;
+}
 export function ExtraCapacity({
   data,
   preview,
@@ -64,14 +74,8 @@ export function ExtraCapacity({
   error: string | null;
   ready: boolean;
 }): ReactElement {
-  const outlook = semesterOutlook(data);
-  const remaining = preview?.remainingMinutes ?? outlook.remainingMinutes;
-  const available = preview?.availableMinutes ?? outlook.availableMinutes;
-  const added = preview?.addedMinutes ?? 0;
-  const deficit = Math.max(0, remaining - available);
-  const balance = available + added - remaining;
-  const known = !(preview?.uncertain ?? outlook.status === "unknown");
-  const max = Math.max(remaining, available + added, 1);
+  const capacity = extraCapacitySummary(data, preview);
+  const { remaining, available, deficit, known, max } = capacity;
   return (
     <aside
       className={styles.capacity}
@@ -103,82 +107,140 @@ export function ExtraCapacity({
           </p>
         </div>
       )}
-      <div className={styles.selectionResult} aria-live="polite" aria-atomic="true">
-        {loading ? (
-          <p>Calculando encontros e conferindo agendas…</p>
-        ) : error ? (
-          <p role="alert" className={styles.error}>
-            {error}
-          </p>
-        ) : preview ? (
-          <>
-            <div className={styles.capacityHeading}>
-              <strong>+{hourLabel(added)} nesta seleção</strong>
-              <Badge variant={balance >= 0 && known ? "success" : "info"}>
-                {encounterLabel(preview.dates.length)}
-              </Badge>
-            </div>
-            <p>
-              {dateLabel(preview.dates[0]!)} a {dateLabel(preview.dates.at(-1)!)}
-            </p>
-            {known && (
-              <div className={styles.capacityTrack} data-covered={balance >= 0 || undefined}>
-                <progress
-                  max={max}
-                  value={available + added}
-                  aria-label="Horas disponíveis com as aulas selecionadas"
-                />
-                <strong>
-                  {balance < 0
-                    ? `Ainda faltam ${hourLabel(-balance)}`
-                    : balance === 0
-                      ? "Conteúdo acomodado, sem folga"
-                      : `${hourLabel(balance)} de folga para concluir`}
-                </strong>
-              </div>
-            )}
-            {!known && (
-              <p>
-                As horas entram no calendário. Confirme os registros pendentes para calcular o saldo
-                do conteúdo.
-              </p>
-            )}
-            <p className={styles.selectionDetail}>
-              <CalendarDays size={15} aria-hidden="true" />
-              {hourLabel(available + added)} disponíveis com essa seleção.
-            </p>
-            {preview.outside > 0 && (
-              <p>
-                {encounterLabel(preview.outside)} nas férias ou fora do período letivo. Você vai
-                confirmar essas datas no próximo passo.
-              </p>
-            )}
-            {preview.skipped.length > 0 && (
-              <p>
-                {preview.skipped.length === 1
-                  ? "1 data de fechamento foi excluída."
-                  : `${preview.skipped.length} datas de fechamento foram excluídas.`}
-              </p>
-            )}
-            <span className={styles.selectionDetail}>
-              <Check size={15} aria-hidden="true" />
-              Horários conferidos para professor e alunos.
-            </span>
-          </>
-        ) : (
-          <>
-            <p>
-              {ready
-                ? "Confira as datas e horários para calcular os encontros."
-                : "Escolha professor, dias e intervalo para ver quanto essa seleção cobre."}
-            </p>
-            <p>
-              Para usar horários diferentes em cada dia, salve um dia por vez. As aulas se somam às
-              que você já agendou.
-            </p>
-          </>
-        )}
-      </div>
+      <CapacitySelection state={{ loading, error, ready, preview }} capacity={capacity} />
     </aside>
+  );
+}
+
+type CapacitySummary = {
+  available: number;
+  added: number;
+  balance: number;
+  known: boolean;
+  max: number;
+};
+function extraCapacitySummary(
+  data: Planning,
+  preview: ExtraPreview | null,
+): CapacitySummary & { remaining: number; deficit: number } {
+  const outlook = semesterOutlook(data);
+  const remaining = preview?.remainingMinutes ?? outlook.remainingMinutes;
+  const available = preview?.availableMinutes ?? outlook.availableMinutes;
+  const added = preview?.addedMinutes ?? 0;
+  const deficit = Math.max(0, remaining - available);
+  const balance = available + added - remaining;
+  const known = !(preview?.uncertain ?? outlook.status === "unknown");
+  const max = Math.max(remaining, available + added, 1);
+  return { remaining, available, added, deficit, balance, known, max };
+}
+type SelectionState = {
+  loading: boolean;
+  error: string | null;
+  ready: boolean;
+  preview: ExtraPreview | null;
+};
+
+function CapacitySelection({
+  state,
+  capacity,
+}: {
+  state: SelectionState;
+  capacity: CapacitySummary;
+}): ReactElement {
+  return (
+    <div className={styles.selectionResult} aria-live="polite" aria-atomic="true">
+      <SelectionDetails state={state} capacity={capacity} />
+    </div>
+  );
+}
+
+function SelectionDetails({
+  state,
+  capacity,
+}: {
+  state: SelectionState;
+  capacity: CapacitySummary;
+}): ReactElement {
+  const { loading, error, preview, ready } = state;
+  if (loading) return <p>Calculando encontros e conferindo agendas…</p>;
+  if (error)
+    return (
+      <p role="alert" className={styles.error}>
+        {error}
+      </p>
+    );
+  if (preview) return <CapacityProjection preview={preview} capacity={capacity} />;
+  return (
+    <>
+      <p>
+        {ready
+          ? "Confira as datas e horários para calcular os encontros."
+          : "Escolha professor, dias e intervalo para ver quanto essa seleção cobre."}
+      </p>
+      <p>
+        Para usar horários diferentes em cada dia, salve um dia por vez. As aulas se somam às que
+        você já agendou.
+      </p>
+    </>
+  );
+}
+
+function CapacityProjection({
+  preview,
+  capacity,
+}: {
+  preview: ExtraPreview;
+  capacity: CapacitySummary;
+}): ReactElement {
+  const { added, available, balance, known, max } = capacity;
+  return (
+    <>
+      <div className={styles.capacityHeading}>
+        <strong>+{hourLabel(added)} nesta seleção</strong>
+        <Badge variant={balance >= 0 && known ? "success" : "info"}>
+          {encounterLabel(preview.dates.length)}
+        </Badge>
+      </div>
+      <p>
+        {dateLabel(preview.dates[0])} a {dateLabel(preview.dates.at(-1))}
+      </p>
+      {known && (
+        <div className={styles.capacityTrack} data-covered={balance >= 0 || undefined}>
+          <progress
+            max={max}
+            value={available + added}
+            aria-label="Horas disponíveis com as aulas selecionadas"
+          />
+          <strong>{capacityBalance(balance)}</strong>
+        </div>
+      )}
+      {!known && (
+        <p>
+          As horas entram no calendário. Confirme os registros pendentes para calcular o saldo do
+          conteúdo.
+        </p>
+      )}
+      <p className={styles.selectionDetail}>
+        <CalendarDays size={15} aria-hidden="true" />
+        {hourLabel(available + added)} disponíveis com essa seleção.
+      </p>
+      {preview.outside > 0 && (
+        <p>
+          {encounterLabel(preview.outside)} nas férias ou fora do período letivo. Você vai confirmar
+          essas datas no próximo passo.
+        </p>
+      )}
+      {preview.skipped.length > 0 && (
+        <p>
+          {preview.skipped.length === 1
+            ? "1 data de fechamento foi excluída."
+            : `${preview.skipped.length} datas de fechamento foram excluídas.`}
+        </p>
+      )}
+      <span className={styles.selectionDetail}>
+        <Check size={15} aria-hidden="true" />
+        Horários conferidos para professor e alunos.
+      </span>
+    </>
   );
 }
