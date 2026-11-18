@@ -11,7 +11,7 @@ const RENEWAL_WARNING_DAYS = 45;
 
 export type { ClassPlan, Placement, OrganizationBoard } from "~/features/class-organization/shared";
 export type OrganizationAction =
-  | { kind: "riskLimit" }
+  | { kind: "riskLimit" | "resetFormation" }
   | { kind: "postpone"; plan: ClassPlan }
   | { kind: "plan"; plan?: ClassPlan; group?: PendingGroup }
   | { kind: "placement"; studentId: string; row?: Placement; planId?: string }

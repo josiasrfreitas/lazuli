@@ -1,5 +1,6 @@
 "use client";
 import { type JSX as ReactJSX } from "react";
+import { ResetFormationDialog } from "./reset-formation-dialog";
 import { RiskLimitDialog, PostponeDialog } from "./formation-settings";
 import { ClassPlanForm } from "~/features/class-organization/plan-form";
 import { PlacementForm } from "~/features/class-organization/placement-form";
@@ -31,9 +32,7 @@ function renderStudentDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose, onAction } = props;
   switch (action.kind) {
     case "continuity": {
-      return (
-        <ContinuityDialog row={action.row} board={board} onClose={onClose} onAction={onAction} />
-      );
+      return <ContinuityDialog row={action.row} board={board} onClose={onClose} />;
     }
     case "findStudent": {
       return <FindStudent board={board} onClose={onClose} onAction={onAction} />;
@@ -47,6 +46,8 @@ function renderStudentDialogs(props: Props): ReactJSX.Element | null {
 function renderPlanDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose } = props;
   switch (action.kind) {
+    case "resetFormation":
+      return <ResetFormationDialog board={board} onClose={onClose} onFeedback={props.onFeedback} />;
     case "riskLimit": {
       return <RiskLimitDialog {...props} />;
     }

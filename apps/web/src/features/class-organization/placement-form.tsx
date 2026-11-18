@@ -68,7 +68,7 @@ function PlacementLoading({
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title={row ? "Revisar proposta" : "Organizar aluno"}
+      title="Escolher turma de destino"
       description={`${row?.studentName ?? "Aluno"} · semestre ${board.semester.name}`}
       bodyLayout="placement"
       submitDisabled

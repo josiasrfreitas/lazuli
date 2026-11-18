@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, type FormEvent, type JSX as ReactJSX } from "react";
-import Link from "next/link";
-import { Button } from "@lazuli/ui";
+import { Check } from "lucide-react";
+import { Badge } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { Choices, useOrganizationRefresh } from "~/features/class-organization/shared";
-import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
-import { confirmationExplanation } from "./confirmation";
+import type { Placement, OrganizationBoard } from "./model";
 import styles from "./organization.module.css";
 
 const MIN_CONTINUITY_REASON_LENGTH = 3;
@@ -17,7 +16,6 @@ type Props = {
   row: Placement;
   board: OrganizationBoard;
   onClose: () => void;
-  onAction: (action: OrganizationAction) => void;
 };
 type ContinuityModel = {
   value: Continuity;
@@ -38,11 +36,16 @@ export function ContinuityDialog(props: Props): ReactJSX.Element {
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title="Continuidade do aluno"
+      title="Registrar resposta do aluno"
       description={`${props.row.studentName} · ${props.board.semester.name}`}
       formId="student-continuity"
       firstField="continuity-choice"
-      submitLabel="Salvar continuidade"
+      submitLabel="Salvar resposta"
+      submitDisabled={
+        model.value === props.row.continuity &&
+        model.reason.trim() === (props.row.continuityReason ?? "") &&
+        model.attentionNote.trim() === (props.row.attentionNote ?? "")
+      }
       onClose={props.onClose}
       pending={model.pending}
       error={model.mutationError ?? model.error}
@@ -109,35 +112,30 @@ function useContinuityModel({ row, board, onClose }: Props): ContinuityModel {
 function ContinuityFields({
   row,
   board,
-  onAction,
   model,
 }: Props & { model: ContinuityModel }): ReactJSX.Element {
   return (
     <>
+      <ContinuityContract row={row} board={board} />
       <Choices
         name="continuity-choice"
-        label="O que o aluno pretende?"
+        label="O que o aluno informou sobre este semestre?"
         value={model.value}
         options={{
-          STAY: "Continuar na turma",
-          CHANGE: "Mudar de turma",
-          LEAVING: "Sair da escola",
-          UNDECIDED: "A conversar",
+          UNDECIDED: "Ainda sem resposta",
+          STAY: "Vai continuar",
+          CHANGE: "Pediu outra turma",
+          LEAVING: "Pensa em sair",
         }}
         onChange={model.changeValue}
       />
-      <p className="text-caption text-muted-foreground">{continuityDescription(model.value)}</p>
-      <ContinuityContract row={row} board={board} />
-      {row.attention.contractStatus === "EARLY_END" && (
-        <p className={styles.note}>
-          O contrato vence na primeira metade do período. Escolha “Continuar na turma” para
-          confirmar o vínculo.
-        </p>
-      )}
+      <p className={styles.small} aria-live="polite">
+        {continuityDescription(model.value, Boolean(row.publishedAt))}
+      </p>
       <NarrativeField
         name="formation-attention"
-        label="Sinal de desinteresse · opcional"
-        placeholder="Registre o que a equipe precisa acompanhar"
+        label="Risco de saída · opcional"
+        placeholder="Ex.: a família mencionou dificuldade com o horário."
         value={model.attentionNote}
         onChange={model.setAttentionNote}
       />
@@ -152,17 +150,23 @@ function ContinuityFields({
         value={model.reason}
         onChange={model.changeReason}
       />
-      <ContinuityActions row={row} value={model.value} onAction={onAction} />
     </>
   );
 }
 
-function continuityDescription(value: Continuity): string {
-  if (value === "CHANGE")
-    return "O aluno entra nas pendências de alocação e mantém a matrícula atual até a transferência.";
-  if (value === "LEAVING")
-    return "A intenção fica sinalizada para acompanhamento. A matrícula e o contrato continuam ativos.";
-  return confirmationExplanation;
+function continuityDescription(value: Continuity, allocated: boolean): string {
+  switch (value) {
+    case "STAY":
+      return allocated
+        ? "Registra que o aluno confirmou a permanência na turma."
+        : "Registra que o aluno vai continuar. A alocação é aplicada na revisão de vínculos.";
+    case "CHANGE":
+      return "Ao salvar, o aluno entra na fila para escolher outra turma.";
+    case "LEAVING":
+      return "Sinaliza uma possível saída para acompanhamento. A matrícula e o contrato seguem ativos.";
+    case "UNDECIDED":
+      return "Registre o contato e volte aqui quando o aluno responder.";
+  }
 }
 
 function ContinuityContract({
@@ -176,8 +180,10 @@ function ContinuityContract({
     <>
       {row.confirmation === "PRECONFIRMED" && (
         <div className={styles.summary}>
-          <strong>Pré-confirmado em {board.semester.name}</strong>
-          <p>O vínculo atende aos critérios de pré-confirmação do período.</p>
+          <Badge variant="info">
+            <Check size={14} /> Pré-confirmado em {board.semester.name}
+          </Badge>
+          <p>As notas, a presença e a cobertura contratual permitem a pré-confirmação.</p>
         </div>
       )}
       {row.attention.coverageThrough && (
@@ -186,47 +192,5 @@ function ContinuityContract({
         </p>
       )}
     </>
-  );
-}
-
-function ContinuityActions({
-  row,
-  value,
-  onAction,
-}: {
-  row: Placement;
-  value: Continuity;
-  onAction: (action: OrganizationAction) => void;
-}): ReactJSX.Element {
-  return (
-    <div className={styles.actions}>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        onClick={() =>
-          onAction(
-            row.publishedAt
-              ? { kind: "move", rows: [row] }
-              : { kind: "placement", studentId: row.studentId, row },
-          )
-        }
-      >
-        Revisar alocação
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        onClick={() => onAction({ kind: "history", row })}
-      >
-        Histórico
-      </Button>
-      {value === "LEAVING" && (
-        <Link className="text-caption text-interactive" href={`/alunos/${row.studentId}`}>
-          Abrir perfil para acompanhar
-        </Link>
-      )}
-    </div>
   );
 }

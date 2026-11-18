@@ -7,10 +7,19 @@ import {
   Copy,
   Plus,
   Settings2,
+  RotateCcw,
   TriangleAlert,
   X,
 } from "lucide-react";
-import { Button, Input, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+  Button,
+  Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@lazuli/ui";
 import { SelectControl } from "~/features/classes/form-controls";
 import { academicPeriodsUrl } from "./links";
 import { dateOnly } from "./shared";
@@ -23,20 +32,31 @@ import { trpc } from "~/lib/trpc";
 import styles from "./formation.module.css";
 
 type ModelProps = { model: OrganizationPageModel };
-type FilterProps = { scope: string; weekSearch: string; clearFilters: () => void };
+type ReviewScope = "pending" | "published" | "all";
+type FilterProps = {
+  reviewScope: ReviewScope;
+  scope: string;
+  weekSearch: string;
+  clearFilters: () => void;
+};
 export function OrganizationPageView({ model }: ModelProps): ReactElement {
   const { board, semesterId, action, setAction } = model;
+  const [reviewScope, setReviewScope] = useState<ReviewScope>("pending");
   const [scope, setScope] = useState("all");
   const [weekSearch, setWeekSearch] = useState("");
   const clearFilters = (): void => {
     setScope("all");
     setWeekSearch("");
+    setReviewScope("pending");
+    model.setSearch("");
   };
   const switching = Boolean(board && board.semester.id !== semesterId);
   return (
     <section className={styles.page} data-page-scroll="internal" aria-label="Formação de turmas">
       <FormationHeader
         model={model}
+        reviewScope={reviewScope}
+        setReviewScope={setReviewScope}
         scope={scope}
         weekSearch={weekSearch}
         clearFilters={clearFilters}
@@ -48,6 +68,7 @@ export function OrganizationPageView({ model }: ModelProps): ReactElement {
       {switching && <FormationProgress label="Atualizando o período" />}
       <PeriodContent
         model={model}
+        reviewScope={reviewScope}
         scope={scope}
         weekSearch={weekSearch}
         clearFilters={clearFilters}
@@ -82,6 +103,8 @@ export function OrganizationPageView({ model }: ModelProps): ReactElement {
 }
 function FormationHeader({
   model,
+  reviewScope,
+  setReviewScope,
   scope,
   weekSearch,
   clearFilters,
@@ -90,6 +113,7 @@ function FormationHeader({
   switching,
 }: ModelProps &
   FilterProps & {
+    setReviewScope: (scope: ReviewScope) => void;
     setScope: (scope: string) => void;
     setWeekSearch: (query: string) => void;
     switching: boolean;
@@ -97,8 +121,19 @@ function FormationHeader({
   const { board, ended } = model;
   return (
     <header className={styles.header}>
+      {model.tab === "review" && (
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label="Voltar à grade semanal"
+          title="Voltar à grade semanal"
+          onClick={() => model.setTab("agenda")}
+        >
+          <ArrowLeft />
+        </Button>
+      )}
       <div className={styles.heading}>
-        <h1>Grade semanal</h1>
+        <h1>{model.tab === "review" ? "Revisão de vínculos" : "Grade semanal"}</h1>
       </div>
       <PeriodSelect
         model={model}
@@ -115,6 +150,30 @@ function FormationHeader({
           onScope={setScope}
           onQuery={setWeekSearch}
         />
+      )}
+      {board && model.tab === "review" && (
+        <div className={styles.reviewControls} inert={switching}>
+          <Input
+            size="sm"
+            aria-label="Buscar aluno na revisão"
+            placeholder="Buscar aluno"
+            value={model.search}
+            onChange={(event) => model.setSearch(event.target.value)}
+          />
+          <SegmentedControl
+            size="sm"
+            aria-label="Situação do vínculo"
+            value={reviewScope}
+            onValueChange={(value) => {
+              if (value === "pending" || value === "published" || value === "all")
+                setReviewScope(value);
+            }}
+          >
+            <SegmentedControlItem value="pending">Em revisão</SegmentedControlItem>
+            <SegmentedControlItem value="published">Alocados</SegmentedControlItem>
+            <SegmentedControlItem value="all">Todos</SegmentedControlItem>
+          </SegmentedControl>
+        </div>
       )}
       <div className={styles.headerActions} inert={switching}>
         {board && !ended && model.tab !== "review" && (
@@ -201,6 +260,16 @@ function OptionsMenu({ model }: ModelProps): ReactElement {
               >
                 <TriangleAlert /> Limite de alunos para alerta
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  model.setSetupOpen(false);
+                  setAction({ kind: "resetFormation" });
+                }}
+              >
+                <RotateCcw /> Reiniciar formação…
+              </Button>
             </>
           )}
         </div>
@@ -254,6 +323,7 @@ function failedOperation({
 }
 function PeriodContent({
   model,
+  reviewScope,
   scope,
   weekSearch,
   clearFilters,
@@ -266,27 +336,14 @@ function PeriodContent({
   return (
     <div className={styles.board} inert={switching} aria-busy={switching}>
       {model.tab === "review" ? (
-        <>
-          <div className={styles.tools}>
-            <Button size="sm" variant="ghost" onClick={() => model.setTab("agenda")}>
-              <ArrowLeft /> Grade e pendências
-            </Button>
-            <Input
-              size="sm"
-              aria-label="Buscar aluno na revisão"
-              placeholder="Buscar aluno"
-              value={model.search}
-              onChange={(event) => model.setSearch(event.target.value)}
-            />
-          </div>
-          <OrganizationReview
-            key={semesterId}
-            board={board}
-            query={model.search}
-            onAction={setAction}
-            onFeedback={model.setFeedback}
-          />
-        </>
+        <OrganizationReview
+          key={semesterId}
+          board={board}
+          scope={reviewScope}
+          query={model.search}
+          onAction={setAction}
+          onFeedback={model.setFeedback}
+        />
       ) : (
         <OrganizationAgenda
           scope={scope}

@@ -6,24 +6,30 @@ import { ToastAlert, Alert } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
-import { Choices, modes, type OrganizationBoard, type StudentContext } from "./shared";
+import {
+  Choices,
+  modes,
+  scheduleLabel,
+  type OrganizationBoard,
+  type StudentContext,
+} from "./shared";
 import { usePlacementModel, type PlacementModel, type PlacementProps } from "./placement-model";
 
 type Stages = RouterOutputs["classes"]["formOptions"]["stages"];
 
 export function PlacementFields(props: PlacementProps): ReactJSX.Element {
-  const { data, row, board, onClose } = props;
+  const { data, board, onClose } = props;
   const options = trpc.classes.formOptions.useQuery();
   const model = usePlacementModel(props);
   return (
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title={row ? "Revisar alocação" : "Alocar aluno"}
+      title="Escolher turma de destino"
       description={`${data.student.fullName} · semestre ${board.semester.name}`}
       formId="semester-placement"
       firstField="placement-source"
-      submitLabel={model.planId === "pending" ? "Manter na fila" : "Salvar alocação"}
+      submitLabel={model.planId === "pending" ? "Manter na fila" : "Salvar proposta"}
       onClose={onClose}
       pending={model.pending}
       error={model.error ?? options.error?.message}
@@ -73,7 +79,7 @@ function PlacementSourceControls({
     ...Object.fromEntries(
       data.progress.map((item) => [
         item.id,
-        `${item.stage.internalCode} · ${item.enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}`,
+        `${item.enrollment.class.portalClassName} · ${item.stage.name} · ${item.enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}`,
       ]),
     ),
     new: "Nova entrada",
@@ -82,7 +88,7 @@ function PlacementSourceControls({
     <>
       <Choices
         name="placement-source"
-        label="Percurso de origem"
+        label="De onde o aluno vem?"
         value={model.sourceId}
         options={options}
         onChange={model.changeSource}
@@ -90,7 +96,7 @@ function PlacementSourceControls({
       {model.sourceId !== "new" && (
         <Choices
           name="placement-mode"
-          label="Próximo passo"
+          label="Estágio para o semestre"
           value={model.mode}
           options={{ CONTINUE: modes.CONTINUE, ADVANCE: modes.ADVANCE, REPEAT: modes.REPEAT }}
           onChange={(value) => model.changeMode(value as keyof typeof modes)}
@@ -113,17 +119,27 @@ function PlacementDestinationControls({
     <>
       <SelectControl
         name="placement-plan"
-        label="Turma"
+        label={`Turma de destino em ${board.semester.name}`}
         value={model.planId}
         onChange={model.changePlan}
         choices={[
           { value: "pending", label: "Ainda sem turma" },
           ...board.plans
             .filter((item) => item.active)
-            .map((item) => ({ value: item.id, label: item.name })),
+            .map((item) => ({
+              value: item.id,
+              label: [item.name, item.teacherName, scheduleLabel(item.slots)]
+                .filter(Boolean)
+                .join(" · "),
+            })),
         ]}
         error={model.validation.errors.planId}
       />
+      {model.planId !== "pending" && (
+        <p className="text-caption text-muted-foreground">
+          A proposta fica disponível em Revisar vínculos para aplicar a alocação.
+        </p>
+      )}
       <StageDateControls model={model} stages={stages} />
     </>
   );
