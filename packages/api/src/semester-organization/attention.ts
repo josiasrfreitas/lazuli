@@ -1,3 +1,4 @@
+import { readAcquiredStages } from "../finance/internal/material-purchases.js";
 import {
   emptyFormationAcademics,
   readFormationAcademics,
@@ -30,10 +31,10 @@ export async function readFormationSignals(
 ): Promise<{
   academic: Map<string, FormationAcademics>;
   health: Map<string, number | null>;
-  materials: Set<string>;
+  materials: Map<string, Set<string>>;
 }> {
   const ids = [...new Set(rows.map((row) => row.studentId))];
-  const [academic, health, purchases] = await Promise.all([
+  const [academic, health, materials] = await Promise.all([
     readFormationAcademics(context.database, {
       progressIds: rows.flatMap((row) => (row.sourceProgressId ? [row.sourceProgressId] : [])),
       now: context.now,
@@ -42,29 +43,8 @@ export async function readFormationSignals(
       where: { studentId: { in: ids }, deletedAt: null },
       select: { studentId: true, score: true },
     }),
-    context.database.orderBeneficiary.findMany({
-      where: {
-        studentId: { in: ids },
-        deletedAt: null,
-        order: { deletedAt: null, kind: "MATERIAL" },
-      },
-      select: {
-        studentId: true,
-        order: {
-          select: { material: { select: { stageId: true, items: { select: { stageId: true } } } } },
-        },
-      },
-    }),
+    readAcquiredStages(context.database, ids),
   ]);
-  const materials = new Set(
-    purchases.flatMap(({ studentId, order: { material } }) =>
-      material
-        ? [material.stageId, ...material.items.map((item) => item.stageId)].map(
-            (id) => studentId + "/" + id,
-          )
-        : [],
-    ),
-  );
   return { academic, health: new Map(health.map((row) => [row.studentId, row.score])), materials };
 }
 
@@ -95,7 +75,7 @@ export function formationAttention(input: {
     healthScore,
     lowHealth: healthScore !== null && healthScore < LOW_HEALTH_SCORE,
     materialMissing: Boolean(
-      row.stageId && !signals.materials.has(row.studentId + "/" + row.stageId),
+      row.stageId && !signals.materials.get(row.studentId)?.has(row.stageId),
     ),
   };
 }

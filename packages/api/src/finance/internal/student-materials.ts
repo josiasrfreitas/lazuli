@@ -1,3 +1,4 @@
+import { purchasedBooks, studentMaterialSaleWhere } from "./material-purchases.js";
 import { ledgerQuery } from "./installments-query.js";
 import { toPublicRow } from "../installments-groups.js";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
@@ -217,10 +218,11 @@ function toAcquisition(sale: MaterialSale, now: Date): Acquisition {
     payment: sale.payment,
     chargedCents: sale.chargedAmountCents ?? 0,
     installmentCount: sale.quotedInstallments,
-    books:
-      sale.items.length > 0
-        ? sale.items
-        : [{ stageId: sale.stageId, name: sale.name, stageCode: sale.stageCode }],
+    books: purchasedBooks(sale.items, {
+      stageId: sale.stageId,
+      name: sale.name,
+      stageCode: sale.stageCode,
+    }),
   };
 }
 
@@ -267,9 +269,7 @@ async function materialSales(
   studentId: string,
 ): Promise<MaterialSale[]> {
   return database.materialOrder.findMany({
-    where: {
-      order: { deletedAt: null, cancelledAt: null, contract: { studentId, deletedAt: null } },
-    },
+    where: studentMaterialSaleWhere([studentId]),
     select: materialSaleSelect,
     orderBy: [{ order: { createdAt: "desc" } }, { orderId: "asc" }],
   });

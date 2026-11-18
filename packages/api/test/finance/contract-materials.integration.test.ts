@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { after, before, it } from "node:test";
 import { db, type TransactionClient } from "@lazuli/db";
+import { readAcquiredStages } from "../../src/finance/internal/material-purchases.js";
 import { finance } from "../../src/finance/index.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
 
@@ -1008,5 +1009,48 @@ void it("settles payment at signing and receives scheduled and open-date books o
     assert.equal(materials.acquisitions.length, 3);
     assert.equal(materials.openMaterialRows.length, 0);
     assert.ok(materials.acquisitions.every((order) => order.balanceCents === 0));
+  });
+});
+
+void it("matches formation material coverage to purchased contract books, including legacy single-book orders", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const { trackId } = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
+    const second = await tx.stage.create({
+      data: { trackId, name: "Essentials 2", internalCode: "E2", sequence: 2 },
+    });
+    const other = await tx.student.create({
+      data: { fullName: "Another student with the same payer" },
+    });
+    const contract = await service.createMonthlyContract({
+      ...values,
+      material: {
+        stageIds: [stageId, second.id],
+        category: "ADULT",
+        payment: "CASH",
+        installmentCount: 1,
+        quoteVersion: ADULT_VERSION,
+        expectedTotalCents: 146880,
+      },
+    });
+    const order = await tx.order.findFirstOrThrow({
+      where: { contractId: contract.id, kind: "MATERIAL" },
+    });
+    const read = () => readAcquiredStages(tx, [values.studentId, other.id]);
+    const initial = await read();
+    assert.deepEqual(initial.get(values.studentId), new Set([stageId, second.id]));
+    assert.equal(initial.has(other.id), false);
+    await tx.materialOrderItem.deleteMany({ where: { orderId: order.id } });
+    await tx.contractBook.upsert({
+      where: { contractId_semester: { contractId: contract.id, semester: 2 } },
+      create: { contractId: contract.id, semester: 2, stageId: second.id, acquisitionSemester: 2 },
+      update: { stageId: second.id, acquisitionSemester: 2 },
+    });
+    assert.deepEqual((await read()).get(values.studentId), new Set([stageId]));
+    await tx.order.update({
+      where: { id: order.id },
+      data: { cancelledAt: NOW, cancelledReason: "Compra cancelada" },
+    });
+    assert.equal((await read()).has(values.studentId), false);
   });
 });

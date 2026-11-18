@@ -1,3 +1,4 @@
+import { readAcquiredStages } from "./material-purchases.js";
 import { stageMaterialAttention } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
@@ -57,16 +58,9 @@ export async function readMaterialNeeds(
   const today = new Date(asOf);
   const [enrollments, sales] = await Promise.all([
     activeEnrollments(database, { studentId, today }),
-    database.materialOrder.findMany({
-      where: {
-        order: { deletedAt: null, cancelledAt: null, contract: { studentId, deletedAt: null } },
-      },
-      select: { stageId: true, items: { select: { stageId: true } } },
-    }),
+    readAcquiredStages(database, [studentId]),
   ]);
-  const acquiredStageIds = sales.flatMap((sale) =>
-    sale.items.length > 0 ? sale.items.map((item) => item.stageId) : [sale.stageId],
-  );
+  const acquiredStageIds = [...(sales.get(studentId) ?? [])];
   const stages = await relevantStages(database, enrollments);
   return enrollments.flatMap((enrollment) =>
     projectMaterialNeed({ enrollment, studentId, asOf, acquiredStageIds, stages }),
