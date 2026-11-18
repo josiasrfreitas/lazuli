@@ -18,7 +18,6 @@ import {
   seedSessionSubstitute,
 } from "./class-records-scenarios.js";
 
-const RECENT_SESSIONS = 4;
 const MINUTE_MS = 60_000;
 const CALL_AFTER_END_MINUTES = 5;
 const CLOSE_AFTER_END_MINUTES = 10;
@@ -47,7 +46,7 @@ type SeedInput = {
 };
 type RecordVersion = { snapshot: ClassRecordSnapshot; reason: string; author: StaffUser; at: Date };
 
-/** Completion is bounded to recent sessions; old attendance-only history remains explicit. */
+/** Populate the journal throughout the semester, up to the last completed school day. */
 export async function seedClassRecords(database: DatabaseClient, todayIso: string): Promise<void> {
   const admin = await database.user.findUniqueOrThrow({
     where: { email: DEV_ADMIN.email },
@@ -68,7 +67,6 @@ export async function seedClassRecords(database: DatabaseClient, todayIso: strin
       },
       select: { id: true },
       orderBy: [{ date: "desc" }, { startTime: "desc" }],
-      take: RECENT_SESSIONS,
     });
     for (const [rank, session] of sessions.toReversed().entries()) {
       await database.$transaction(
@@ -81,7 +79,7 @@ export async function seedClassRecords(database: DatabaseClient, todayIso: strin
               todayIso,
               state,
               classKey: seed.key,
-              variation: classIndex * RECENT_SESSIONS + rank,
+              variation: classIndex + rank,
             },
             session.id,
           ),

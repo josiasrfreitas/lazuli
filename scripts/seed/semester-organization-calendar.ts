@@ -20,7 +20,7 @@ import {
 } from "../../packages/api/src/teachers/availability.js";
 import { organizationId, type OrganizationGroup } from "./semester-organization-data.js";
 
-const SECOND_HALF_START_MONTH = 6;
+const NEXT_SEMESTER_DAYS = 168;
 const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
 
@@ -34,21 +34,22 @@ export async function organizationSemester(
     include: { semester: true },
   });
   const startDate = addDays(current.semester.endDate, 1);
-  const year = startDate.getUTCFullYear();
-  const half = startDate.getUTCMonth() < SECOND_HALF_START_MONTH ? 1 : 2;
-  const name = `${year}.${half}`;
+  const [currentYear, currentHalf] = current.semester.name.split(".");
+  const name = currentHalf === "1" ? `${currentYear}.2` : `${Number(currentYear) + 1}.1`;
+  const endDate = addDays(startDate, NEXT_SEMESTER_DAYS - 1);
   const semester = await database.period.create({
     data: {
       id: organizationId("window", { semesterName: name, key: "semester" }),
       name,
       startDate,
-      endDate: utcDate(`${year}-${half === 1 ? "06-30" : "12-31"}`),
+      endDate,
       createdAt: authoredAt,
       updatedAt: authoredAt,
     },
   });
   // Use the same known federal closures as the existing calendar. Local/movable holidays are not inferred.
-  for (const holiday of brazilFederalHolidaysForYear(year)) {
+  const years = new Set([startDate.getUTCFullYear(), endDate.getUTCFullYear()]);
+  for (const holiday of [...years].flatMap((year) => brazilFederalHolidaysForYear(year))) {
     if (holiday.date < isoOf(startDate) || holiday.date > isoOf(semester.endDate)) continue;
     await database.schoolClosedDay.upsert({
       where: { date: utcDate(holiday.date) },

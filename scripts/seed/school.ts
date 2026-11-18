@@ -1,3 +1,4 @@
+import { seedSchoolFiles } from "./student-media.js";
 import { seedTeachingPrograms } from "./teaching-programs.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { seedCourseCatalog } from "../../packages/db/src/seed-course-catalog.js";
@@ -53,6 +54,7 @@ export async function seedSchool(database: DatabaseClient, todayIso: string): Pr
   await seedSemesterOrganization(database, todayIso);
   await seedClassOrganization(database, todayIso);
   await seedActivity(database, todayIso);
+  await seedSchoolFiles(database);
   process.stdout.write(
     `School loaded for ${todayIso}: ${DEV_STUDENTS.length + 2} students, ${DEV_CLASSES.length + 1} current-semester classes and ${DEV_TEACHERS.length} teachers.\n`,
   );
