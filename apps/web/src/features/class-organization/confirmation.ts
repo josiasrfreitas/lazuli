@@ -24,6 +24,15 @@ export const confirmationVariants = {
 export function isConfirmed(row: Placement): boolean {
   return row.confirmation === "CONFIRMED" || row.confirmation === "PRECONFIRMED";
 }
+export function isReadyForAllocation(row: Placement): boolean {
+  return Boolean(
+    row.planId &&
+    !row.publishedAt &&
+    !row.declinedAt &&
+    row.continuity !== "LEAVING" &&
+    !row.blockers.length,
+  );
+}
 export function planMetrics(
   board: OrganizationBoard,
   plan: ClassPlan,

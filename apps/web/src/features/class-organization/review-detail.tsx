@@ -5,6 +5,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatAttendancePercent, formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
+import { isReadyForAllocation } from "./confirmation";
 import { dateOnly, scheduleLabel } from "./shared";
 import type { OrganizationAction, OrganizationBoard, Placement } from "./model";
 import { HistoryRow } from "./action-dialogs";
@@ -15,14 +16,18 @@ type Props = {
   board: OrganizationBoard;
   onAction: (action: OrganizationAction) => void;
   readOnly?: boolean;
+  selection?: { selected: boolean; disabled: boolean; toggle: () => void };
 };
 
 const score = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
-export function StudentReviewDetail({ row, board, onAction, readOnly }: Props) {
+export function StudentReviewDetail({ row, board, onAction, readOnly, selection }: Props) {
   const plan = board.plans.find((item) => item.id === row.planId);
   const historical = readOnly || dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
-  const editingClass = Boolean(!row.planId || row.continuity === "CHANGE" || row.publishedAt);
+  const leaving = row.continuity === "LEAVING";
+  const ready = !historical && isReadyForAllocation(row);
+  const editingClass =
+    !leaving && Boolean(!row.planId || row.continuity === "CHANGE" || row.publishedAt);
   const action: OrganizationAction = editingClass
     ? row.publishedAt
       ? { kind: "move", rows: [row] }
@@ -30,7 +35,15 @@ export function StudentReviewDetail({ row, board, onAction, readOnly }: Props) {
     : { kind: "continuity", row };
   const label = editingClass ? (plan ? "Alterar turma" : "Escolher turma") : "Registrar resposta";
   const base = `/alunos/${row.studentId}`;
-  const back = usePathname() + "?" + useSearchParams().toString();
+  const path = usePathname();
+  const params = useSearchParams();
+  const back = path + "?" + params.toString();
+  const review = new URLSearchParams(params);
+  review.set("semestre", board.semester.id);
+  review.set("visao", "review");
+  review.set("vinculo", row.id);
+  review.set("busca", row.studentName);
+  review.delete("vinculos");
   const profile = (params: Record<string, string>) =>
     base + "?" + new URLSearchParams({ ...params, voltar: back });
   const requested = (task: string) =>
@@ -78,6 +91,10 @@ export function StudentReviewDetail({ row, board, onAction, readOnly }: Props) {
           <h3>{row.declinedAt || historical ? "Situação do vínculo" : "Próxima ação"}</h3>
           {row.declinedAt ? (
             <p>Saída registrada para este semestre.</p>
+          ) : leaving ? (
+            <p>
+              Acompanhe a possível saída e registre a resposta do aluno sobre o próximo semestre.
+            </p>
           ) : row.blockers.length ? (
             <ul className={styles.blockers}>
               {row.blockers.map((reason) => (
@@ -88,14 +105,43 @@ export function StudentReviewDetail({ row, board, onAction, readOnly }: Props) {
             <p>
               {row.publishedAt
                 ? "Alocação confirmada para a data de vigência."
-                : "Turma e estágio definidos. Selecione o aluno na revisão para confirmar a alocação."}
+                : ready
+                  ? selection?.selected
+                    ? "Aluno selecionado. A alocação será efetivada ao confirmar o lote."
+                    : "Turma e estágio definidos. A alocação está pronta para confirmação em lote."
+                  : "Turma e estágio definidos."}
             </p>
           )}
           {row.attentionNote && <p>{row.attentionNote}</p>}
           {row.continuityReason && <p>{row.continuityReason}</p>}
           <div className={styles.actions}>
+            {ready &&
+              (selection ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={selection.toggle}
+                  disabled={selection.disabled}
+                  aria-pressed={selection.selected}
+                >
+                  {selection.selected ? "Retirar do lote" : "Selecionar para o lote"}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  nativeButton={false}
+                  render={<Link href={path + "?" + review.toString()} scroll={false} />}
+                >
+                  Revisar alocação <ArrowRight size={14} />
+                </Button>
+              ))}
             {!historical && !row.declinedAt && (
-              <Button size="sm" variant="secondary" onClick={() => onAction(action)}>
+              <Button
+                size="sm"
+                variant={ready ? "ghost" : "secondary"}
+                onClick={() => onAction(action)}
+              >
                 {label}
               </Button>
             )}
@@ -108,7 +154,7 @@ export function StudentReviewDetail({ row, board, onAction, readOnly }: Props) {
                 Registrar resposta
               </Button>
             )}
-            {!historical && !row.declinedAt && !editingClass && (
+            {!historical && !row.declinedAt && !leaving && !editingClass && (
               <Button
                 size="sm"
                 variant="ghost"

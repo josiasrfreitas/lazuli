@@ -46,7 +46,9 @@ export function PendingStudent({
     <>
       <div className={formation.panelScroll} data-formation-scroll="">
         <StudentReviewDetail board={board} row={row} readOnly={ended} onAction={onAction} />
-        <StudentSuggestions suggestions={suggestions} ended={ended} choose={choose} />
+        {!row.declinedAt && row.continuity !== "LEAVING" && (
+          <StudentSuggestions suggestions={suggestions} ended={ended} choose={choose} />
+        )}
         {row.planId && !row.publishedAt && (
           <Button
             size="sm"

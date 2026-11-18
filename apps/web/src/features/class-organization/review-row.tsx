@@ -100,7 +100,12 @@ export function ReviewRow({
       </div>
       {expanded && (
         <div className={styles.expanded} id={id}>
-          <StudentReviewDetail row={row} board={board} onAction={onAction} />
+          <StudentReviewDetail
+            row={row}
+            board={board}
+            onAction={onAction}
+            selection={{ selected, disabled: working, toggle: () => onSelection(!selected) }}
+          />
         </div>
       )}
     </li>

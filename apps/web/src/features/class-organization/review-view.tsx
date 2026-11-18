@@ -1,4 +1,5 @@
-import { useState, type ReactElement } from "react";
+import type { ReactElement } from "react";
+import { useQueryState } from "nuqs";
 import { Button, Checkbox } from "@lazuli/ui";
 import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
 import { ReviewRow } from "./review-row";
@@ -20,7 +21,7 @@ type ReviewProps = {
 };
 
 export function ReviewView(props: ReviewProps): ReactElement {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useQueryState("vinculo");
   const eligibleIds = new Set(props.eligible.map(({ id }) => id));
   const selectedIds = new Set(props.selected.map(({ id }) => id));
   return (

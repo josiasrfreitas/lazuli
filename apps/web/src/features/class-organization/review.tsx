@@ -3,6 +3,7 @@ import type { JSX as ReactJSX } from "react";
 import { normalizeSearch } from "@lazuli/domain";
 import { useState } from "react";
 import { type OrganizationAction, type OrganizationBoard } from "./model";
+import { isReadyForAllocation } from "./confirmation";
 import { useReviewPublish } from "./review-publish";
 import { ReviewView } from "./review-view";
 
@@ -30,15 +31,7 @@ export function OrganizationReview({
           : !row.publishedAt && !row.declinedAt)) &&
       normalizeSearch(row.studentName).includes(normalizeSearch(query)),
   );
-  const eligible = rows.filter(
-    (row) =>
-      !ended &&
-      !row.publishedAt &&
-      !row.declinedAt &&
-      row.continuity !== "LEAVING" &&
-      row.blockers.length === 0 &&
-      row.planId,
-  );
+  const eligible = ended ? [] : rows.filter(isReadyForAllocation);
   const selected = eligible.filter((row) => ids.includes(row.id));
   const { working, error, confirm } = useReviewPublish({
     board,

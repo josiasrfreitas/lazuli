@@ -76,7 +76,7 @@ function usePageControls(): PageControls {
     parseAsString.withDefault(""),
   );
   const [tab, setTabState] = useQueryState("visao", parseAsString.withDefault("agenda"));
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useQueryState("busca", parseAsString.withDefault(""));
   const [planId, setPlanQuery] = useQueryState("turma", parseAsString);
   const setPlanId: Setter<string | null> = (value) => {
     void setPlanQuery(value);
