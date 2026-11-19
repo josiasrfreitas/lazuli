@@ -4,6 +4,17 @@
 
 [Desktop atual](review/desktop.png) · [Celular atual](review/mobile.png) · [Critérios funcionais](TASKS.md) · [Arquitetura discutida](INFORMATION_ARCHITECTURE.md)
 
+## Feedback mais recente do usuário
+
+Ao rever a lista de “Estágios” com as cinco tracks recolhidas, o usuário ponderou que “isso não tá tão ruim”. A composição geral do catálogo pode servir de base. A versão anterior continua sendo sua referência preferida.
+
+- O fundo transparente incomoda. O usuário descreveu a tela como “sem alma” e apontou perda de contraste e legibilidade.
+- Há espaço demais entre as informações. Na lista de tracks, é difícil percorrer as linhas rapidamente e encontrar o que interessa.
+- O usuário achou os formulários feios. A captura comentada mostra a lista recolhida. Para avaliar os formulários, é preciso abri-los e observar os campos durante a edição.
+- Os componentes e tokens do Lazuli podem ser reaproveitados onde funcionam. O usuário pediu liberdade para ajustar o que prejudicar a experiência.
+
+O usuário também questionou a validação visual. A retomada deve verificar no navegador se é fácil localizar uma track, conferir seus estágios e preencher ou corrigir uma atividade do livro. A leitura rápida da lista, a hierarquia dos campos e o contraste continuam em aberto.
+
 ## O que preservar
 
 - Criação e ordenação de tracks e estágios. Legacy sai da seleção de novas turmas, continua consultável pelo filtro e mantém o acesso das turmas existentes.
