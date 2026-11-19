@@ -189,19 +189,21 @@ export async function readClassPlans(
       ),
     )
     .select(
-      sql<number>`(
-      SELECT count(DISTINCT enrollment.student_id)::int
-      FROM "Class" AS origin
-      JOIN "Semester" AS prior ON prior.id = origin.semester_id
-      JOIN "Enrollment" AS enrollment ON enrollment.class_id = origin.id
-      WHERE origin.id = coalesce(class.previous_class_id, plan.source_class_id)
-        AND prior.id = (SELECT id FROM "Semester"
-          WHERE deleted_at IS NULL AND end_date < semester.start_date
-          ORDER BY end_date DESC, id LIMIT 1)
-        AND enrollment.deleted_at IS NULL
-        AND enrollment.entry_date <= least(prior.end_date, ${saoPauloDateOnly(context.now)}::date)
-        AND (enrollment.exit_date IS NULL OR enrollment.exit_date > least(prior.end_date, ${saoPauloDateOnly(context.now)}::date))
-    )`.as("previousStudentCount"),
+      sql<number>`
+        (
+          SELECT count(DISTINCT enrollment.student_id)::int
+          FROM "Class" AS origin
+          JOIN "Semester" AS prior ON prior.id = origin.semester_id
+          JOIN "Enrollment" AS enrollment ON enrollment.class_id = origin.id
+          WHERE origin.id = coalesce(class.previous_class_id, plan.source_class_id)
+            AND prior.id = (SELECT id FROM "Semester"
+              WHERE deleted_at IS NULL AND end_date < semester.start_date
+              ORDER BY end_date DESC, id LIMIT 1)
+            AND enrollment.deleted_at IS NULL
+            AND enrollment.entry_date <= least(prior.end_date, ${saoPauloDateOnly(context.now)}::date)
+            AND (enrollment.exit_date IS NULL OR enrollment.exit_date > least(prior.end_date, ${saoPauloDateOnly(context.now)}::date))
+        )
+      `.as("previousStudentCount"),
     )
     .select(enrolledStudentIds(context.now))
     .select((eb) =>

@@ -699,7 +699,7 @@ void it("postpones an entry, then dissolves a future class into the same waiting
   await seedOffPeriodExtra(publication.classId, extraDate);
   await caller().semesterOrganization.continuity({
     id: student.proposal.id,
-    version: board.placements[0]!.version,
+    version: board.placements[0].version,
     semesterId: scope.semester.id,
     continuity: "LEAVING",
     reason: "Relato da família.",
@@ -739,12 +739,12 @@ void it("dissolves an operational class before preparation and clears only the c
   const first = await scope.student("Encerramento operacional");
   const second = await scope.student("Segundo aluno da turma");
   const semesterId = scope.catalog.semesterId;
+  const stage = await db.stage.findUniqueOrThrow({ where: { id: scope.catalog.firstStageId } });
   const suspended = await db.semesterPlacement.create({
     data: {
       semesterId,
       studentId: first.id,
-      trackId: (await db.stage.findUniqueOrThrow({ where: { id: scope.catalog.firstStageId } }))
-        .trackId,
+      trackId: stage.trackId,
       stageId: scope.catalog.firstStageId,
       mode: "CONTINUE",
       enrollmentId: first.source.enrollment.id,
@@ -838,14 +838,16 @@ void it("keeps a manual engagement concern independent of passing marks, attenda
     attentionNote: "",
     reason: "Retomar contato na sexta-feira.",
   });
-  const resolved = (await detail()).placements[0]!;
+  const resolvedBoard = await detail();
+  const resolved = resolvedBoard.placements[0]!;
   assert.equal(resolved.confirmation, "PRECONFIRMED");
   assert.deepEqual(resolved.blockers, []);
   await db.semesterPlacement.update({
     where: { id: student.proposal.id },
     data: { exitRiskActive: true },
   });
-  const risk = (await detail()).placements[0]!;
+  const riskBoard = await detail();
+  const risk = riskBoard.placements[0]!;
   assert.equal(risk.confirmation, "BLOCKED");
   assert.deepEqual(risk.blockers, ["Risco de saída"]);
   await caller().semesterOrganization.riskLimit({
@@ -959,13 +961,18 @@ void it("restarts provisional placements while keeping real confirmations, marks
   assert.equal(reset.released, 1);
   const board = await service.detail(input);
   const byStudent = new Map(board.placements.map((row) => [row.studentId, row]));
-  assert.equal(byStudent.get(pending.id)?.planId, null);
-  assert.equal(byStudent.get(pending.id)?.attentionNote, "Retomar contato na sexta-feira.");
-  assert.equal(byStudent.get(confirmed.id)?.attention.attendance, null);
-  assert.equal(byStudent.get(confirmed.id)?.confirmation, "PRECONFIRMED");
+  const released = byStudent.get(pending.id);
+  assert.ok(released);
+  assert.equal(released.planId, null);
+  assert.equal(released.attentionNote, "Retomar contato na sexta-feira.");
+  const kept = byStudent.get(confirmed.id);
+  assert.ok(kept);
+  assert.equal(kept.attention.attendance, null);
+  assert.equal(kept.confirmation, "PRECONFIRMED");
   const automatic = byStudent.get(preconfirmed.id);
-  assert.equal(automatic?.confirmation, "PRECONFIRMED");
-  assert.equal(automatic?.planId, scope.plan.id);
+  assert.ok(automatic);
+  assert.equal(automatic.confirmation, "PRECONFIRMED");
+  assert.equal(automatic.planId, scope.plan.id);
   assert.equal(byStudent.get(scheduled.id)?.entryStatus, "SCHEDULED");
   const history = await service.history({ id: pending.proposal.id });
   assert.equal(history[0]?.action, "FORMATION_RESET");
@@ -985,8 +992,13 @@ void it("resolves each continuity blocker from its source before scheduling the 
   const student = await scope.student("Reposição");
   const service = caller().semesterOrganization;
   const input = { semesterId: scope.semester.id };
-  const state = async () => (await service.detail(input)).placements[0]!;
-  const publish = () =>
+  const state = async (): Promise<
+    Awaited<ReturnType<FormationCaller["detail"]>>["placements"][number]
+  > => {
+    const board = await service.detail(input);
+    return board.placements[0]!;
+  };
+  const publish = (): ReturnType<FormationCaller["publish"]> =>
     service.publish({
       planId: scope.plan.id,
       version: 1,
@@ -1005,13 +1017,15 @@ void it("resolves each continuity blocker from its source before scheduling the 
     where: { studentId: student.id },
     data: { endsOn: new Date("2085-06-30") },
   });
-  assert.deepEqual((await state()).blockers, [
+  const initial = await state();
+  assert.deepEqual(initial.blockers, [
     "Sem contrato vigente",
     "Material sem compra registrada",
     "Frequência baixa",
   ]);
   await acquireMaterial(student.id, scope.catalog.firstStageId);
-  assert.deepEqual((await state()).blockers, ["Sem contrato vigente", "Frequência baixa"]);
+  const withMaterial = await state();
+  assert.deepEqual(withMaterial.blockers, ["Sem contrato vigente", "Frequência baixa"]);
   await assert.rejects(publish(), /Sem contrato vigente.*Frequência baixa/u);
   await db.contract.updateMany({
     where: { studentId: student.id },
@@ -1050,7 +1064,8 @@ void it("resolves each continuity blocker from its source before scheduling the 
   assert.equal(ready.confirmation, "PRECONFIRMED");
   assert.equal(ready.publishedAt, null);
   await publish();
-  assert.equal((await state()).confirmation, "CONFIRMED");
+  const published = await state();
+  assert.equal(published.confirmation, "CONFIRMED");
 });
 
 void it("preserves recorded departure when editing the proposal", async () => {
@@ -1071,8 +1086,8 @@ void it("preserves recorded departure when editing the proposal", async () => {
     sourceProgressId: student.source.progress.id,
     stageId: scope.catalog.firstStageId,
   });
-  const row = (await caller().semesterOrganization.detail({ semesterId: scope.semester.id }))
-    .placements[0]!;
+  const board = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
+  const row = board.placements[0]!;
   assert.deepEqual(row.declinedAt, declinedAt);
   assert.equal(row.declinedReason, "Mudança de cidade");
   assert.equal(row.confirmation, "LEAVING");

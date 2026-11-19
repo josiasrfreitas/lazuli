@@ -77,24 +77,31 @@ export async function readFormationAcademics(
       const results = assessmentResults(
         grades.map((grade) => ({ ...grade, score: Number(grade.score) })),
       );
-      const effectiveScores = results.flatMap(({ effective }) =>
-        effective === null ? [] : [effective],
-      );
-      const presence = attendance.get(row.enrollment.id);
       result.set(row.id, {
-        gradesIncomplete: results.some((result) => result.effective === null),
-        grades: results.some((result) => result.passed === false)
-          ? "NEEDS_SUPPORT"
-          : assessmentStatus(results),
-        gradeAverage:
-          effectiveScores.length > 0
-            ? effectiveScores.reduce((sum, score) => sum + score, 0) / effectiveScores.length
-            : null,
-        ...presenceMetrics(presence),
+        ...gradeMetrics(results),
+        ...presenceMetrics(attendance.get(row.enrollment.id)),
       });
     }
   }
   return result;
+}
+
+function gradeMetrics(
+  results: ReturnType<typeof assessmentResults>,
+): Pick<FormationAcademics, "gradesIncomplete" | "grades" | "gradeAverage"> {
+  const effectiveScores = results.flatMap(({ effective }) =>
+    effective === null ? [] : [effective],
+  );
+  return {
+    gradesIncomplete: results.some((result) => result.effective === null),
+    grades: results.some((result) => result.passed === false)
+      ? "NEEDS_SUPPORT"
+      : assessmentStatus(results),
+    gradeAverage:
+      effectiveScores.length > 0
+        ? effectiveScores.reduce((sum, score) => sum + score, 0) / effectiveScores.length
+        : null,
+  };
 }
 
 function attemptsByPeriod<T extends { enrollment: { class: { semester: { id: string } } } }>(
