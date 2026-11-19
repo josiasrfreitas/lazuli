@@ -1,113 +1,177 @@
 import type { ReactElement } from "react";
-import { Check, ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { followsOwnClass } from "@lazuli/domain";
 import { Badge, Checkbox } from "@lazuli/ui";
 import { StudentAvatar } from "~/components/student-avatar";
-import { formatDateOnlyBR } from "~/lib/format";
-import { attentionReasons } from "./attention-reasons";
-import { dateOnly } from "./shared";
-import { confirmationLabels, confirmationVariants, isConfirmed } from "./confirmation";
-import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
-import { StudentReviewDetail } from "./review-detail";
-import styles from "./review.module.css";
+import { rosterAttentionReasons } from "./attention-reasons";
+import { FormationReason } from "./formation-reason";
+import { responseLabels } from "./confirmation";
+import type { ClassPlan, OrganizationBoard, Placement } from "./model";
+import { isReviewDeparture, reviewPlanName } from "./review-group-model";
+import { reviewStatus } from "./review-model";
+import styles from "./review-groups.module.css";
 
 type RowProps = {
   row: Placement;
+  plan: ClassPlan | undefined;
   board: OrganizationBoard;
-  selected: boolean;
+  ended: boolean;
   eligible: boolean;
+  selected: boolean;
   working: boolean;
-  expanded: boolean;
-  onToggle: () => void;
-  onSelection: (value: boolean) => void;
-  onAction: (action: OrganizationAction) => void;
+  href: string;
+  onNavigate?: () => void;
+  onSelection: (row: Placement, value: boolean) => void;
 };
 
 export function ReviewRow({
   row,
+  plan,
   board,
-  selected,
+  ended,
   eligible,
+  selected,
   working,
-  expanded,
-  onToggle,
+  href,
+  onNavigate,
   onSelection,
-  onAction,
 }: RowProps): ReactElement {
-  const plan = board.plans.find((item) => item.id === row.planId);
-  const id = `review-${row.id}`;
-  const sameClass = Boolean(
-    row.sourceClassId &&
-    (row.sourceClassId === plan?.sourceClassId || row.sourceClassId === plan?.classId),
-  );
-  const shortIssue = attentionReasons(row)[0]?.label ?? "Revisar proposta";
+  const detailId = `review-case-${row.id}`;
+  const checkboxId = `review-select-student-${row.id}`;
+  const publishedPlan =
+    row.publishedAt && row.planId && row.planId !== plan?.id
+      ? board.plans.find((candidate) => candidate.id === row.planId)
+      : undefined;
+  const age =
+    row.studentAge == null
+      ? "Idade não informada"
+      : `${row.studentAge} ${row.studentAge === 1 ? "ano" : "anos"}`;
+  const score = row.attention.healthScore;
+  const context = [
+    age,
+    score == null ? "Score indisponível" : `Score ${score}`,
+    studentContext(row, plan),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const description = [
+    context && `${detailId}-context`,
+    publishedPlan && `${detailId}-plan`,
+    `${detailId}-status`,
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <li className={styles.row} data-expanded={expanded || undefined}>
-      <div className={styles.summary}>
-        <div className={styles.select}>
-          {eligible ? (
-            <Checkbox
-              size="sm"
-              aria-label={`Selecionar ${row.studentName} para alocação`}
-              checked={selected}
-              disabled={working}
-              onCheckedChange={(value) => onSelection(Boolean(value))}
-            />
-          ) : row.publishedAt && !row.declinedAt ? (
-            <Check size={16} aria-label="Alocação confirmada" className="text-success" />
-          ) : null}
+    <li className={styles.student} data-selected={selected || undefined}>
+      <div className={styles.studentBar}>
+        <div className={styles.pick}>
+          {eligible && (
+            <label htmlFor={checkboxId} className={styles.studentSelection}>
+              <Checkbox
+                id={checkboxId}
+                size="md"
+                aria-labelledby={`${checkboxId}-label`}
+                checked={selected}
+                disabled={working}
+                onCheckedChange={(value) => onSelection(row, Boolean(value))}
+              />
+              <span id={`${checkboxId}-label`} className="sr-only">
+                Selecionar {row.studentName} para alocação
+              </span>
+            </label>
+          )}
         </div>
-        <button
-          type="button"
-          className={styles.toggle}
-          aria-expanded={expanded}
-          aria-controls={expanded ? id : undefined}
-          onClick={onToggle}
+        <Link
+          href={href}
+          scroll={false}
+          prefetch={false}
+          id={`review-student-${row.id}`}
+          className={styles.studentLink}
+          aria-label={`Abrir ficha de ${row.studentName}`}
+          aria-describedby={description}
+          onNavigate={() => onNavigate?.()}
         >
-          <span className={styles.student}>
+          <span className={styles.person}>
             <StudentAvatar name={row.studentName} colorKey={row.studentId} size="sm" />
-            <strong>{row.studentName}</strong>
+            <span className={styles.personName}>
+              <strong>{row.studentName}</strong>
+              {context && <small id={`${detailId}-context`}>{context}</small>}
+              {publishedPlan && (
+                <small id={`${detailId}-plan`}>
+                  {row.declinedAt ? "Última alocação" : "Turma confirmada"} ·{" "}
+                  {reviewPlanName(publishedPlan)}
+                </small>
+              )}
+            </span>
           </span>
-          <span className={styles.route}>
-            {row.declinedAt ? (
-              <span>Saída registrada</span>
-            ) : sameClass ? (
-              <span>Permanece na turma{row.stageName ? ` · ${row.stageName}` : ""}</span>
-            ) : (
-              <>
-                <span>{row.sourceClassName ?? "Nova entrada"}</span>
-                <ArrowRight size={13} aria-hidden="true" />
-                <span>{plan?.name ?? "Escolher turma"}</span>
-              </>
-            )}
+          <span className={styles.situation} id={`${detailId}-status`}>
+            <RowStatus row={row} ended={ended} />
           </span>
-          <span className={styles.status}>
-            <Badge variant={row.declinedAt ? "neutral" : confirmationVariants[row.confirmation]}>
-              {!row.declinedAt && isConfirmed(row) && <Check size={12} aria-hidden="true" />}
-              {row.declinedAt ? "Saída registrada" : confirmationLabels[row.confirmation]}
-            </Badge>
-            <small>
-              {row.publishedAt
-                ? `Vigência em ${formatDateOnlyBR(dateOnly(row.effectiveDate ?? board.semester.startDate))}`
-                : eligible
-                  ? "Pronto para alocar"
-                  : row.declinedAt
-                    ? ""
-                    : shortIssue}
-            </small>
-          </span>
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
+          <ArrowRight className={styles.studentArrow} aria-hidden="true" size={15} />
+        </Link>
       </div>
-      {expanded && (
-        <div className={styles.expanded} id={id}>
-          <StudentReviewDetail
-            row={row}
-            board={board}
-            onAction={onAction}
-            selection={{ selected, disabled: working, toggle: () => onSelection(!selected) }}
-          />
-        </div>
-      )}
     </li>
+  );
+}
+
+function studentContext(row: Placement, plan: ClassPlan | undefined): string {
+  if (isReviewDeparture(row)) {
+    const origin = plan && row.sourceClassId !== plan.classId ? row.sourceClassName : null;
+    const stage = row.sourceStageName ?? row.sourceStageCode;
+    return [origin && `Origem · ${origin}`, stage && `Estágio de origem · ${stage}`]
+      .filter(Boolean)
+      .join(" · ");
+  }
+  const sameGroup = followsOwnClass(row.sourceClassId, plan ?? null);
+  const origin = row.sourceClassName ? `Origem · ${row.sourceClassName}` : null;
+  const stage = row.stageName ?? row.stageCode ?? "A definir";
+  const individualStage =
+    !plan || plan.scheduleType === "PERSONALIZED" || plan.sharedStageId !== row.stageId;
+  return [
+    row.mode === "ENTRY" ? "Nova entrada" : !sameGroup && origin,
+    individualStage && `Destino · ${stage}`,
+    row.mode === "REPEAT" && "Repete o estágio",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function RowStatus({ row, ended }: Pick<RowProps, "row" | "ended">): ReactElement {
+  const { label, variant, impliedBlocker } = reviewStatus(row, ended);
+  const reasons = row.declinedAt ? [] : rosterAttentionReasons(row);
+  const blockers = reasons.filter((reason) => reason.blocker);
+  const showBlocker =
+    blockers.length > 0 &&
+    (variant === "destructive" || (row.confirmation === "BLOCKED" && !!impliedBlocker));
+  const visible = [
+    ...blockers.filter((reason) => showBlocker || reason.blocker !== impliedBlocker),
+    ...reasons.filter(
+      ({ blocker, risk }) =>
+        !blocker &&
+        (risk === "lowHealth" ||
+          risk === "incomplete" ||
+          risk === "missingAttendance" ||
+          risk === "other"),
+    ),
+  ];
+  const changedResponse =
+    row.publishedAt &&
+    !row.declinedAt &&
+    (row.continuity === "CHANGE" || row.continuity === "LEAVING")
+      ? responseLabels[row.continuity]
+      : null;
+  return (
+    <>
+      {showBlocker ? (
+        <span className="sr-only">{label}.</span>
+      ) : (
+        <Badge variant={variant}>{label}</Badge>
+      )}
+      {changedResponse && <small>{changedResponse}</small>}
+      {visible.map((reason) => (
+        <FormationReason key={reason.risk} reason={reason} />
+      ))}
+    </>
   );
 }

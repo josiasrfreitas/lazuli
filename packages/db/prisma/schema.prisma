@@ -134,6 +134,7 @@ enum ArtifactKind {
 }
 
 model User {
+  placementCaseEvents SemesterPlacementEvent[]
   undatedIntakes UndatedStudentIntake[]
   classAppointmentsTaught ClassAppointmentSeries[] @relation("ClassAppointmentTeacher")
   classAppointmentsScheduled ClassAppointmentSeries[] @relation("ClassAppointmentScheduler")
@@ -893,6 +894,7 @@ model Payer {
 }
 
 model Contract {
+  placementCaseEvents SemesterPlacementEvent[]
   plannedBooks ContractBook[]
   renegotiations ContractRenegotiation[]
   renewals Contract[] @relation("ContractRenewal")
@@ -936,6 +938,7 @@ model Contract {
 }
 
 model ContractRenegotiation {
+  placementCaseEvents SemesterPlacementEvent[]
   adjustments InstallmentAdjustment[]
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
@@ -1981,6 +1984,9 @@ model SemesterClassPlan {
 }
 
 model SemesterPlacement {
+  classClosurePending Boolean @default(false) @map("class_closure_pending")
+  caseEvents SemesterPlacementEvent[]
+  exitRiskActive Boolean @default(false) @map("exit_risk_active")
   attentionNote String? @map("attention_note")
   continuity String @default("UNDECIDED")
   continuityReason String? @map("continuity_reason")
@@ -2026,6 +2032,38 @@ model SemesterPlacement {
   @@index([semesterId, planId])
   @@index([entryActionId])
   @@index([sourceExitActionId])
+}
+
+enum FormationExitRiskReason {
+  FINANCIAL
+  DISINTEREST
+  SCHEDULE_CONFLICT
+  COURSE_DISSATISFACTION
+  RELOCATION_OR_TRANSPORT
+  OTHER
+}
+
+model SemesterPlacementEvent {
+  id String @id @db.Uuid
+  placementId String @map("placement_id") @db.Uuid
+  recordedById String @map("recorded_by_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  kind String
+  narrative String
+  riskReason FormationExitRiskReason? @map("risk_reason")
+  verbalReport Boolean? @map("verbal_report")
+  healthScore Int? @map("health_score")
+  outcome String?
+  nextOwner String? @map("next_owner")
+  reassessment String?
+  renegotiationId String? @map("renegotiation_id") @db.Uuid
+  renewalId String? @map("renewal_id") @db.Uuid
+  placement SemesterPlacement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  renegotiation ContractRenegotiation? @relation(fields: [renegotiationId], references: [id], onDelete: Restrict)
+  renewal Contract? @relation(fields: [renewalId], references: [id], onDelete: Restrict)
+
+  @@index([placementId, createdAt])
 }
 
 model SemesterPlacementRevision {

@@ -10,14 +10,13 @@ import type { SlotDraft } from "./slot-fields";
 
 export type ClassPlanProps = {
   semesterId: string;
+  initialStageId?: string | undefined;
   plan?: ClassPlan | undefined;
   group?: PendingGroup | undefined;
   onClose: () => void;
   onSaved: (id: string) => void;
 };
 type Draft = {
-  name: string;
-  setName: Dispatch<SetStateAction<string>>;
   kind: ClassPlan["scheduleType"];
   setKind: Dispatch<SetStateAction<ClassPlan["scheduleType"]>>;
   format: ClassPlan["format"];
@@ -33,13 +32,12 @@ type Draft = {
 };
 export type ClassPlanModel = Pick<
   Draft,
-  "name" | "kind" | "format" | "teacher" | "stage" | "selected" | "slots"
+  "kind" | "format" | "teacher" | "stage" | "selected" | "slots"
 > & {
   validation: ReturnType<typeof useValidation>;
   pending: boolean;
   error: string | undefined;
   submit: (event: FormEvent<HTMLFormElement>) => void;
-  changeName: (value: string) => void;
   changeKind: (value: string) => void;
   changeFormat: (value: string) => void;
   changeTeacher: (value: string) => void;
@@ -49,13 +47,7 @@ export type ClassPlanModel = Pick<
 };
 type ClassPlanChanges = Pick<
   ClassPlanModel,
-  | "changeName"
-  | "changeKind"
-  | "changeFormat"
-  | "changeTeacher"
-  | "changeStage"
-  | "changeSlots"
-  | "togglePerson"
+  "changeKind" | "changeFormat" | "changeTeacher" | "changeStage" | "changeSlots" | "togglePerson"
 >;
 
 export function useClassPlanModel(props: ClassPlanProps): ClassPlanModel {
@@ -66,7 +58,6 @@ export function useClassPlanModel(props: ClassPlanProps): ClassPlanModel {
     onSuccess: async (result) => {
       await refresh();
       props.onSaved(result.id);
-      props.onClose();
     },
   });
   const submit = (event: FormEvent<HTMLFormElement>): void => {
@@ -75,7 +66,6 @@ export function useClassPlanModel(props: ClassPlanProps): ClassPlanModel {
     if (values && !mutation.isPending) mutation.mutate(values);
   };
   return {
-    name: draft.name,
     kind: draft.kind,
     format: draft.format,
     teacher: draft.teacher,
@@ -98,10 +88,6 @@ function classPlanChanges({
   validation: ReturnType<typeof useValidation>;
 }): ClassPlanChanges {
   return {
-    changeName: (value) => {
-      draft.setName(value);
-      validation.clear("name");
-    },
     changeKind: (value) => {
       draft.setKind(value as Draft["kind"]);
       validation.clear("sharedStageId");
@@ -126,18 +112,15 @@ function classPlanChanges({
   };
 }
 
-function useClassPlanDraft({ plan, group }: ClassPlanProps): Draft {
+function useClassPlanDraft({ plan, group, initialStageId }: ClassPlanProps): Draft {
   const initial = initialClassPlan({ plan, group });
-  const [name, setName] = useState(initial.name);
   const [kind, setKind] = useState(initial.kind);
   const [format, setFormat] = useState(initial.format);
   const [teacher, setTeacher] = useState(initial.teacher);
-  const [stage, setStage] = useState(initial.stage);
+  const [stage, setStage] = useState(initialStageId ?? initial.stage);
   const [selected, setSelected] = useState(initial.selected);
   const [slots, setSlots] = useState(initial.slots);
   return {
-    name,
-    setName,
     kind,
     setKind,
     format,
@@ -158,7 +141,7 @@ function initialClassPlan({
   group,
 }: Pick<ClassPlanProps, "plan" | "group">): Pick<
   Draft,
-  "name" | "kind" | "format" | "teacher" | "stage" | "selected" | "slots"
+  "kind" | "format" | "teacher" | "stage" | "selected" | "slots"
 > {
   return {
     ...initialPlanFields(plan),
@@ -168,7 +151,6 @@ function initialClassPlan({
           format: group.leads[0].format ?? "IN_PERSON",
         }
       : {}),
-    name: initialClassName({ plan, group }),
     stage: initialStage({ plan, group }),
     selected: initialSelected(group),
   };
@@ -186,11 +168,6 @@ function initialPlanFields(
       { weekday: "WEDNESDAY", startTime: "", endTime: "" },
     ],
   };
-}
-
-function initialClassName({ plan, group }: Pick<ClassPlanProps, "plan" | "group">): string {
-  if (plan) return plan.name;
-  return group ? `${group.stageCode} · nova turma` : "";
 }
 
 function initialStage({ plan, group }: Pick<ClassPlanProps, "plan" | "group">): string {
@@ -211,7 +188,6 @@ function classPlanInput(
   id?: string;
   version: number;
   semesterId: string;
-  name: string;
   scheduleType: ClassPlan["scheduleType"];
   format: ClassPlan["format"];
   teacherId: string | null;
@@ -224,7 +200,6 @@ function classPlanInput(
     ...(plan ? { id: plan.id } : {}),
     version: plan?.version ?? 0,
     semesterId,
-    name: draft.name,
     scheduleType: draft.kind,
     format: draft.format,
     teacherId: draft.teacher === "pending" ? null : draft.teacher,

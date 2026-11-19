@@ -7,7 +7,6 @@ const SATURDAY = 6;
 export type OrganizationSlot = { weekday: DevWeekday; startTime: string; endTime: string };
 export type OrganizationGroup = {
   key: string;
-  name: string;
   scheduleType: "REGULAR" | "PERSONALIZED";
   format: "IN_PERSON" | "ONLINE";
   stageCode: string | null;
@@ -34,7 +33,6 @@ const SCHEDULE_CONFLICT_STUDENTS = {
 export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   {
     key: "mwb",
-    name: "MWB · tarde",
     scheduleType: "REGULAR",
     format: "IN_PERSON",
     stageCode: "MWB",
@@ -45,7 +43,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
   {
     key: "s3",
-    name: "S3 · online",
     scheduleType: "REGULAR",
     format: "ONLINE",
     stageCode: "S3",
@@ -65,7 +62,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
   {
     key: "ppt-a",
-    name: "PPT · primeira faixa da tarde",
     scheduleType: "PERSONALIZED",
     format: "IN_PERSON",
     stageCode: null,
@@ -80,7 +76,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
   {
     key: "ppt-b",
-    name: "PPT · segunda faixa da tarde",
     scheduleType: "PERSONALIZED",
     format: "IN_PERSON",
     stageCode: null,
@@ -95,7 +90,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
   {
     key: "mwy-repeat",
-    name: "MWY · retomada do estágio",
     scheduleType: "REGULAR",
     format: "IN_PERSON",
     stageCode: "MWY",
@@ -106,7 +100,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
   {
     key: "c2",
-    name: "C2 · horário a conciliar",
     scheduleType: "REGULAR",
     format: "IN_PERSON",
     stageCode: "C2",
@@ -117,7 +110,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
   {
     key: "e1",
-    name: "E1 · novas entradas",
     scheduleType: "REGULAR",
     format: "IN_PERSON",
     stageCode: "E1",
@@ -135,7 +127,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
   {
     key: "ppt-c",
-    name: "PPT · docente a definir",
     scheduleType: "PERSONALIZED",
     format: "IN_PERSON",
     stageCode: null,

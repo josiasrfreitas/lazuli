@@ -1,5 +1,5 @@
-import type { Prisma } from "@lazuli/db";
-import type { FinanceDatabase } from "./shared.js";
+import type { Prisma } from "./generated/prisma/client.js";
+import type { TransactionClient } from "./client.js";
 
 export function studentMaterialSaleWhere(studentIds: string[]): Prisma.MaterialOrderWhereInput {
   return {
@@ -17,7 +17,7 @@ export function purchasedBooks<Book>(items: Book[], legacyBook: Book): Book[] {
 }
 
 export async function readAcquiredStages(
-  database: Pick<FinanceDatabase, "materialOrder">,
+  database: Pick<TransactionClient, "materialOrder">,
   studentIds: string[],
 ): Promise<Map<string, Set<string>>> {
   const sales = await database.materialOrder.findMany({

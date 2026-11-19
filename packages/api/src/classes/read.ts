@@ -33,7 +33,7 @@ type ListInput = z.infer<typeof classListInputSchema>;
 const classInclude = {
   teacher: responsibilitySelect.teacher,
   teacherAssignments: responsibilitySelect.teacherAssignments,
-  semester: { select: { id: true, name: true } },
+  semester: { select: { id: true, name: true, endDate: true } },
   sharedStage: { select: { id: true, name: true, track: { select: { name: true } } } },
   scheduleSlots: {
     where: { deletedAt: null },
@@ -111,6 +111,7 @@ export async function listClasses(
 
 export async function readClass(input: ReadClassInput): Promise<
   ClassBase & {
+    canDissolve: boolean;
     occupancy: number;
     scheduledEntries: number;
     currentTeacher: { id: string; name: string } | null;
@@ -139,6 +140,7 @@ export async function readClass(input: ReadClassInput): Promise<
   ]);
   return {
     ...row,
+    canDissolve: row.status === "ACTIVE" && row.semester.endDate >= today,
     currentTeacher: usualTeacherOn(row, today),
     occupancy,
     scheduledEntries,

@@ -20,8 +20,7 @@ async function resetScope(context: OrganizationContext, semesterId: string): Pro
       !row.publishedAt &&
       !row.enrollmentId &&
       !row.entryActionId &&
-      row.confirmation !== "CONFIRMED" &&
-      row.confirmation !== "PRECONFIRMED",
+      (row.blockers.length > 0 || row.continuity === "CHANGE" || row.continuity === "LEAVING"),
   );
   const versions = provisional
     .map(({ id, version }) => [id, version] as const)

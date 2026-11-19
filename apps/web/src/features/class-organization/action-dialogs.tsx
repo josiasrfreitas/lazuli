@@ -1,5 +1,6 @@
 "use client";
 import type { FormEvent, JSX as ReactJSX } from "react";
+import { ArrowDown } from "lucide-react";
 import { FormationProgress } from "./page-loading";
 import { responseLabels } from "./confirmation";
 import { useState } from "react";
@@ -138,7 +139,15 @@ function ReasonDialogView({
 const actions: Record<string, string> = {
   FORMATION_RESET: "Destino provisório retirado no reinício da formação",
   INHERITED: "Proposta trazida da turma anterior",
-  CONTINUITY: "Resposta do aluno registrada",
+  CONTINUITY: "Registro de continuidade",
+  CLASS_DISSOLVED: "Turma encerrada",
+  CHANGE_REQUEST: "Pedido de troca registrado",
+  RETRACT_REQUEST: "Pedido de troca retirado",
+  SCHEDULE_RISK: "Risco de troca de horário",
+  RISK: "Risco de saída sinalizado",
+  REVIEW: "Risco de saída reavaliado",
+  BLOCK: "Impedimento sinalizado pela equipe",
+  UNBLOCK: "Impedimento resolvido",
   CARRIED_FORWARD: "Pendência trazida do período anterior",
   ENROLLED: "Matrícula confirmada",
   NOT_CONTINUING: "Saída registrada para o semestre",
@@ -184,9 +193,9 @@ export function PlacementHistory({
             ) : (
               <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
             )}
-            <ol className="grid gap-5 py-4">
-              {query.data?.map((item) => (
-                <HistoryRow key={item.id} item={item} />
+            <ol aria-label="Do registro mais antigo ao mais recente" className="grid gap-5 py-4">
+              {query.data?.toReversed().map((item, index) => (
+                <HistoryRow key={item.id} item={item} followsPrevious={index > 0} />
               ))}
             </ol>
           </DialogBody>
@@ -201,11 +210,23 @@ export function PlacementHistory({
   );
 }
 
-export function HistoryRow({ item }: { item: HistoryItem }): ReactJSX.Element {
+export function HistoryRow({
+  item,
+  followsPrevious = false,
+}: {
+  item: HistoryItem;
+  followsPrevious?: boolean;
+}): ReactJSX.Element {
   const snapshot = snapshotSchema.safeParse(item.snapshot);
   const response = item.action === "CONTINUITY" && snapshot.success && snapshot.data.continuity;
   return (
-    <li className="border-l-2 border-border pl-4">
+    <li className="relative border-l-2 border-border pl-4">
+      {followsPrevious && (
+        <ArrowDown
+          aria-hidden="true"
+          className="absolute -top-4 -left-px size-3 -translate-x-1/2 text-muted-foreground"
+        />
+      )}
       <p className="text-caption font-semibold">
         {response ? responseLabels[response] : (actions[item.action] ?? item.action)}
       </p>

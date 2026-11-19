@@ -2,13 +2,9 @@
 import { trpc } from "~/lib/trpc";
 import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import { Button } from "@lazuli/ui";
-import {
-  dateOnly,
-  scheduleLabel,
-  useOrganizationRefresh,
-} from "~/features/class-organization/shared";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import {
   suggestedPlans,
@@ -19,7 +15,10 @@ import {
 } from "./model";
 import styles from "./organization.module.css";
 import formation from "./formation.module.css";
+import detail from "./review-detail.module.css";
 import { StudentReviewDetail } from "./review-detail";
+import { needsReviewDestination, reviewDestinationId, reviewPlanName } from "./review-group-model";
+import { reviewClassHeading } from "./review-class-heading";
 
 const MAX_PLAN_SUGGESTIONS = 5;
 export type QueueProps = {
@@ -35,7 +34,8 @@ export function PendingStudent({
   onAction,
   onSelect,
 }: QueueProps & { row: Placement; ended: boolean }): ReactJSX.Element {
-  const suggestions = suggestedPlans(row, board);
+  const destinationId = row.publishedAt ? row.planId : reviewDestinationId(row);
+  const needsDestination = !ended && needsReviewDestination(row);
   const choose = (planId?: string): void =>
     onAction(
       row.publishedAt
@@ -43,75 +43,85 @@ export function PendingStudent({
         : { kind: "placement", studentId: row.studentId, row, ...(planId ? { planId } : {}) },
     );
   return (
-    <>
-      <div className={formation.panelScroll} data-formation-scroll="">
-        <div className={formation.studentDetailBody}>
-          <StudentReviewDetail board={board} row={row} readOnly={ended} onAction={onAction} />
-          {!row.declinedAt && row.continuity !== "LEAVING" && (
-            <StudentSuggestions suggestions={suggestions} ended={ended} choose={choose} />
+    <div className={formation.panelScroll} data-formation-scroll="">
+      <div className={formation.studentDetailBody}>
+        <StudentReviewDetail
+          board={board}
+          row={row}
+          readOnly={ended}
+          onAction={onAction}
+          planLink={
+            destinationId && (
+              <Button
+                size="inline"
+                variant="link"
+                data-formation-focus="proposed"
+                onClick={(event) => onSelect(destinationId, event.currentTarget)}
+              >
+                Ver turma <ArrowRight />
+              </Button>
+            )
+          }
+        >
+          {needsDestination && (
+            <StudentSuggestions suggestions={suggestedPlans(row, board)} choose={choose} />
           )}
-          {row.planId && !row.publishedAt && (
-            <Button
-              size="sm"
-              variant="ghost"
-              data-formation-focus="proposed"
-              onClick={(event) => onSelect(row.planId, event.currentTarget)}
-            >
-              Ver turma proposta
-            </Button>
-          )}
-        </div>
+        </StudentReviewDetail>
       </div>
-    </>
+    </div>
   );
 }
 
 function StudentSuggestions({
   suggestions,
-  ended,
   choose,
 }: {
   suggestions: ClassPlan[];
-  ended: boolean;
   choose: (planId?: string) => void;
 }): ReactJSX.Element {
   return (
-    <section className={formation.suggestions}>
-      <h3>{suggestions.length > 0 ? "Escolher turma de destino" : "Nenhuma turma compatível"}</h3>
-      {suggestions.length > 0 && (
-        <p className={formation.suggestionNote}>
-          Selecione um horário para revisar a proposta de alocação.
-        </p>
-      )}
-      <div className={formation.suggestionList}>
-        {suggestions.slice(0, MAX_PLAN_SUGGESTIONS).map((plan) => (
-          <button
-            type="button"
-            className={formation.item}
-            key={plan.id}
-            disabled={ended}
-            onClick={() => choose(plan.id)}
-          >
-            <span>
-              <strong>
-                {plan.scheduleType === "PERSONALIZED" ? "PPT" : (plan.stageCode ?? plan.name)} ·{" "}
-                {plan.teacherName ?? "Professor a definir"}
-              </strong>
-              <small>{scheduleLabel(plan.slots) || "Horário a definir"}</small>
-            </span>
-            <ChevronRight size={14} />
-          </button>
-        ))}
+    <section aria-label="Opções de turma">
+      <div className={detail.optionsHeading}>
+        <h2 className={detail.sectionTitle}>
+          <CalendarDays size={18} aria-hidden="true" /> Opções de turma
+        </h2>
+        {suggestions.length > 0 && (
+          <span>
+            {suggestions.length} {suggestions.length === 1 ? "opção" : "opções"}
+          </span>
+        )}
       </div>
-      {suggestions.length > MAX_PLAN_SUGGESTIONS && (
-        <Button size="sm" variant="ghost" disabled={ended} onClick={() => choose()}>
-          Escolher entre as {suggestions.length} turmas
-        </Button>
+      {suggestions.length === 0 ? (
+        <p className={detail.empty}>Nenhuma turma compatível com o estágio previsto.</p>
+      ) : (
+        <ul className={detail.optionList}>
+          {suggestions.slice(0, MAX_PLAN_SUGGESTIONS).map((plan) => {
+            const heading = reviewClassHeading(plan, reviewPlanName(plan));
+            return (
+              <li key={plan.id}>
+                <div>
+                  <p className={detail.optionTime}>{heading.title}</p>
+                  <p className={detail.optionMeta}>
+                    {[heading.schedule, heading.description].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <Button
+                  size="compact-responsive"
+                  variant="secondary"
+                  onClick={() => choose(plan.id)}
+                  aria-label={`Revisar proposta para ${[heading.title, heading.schedule, heading.description].filter(Boolean).join(" · ")}`}
+                >
+                  Revisar <ArrowRight />
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
       )}
-      {suggestions.length === 0 && (
-        <p className={formation.suggestionNote}>
-          O aluno segue na fila. Você pode reunir alunos do mesmo estágio para formar uma turma.
-        </p>
+      {suggestions.length > MAX_PLAN_SUGGESTIONS && (
+        <Button size="compact-responsive" variant="link" onClick={() => choose()}>
+          Ver todas as {suggestions.length} turmas <ArrowRight />
+        </Button>
       )}
     </section>
   );

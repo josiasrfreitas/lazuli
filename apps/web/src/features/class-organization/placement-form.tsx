@@ -14,12 +14,14 @@ export function PlacementForm({
   board,
   initialPlanId,
   onClose,
+  onFeedback,
 }: {
   studentId: string;
   row?: Placement;
   board: OrganizationBoard;
   initialPlanId?: string;
   onClose: () => void;
+  onFeedback: (message: string) => void;
 }): ReactJSX.Element {
   const query = trpc.semesterOrganization.student.useQuery({
     studentId,
@@ -33,6 +35,7 @@ export function PlacementForm({
       board={board}
       initialPlanId={initialPlanId}
       onClose={onClose}
+      onFeedback={onFeedback}
     />
   ) : (
     <PlacementLoading

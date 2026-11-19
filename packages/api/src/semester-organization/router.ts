@@ -1,3 +1,6 @@
+import { appendCaseEvent, caseFinanceOptions } from "./case-events.js";
+import { caseHistory } from "./case-history.js";
+import { formationCaseSchema } from "@lazuli/validators";
 import { dispatchCalendarReconciliation } from "../calendar/dispatch.js";
 import { postponeClass, postponeSchema } from "./postpone.js";
 import { TRPCError } from "@trpc/server";
@@ -29,6 +32,7 @@ import {
   pendingLead,
   planLifecycleSchema,
   changePlanStatus,
+  dissolveClass,
 } from "./lifecycle.js";
 
 const FORMATION_FINGERPRINT_LENGTH = 64;
@@ -48,6 +52,17 @@ const context = (ctx: {
   now: ctx.now ?? new Date(),
 });
 export const semesterOrganizationRouter = router({
+  caseHistory: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(({ ctx, input }) => caseHistory(context(ctx), input.id)),
+  caseFinance: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(({ ctx, input }) => caseFinanceOptions(context(ctx), input.id)),
+  recordCase: adminProcedure
+    .input(formationCaseSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => appendCaseEvent({ ...context(ctx), database }, input)),
+    ),
   postpone: adminProcedure.input(postponeSchema).mutation(async ({ ctx, input }) => {
     const { requestId } = await ctx.db.$transaction(
       (database) => postponeClass({ ...context(ctx), database }, input),
@@ -96,9 +111,21 @@ export const semesterOrganizationRouter = router({
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) => pendingLead({ ...context(ctx), database }, input)),
     ),
+  dissolveClass: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db.$transaction(
+        (database) => dissolveClass({ ...context(ctx), database }, input.id),
+        { timeout: 30_000 },
+      );
+      if (result.reconciliationRequestId)
+        await dispatchCalendarReconciliation(ctx, result.reconciliationRequestId);
+      return result;
+    }),
   planStatus: adminProcedure.input(planLifecycleSchema).mutation(async ({ ctx, input }) => {
-    const result = await ctx.db.$transaction((database) =>
-      changePlanStatus({ ...context(ctx), database }, input),
+    const result = await ctx.db.$transaction(
+      (database) => changePlanStatus({ ...context(ctx), database }, input),
+      { timeout: 30_000 },
     );
     if (result.reconciliationRequestId)
       await dispatchCalendarReconciliation(ctx, result.reconciliationRequestId);

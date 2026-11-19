@@ -1,87 +1,86 @@
 "use client";
-import { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, UsersRound } from "lucide-react";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
+import { FormationDetailBreadcrumb, formationPlanTitle } from "./formation-detail-breadcrumb";
 import { StudentAvatar } from "~/components/student-avatar";
-import { Button } from "@lazuli/ui";
-import { FormationQueue } from "./formation-queue";
+import { Badge, Button } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";
 import { PendingLead, PendingStudent } from "./queue-details";
-import { dateOnly, scheduleLabel } from "./shared";
+import { compactSchedule, dateOnly } from "./shared";
 import {
   compatible,
+  rowsFor,
   type ClassPlan,
   type OrganizationAction,
   type OrganizationBoard,
   type Placement,
 } from "./model";
 import { CompositionMenu } from "./composition-sections";
-import { useCompositionModel } from "./composition-model";
-import { planMetrics } from "./confirmation";
+import { reviewGroupPlanId, reviewOriginPlans } from "./review-group-model";
+import { useFormationReviewHref } from "./review-navigation";
+import { confirmationLabels, confirmationVariants, planMetrics } from "./confirmation";
 import type { PanelPerson } from "./use-formation-navigation";
-import { FormationPersonRow, LeadItem } from "./formation-roster";
+import { PlanRoster, type usePlanRosterFilters } from "./plan-roster";
+import sheet from "./plan-detail.module.css";
 import styles from "./formation.module.css";
+
+export type FormationRosterFilters = ReturnType<typeof usePlanRosterFilters>;
 
 type Props = {
   board: OrganizationBoard;
   plan: ClassPlan | undefined;
   selection: PanelPerson | null;
   ended: boolean;
-  grouped: boolean;
-  expandQueue: (origin: HTMLElement) => void;
+  rosterFilters: FormationRosterFilters;
+  returnParent?:
+    | { label: string; planId: string | null; href: string; review: boolean }
+    | undefined;
   onSelect: (value: PanelPerson, origin: HTMLElement) => void;
   onSelectPlan: (plan: ClassPlan, origin: HTMLElement) => void;
   onBack: () => void;
   onAction: (action: OrganizationAction) => void;
-  onFeedback: (value: string) => void;
 };
 
 export function FormationPanel(props: Props): ReactElement {
   const { board, selection, plan, onBack } = props;
   const { student, lead } = selectedPerson(board, selection);
   const personName = student?.studentName ?? lead?.fullName;
-  const studentDetail = student && !plan ? student : undefined;
-  const title = plan ? planTitle(plan) : personName;
+  const studentDetail = plan ? undefined : student;
+  const title = plan ? formationPlanTitle(plan) : personName;
+  if (!title && (selection || props.returnParent?.review)) {
+    return (
+      <aside id="formation-panel" className={styles.panel} aria-label="Painel de formação">
+        <FormationDetailBreadcrumb
+          name="Ficha indisponível"
+          onBack={onBack}
+          parent={props.returnParent}
+        />
+        <div className={styles.zero}>
+          <h2 id="formation-panel-heading" tabIndex={-1}>
+            Ficha indisponível neste período
+          </h2>
+          <Button size="compact-responsive" variant="secondary" onClick={onBack}>
+            <ArrowLeft /> {props.returnParent?.review ? "Voltar à revisão" : "Voltar à formação"}
+          </Button>
+        </div>
+      </aside>
+    );
+  }
   return (
     <aside
       id="formation-panel"
       className={styles.panel}
       aria-label="Painel de formação"
+      data-plan-detail={plan ? "" : undefined}
       data-student-detail={studentDetail ? "" : undefined}
+      data-lead-detail={!plan && lead ? "" : undefined}
     >
-      <FormationQueue
-        board={board}
-        grouped={props.grouped}
-        expandQueue={props.expandQueue}
-        onBack={onBack}
-        hidden={Boolean(title)}
-        ended={props.ended}
-        onAction={props.onAction}
-        onSelect={props.onSelect}
-      />
       {title && (
-        <div className={styles.panelTitle}>
-          <div className={studentDetail ? styles.studentHeader : styles.panelTitleContents}>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onBack}
-              aria-label="Voltar à visualização anterior"
-            >
-              <ArrowLeft size={16} /> Voltar
-            </Button>
-            {studentDetail && (
-              <StudentAvatar
-                name={studentDetail.studentName}
-                colorKey={studentDetail.studentId}
-                size="lg"
-              />
-            )}
-            <h2 id="formation-panel-heading" tabIndex={-1}>
-              {title}
-            </h2>
-          </div>
-        </div>
+        <FormationDetailBreadcrumb name={title} onBack={onBack} parent={props.returnParent} />
+      )}
+      {!plan && title && (
+        <PanelHeading title={title} student={studentDetail} semester={board.semester.name} />
       )}
       {plan ? (
         <PlanDetail {...props} plan={plan} student={student} />
@@ -91,6 +90,56 @@ export function FormationPanel(props: Props): ReactElement {
     </aside>
   );
 }
+function PanelHeading({
+  title,
+  student,
+  semester,
+}: {
+  title: string;
+  student: Placement | undefined;
+  semester: string;
+}): ReactElement {
+  if (student) {
+    return (
+      <div className={styles.studentMasthead}>
+        <header className={styles.studentHeader}>
+          <StudentIdentity row={student} semester={semester} />
+        </header>
+      </div>
+    );
+  }
+  return (
+    <header className={styles.panelTitle}>
+      <div className={styles.identity}>
+        <h1 id="formation-panel-heading" tabIndex={-1}>
+          {title}
+        </h1>
+        <p>Lead · {semester}</p>
+      </div>
+    </header>
+  );
+}
+
+function StudentIdentity({ row, semester }: { row: Placement; semester: string }): ReactElement {
+  const showConfirmation = !row.declinedAt && row.entryStatus !== "CANCELLED";
+  return (
+    <>
+      <StudentAvatar name={row.studentName} colorKey={row.studentId} size="lg" />
+      <div className={styles.identity}>
+        <h1 id="formation-panel-heading" tabIndex={-1}>
+          {row.studentName}
+        </h1>
+        <p>Formação de turmas · {semester}</p>
+      </div>
+      {showConfirmation && (
+        <Badge variant={confirmationVariants[row.confirmation]}>
+          {confirmationLabels[row.confirmation]}
+        </Badge>
+      )}
+    </>
+  );
+}
+
 function selectedPerson(
   board: OrganizationBoard,
   selection: PanelPerson | null,
@@ -104,9 +153,6 @@ function selectedPerson(
       ? board.waitingLeads.find((candidate) => candidate.id === selection.id)
       : undefined;
   return { student, lead };
-}
-function planTitle(plan: ClassPlan): string {
-  return plan.scheduleType === "PERSONALIZED" ? plan.name : (plan.stageCode ?? plan.name);
 }
 function PersonDetail({
   board,
@@ -143,53 +189,119 @@ function PlanDetail({
   ended,
   onSelect,
   onAction,
-  onFeedback,
-}: Props & { plan: ClassPlan; student: Placement | undefined }): ReactElement {
+  rosterFilters,
+}: Props & {
+  plan: ClassPlan;
+  student: Placement | undefined;
+}): ReactElement {
   const metrics = planMetrics(board, plan);
-  const model = useCompositionModel({ board, plan, onFeedback });
+  const rows = rowsFor(board, plan.id);
+  const leads = board.waitingLeads.filter((lead) => lead.allocationPlanId === plan.id);
+  const origins = reviewOriginPlans(board.plans);
+  const hasReviewGroup =
+    leads.length > 0 || board.placements.some((row) => reviewGroupPlanId(row, origins) === plan.id);
+  const reviewHref = useFormationReviewHref(board.semester.id, plan.id);
+  const title = formationPlanTitle(plan);
+  const destination = plan.className ?? plan.name;
+  const context = [
+    title === destination ? "Turma seguinte" : null,
+    plan.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
+    board.semester.name,
+    !plan.active && "Desfeita",
+    plan.active && !plan.classId && "Planejada",
+    plan.name !== title && plan.name !== destination ? plan.name : null,
+  ];
   return (
     <div className={styles.panelScroll} data-formation-scroll="">
-      <div className={styles.studentFacts}>
-        <div className={styles.planHeading}>
-          <span>{plan.scheduleType === "PERSONALIZED" ? "PPT" : `Regular · ${plan.name}`}</span>
-          <CompositionMenu plan={plan} ended={ended} onAction={onAction} />
-        </div>
-        <strong>{scheduleLabel(plan.slots)}</strong>
-        <p>
-          {plan.teacherName ?? "Professor a definir"} · Início em{" "}
-          {formatDateOnlyBR(dateOnly(plan.startDate))}
-        </p>
-        <div className={styles.planCounts}>
-          <UsersRound size={15} />
-          {metrics.confirmed - metrics.preconfirmed} confirmados · <Check size={14} />{" "}
-          {metrics.preconfirmed} pré-confirmados · {metrics.pending} a confirmar
-        </div>
-        {plan.active && metrics.confirmed <= board.semester.formationRiskLimit && (
-          <p className={styles.warning}>
-            Turma em risco · limite de {board.semester.formationRiskLimit} alunos
-          </p>
-        )}
-        <ProposePlace student={student} plan={plan} ended={ended} onAction={onAction} />
-        <PublishPlaces model={model} enabled={!ended && plan.active} primary={!student} />
-        {model.error && <p role="alert">{model.error}</p>}
-        {plan.classId && <Link href={`/turmas/${plan.classId}`}>Abrir cadastro da turma</Link>}
-      </div>
-      <div className={styles.rosterGroup}>
-        <header>
-          <h3>Alunos da turma</h3>
-          <small>{model.rows.length}</small>
+      <div className={sheet.content}>
+        <header className={sheet.header}>
+          <div className={sheet.heading}>
+            <div className={sheet.identity}>
+              <h1 id="formation-panel-heading" tabIndex={-1}>
+                {title}
+              </h1>
+              <p>{context.filter(Boolean).join(" · ")}</p>
+            </div>
+            <div className={sheet.actions}>
+              <ProposePlace student={student} plan={plan} ended={ended} onAction={onAction} />
+              {hasReviewGroup && (
+                <Button
+                  size="sm"
+                  variant={student && compatible(student, plan) && !ended ? "secondary" : "primary"}
+                  nativeButton={false}
+                  render={<Link href={reviewHref} scroll={false} />}
+                >
+                  {ended || !plan.active ? "Consultar vínculos" : "Revisar alocações"}
+                </Button>
+              )}
+              <CompositionMenu plan={plan} ended={ended} onAction={onAction} />
+            </div>
+          </div>
+          <PlanFacts
+            plan={plan}
+            destination={title === destination ? null : destination}
+            confirmed={metrics.expected}
+            riskLimit={board.semester.formationRiskLimit}
+          />
         </header>
-        {model.rows.map((row) => (
-          <FormationPersonRow key={row.id} row={row} onSelect={onSelect} />
-        ))}
-        {model.rows.length === 0 && (
-          <p className={styles.suggestionNote}>Nenhum aluno proposto para esta turma.</p>
-        )}
+        <PlanRoster
+          planId={plan.id}
+          filters={rosterFilters}
+          rows={rows}
+          leads={leads}
+          onSelect={onSelect}
+        />
       </div>
-      {model.leads.map((lead) => (
-        <LeadItem key={lead.id} lead={lead} onSelect={onSelect} />
-      ))}
     </div>
+  );
+}
+
+function PlanFacts({
+  plan,
+  destination,
+  confirmed,
+  riskLimit,
+}: {
+  plan: ClassPlan;
+  destination: string | null;
+  confirmed: number;
+  riskLimit: number;
+}): ReactElement {
+  return (
+    <>
+      <dl className={sheet.facts}>
+        {destination && (
+          <div>
+            <dt>Turma seguinte</dt>
+            <dd>{destination}</dd>
+          </div>
+        )}
+        <div>
+          <dt>Horário</dt>
+          <dd>{compactSchedule(plan.slots) || "A definir"}</dd>
+        </div>
+        <div>
+          <dt>Professor</dt>
+          <dd>{plan.teacherName ?? "A definir"}</dd>
+        </div>
+        <div>
+          <dt>Início</dt>
+          <dd>{formatDateOnlyBR(dateOnly(plan.startDate))}</dd>
+        </div>
+      </dl>
+      {plan.active && confirmed < riskLimit && (
+        <p className={sheet.risk}>
+          <TriangleAlert size={16} aria-hidden="true" />
+          <span>
+            <strong>Turma em risco</strong> · Menos de {riskLimit}{" "}
+            {riskLimit === 1
+              ? "aluno confirmado na turma ou pré-confirmado"
+              : "alunos confirmados na turma ou pré-confirmados"}
+            .
+          </span>
+        </p>
+      )}
+    </>
   );
 }
 
@@ -208,6 +320,8 @@ function ProposePlace({
   return (
     <Button
       size="sm"
+      className="max-w-full"
+      aria-label={`Propor encaixe para ${student.studentName}`}
       onClick={() =>
         onAction(
           student.publishedAt
@@ -221,29 +335,7 @@ function ProposePlace({
         )
       }
     >
-      Propor encaixe para {student.studentName.split(" ")[0]}
-    </Button>
-  );
-}
-
-function PublishPlaces({
-  model,
-  enabled,
-  primary,
-}: {
-  model: ReturnType<typeof useCompositionModel>;
-  enabled: boolean;
-  primary: boolean;
-}): ReactElement | null {
-  if (!enabled || model.ready.length === 0) return null;
-  return (
-    <Button
-      size="sm"
-      variant={primary ? "primary" : "secondary"}
-      disabled={model.pending}
-      onClick={model.onPublish}
-    >
-      Oficializar {model.ready.length} {model.ready.length === 1 ? "vínculo" : "vínculos"}
+      <span className="truncate">Propor encaixe para {student.studentName.split(" ")[0]}</span>
     </Button>
   );
 }

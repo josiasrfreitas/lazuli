@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { compatible } from "./model";
 import { semesterPlacementSchema } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
@@ -23,6 +24,7 @@ export type PlacementProps = {
   board: OrganizationBoard;
   initialPlanId?: string | undefined;
   onClose: () => void;
+  onFeedback: (message: string) => void;
 };
 type PlacementDraft = {
   sourceId: string;
@@ -43,6 +45,8 @@ export type PlacementModel = Pick<
   "sourceId" | "mode" | "stageId" | "planId" | "effectiveDate" | "notes"
 > & {
   source: Progress | undefined;
+  regularRollover: boolean;
+  individualStage: boolean;
   validation: ReturnType<typeof useValidation>;
   pending: boolean;
   error: string | undefined;
@@ -65,29 +69,41 @@ export function usePlacementModel(props: PlacementProps): PlacementModel {
   const validation = useValidation();
   const refresh = useOrganizationRefresh();
   const mutation = trpc.semesterOrganization.savePlacement.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (_, input) => {
       await refresh();
+      const destination = board.plans.find((plan) => plan.id === input.planId);
+      const starts = formatDateOnlyBR(input.effectiveDate ?? dateOnly(board.semester.startDate));
+      props.onFeedback(
+        destination
+          ? `Proposta salva para ${data.student.fullName}. ${destination.className ?? destination.name} a partir de ${starts}.`
+          : `Proposta salva. ${data.student.fullName} aguarda uma turma de destino.`,
+      );
       onClose();
     },
   });
   const changes = placementChanges({ data, board, draft, validation });
   const source = data.progress.find((item) => item.id === draft.sourceId);
+  const plan = board.plans.find((item) => item.id === draft.planId);
+  const regularDestination = plan?.scheduleType === "REGULAR";
+  const stageId = regularDestination ? (plan.sharedStageId ?? "pending") : draft.stageId;
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     const values = validation.validate(
       semesterPlacementSchema,
-      placementInput({ data, row, board, draft }),
+      placementInput({ data, row, board, draft: { ...draft, stageId } }),
     );
     if (values && !mutation.isPending) mutation.mutate(values);
   };
   return {
     sourceId: draft.sourceId,
     mode: draft.mode,
-    stageId: draft.stageId,
+    stageId,
     planId: draft.planId,
     effectiveDate: draft.effectiveDate,
     notes: draft.notes,
     source,
+    regularRollover: isRegularRollover(source, board),
+    individualStage: !regularDestination && (Boolean(plan) || !isRegularRollover(source, board)),
     validation,
     pending: mutation.isPending,
     error: mutation.error?.message,
@@ -132,15 +148,32 @@ function initialPlacement({
   const source =
     data.progress.find((item) => item.id === row?.sourceProgressId) ?? data.progress[0];
   const sourceId = initialSourceId(row, source);
-  const mode = initialMode(row, source);
-  const stageId = initialStageId({ data, row, source });
-  const planId = initialPlanId ?? row?.planId ?? "pending";
+  const storedMode = initialMode(row, source);
+  const mode =
+    storedMode === "CONTINUE" && isRegularRollover(source, board) ? "ADVANCE" : storedMode;
+  const stageId =
+    row?.stageId || mode === storedMode
+      ? initialStageId({ data, row, source })
+      : nextStageId({ next: mode, progress: source, data });
+  const suggested = board.plans.find((plan) => plan.id === initialPlanId);
+  const allowed =
+    suggested?.active && (!row || row.continuity !== "CHANGE" || compatible(row, suggested));
+  const planId =
+    (allowed ? initialPlanId : undefined) ??
+    (row?.continuity === "CHANGE" ? null : row?.planId) ??
+    "pending";
   const effectiveDate = initialEffectiveDate(row, board);
   const notes = row?.notes ?? "";
   return { sourceId, mode, stageId, planId, effectiveDate, notes };
 }
 
+function isRegularRollover(source: Progress | undefined, board: OrganizationBoard): boolean {
+  const sourceClass = source?.enrollment.class;
+  return sourceClass?.scheduleType === "REGULAR" && sourceClass.semesterId !== board.semester.id;
+}
+
 function initialSourceId(row: Placement | undefined, source: Progress | undefined): string {
+  if (row?.classClosurePending && row.mode === "ENTRY") return "new";
   return row ? (row.sourceProgressId ?? "new") : (source?.id ?? "new");
 }
 
@@ -225,7 +258,12 @@ function placementChanges({
     changeSource: (value) => {
       draft.setSourceId(value);
       const progress = data.progress.find((item) => item.id === value);
-      setMode(progress ? "CONTINUE" : "ENTRY", progress);
+      const next = !progress
+        ? "ENTRY"
+        : isRegularRollover(progress, board)
+          ? "ADVANCE"
+          : "CONTINUE";
+      setMode(next, progress);
     },
     changeMode: (next) =>
       setMode(

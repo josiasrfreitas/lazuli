@@ -1,3 +1,5 @@
+import { formationRiskSchema } from "@lazuli/validators";
+import { teacherPlacements, appendCaseEvent } from "../semester-organization/case-events.js";
 import { z, civilDateSchema } from "@lazuli/validators";
 import { router, teacherProcedure } from "../trpc/init.js";
 import {
@@ -40,6 +42,16 @@ const context = (ctx: {
 }): RecordContext => ({ database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() });
 const target = z.object({ id: z.string().uuid() }).strict();
 export const teacherWorkspaceRouter = router({
+  formationCases: teacherProcedure
+    .input(z.object({ studentId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      teacherPlacements({ ...context(ctx), database: ctx.db }, input.studentId),
+    ),
+  signalFormationRisk: teacherProcedure
+    .input(formationRiskSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => appendCaseEvent({ ...context(ctx), database }, input)),
+    ),
   home: teacherProcedure.query(({ ctx }) => teacherHomeOverview(context(ctx))),
   visits: teacherProcedure.query(({ ctx }) => assignedVisits(context(ctx))),
   visit: teacherProcedure

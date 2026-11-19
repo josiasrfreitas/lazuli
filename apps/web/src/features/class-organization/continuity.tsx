@@ -9,33 +9,36 @@ export { ContinuityDialog } from "./continuity-form";
 
 export function PlanStatusDialog({
   plan,
+  classroom,
   open,
   onClose,
   onFeedback,
-}: {
-  plan: ClassPlan;
-  open: boolean;
+}: (
+  | { plan: ClassPlan; classroom?: never; open: boolean }
+  | { classroom: { id: string; name: string }; plan?: never; open: false }
+) & {
   onClose: () => void;
   onFeedback: (message: string) => void;
 }): ReactJSX.Element {
   const refresh = useOrganizationRefresh();
-  const mutation = trpc.semesterOrganization.planStatus.useMutation({
-    onSuccess: async () => {
-      await refresh();
-      onFeedback(
-        open
-          ? "Turma aberta para receber alunos."
-          : "Turma desfeita. Os alunos voltaram às pendências de encaixe.",
-      );
-      onClose();
-    },
-  });
+  const saved = async (): Promise<void> => {
+    await refresh();
+    onFeedback(
+      open
+        ? "Turma aberta para receber alunos."
+        : "Turma encerrada. Os vínculos afetados estão na revisão.",
+    );
+    onClose();
+  };
+  const status = trpc.semesterOrganization.planStatus.useMutation({ onSuccess: saved });
+  const dissolve = trpc.semesterOrganization.dissolveClass.useMutation({ onSuccess: saved });
+  const mutation = classroom ? dissolve : status;
   return (
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title={open ? (plan.classId ? "Reabrir turma" : "Abrir turma") : "Desfazer turma"}
-      description={plan.name}
+      title={open ? (plan?.classId ? "Reabrir turma" : "Abrir turma") : "Desfazer turma"}
+      description={classroom?.name ?? plan?.name ?? ""}
       formId="plan-status"
       firstField=""
       submitVariant={open ? "primary" : "destructive"}
@@ -49,7 +52,9 @@ export function PlanStatusDialog({
         id="plan-status"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!mutation.isPending) mutation.mutate({ id: plan.id, version: plan.version, open });
+          if (mutation.isPending) return;
+          if (classroom) dissolve.mutate({ id: classroom.id });
+          else status.mutate({ id: plan.id, version: plan.version, open });
         }}
       >
         <PlanStatusMessage open={open} />
@@ -63,7 +68,7 @@ function PlanStatusMessage({ open }: { open: boolean }): ReactJSX.Element {
     <p className="text-caption">
       {open
         ? "A turma ficará disponível para matrículas. As aulas serão geradas pelo calendário do período."
-        : "Os alunos voltarão às pendências deste período. Entradas futuras serão canceladas e vínculos já em andamento serão encerrados hoje."}
+        : "Os alunos receberão o impedimento “Turma encerrada”, junto aos que já constam na ficha. As entradas futuras serão canceladas e os vínculos em andamento serão encerrados hoje."}
     </p>
   );
 }

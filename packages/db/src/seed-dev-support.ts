@@ -35,7 +35,12 @@ export type SeedContext = {
   classes: Map<string, SeededClass>;
   adminId: string;
   closedDates: Set<string>;
-  resolveClassName: (classSeed: DevClassSeed, semester: SeededSemester) => Promise<string>;
+  resolveClassName: (input: {
+    scheduleType: NonNullable<DevClassSeed["scheduleType"]>;
+    slots: DevClassSeed["slots"];
+    sharedStageId: string | null;
+    teacherId: string;
+  }) => Promise<string>;
 };
 
 export function stableUuid(parts: readonly string[]): string {

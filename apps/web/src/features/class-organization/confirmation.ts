@@ -1,34 +1,34 @@
 import type { ClassPlan, Placement, OrganizationBoard } from "./model";
 
 export const responseLabels = {
-  UNDECIDED: "Ainda sem resposta",
-  STAY: "Fica na turma",
+  UNDECIDED: "Sem impedimento sinalizado",
+  STAY: "Sem impedimento sinalizado",
   CHANGE: "Pediu outra turma",
-  LEAVING: "Pensa em sair",
+  LEAVING: "Risco de saída",
 } as const;
 
 export const confirmationLabels = {
-  CONFIRMED: "Confirmado",
+  BLOCKED: "Continuidade bloqueada",
+  CONFIRMED: "Confirmado na turma",
   PRECONFIRMED: "Pré-confirmado",
-  PENDING: "A confirmar",
+  PENDING: "Em formação",
   CHANGING: "Troca de turma",
-  LEAVING: "Possível saída",
+  LEAVING: "Risco de saída",
 } as const;
 export const confirmationVariants = {
+  BLOCKED: "destructive",
   CONFIRMED: "success",
   PRECONFIRMED: "info",
   PENDING: "warning",
   CHANGING: "warning",
   LEAVING: "warning",
 } as const;
-export function isConfirmed(row: Placement): boolean {
-  return row.confirmation === "CONFIRMED" || row.confirmation === "PRECONFIRMED";
-}
 export function isReadyForAllocation(row: Placement): boolean {
   return Boolean(
     row.planId &&
     !row.publishedAt &&
     !row.declinedAt &&
+    row.continuity !== "CHANGE" &&
     row.continuity !== "LEAVING" &&
     !row.blockers.length,
   );
@@ -37,31 +37,33 @@ export function planMetrics(
   board: OrganizationBoard,
   plan: ClassPlan,
 ): {
+  expected: number;
   confirmed: number;
   preconfirmed: number;
   pending: number;
   leads: number;
 } {
-  const rows = board.placements.filter((row) => row.planId === plan.id && !row.declinedAt);
   const confirmed = new Set(plan.enrolledStudentIds);
-  let pending = 0;
-  for (const row of rows) {
-    if (row.confirmation === "LEAVING" || row.confirmation === "CHANGING") {
+  const preconfirmed = new Set<string>();
+  const pending = new Set<string>();
+  for (const row of board.placements) {
+    if (row.planId !== plan.id) continue;
+    if (row.declinedAt) {
       confirmed.delete(row.studentId);
-      continue;
+    } else if (row.confirmation === "CONFIRMED") {
+      if (row.entryStatus === "SCHEDULED") confirmed.add(row.studentId);
+    } else if (row.confirmation === "PRECONFIRMED") {
+      preconfirmed.add(row.studentId);
+    } else if (row.continuity !== "CHANGE" && row.continuity !== "LEAVING") {
+      pending.add(row.studentId);
     }
-    if (isConfirmed(row)) {
-      if (!row.publishedAt || row.entryStatus === "SCHEDULED") confirmed.add(row.studentId);
-    } else pending++;
   }
+  for (const id of confirmed) preconfirmed.delete(id);
   return {
+    expected: confirmed.size + preconfirmed.size,
     confirmed: confirmed.size,
-    preconfirmed: new Set(
-      rows
-        .filter((row) => row.confirmation === "PRECONFIRMED" && confirmed.has(row.studentId))
-        .map((row) => row.studentId),
-    ).size,
-    pending,
+    preconfirmed: preconfirmed.size,
+    pending: pending.size,
     leads: board.waitingLeads.filter((lead) => lead.allocationPlanId === plan.id).length,
   };
 }

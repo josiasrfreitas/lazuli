@@ -1,4 +1,3 @@
-import { addCalendarMonths } from "./monthly-contract.js";
 import type { Weekday } from "./class-portal-name.js";
 
 export function formationTeachingDay(slot: {
@@ -11,7 +10,6 @@ export function formationTeachingDay(slot: {
 }
 
 const ISO_DATE_LENGTH = 10;
-const MANUAL_CONFIRMATION_MONTHS = 3;
 
 type ContractDates = { startsOn: string | null; endsOn: string | null };
 export type FormationContractStatus = "MISSING" | "EARLY_END" | "COVERED";
@@ -39,20 +37,62 @@ export function formationContractStatus(
   { from, through }: { from: string; through: string },
 ): FormationContractStatus {
   if (!end) return "MISSING";
-  return end < through && end < addCalendarMonths(from, MANUAL_CONFIRMATION_MONTHS)
-    ? "EARLY_END"
-    : "COVERED";
+  const midpoint = (Date.parse(from) + Date.parse(through)) / 2;
+  return Date.parse(end) <= midpoint ? "EARLY_END" : "COVERED";
 }
 
 export const MISSING_ENTRY_CONTRACT = "É necessário um contrato ativo na data de entrada.";
 
-export function meetsFormationAverages(
-  metrics:
-    | { grades: string; attendance: number | null; attendanceFlagged: boolean }
-    | null
-    | undefined,
-): boolean {
-  return (
-    metrics?.grades === "SUFFICIENT" && metrics.attendance !== null && !metrics.attendanceFlagged
+export function hasFormationSignal(row: {
+  continuity: string;
+  exitRiskActive: boolean;
+  attentionNote: string | null;
+  classClosurePending: boolean;
+}): boolean {
+  return Boolean(
+    row.exitRiskActive ||
+    row.attentionNote?.trim() ||
+    row.classClosurePending ||
+    row.continuity === "LEAVING" ||
+    row.continuity === "CHANGE",
   );
+}
+
+export const formationBlocker = {
+  classClosed: "Turma encerrada",
+  missingContract: "Sem contrato vigente",
+  earlyContractEnd: "Contrato termina na primeira metade do período",
+  material: "Material sem compra registrada",
+  lowGrade: "Notas insuficientes",
+  lowAttendance: "Frequência baixa",
+  staff: "Impedimento sinalizado pela equipe",
+  leaving: "Risco de saída",
+  change: "Escolha a nova turma para continuar.",
+} as const;
+
+export function formationPlacementBlockers(input: {
+  continuing: boolean;
+  continuity: string;
+  contractStatus: FormationContractStatus;
+  materialMissing: boolean;
+  grades: string | undefined;
+  attendanceFlagged: boolean;
+  staffImpediment: boolean;
+  exitRiskActive?: boolean;
+  classClosurePending?: boolean;
+}): string[] {
+  const reasons: string[] = [];
+  if (input.classClosurePending) reasons.push(formationBlocker.classClosed);
+  if (input.contractStatus === "MISSING") reasons.push(formationBlocker.missingContract);
+  if (input.staffImpediment) reasons.push(formationBlocker.staff);
+  if (input.exitRiskActive || input.continuity === "LEAVING")
+    reasons.push(formationBlocker.leaving);
+  if (input.continuity === "CHANGE") reasons.push(formationBlocker.change);
+  if (!input.continuing) return reasons;
+  if (input.classClosurePending) reasons.push(formationBlocker.classClosed);
+  if (input.contractStatus === "EARLY_END") reasons.push(formationBlocker.earlyContractEnd);
+  if (input.materialMissing) reasons.push(formationBlocker.material);
+  if (input.grades === "NEEDS_SUPPORT") reasons.push(formationBlocker.lowGrade);
+  if (input.attendanceFlagged) reasons.push(formationBlocker.lowAttendance);
+  return reasons;
 }

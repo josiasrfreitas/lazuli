@@ -4,6 +4,7 @@ import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { DEV_ADMIN, DEV_TEACHERS } from "../../packages/db/src/seed-dev-data.js";
 import { isoOf } from "../../packages/db/src/seed-dev-support.js";
 import { classScheduleSlotsInputSchema } from "../../packages/validators/src/class.js";
+import { plannedClassName } from "../../packages/api/src/classes/portal-name.js";
 import { recordActivity } from "../../packages/api/src/activity/record.js";
 import { readSemester } from "../../packages/api/src/semester-organization/queries.js";
 import type { OrganizationContext } from "../../packages/api/src/semester-organization/data.js";
@@ -135,16 +136,20 @@ async function createOrganizationPlan(
       ? subjects.get([...group.published, ...group.pending][0]!)!.stage!.id
       : null;
   const planId = organizationId("plan", { semesterName: semester.name, key: group.key });
+  const fields = {
+    scheduleType: group.scheduleType,
+    sharedStageId: stageId,
+    teacherId: group.teacherKey ? teachers.get(group.teacherKey)! : null,
+    slots: group.slots,
+  };
+  const name = await plannedClassName(database, fields);
   await database.semesterClassPlan.create({
     data: {
+      ...fields,
       id: planId,
       semesterId: semester.id,
-      name: group.name,
-      scheduleType: group.scheduleType,
+      name,
       format: group.format,
-      sharedStageId: stageId,
-      teacherId: group.teacherKey ? teachers.get(group.teacherKey)! : null,
-      slots: group.slots,
       version: 1,
       recordedById: staffUser.id,
       createdAt: dates.planned,
@@ -156,7 +161,7 @@ async function createOrganizationPlan(
     action: "semesterOrganization.savePlan",
     details: {
       subject: { type: "school", name: "Organização do próximo semestre" },
-      description: `${group.name} planejada para ${semester.name}; 120 minutos por semana.`,
+      description: `${name} planejada para ${semester.name}; 120 minutos por semana.`,
       deduplicationKey: `seed/semester-plan/${planId}`,
     },
   });
@@ -286,6 +291,7 @@ async function publishOrganizationGroup(
         where: { id: planId },
         data: {
           classId: classroom.id,
+          name: classroom.portalClassName,
           version: { increment: 1 },
           updatedAt: dates.published,
         },

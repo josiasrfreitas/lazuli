@@ -49,7 +49,7 @@ export function RiskLimitDialog({ board, onClose, onFeedback }: Props): ReactEle
       >
         <RiskLimitField value={limit} onChange={setLimit} />
         <p className={styles.small}>
-          Turmas com esse número de alunos ou menos aparecem em risco. A equipe decide se a turma
+          Turmas com menos alunos que esse limite aparecem em risco. A equipe decide se a turma
           continua.
         </p>
       </form>
@@ -130,7 +130,9 @@ export function RiskLimitField({
 }): ReactElement {
   return (
     <Field>
-      <Label htmlFor="formation-limit">Até quantos alunos confirmados?</Label>
+      <Label htmlFor="formation-limit">
+        Até quantos alunos confirmados na turma ou pré-confirmados?
+      </Label>
       <Input
         id="formation-limit"
         name="formation-limit"

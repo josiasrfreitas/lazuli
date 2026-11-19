@@ -27,6 +27,7 @@ export async function computeEnrollmentPercentInWindow(input: {
 export async function computeEnrollmentsPercentInWindow(input: {
   database: AttendanceDatabase;
   values: { enrollments: EnrollmentWindow[]; semester: SemesterWindowDates };
+  requireAttendanceRecord?: boolean;
 }): Promise<Map<string, AttendanceProgress>> {
   const results = new Map(
     input.values.enrollments.map((enrollment) => [enrollment.id, computeCompensatedAttendance([])]),
@@ -46,7 +47,11 @@ export async function computeEnrollmentsPercentInWindow(input: {
         ];
   });
   if (windows.length === 0) return results;
-  const rows = await loadAttendanceRows(input.database, windows);
+  const rows = await loadAttendanceRows(
+    input.database,
+    windows,
+    input.requireAttendanceRecord ?? false,
+  );
   for (const row of rows)
     results.set(
       row.id,
@@ -73,6 +78,7 @@ type AttendanceAggregateRow = {
 function loadAttendanceRows(
   database: AttendanceDatabase,
   windows: RawBuilder<WindowRow>[],
+  requireAttendanceRecord: boolean,
 ): Promise<AttendanceAggregateRow[]> {
   return database.$kysely
     .with(
@@ -142,6 +148,7 @@ function loadAttendanceRows(
       `.as("compensatedMinutes"),
     ])
     .groupBy("id")
+    .$if(requireAttendanceRecord, (query) => query.having((eb) => eb.fn.count("status"), ">", 0))
     .execute();
 }
 

@@ -332,6 +332,30 @@ void it("keeps a published exit and entry atomic when the movement straddles the
   );
 });
 
+void it("rechecks stage material and early coverage for the published successor despite legacy stay evidence", async () => {
+  const data = await fixture();
+  await db.class.update({
+    where: { id: data.target.classId },
+    data: { previousClassId: data.source.classId },
+  });
+  await db.contract.updateMany({
+    where: { studentId: data.student.id },
+    data: { endsOn: new Date("2094-08-01") },
+  });
+  await db.$transaction((database) => processDueEnrollmentActions({ database, now: due }));
+  const revision = await db.semesterPlacementRevision.findFirstOrThrow({
+    where: { placementId: data.placement.id },
+  });
+  assert.match(
+    revision.reason ?? "",
+    /Contrato termina na primeira metade.*Material sem compra registrada/u,
+  );
+  assert.equal(
+    (await db.enrollment.findUniqueOrThrow({ where: { id: data.source.id } })).exitDate,
+    null,
+  );
+});
+
 void it("returns a scheduled transfer to the queue when its target entry loses contract coverage", async () => {
   const data = await fixture();
   await db.contract.updateMany({

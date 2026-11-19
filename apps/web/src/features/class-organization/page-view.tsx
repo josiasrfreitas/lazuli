@@ -1,8 +1,7 @@
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsString, useQueryStates } from "nuqs";
 import {
-  ArrowLeft,
   CalendarDays,
   ChevronRight,
   Copy,
@@ -12,55 +11,56 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-  Button,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@lazuli/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
 import { SelectControl } from "~/features/classes/form-controls";
 import { academicPeriodsUrl } from "./links";
 import { dateOnly } from "./shared";
 import { OrganizationAgenda, WeekControls } from "./agenda";
+import { FormationDetailBreadcrumb } from "./formation-detail-breadcrumb";
 import { OrganizationReview } from "./review";
+import { reviewParsers, type ChangeCriteria, type ReviewCriteria } from "./review-filters";
+import { useFormationReviewHref, useOpenReviewFormationDetail } from "./review-navigation";
+import { usePlanRosterFilters } from "./plan-roster";
 import { OrganizationDialogs } from "./dialogs";
 import type { OrganizationPageModel } from "./page-model";
 import { OrganizationLoading, FormationProgress } from "./page-loading";
 import { trpc } from "~/lib/trpc";
 import styles from "./formation.module.css";
+import reviewStyles from "./review.module.css";
 
 type ModelProps = { model: OrganizationPageModel };
-type ReviewScope = "pending" | "published" | "all";
 type FilterProps = {
-  reviewScope: ReviewScope;
   scope: string;
   weekSearch: string;
   clearFilters: () => void;
 };
 export function OrganizationPageView({ model }: ModelProps): ReactElement {
   const { board, semesterId, action, setAction } = model;
-  const [reviewScope, setReviewScope] = useQueryState(
-    "vinculos",
-    parseAsStringLiteral(["pending", "published", "all"] as const).withDefault("pending"),
-  );
+  const [criteria, setCriteria] = useQueryStates(reviewParsers);
+  const [, setReviewFocus] = useQueryStates({
+    turmasAbertas: parseAsString,
+    grupoVinculo: parseAsString,
+    vinculo: parseAsString,
+    leadFormacao: parseAsString,
+    alunoFormacao: parseAsString,
+    retornoFormacao: parseAsString,
+    origemGradeFormacao: parseAsString,
+  });
+  const [publishing, setPublishing] = useState(false);
   const [scope, setScope] = useState("all");
   const [weekSearch, setWeekSearch] = useState("");
   const clearFilters = (): void => {
     setScope("all");
     setWeekSearch("");
-    setReviewScope("pending");
-    model.setSearch("");
+    void setCriteria(null);
+    void setReviewFocus(null);
   };
   const switching = Boolean(board && board.semester.id !== semesterId);
   return (
     <section className={styles.page} data-page-scroll="internal" aria-label="Formação de turmas">
       <FormationHeader
         model={model}
-        reviewScope={reviewScope}
-        setReviewScope={setReviewScope}
+        publishing={publishing}
         scope={scope}
         weekSearch={weekSearch}
         clearFilters={clearFilters}
@@ -71,8 +71,11 @@ export function OrganizationPageView({ model }: ModelProps): ReactElement {
       <FormationError model={model} />
       {switching && <FormationProgress label="Atualizando o período" />}
       <PeriodContent
+        key={board?.semester.id}
         model={model}
-        reviewScope={reviewScope}
+        criteria={criteria}
+        changeCriteria={setCriteria}
+        onPublishing={setPublishing}
         scope={scope}
         weekSearch={weekSearch}
         clearFilters={clearFilters}
@@ -107,8 +110,7 @@ export function OrganizationPageView({ model }: ModelProps): ReactElement {
 }
 function FormationHeader({
   model,
-  reviewScope,
-  setReviewScope,
+  publishing,
   scope,
   weekSearch,
   clearFilters,
@@ -117,27 +119,36 @@ function FormationHeader({
   switching,
 }: ModelProps &
   FilterProps & {
-    setReviewScope: (scope: ReviewScope) => void;
+    publishing: boolean;
     setScope: (scope: string) => void;
     setWeekSearch: (query: string) => void;
     switching: boolean;
   }): ReactElement {
   const { board, ended } = model;
+  const review = model.tab === "review";
+  const reviewHref = useFormationReviewHref(model.semesterId);
   return (
-    <header className={styles.header}>
-      {model.tab === "review" && (
-        <Button
-          size="sm"
-          variant="ghost"
-          aria-label="Voltar à grade semanal"
-          title="Voltar à grade semanal"
-          onClick={() => model.setTab("agenda")}
-        >
-          <ArrowLeft />
-        </Button>
+    <header className={review ? reviewStyles.header : styles.header} inert={publishing}>
+      {review && (
+        <FormationDetailBreadcrumb
+          name="Revisão de vínculos"
+          parent={{ label: "Grade semanal", planId: model.planId, agenda: true }}
+          onBack={() => {
+            if (!publishing) model.setTab("agenda");
+          }}
+        />
       )}
       <div className={styles.heading}>
-        <h1>{model.tab === "review" ? "Revisão de vínculos" : "Grade semanal"}</h1>
+        <h1 id="formation-page-heading" tabIndex={-1}>
+          {review ? "Revisão de vínculos" : "Grade semanal"}
+        </h1>
+        {review && (
+          <p className={reviewStyles.description}>
+            {ended
+              ? "Consulte os alunos e as vigências de cada turma neste período encerrado."
+              : "Selecione os alunos para confirmar o vínculo na turma."}
+          </p>
+        )}
       </div>
       <PeriodSelect
         model={model}
@@ -155,34 +166,10 @@ function FormationHeader({
           onQuery={setWeekSearch}
         />
       )}
-      {board && model.tab === "review" && (
-        <div className={styles.reviewControls} inert={switching}>
-          <Input
-            size="sm"
-            aria-label="Buscar aluno na revisão"
-            placeholder="Buscar aluno"
-            value={model.search}
-            onChange={(event) => model.setSearch(event.target.value)}
-          />
-          <SegmentedControl
-            size="sm"
-            aria-label="Situação do vínculo"
-            value={reviewScope}
-            onValueChange={(value) => {
-              if (value === "pending" || value === "published" || value === "all")
-                setReviewScope(value);
-            }}
-          >
-            <SegmentedControlItem value="pending">Em revisão</SegmentedControlItem>
-            <SegmentedControlItem value="published">Alocados</SegmentedControlItem>
-            <SegmentedControlItem value="all">Todos</SegmentedControlItem>
-          </SegmentedControl>
-        </div>
-      )}
       <div className={styles.headerActions} inert={switching}>
-        {board && !ended && model.tab !== "review" && (
-          <Button size="sm" onClick={() => model.setTab("review")}>
-            Revisar vínculos <ChevronRight size={15} />
+        {board && !review && (
+          <Button size="sm" nativeButton={false} render={<Link href={reviewHref} scroll={false} />}>
+            {ended ? "Consultar vínculos" : "Revisar vínculos"} <ChevronRight size={15} />
           </Button>
         )}
         <OptionsMenu model={model} />
@@ -327,13 +314,25 @@ function failedOperation({
 }
 function PeriodContent({
   model,
-  reviewScope,
+  criteria,
+  changeCriteria,
+  onPublishing,
   scope,
   weekSearch,
   clearFilters,
   switching,
-}: ModelProps & FilterProps & { switching: boolean }): ReactElement | null {
+}: ModelProps &
+  FilterProps & {
+    criteria: ReviewCriteria;
+    changeCriteria: ChangeCriteria;
+    onPublishing: (value: boolean) => void;
+    switching: boolean;
+  }): ReactElement | null {
   const { periods, board, semesterId, query, setAction, prepare } = model;
+  const [versions, setVersions] = useState(() => new Map<string, number>());
+  const [viewBatch, setViewBatch] = useState(false);
+  const { openPlan, openLead } = useOpenReviewFormationDetail();
+  const rosterFilters = usePlanRosterFilters();
   if (periods.isPending || (semesterId && query.isPending))
     return <OrganizationLoading review={model.tab === "review"} />;
   if (!semesterId && !periods.error) return <CalendarGate />;
@@ -342,16 +341,24 @@ function PeriodContent({
     <div className={styles.board} inert={switching} aria-busy={switching}>
       {model.tab === "review" ? (
         <OrganizationReview
-          key={semesterId}
+          key={board.semester.id}
           board={board}
           ended={model.ended}
-          scope={reviewScope}
-          query={model.search}
+          criteria={criteria}
+          changeCriteria={changeCriteria}
+          versions={versions}
+          setVersions={setVersions}
+          viewBatch={viewBatch}
+          setViewBatch={setViewBatch}
+          onOpenPlan={(plan) => openPlan(plan.id)}
+          onLead={openLead}
+          onPublishing={onPublishing}
           onAction={setAction}
           onFeedback={model.setFeedback}
         />
       ) : (
         <OrganizationAgenda
+          rosterFilters={rosterFilters}
           scope={scope}
           query={weekSearch}
           clearFilters={clearFilters}
@@ -361,7 +368,6 @@ function PeriodContent({
           selected={model.planId}
           onSelect={model.setPlanId}
           onAction={setAction}
-          onFeedback={model.setFeedback}
           prepare={() => prepare.mutate({ semesterId })}
           preparing={prepare.isPending}
         />

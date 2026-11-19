@@ -20,7 +20,8 @@ export const semesterPlanSchema = semesterScopeSchema
   .extend({
     id: id.optional(),
     version: z.number().int().nonnegative().default(0),
-    name: z.string().trim().min(2).max(MAX_PLAN_NAME_LENGTH),
+    // Older clients submit a label. The server derives the stored name from the plan.
+    name: z.string().trim().min(2).max(MAX_PLAN_NAME_LENGTH).optional(),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     sharedStageId: id.nullable(),

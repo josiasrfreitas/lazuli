@@ -146,8 +146,6 @@ function selectedPlacement(
   if (!row) throw notFound(PLACEMENT_NOT_FOUND);
   assertVersion(row.version, item.version);
   if (row.declinedAt) throw badRequest("O aluno não continuará neste semestre.");
-  if (row.continuity === "LEAVING")
-    throw badRequest(`${row.studentName}: converse sobre a possível saída antes de confirmar.`);
   if (dateOnly(row.effectiveDate ?? semester.startDate) < saoPauloDateOnly(context.now))
     throw badRequest("Revise a vigência: a data proposta já passou.");
   if (row.publishedAt) throw badRequest("Um dos alunos já foi publicado. Atualize a página.");
@@ -221,7 +219,7 @@ async function publicationClass(
   const existingClass = current.classId
     ? await context.database.class.findUniqueOrThrow({
         where: { id: current.classId },
-        select: { id: true, startDate: true },
+        select: { id: true, startDate: true, portalClassName: true },
       })
     : null;
   const classRow =
@@ -255,7 +253,7 @@ async function publicationClass(
   if (!current.classId) {
     await context.database.semesterClassPlan.update({
       where: { id: plan.id },
-      data: { classId: classRow.id, version: { increment: 1 } },
+      data: { classId: classRow.id, name: classRow.portalClassName, version: { increment: 1 } },
     });
   }
   if (!current.classId || earlierEntry) {
@@ -335,7 +333,7 @@ async function markPlacementPublished(
       publishedAt: context.now,
       publishedById: context.staffUser.id,
       enrollmentId,
-      continuity: "STAY",
+      continuity: "UNDECIDED",
       continuityReason: null,
       entryActionId,
       sourceExitActionId,
@@ -345,11 +343,6 @@ async function markPlacementPublished(
         assessmentId: row.assessmentId,
         stagePlanId: row.stagePlanId,
         assessmentVersion: row.assessmentVersion,
-        manualContinuity: row.continuity === "STAY",
-        acceptedEarlyEnd:
-          row.continuity === "STAY" && row.attention.contractStatus === "EARLY_END"
-            ? row.attention.coverageThrough
-            : null,
       },
     },
   });
@@ -362,7 +355,7 @@ async function confirmContinuity(context: OrganizationContext, row: PlacementRow
       publishedAt: context.now,
       publishedById: context.staffUser.id,
       enrollmentId: row.sourceEnrollmentId,
-      continuity: "STAY",
+      continuity: "UNDECIDED",
       version: { increment: 1 },
     },
   });

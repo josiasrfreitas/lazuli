@@ -86,6 +86,8 @@ export function placementRevisionData(
     snapshot: {
       planId: row.planId,
       attentionNote: row.attentionNote,
+      classClosurePending: row.classClosurePending,
+      exitRiskActive: row.exitRiskActive,
       effectiveDate: row.effectiveDate ? dateOnly(row.effectiveDate) : null,
       declinedAt: row.declinedAt?.toISOString() ?? null,
       declinedReason: row.declinedReason,
@@ -117,6 +119,7 @@ export type ClassPlan = {
   teacherId: string | null;
   classId: string | null;
   sourceClassId: string | null;
+  previousClassId: string | null;
   stageCode: string | null;
   stageName: string | null;
   teacherName: string | null;
@@ -128,6 +131,7 @@ export type ClassPlan = {
   startsOn: Date | null;
   startDate: Date;
   endDate: Date;
+  previousStudentCount: number;
   enrolledCount: number;
   enrolledStudentIds: string[];
   assignedTeacher: {
@@ -161,6 +165,7 @@ const PLAN_COLUMNS = [
   "class.status as classStatus",
   "class.deleted_at as classDeletedAt",
   "class.portal_class_name as className",
+  "class.previous_class_id as previousClassId",
   "plan.starts_on as startsOn",
   "semester.end_date as endDate",
 ] as const;
@@ -182,6 +187,21 @@ export async function readClassPlans(
       sql<Date>`greatest(semester.start_date, coalesce(plan.starts_on, class.start_date, semester.start_date))`.as(
         "startDate",
       ),
+    )
+    .select(
+      sql<number>`(
+      SELECT count(DISTINCT enrollment.student_id)::int
+      FROM "Class" AS origin
+      JOIN "Semester" AS prior ON prior.id = origin.semester_id
+      JOIN "Enrollment" AS enrollment ON enrollment.class_id = origin.id
+      WHERE origin.id = coalesce(class.previous_class_id, plan.source_class_id)
+        AND prior.id = (SELECT id FROM "Semester"
+          WHERE deleted_at IS NULL AND end_date < semester.start_date
+          ORDER BY end_date DESC, id LIMIT 1)
+        AND enrollment.deleted_at IS NULL
+        AND enrollment.entry_date <= least(prior.end_date, ${saoPauloDateOnly(context.now)}::date)
+        AND (enrollment.exit_date IS NULL OR enrollment.exit_date > least(prior.end_date, ${saoPauloDateOnly(context.now)}::date))
+    )`.as("previousStudentCount"),
     )
     .select(enrolledStudentIds(context.now))
     .select((eb) =>

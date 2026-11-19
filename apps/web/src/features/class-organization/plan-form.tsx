@@ -18,16 +18,31 @@ export function ClassPlanForm(props: ClassPlanProps): ReactJSX.Element {
       compactHeader
       actionSize="sm"
       title={classPlanTitle(props)}
-      description="Horário, professor e composição podem ser preparados aos poucos."
+      description={
+        props.initialStageId
+          ? "A turma será criada vazia. Depois, confirme a escolha para o aluno."
+          : "Horário, professor e composição podem ser preparados aos poucos."
+      }
       formId="semester-plan"
-      firstField="plan-name"
+      firstField="plan-kind"
       submitLabel="Salvar turma"
       onClose={props.onClose}
       pending={model.pending}
       error={model.error ?? options.error?.message}
       bodyRef={model.validation.body}
     >
-      <ClassPlanFields group={props.group} model={model} options={options.data} />
+      <ClassPlanFields
+        group={props.group}
+        model={model}
+        options={
+          props.initialStageId && options.data
+            ? {
+                ...options.data,
+                stages: options.data.stages.filter((stage) => stage.id === props.initialStageId),
+              }
+            : options.data
+        }
+      />
     </TaskDialog>
   );
 }

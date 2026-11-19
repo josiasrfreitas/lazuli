@@ -8,7 +8,13 @@ import { dayLabel } from "~/features/admissions/labels";
 import styles from "./intake-schedule.module.css";
 
 type Options = RouterOutputs["students"]["intakeOptions"];
-type ClassChoice = Options["classes"][number];
+type ClassChoice = Pick<
+  Options["classes"][number],
+  "id" | "slots" | "scheduleType" | "format" | "stageName" | "teacherName"
+> & { name?: string } & (
+    | Pick<Options["classes"][number], "future" | "enrolled">
+    | { future?: never; enrolled?: never }
+  );
 type Slot = ClassChoice["slots"][number];
 const GROUP_TONE_COUNT = 4;
 
@@ -27,7 +33,8 @@ type SelectionProps = {
   onSelect: (id: string) => void;
 };
 
-function classCount(choice: ClassChoice): string {
+function classCount(choice: ClassChoice): string | undefined {
+  if (choice.enrolled === undefined) return undefined;
   if (choice.future) return `${choice.enrolled} na fila`;
   return `${choice.enrolled} ${choice.enrolled === 1 ? "aluno" : "alunos"}`;
 }
@@ -40,7 +47,9 @@ function classOptionLabel(choice: ClassChoice, slot: Slot | undefined): string {
         .join("; ") || "Sem horário recorrente";
   const title = choice.scheduleType === "PERSONALIZED" ? "PPT" : choice.stageName;
   const format = choice.format === "ONLINE" ? "online" : "presencial";
-  return `${title}, ${choice.teacherName}, ${format}, ${schedule}, ${classCount(choice)}`;
+  return [choice.name, title, choice.teacherName, format, schedule, classCount(choice)]
+    .filter(Boolean)
+    .join(", ");
 }
 
 function ClassSchedule({
@@ -106,12 +115,14 @@ function ClassOption({
       </span>
       {!personalized && <span className={styles.classTeacher}>{choice.teacherName}</span>}
       <ClassSchedule choice={choice} slot={slot} />
-      <span className={styles.classCount}>{classCount(choice)}</span>
+      {(choice.name || classCount(choice)) && (
+        <span className={styles.classCount}>{choice.name ?? classCount(choice)}</span>
+      )}
     </button>
   );
 }
 
-function RecurringSchedule({
+export function RecurringSchedule({
   choices,
   ...selection
 }: SelectionProps & { choices: ClassChoice[] }): ReactJSX.Element {

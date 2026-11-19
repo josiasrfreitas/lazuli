@@ -1,14 +1,10 @@
-import { meetsFormationAverages } from "@lazuli/domain";
-import {
-  formationAttention,
-  formationReviewReasons,
-  readFormationSignals,
-  type FormationAttention,
-} from "./attention.js";
+import { formationAttention, readFormationSignals, type FormationAttention } from "./attention.js";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { sql } from "kysely";
 import {
   saoPauloDateOnly,
+  followsOwnClass,
+  formationPlacementBlockers,
   periodConfirmation,
   type PeriodConfirmation,
   semesterPlacementBlockers,
@@ -40,6 +36,8 @@ const PLACEMENT_COLUMNS = [
   "placement.mode",
   "placement.notes",
   "placement.attention_note as attentionNote",
+  "placement.class_closure_pending as classClosurePending",
+  "placement.exit_risk_active as exitRiskActive",
   "placement.continuity",
   "placement.continuity_reason as continuityReason",
   "placement.effective_date as effectiveDate",
@@ -102,6 +100,8 @@ export type PlacementRow = {
   mode: PlacementModel["mode"];
   notes: string | null;
   attentionNote: string | null;
+  classClosurePending: boolean;
+  exitRiskActive: boolean;
   continuity: PlacementModel["continuity"];
   continuityReason: string | null;
   effectiveDate: Date | null;
@@ -115,6 +115,7 @@ export type PlacementRow = {
   entryStatus: ActionModel["status"] | null;
   publishedBy: string | null;
   studentName: string;
+  studentAge: number | null;
   studentStatus: StudentModel["status"];
   studentDeletedAt: Date | null;
   stageCode: string | null;
@@ -162,6 +163,13 @@ export async function readPlacementRows(
     .leftJoin("EnrollmentAction as entry", "entry.id", "placement.entry_action_id")
     .leftJoin("User as publisher", "publisher.id", "placement.published_by_id")
     .select(PLACEMENT_COLUMNS)
+    .select(
+      sql<
+        number | null
+      >`extract(year from age(${saoPauloDateOnly(context.now)}::date, student.birth_date))::int`.as(
+        "studentAge",
+      ),
+    )
     .where("placement.semester_id", "=", semesterId)
     .where("placement.deleted_at", "is", null)
     .orderBy("student.full_name")
@@ -312,7 +320,7 @@ const waitingLeadSelect = {
   notes: true,
   allocationPendingReason: true,
   allocationPlanId: true,
-  stage: { select: { internalCode: true } },
+  stage: { select: { name: true, internalCode: true } },
   allocationPlan: { select: { id: true, name: true, classId: true, semesterId: true } },
 } satisfies Prisma.AdmissionCandidateSelect;
 type WaitingLead = Prisma.AdmissionCandidateGetPayload<{ select: typeof waitingLeadSelect }>;
@@ -410,16 +418,31 @@ function placementView(context: OrganizationContext, options: PlacementViewOptio
     contracts,
     signals: options.signals,
   });
-  const reviewReasons = formationReviewReasons(row, attention);
-  const blockers = placementAlreadySettled(row)
-    ? []
-    : [...reviewReasons, ...placementViewBlockers(context, { row, semester, plan, attention })];
-  const confirmation = periodConfirmation({
-    continuity: z.enum(["CHANGE", "LEAVING", "STAY", "UNDECIDED"]).parse(row.continuity),
-    declined: Boolean(row.declinedAt),
-    enrolled: Boolean(row.publishedAt),
-    ready: Boolean(row.planId) && blockers.length === 0,
+  const continuing = row.mode !== "ENTRY" && followsOwnClass(row.sourceClassId, plan);
+  const reviewReasons = formationPlacementBlockers({
+    ...attention,
+    classClosurePending: row.classClosurePending,
+    continuing: continuing || row.classClosurePending,
+    continuity: row.continuity,
+    exitRiskActive: row.exitRiskActive,
+    staffImpediment: Boolean(row.attentionNote?.trim()),
   });
+  const blockers =
+    row.declinedAt || (!row.classClosurePending && placementAlreadySettled(row))
+      ? []
+      : [...reviewReasons, ...placementViewBlockers(context, { row, semester, plan, continuing })];
+  const confirmation =
+    row.classClosurePending && !row.declinedAt
+      ? "BLOCKED"
+      : periodConfirmation({
+          continuity: z.enum(["CHANGE", "LEAVING", "STAY", "UNDECIDED"]).parse(row.continuity),
+          declined: Boolean(row.declinedAt),
+          enrolled: Boolean(
+            row.publishedAt && (row.entryStatus === "SCHEDULED" || placementAlreadySettled(row)),
+          ),
+          continuing,
+          ready: Boolean(row.planId) && blockers.length === 0,
+        });
   return {
     ...row,
     attention,
@@ -531,9 +554,9 @@ function placementViewBlockers(
     row,
     semester,
     plan,
-    attention,
+    continuing,
   }: {
-    attention: FormationAttention;
+    continuing: boolean;
     row: PlacementRow;
     semester: Period;
     plan: ClassPlan | null;
@@ -547,11 +570,7 @@ function placementViewBlockers(
   });
   if (plan?.startsOn && entryOn < dateOnly(plan.startsOn))
     blockers.push("A entrada antecede o início da turma.");
-  const cohortAdvance =
-    meetsFormationAverages(attention) &&
-    !!plan?.sourceClassId &&
-    plan.sourceClassId === row.sourceClassId;
-  return [...blockers, ...placementBlockers(row, { plan, entryOn, cohortAdvance })];
+  return [...blockers, ...placementBlockers(row, { plan, entryOn, cohortAdvance: continuing })];
 }
 
 function pendingPlacementBlockers(
@@ -560,7 +579,6 @@ function pendingPlacementBlockers(
 ): string[] {
   if (row.publishedAt) return [];
   const blockers: string[] = [];
-  if (row.continuity === "LEAVING") blockers.push("Conversar sobre a possível saída");
   if (row.declinedAt) return blockers;
   if (entryOn < today) blockers.push("Revise a vigência: a data proposta já passou");
   if (outsideSemester(entryOn, semester)) blockers.push("Vigência fora do período letivo");

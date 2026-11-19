@@ -19,6 +19,7 @@ const UUID_ENTITY_EXCEPTIONS = new Set([
   "Session",
   "Verification",
   "InstallmentAgreement",
+  "SemesterPlacementEvent",
   "MaterialOrder",
   "EntryVisitAssessment",
   "UndatedStudentIntake",

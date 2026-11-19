@@ -105,10 +105,13 @@ export function TextControl({
         size="sm"
         inputMode={inputMode}
         invalid={invalid ?? Boolean(error)}
+        aria-describedby={error ? `${name}-error` : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
-      <FieldError match={Boolean(error)}>{error}</FieldError>
+      <FieldError id={`${name}-error`} match={Boolean(error)}>
+        {error}
+      </FieldError>
     </Field>
   );
 }

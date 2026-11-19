@@ -37,15 +37,22 @@ export async function seedClass(context: SeedContext, classSeed: DevClassSeed): 
     `stage ${classSeed.stageInternalCode}`,
   );
   const classId = stableUuid(["class", classSeed.key]);
-  const portalClassName = await context.resolveClassName(classSeed, context.semester);
+  const scheduleType = classSeed.scheduleType ?? "REGULAR";
+  const sharedStageId = scheduleType === "REGULAR" ? stage.id : null;
+  const portalClassName = await context.resolveClassName({
+    scheduleType,
+    slots: classSeed.slots,
+    sharedStageId,
+    teacherId,
+  });
   await context.database.class.create({
     data: {
       id: classId,
       internalCode: `${context.semester.name}-${classSeed.key}`,
       teacherId,
-      scheduleType: classSeed.scheduleType ?? "REGULAR",
+      scheduleType,
       format: classSeed.format ?? "IN_PERSON",
-      sharedStageId: classSeed.scheduleType === "PERSONALIZED" ? null : stage.id,
+      sharedStageId,
       semesterId: context.semester.id,
       year: context.semester.year,
       capacity: classSeed.capacity,

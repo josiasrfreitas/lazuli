@@ -1,4 +1,4 @@
-import { readAcquiredStages } from "./material-purchases.js";
+import { readAcquiredStages } from "@lazuli/db/material-purchases";
 import { stageMaterialAttention } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import { toDateOnlyString, type FinanceDatabase } from "./shared.js";

@@ -302,4 +302,6 @@ export {
   WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
 } from "./internal/shared.js";
 
-export { readAcquiredStages } from "./internal/material-purchases.js";
+export { readAcquiredStages } from "@lazuli/db/material-purchases";
+
+export { readStudentAgreements, requireStudentAgreement } from "./internal/student-agreements.js";

@@ -1,13 +1,6 @@
 "use client";
 import { useMemo, useState, type ReactElement } from "react";
-import {
-  Check,
-  TriangleAlert,
-  CalendarDays,
-  ClipboardList,
-  Search,
-  UsersRound,
-} from "lucide-react";
+import { Check, TriangleAlert, Search, UsersRound } from "lucide-react";
 import { Button, Input, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { formationTeachingDay } from "@lazuli/domain";
 import { dateOnly } from "./shared";
@@ -18,7 +11,8 @@ import {
   type Placement,
   type ClassPlan,
 } from "./model";
-import { FormationPanel } from "./formation-panel";
+import { FormationPanel, type FormationRosterFilters } from "./formation-panel";
+import { formationPlanTitle } from "./formation-detail-breadcrumb";
 import { useFormationNavigation, type FormationNavigation } from "./use-formation-navigation";
 import {
   atRisk,
@@ -39,9 +33,9 @@ type Props = {
   today: string;
   onSelect: (id: string | null) => void;
   onAction: (action: OrganizationAction) => void;
-  onFeedback: (message: string) => void;
   prepare: () => void;
   preparing: boolean;
+  rosterFilters: FormationRosterFilters;
   scope: string;
   query: string;
   clearFilters: () => void;
@@ -79,13 +73,12 @@ function useAgendaNavigation({
   return { ...navigation, ended, plan, student, plans };
 }
 export function OrganizationAgenda(props: Props): ReactElement {
-  const { board, selected, onAction, onFeedback, prepare, preparing, clearFilters } = props;
+  const { board, selected, onAction, prepare, preparing, clearFilters } = props;
   const {
     panel,
-    grouped,
-    expandQueue,
-    mobile,
-    setMobile,
+    returnView,
+    returnHref,
+    returnToReview,
     workspace,
     ended,
     plan,
@@ -96,19 +89,26 @@ export function OrganizationAgenda(props: Props): ReactElement {
     goBack,
     reset,
   } = useAgendaNavigation(props);
+  const parentPlan = board.plans.find((item) => item.id === returnView?.planId);
+  const parentPerson = returnView?.person;
+  const parentName =
+    parentPerson?.kind === "student"
+      ? board.placements.find((item) => item.id === parentPerson.id)?.studentName
+      : board.waitingLeads.find((item) => item.id === parentPerson?.id)?.fullName;
+  const parentLabel = returnToReview
+    ? "Revisão de vínculos"
+    : parentPlan
+      ? formationPlanTitle(parentPlan)
+      : (parentName ?? "Formação de turmas");
+  const showDetail = Boolean(plan || panel || returnToReview);
   return (
     <div
       className={styles.workspace}
-      data-mobile={mobile}
-      data-formation-expanded={grouped || plan || panel ? "" : undefined}
+      data-formation-expanded={showDetail ? "" : undefined}
       data-formation-workspace=""
       ref={workspace}
     >
-      <WorkspacePicker mobile={mobile} setMobile={setMobile} />
       <section className={styles.schedule} aria-label="Grade semanal de turmas">
-        <a className={styles.skipPanel} href="#formation-panel-heading">
-          Ir para o painel de formação
-        </a>
         {student && (
           <div className={styles.match}>
             Encaixes para <strong>{student.studentName}</strong>
@@ -139,47 +139,29 @@ export function OrganizationAgenda(props: Props): ReactElement {
           />
         )}
       </section>
-      <FormationPanel
-        board={board}
-        plan={plan}
-        selection={panel}
-        grouped={grouped}
-        expandQueue={expandQueue}
-        ended={ended}
-        onAction={onAction}
-        onFeedback={onFeedback}
-        onSelectPlan={showPlan}
-        onSelect={selectPerson}
-        onBack={goBack}
-      />
+      {showDetail && (
+        <FormationPanel
+          returnParent={{
+            label: parentLabel,
+            planId: parentPlan?.id ?? null,
+            href: returnHref,
+            review: returnToReview,
+          }}
+          board={board}
+          rosterFilters={props.rosterFilters}
+          plan={plan}
+          selection={panel}
+          ended={ended}
+          onAction={onAction}
+          onSelectPlan={showPlan}
+          onSelect={selectPerson}
+          onBack={goBack}
+        />
+      )}
     </div>
   );
 }
 
-function WorkspacePicker({
-  mobile,
-  setMobile,
-}: Pick<FormationNavigation, "mobile" | "setMobile">): ReactElement {
-  return (
-    <div className={styles.mobileTools}>
-      <SegmentedControl
-        size="sm"
-        aria-label="Área de trabalho"
-        value={mobile}
-        onValueChange={(value) => {
-          if (value) setMobile(value);
-        }}
-      >
-        <SegmentedControlItem value="grade">
-          <CalendarDays size={14} /> Grade
-        </SegmentedControlItem>
-        <SegmentedControlItem value="painel">
-          <ClipboardList size={14} /> Pendências
-        </SegmentedControlItem>
-      </SegmentedControl>
-    </div>
-  );
-}
 function EmptySchedule({
   board,
   ended,
@@ -289,13 +271,13 @@ function WeekGrid({
     <>
       <div className={styles.gridLegend} aria-label="Legenda da grade">
         <span>
-          <UsersRound size={13} /> Total confirmado ou pré-confirmado
+          <UsersRound size={13} /> Pré-confirmados
         </span>
         <span>
-          <Check size={13} /> Pré-confirmados
+          <Check size={13} /> Confirmados na turma
         </span>
         <span>
-          <TriangleAlert size={13} /> Turma em risco
+          <TriangleAlert size={13} /> Atenção
         </span>
       </div>
       <DayPicker day={day} days={days} setDay={setDay} />
@@ -318,7 +300,7 @@ function WeekGrid({
                         key={plan.id + endTime}
                         plan={plan}
                         clock={{ start, endTime, day: weekday }}
-                        count={metrics.get(plan.id)!.confirmed}
+                        confirmed={metrics.get(plan.id)!.confirmed}
                         preconfirmed={metrics.get(plan.id)!.preconfirmed}
                         highlighted={plan.id === (hovered ?? focused)}
                         onHover={setHovered}
@@ -367,6 +349,14 @@ function DayPicker({
     </div>
   );
 }
+const MAX_GRID_STAGE_NAME_LENGTH = "Transitions 2".length;
+
+function gridStageLabel(plan: ClassPlan, fallback: string): string {
+  if (plan.scheduleType === "PERSONALIZED") return "PPT";
+  if (plan.stageName && plan.stageName.length <= MAX_GRID_STAGE_NAME_LENGTH) return plan.stageName;
+  return plan.stageCode ?? plan.stageName ?? fallback;
+}
+
 function UnscheduledPlans({
   plans,
   onSelect,
@@ -387,8 +377,7 @@ function UnscheduledPlans({
           aria-controls="formation-panel"
           onClick={(event) => onSelect(plan, event.currentTarget)}
         >
-          {plan.scheduleType === "PERSONALIZED" ? "PPT" : (plan.stageCode ?? "Estágio a definir")} ·{" "}
-          {plan.name}
+          {gridStageLabel(plan, "Estágio a definir")} · {plan.name}
         </Button>
       ))}
     </section>
@@ -397,7 +386,7 @@ function UnscheduledPlans({
 function TeachingSlot({
   plan,
   clock,
-  count,
+  confirmed,
   preconfirmed,
   highlighted,
   onHover,
@@ -408,7 +397,7 @@ function TeachingSlot({
 }: {
   plan: ClassPlan;
   clock: { start: string; endTime: string; day: TeachingDay };
-  count: number;
+  confirmed: number;
   preconfirmed: number;
   highlighted: boolean;
   onHover: (id: string | null) => void;
@@ -418,11 +407,8 @@ function TeachingSlot({
   onSelect: (plan: ClassPlan, origin: HTMLElement) => void;
 }): ReactElement {
   const { start, endTime, day } = clock;
-  const risk = plan.active && count <= limit;
-  const title =
-    plan.scheduleType === "PERSONALIZED"
-      ? "PPT"
-      : (plan.stageCode ?? "Regular · estágio a definir");
+  const risk = plan.active && confirmed + preconfirmed < limit;
+  const title = gridStageLabel(plan, "Regular · estágio a definir");
   const professor = plan.teacherName ?? "Professor a definir";
   const interval = `${start}–${endTime}`;
   return (
@@ -436,7 +422,7 @@ function TeachingSlot({
       onBlur={() => onFocusPlan(null)}
       data-ppt={plan.scheduleType === "PERSONALIZED"}
       aria-pressed={selected}
-      aria-label={`${title} · ${plan.name} · ${professor} · ${weekdayLabel(day)} ${interval} · ${count - preconfirmed} confirmados, ${preconfirmed} pré-confirmados${risk ? ", turma em risco" : ""}`}
+      aria-label={`${title} · ${plan.name} · ${professor} · ${weekdayLabel(day)} ${interval} · ${confirmed} confirmados na turma, ${preconfirmed} pré-confirmados${risk ? ", turma em risco" : ""}`}
       title={`${plan.name} · ${interval} · ${professor}`}
       aria-controls="formation-panel"
       data-formation-focus={`slot-${plan.id}-${day}-${start}`}
@@ -450,16 +436,15 @@ function TeachingSlot({
         <span>{professor}</span>
       </span>
       <span className={styles.slotCounts}>
-        <span
-          className={styles.placeCount}
-          data-risk={risk}
-          title={`${count - preconfirmed} confirmados · ${preconfirmed} pré-confirmados`}
-        >
-          {risk ? <TriangleAlert size={12} /> : <UsersRound size={12} />} {count}
+        <span className={styles.placeCount} title={`${preconfirmed} pré-confirmados`}>
+          <UsersRound size={12} /> {preconfirmed}
         </span>
-        {preconfirmed > 0 && (
-          <span className={styles.preconfirmed} title={`${preconfirmed} pré-confirmados`}>
-            <Check size={12} /> {preconfirmed}
+        <span className={styles.confirmedCount} title={`${confirmed} confirmados na turma`}>
+          <Check size={12} /> {confirmed}
+        </span>
+        {risk && (
+          <span className={styles.riskIndicator} title="Atenção: turma em risco">
+            <TriangleAlert size={12} />
           </span>
         )}
       </span>

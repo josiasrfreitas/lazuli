@@ -147,11 +147,11 @@ its outcome and any planned follow-up.
 An academic window with a start and end date, normally six months long. Every class belongs to one Period.
 _Avoid_: Semester (as the entity name)
 
-**Continuity Confirmation**:
-A student's intention to continue in a class for a specific Period. It is independent of contract renewal and of applying the student's class membership.
+**Pré-confirmado** means a student is expected to follow their own class in the Period and the proposed membership has no blockers. The source enrollment identifies the class. The destination plan or the published class identifies its predecessor. The group can advance a stage together.
 
-**Contract Preconfirmation**:
-The default continuity indication when continuous contract coverage reaches the fourth month of the target Period, the student meets grade and attendance thresholds and has no open engagement concern. A contract expiring in months one through three requires an explicit decision. An explicit intention to change classes or leave takes precedence.
+**Continuidade bloqueada** groups active impediments to following that class. Each reason remains visible until its source changes. Continuous contract coverage must include entry and extend beyond the midpoint of the academic Period. Missing stage material, insufficient grades, low attendance, a staff-reported impediment and an active departure risk also block. Incomplete grades, missing attendance records, low health score and free-text observations are attention signals.
+
+**Confirmado na turma** means the membership was scheduled or took effect. New entries and transfers can reach this state after selection of a valid destination.
 
 **Contract Renewal**:
 A new contractual agreement extending the student's commercial commitment. Confirming continuity for class planning does not renew the contract.

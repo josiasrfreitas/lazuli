@@ -3,6 +3,7 @@ import { hasTeacherIdentity } from "./identity.js";
 import { assertNoAppointmentConflict } from "../appointments/commitments.js";
 import type { Prisma } from "@lazuli/db";
 import {
+  type PortalClassNameSlot,
   intervalsOverlap,
   weekdayOf,
   responsibleTeacherId,
@@ -73,7 +74,7 @@ export async function assertNoTeacherConflict(input: AssertNoTeacherConflictInpu
   }
 }
 
-export function databaseSlotToCandidate(slot: DatabaseSlotToCandidateInput): CandidateSlot {
+export function databaseSlotToCandidate(slot: DatabaseSlotToCandidateInput): PortalClassNameSlot {
   return {
     weekday: slot.weekday,
     startTime: dateToTimeString(slot.startTime),
@@ -142,7 +143,7 @@ type AssertNoTeacherConflictInput = {
   };
 };
 type DatabaseSlotToCandidateInput = {
-  weekday: string;
+  weekday: PortalClassNameSlot["weekday"];
   startTime: Date;
   endTime: Date;
 };

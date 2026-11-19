@@ -14,9 +14,8 @@ export {
 export { resolveSemesterForDate, SemesterBucketError } from "./semester.js";
 export type { SemesterBucketErrorCode, SemesterWindow } from "./semester.js";
 export {
-  generateRegularPortalClassName,
-  generatePersonalizedPortalClassName,
-  type GenerateRegularPortalClassNameInput,
+  generatePortalClassName,
+  type ClassNameInput,
   type PortalClassNameSlot,
   type Weekday,
 } from "./class-portal-name.js";
@@ -183,7 +182,11 @@ export type {
   DocumentFamily,
 } from "./identity-extraction/types.js";
 
-export { periodConfirmation, type PeriodConfirmation } from "./period-confirmation.js";
+export {
+  followsOwnClass,
+  periodConfirmation,
+  type PeriodConfirmation,
+} from "./period-confirmation.js";
 
 export {
   LOW_HEALTH_SCORE,
@@ -199,7 +202,9 @@ export {
   contractCoverageEnd,
   formationContractStatus,
   formationTeachingDay,
-  meetsFormationAverages,
+  formationPlacementBlockers,
+  formationBlocker,
+  hasFormationSignal,
   MISSING_ENTRY_CONTRACT,
   type FormationContractStatus,
 } from "./formation.js";

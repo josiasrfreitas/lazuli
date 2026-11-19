@@ -2,8 +2,10 @@
 import { type JSX as ReactJSX } from "react";
 import { ResetFormationDialog } from "./reset-formation-dialog";
 import { RiskLimitDialog, PostponeDialog } from "./formation-settings";
+import { ClassCreateDialog } from "~/features/classes/create-dialog";
 import { ClassPlanForm } from "~/features/class-organization/plan-form";
 import { PlacementForm } from "~/features/class-organization/placement-form";
+import { PlacementDateDialog } from "./placement-date-dialog";
 import { ReasonDialog, PlacementHistory } from "~/features/class-organization/action-dialogs";
 import type { OrganizationAction, OrganizationBoard } from "./model";
 import { ContinuityDialog, PlanStatusDialog } from "./continuity";
@@ -32,7 +34,14 @@ function renderStudentDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose, onAction } = props;
   switch (action.kind) {
     case "continuity": {
-      return <ContinuityDialog row={action.row} board={board} onClose={onClose} />;
+      return (
+        <ContinuityDialog
+          row={action.row}
+          board={board}
+          onClose={onClose}
+          onFeedback={props.onFeedback}
+        />
+      );
     }
     case "findStudent": {
       return <FindStudent board={board} onClose={onClose} onAction={onAction} />;
@@ -65,13 +74,26 @@ function renderPlanDialogs(props: Props): ReactJSX.Element | null {
       );
     }
     case "plan": {
+      if (!action.plan && !action.group)
+        return (
+          <ClassCreateDialog
+            open
+            initialSemesterId={board.semester.id}
+            onOpenChange={(open) => {
+              if (!open) onClose();
+            }}
+          />
+        );
       return (
         <ClassPlanForm
           semesterId={board.semester.id}
           {...(action.plan ? { plan: action.plan } : {})}
           {...(action.group ? { group: action.group } : {})}
           onClose={onClose}
-          onSaved={props.onPlan}
+          onSaved={(id) => {
+            props.onPlan(id);
+            onClose();
+          }}
         />
       );
     }
@@ -84,6 +106,15 @@ function renderPlanDialogs(props: Props): ReactJSX.Element | null {
 function renderPlacementDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose } = props;
   switch (action.kind) {
+    case "placementDate":
+      return (
+        <PlacementDateDialog
+          row={action.row}
+          board={board}
+          onClose={onClose}
+          onFeedback={props.onFeedback}
+        />
+      );
     case "placement": {
       return (
         <PlacementForm
@@ -92,6 +123,7 @@ function renderPlacementDialogs(props: Props): ReactJSX.Element | null {
           {...(action.row ? { row: action.row } : {})}
           {...(action.planId ? { initialPlanId: action.planId } : {})}
           onClose={onClose}
+          onFeedback={props.onFeedback}
         />
       );
     }

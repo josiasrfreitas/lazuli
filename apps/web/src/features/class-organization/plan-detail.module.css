@@ -1,0 +1,135 @@
+.content {
+  width: min(69rem, calc(100% - clamp(2rem, 8vw, 8rem)));
+  margin-inline: auto;
+  padding-block: 1.25rem 2rem;
+  container: plan-sheet / inline-size;
+}
+
+.header {
+  display: grid;
+  gap: 0.875rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.heading,
+.identity,
+.actions,
+.facts,
+.risk {
+  display: flex;
+  align-items: center;
+}
+
+.heading {
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.identity {
+  flex: 1 1 14rem;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.875rem;
+}
+
+.heading h1 {
+  margin: 0;
+  color: var(--heading);
+  font-family: var(--lz-font-display);
+  font-size: var(--lz-text-h1);
+  line-height: var(--lz-leading-h1);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.heading h1:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.identity p,
+.facts dt {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  line-height: var(--lz-leading-caption);
+}
+
+.identity p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.facts {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.625rem 2rem;
+  margin: 0;
+}
+
+.facts > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.facts dd {
+  margin: 0.2rem 0 0;
+  font-size: var(--lz-text-body);
+  line-height: var(--lz-leading-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.risk {
+  justify-self: start;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--warning);
+  font-size: var(--lz-text-caption);
+}
+
+.risk svg {
+  align-self: center;
+  flex: none;
+}
+
+@container plan-sheet (max-width: 32rem) {
+  .facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) max-content;
+    gap: 0.5rem 0.625rem;
+  }
+
+  .facts > :first-child:nth-last-child(4) {
+    grid-column: 1 / -1;
+  }
+}
+
+@container plan-sheet (max-width: 20rem) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
+  .facts > :nth-last-child(3) {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.625rem;
+  }
+
+  .facts > :nth-last-child(3) dd {
+    margin: 0;
+  }
+}

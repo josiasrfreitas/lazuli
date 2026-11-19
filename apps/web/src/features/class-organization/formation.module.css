@@ -9,10 +9,8 @@
   overflow: hidden;
 }
 .header,
-.tools,
 .headerActions,
 .panelTitle,
-.find,
 .planCounts,
 .match,
 .planHeading,
@@ -67,19 +65,15 @@
   height: 1rem;
   color: var(--muted-foreground);
 }
-.tools,
 .notice {
   padding: 0.5rem 1rem;
-}
-.tools input {
-  max-width: 15rem;
 }
 .workspace {
   flex: 1;
   min-height: 0;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(17rem, 25%, 22rem);
+  grid-template-columns: minmax(0, 1fr);
 }
 .schedule,
 .panel {
@@ -90,25 +84,6 @@
 }
 .schedule {
   position: relative;
-}
-.skipPanel {
-  position: absolute;
-  z-index: 2;
-  inset: 0 auto auto 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  width: 1px;
-  height: 1px;
-}
-.skipPanel:focus-visible {
-  clip-path: none;
-  width: auto;
-  height: auto;
-  padding: 0.45rem 0.85rem;
-  background: var(--card);
-  color: var(--interactive);
-  outline: 2px solid var(--ring);
-  outline-offset: -2px;
 }
 .weekControls {
   justify-content: space-between;
@@ -232,7 +207,7 @@
   flex-shrink: 0;
   gap: 0.13rem;
 }
-.placeCount[data-risk="true"],
+.riskIndicator,
 .studentFacts .warning,
 .notice {
   color: var(--warning);
@@ -255,7 +230,6 @@
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
-.count,
 .planCounts,
 .planHeading,
 .item small,
@@ -263,16 +237,11 @@
   color: var(--muted-foreground);
   font-size: var(--lz-text-caption);
 }
-.panelControls,
 .studentFacts {
   padding: 0.15rem 0.85rem 0.6rem;
   display: grid;
   gap: 0.45rem;
   border-bottom: 1px solid var(--border);
-}
-.find > :first-child {
-  min-width: 0;
-  flex: 1;
 }
 .panelScroll {
   flex: 1;
@@ -292,30 +261,6 @@
   padding: 0.25rem 0.85rem 0.7rem;
   font-size: var(--lz-text-caption);
   overflow-wrap: anywhere;
-}
-.personReasons {
-  color: var(--muted-foreground);
-}
-.personActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem 0.75rem;
-}
-.suggestions {
-  border-top: 1px solid var(--border);
-}
-.suggestions h3 {
-  padding: 0.65rem 0.85rem 0.25rem;
-  color: var(--heading);
-  font-size: var(--lz-text-caption);
-  font-weight: 600;
-}
-.suggestions .item {
-  padding-block: 0.4rem;
-}
-.suggestions .item strong {
-  font-size: var(--lz-text-caption);
 }
 .item:disabled {
   cursor: default;
@@ -389,7 +334,7 @@
   font-size: var(--lz-text-caption);
   color: var(--muted-foreground);
 }
-.panel a,
+.panel a:not([data-slot="button"]),
 .gate li a {
   color: var(--interactive);
 }
@@ -403,7 +348,6 @@
   padding: 0.3rem 0.85rem;
   font-size: var(--lz-text-caption);
 }
-.mobileTools,
 .dayPicker,
 .emptyDay {
   display: none;
@@ -412,15 +356,6 @@
   .workspace {
     display: flex;
     flex-direction: column;
-  }
-  .mobileTools {
-    display: flex;
-    padding: 0.3rem 0.65rem;
-    border-bottom: 1px solid var(--border);
-  }
-  .workspace[data-mobile="grade"] .panel,
-  .workspace[data-mobile="painel"] .schedule {
-    display: none;
   }
   .schedule,
   .panel {
@@ -444,9 +379,6 @@
   .dayPicker {
     display: flex;
     border-top: 1px solid var(--border);
-  }
-  .skipPanel {
-    display: none;
   }
   .emptyDay {
     display: block;
@@ -528,7 +460,9 @@
   }
 }
 :global(html[data-formation-panel]) .panel {
-  view-transition-name: formation-panel;
+  /* Match the global snapshot selectors even after CSS Modules scopes local names. */
+  --formation-panel-transition: formation-panel;
+  view-transition-name: var(--formation-panel-transition);
 }
 :global(html[data-formation-panel]::view-transition-old(root)),
 :global(html[data-formation-panel]::view-transition-new(root)) {
@@ -536,30 +470,19 @@
   mix-blend-mode: normal;
 }
 :global(html[data-formation-panel]::view-transition-group(formation-panel)) {
+  animation: none;
   overflow: clip;
 }
-:global(html[data-formation-panel="forward"]::view-transition-old(formation-panel)),
-:global(html[data-formation-panel="backward"]::view-transition-new(formation-panel)) {
-  animation: formation-panel-back 160ms var(--lz-ease-standard) both;
+:global(html[data-formation-panel]::view-transition-old(formation-panel)) {
+  animation: none;
+  opacity: 0;
 }
-:global(html[data-formation-panel="forward"]::view-transition-new(formation-panel)),
-:global(html[data-formation-panel="backward"]::view-transition-old(formation-panel)) {
-  animation: formation-panel-forward 160ms var(--lz-ease-standard) both;
+:global(html[data-formation-panel]::view-transition-new(formation-panel)) {
+  animation: formation-panel-appear 120ms ease-out both;
 }
-:global(html[data-formation-panel="backward"]::view-transition-new(formation-panel)),
-:global(html[data-formation-panel="backward"]::view-transition-old(formation-panel)) {
-  animation-direction: reverse;
-}
-@keyframes formation-panel-back {
-  to {
-    opacity: 0;
-    transform: translateX(-3%);
-  }
-}
-@keyframes formation-panel-forward {
+@keyframes formation-panel-appear {
   from {
     opacity: 0;
-    transform: translateX(3%);
   }
 }
 @media (max-width: 72rem) {
@@ -598,7 +521,6 @@
   display: flex;
   flex-direction: column;
 }
-.workspace[data-formation-expanded] .mobileTools,
 .workspace[data-formation-expanded] .schedule,
 .page:has(.workspace[data-formation-expanded]) .weekControls {
   display: none;
@@ -611,15 +533,6 @@
 .workspace[data-formation-expanded] .panelTitle {
   border-bottom: 1px solid var(--border);
 }
-.workspace[data-formation-expanded] .panelControls {
-  display: flex;
-  align-items: end;
-  flex-wrap: wrap;
-  padding-block: 0.55rem;
-}
-.workspace[data-formation-expanded] .panelControls .find {
-  width: min(100%, 18rem);
-}
 .workspace[data-formation-expanded] .studentFacts {
   padding: 0.85rem 1rem;
 }
@@ -631,123 +544,14 @@
   outline: 2px solid var(--interactive);
   outline-offset: -2px;
 }
-.preconfirmed {
+.confirmedCount {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
   font-size: var(--lz-text-micro);
   color: var(--interactive);
 }
-.personRow {
-  width: 100%;
-  display: grid;
-  grid-template-columns: auto minmax(9rem, 1fr) auto minmax(12rem, 1.5fr) auto;
-  align-items: center;
-  gap: 0.4rem 0.8rem;
-  padding: 0.55rem 1rem;
-  text-align: start;
-  border-bottom: 1px solid var(--border-subtle);
-  cursor: pointer;
-}
-.personRow:hover {
-  background: var(--accent);
-}
-.personRow:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: -2px;
-}
-.personIdentity {
-  display: grid;
-  min-width: 0;
-}
-.personIdentity strong,
-.rosterGroup h3 {
-  color: var(--heading);
-  font-size: var(--lz-text-body);
-  font-weight: 600;
-}
-.personIdentity small,
-.gradeValue,
-.personBadges small,
-.personRow > svg,
-.rosterGroup header :is(small, p) {
-  color: var(--muted-foreground);
-  font-size: var(--lz-text-caption);
-}
-.gradeValue strong {
-  color: var(--foreground);
-}
-.personBadges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem;
-}
-.personRow[data-compact="true"] {
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.25rem;
-  padding: 0.55rem 0.85rem;
-}
-.personRow[data-compact="true"] .personBadges {
-  grid-column: 1;
-}
-.personRow[data-compact="true"] > svg {
-  grid-row: 1 / 3;
-  grid-column: 2;
-}
-.groupScroll {
-  overflow-y: auto;
-  min-height: 0;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-.rosterGroup > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 1rem;
-  background: var(--table-heading);
-  border-block-end: 1px solid var(--border);
-}
-.rosterGroup h3 {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-.groupScroll > .rosterGroup > header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-@media (max-width: 48rem) {
-  .personRow:not([data-compact="true"]) {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-  }
-  .personRow:not([data-compact="true"]) .personBadges {
-    grid-column: 2 / 4;
-  }
-  .personRow:not([data-compact="true"]) > svg {
-    grid-column: 4;
-    grid-row: 1 / 3;
-  }
-  .workspace[data-formation-expanded] .panelControls .find {
-    width: 100%;
-  }
-}
 
-.reviewControls {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: 0.5rem;
-  min-width: 0;
-}
-.reviewControls input {
-  flex: 0 1 14rem;
-  min-width: 7rem;
-  width: 100%;
-}
 .place {
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
@@ -793,30 +597,6 @@
 .header > [data-slot="field"] {
   align-self: center;
 }
-@media (max-width: 52rem) {
-  .reviewControls {
-    order: 3;
-    flex-basis: 100%;
-  }
-}
-@media (max-width: 33rem) {
-  .header:has(.reviewControls) {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-    gap: 0.45rem 0.25rem;
-  }
-  .header:has(.reviewControls) > [data-slot="field"] {
-    min-width: 5.5rem;
-  }
-  .reviewControls {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .reviewControls input {
-    min-width: 0;
-  }
-}
 .placeTitle {
   flex-wrap: wrap;
   column-gap: 0.2rem;
@@ -825,79 +605,144 @@
   margin-inline-start: auto;
 }
 
-.page:has([data-student-detail]) > .header {
+.page:has([data-student-detail], [data-plan-detail], [data-lead-detail]) > .header {
   display: none;
 }
 
-.panelTitleContents {
-  display: contents;
+.panel[data-student-detail] {
+  container: student-sheet / inline-size;
+  --student-content-width: min(69rem, calc(100% - 12rem));
 }
 
-.studentHeader,
-.studentDetailBody {
-  width: min(100%, 74rem);
-  margin-inline: auto;
-}
-
-.panel[data-student-detail] .panelTitle {
-  padding: 0;
-}
-
-.studentHeader,
-.studentDetailBody {
-  padding-inline: clamp(1rem, 3vw, 2.5rem);
+.studentMasthead {
+  display: grid;
+  grid-template-columns: 1fr var(--student-content-width) 1fr;
+  flex: none;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
 }
 
 .studentHeader {
+  grid-column: 2;
   display: flex;
   align-items: center;
-  gap: clamp(0.5rem, 1.5vw, 1rem);
+  gap: 1rem;
   padding-block: 0.875rem;
 }
 
-.studentHeader h2 {
-  flex: 0 1 auto;
+.identity {
   min-width: 0;
-  font-size: var(--lz-text-h3);
-  line-height: 1.15;
+}
+
+.identity h1 {
+  color: var(--heading);
+  font-family: var(--lz-font-display);
+  font-size: var(--lz-text-h2);
+  font-weight: 600;
+  line-height: var(--lz-leading-h2);
   overflow-wrap: anywhere;
 }
 
+.identity h1:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.identity p {
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+
 .studentDetailBody {
-  container-type: inline-size;
-  display: grid;
-  gap: 1.5rem;
+  width: var(--student-content-width);
+  margin-inline: auto;
   padding-block: 1.25rem 2rem;
 }
 
-.studentDetailBody .suggestions {
-  padding-top: 1rem;
+@container student-sheet (max-width: 54rem) {
+  .studentMasthead {
+    grid-template-columns: 1rem minmax(0, 1fr) 1rem;
+  }
+
+  .studentHeader {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.25rem 0.75rem;
+    padding-block: 0.25rem 0.875rem;
+  }
+
+  .studentHeader > :first-child {
+    grid-row: 1 / 3;
+  }
+
+  .studentHeader > [data-slot="badge"] {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .studentDetailBody {
+    width: calc(100% - 2rem);
+    padding-block: 0.875rem 1.5rem;
+  }
 }
 
-.studentDetailBody .suggestions h3 {
-  padding: 0;
-  font-size: var(--lz-text-body);
+/* Carry the selected student's name from the roster to the sheet and back. */
+@media (prefers-reduced-motion: no-preference) {
+  :global(html[data-formation-panel]) .identity h1 {
+    --formation-identity-transition: formation-student-name;
+    view-transition-name: var(--formation-identity-transition);
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  :global(html[data-formation-panel]) .panel[data-student-detail] .panelScroll {
+    --formation-body-transition: formation-student-body;
+    view-transition-name: var(--formation-body-transition);
+  }
+
+  :global(html[data-formation-panel]::view-transition-group(formation-student-name)) {
+    z-index: 1;
+    animation-duration: var(--lz-duration-slow);
+    animation-timing-function: var(--lz-ease-standard);
+  }
+
+  :global(html[data-formation-panel]::view-transition-group(formation-student-body)) {
+    overflow: clip;
+    animation: none;
+  }
+
+  :global(html[data-formation-panel]::view-transition-new(formation-student-body)),
+  .panel[data-student-arrival="forward"] {
+    animation: student-sheet-enter var(--lz-duration-slow) var(--lz-ease-standard) both;
+  }
+
+  :global(html[data-formation-panel]::view-transition-old(formation-student-body)) {
+    animation: student-sheet-exit var(--lz-duration-base) var(--lz-ease-standard) both;
+  }
+
+  .panel[data-student-arrival="backward"] {
+    animation: student-list-return var(--lz-duration-base) var(--lz-ease-standard) both;
+  }
 }
 
-.studentDetailBody .suggestionNote {
-  padding: 0;
-  margin-block: 0.25rem 0.75rem;
+@keyframes student-sheet-enter {
+  from {
+    transform: translateX(1.75rem);
+    opacity: 0.25;
+  }
 }
 
-.suggestionList {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.5rem;
+@keyframes student-sheet-exit {
+  to {
+    transform: translateX(1.75rem);
+    opacity: 0;
+  }
 }
 
-.suggestionList .item {
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-@container (min-width: 42rem) {
-  .suggestionList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@keyframes student-list-return {
+  from {
+    transform: translateX(-1rem);
+    opacity: 0.5;
   }
 }

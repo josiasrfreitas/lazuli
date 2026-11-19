@@ -7,6 +7,7 @@ import {
   recordPlacementRevision,
   type OrganizationContext,
 } from "./data.js";
+import { plannedClassName } from "../classes/portal-name.js";
 import { recordActivity } from "../activity/record.js";
 
 const ISO_TIME_START_INDEX = 11;
@@ -136,17 +137,22 @@ async function preparationPlan(
     !scope.current && group.scheduleType === "REGULAR" && group.sharedStageId
       ? await nextRegularStage(context, group.sharedStageId)
       : null;
+  const fields = {
+    scheduleType: group.scheduleType,
+    sharedStageId: nextStage?.id ?? group.sharedStageId,
+    teacherId: group.teacherAssignments[0]?.teacherId ?? group.teacherId,
+    slots,
+  };
   const created = await context.database.semesterClassPlan.create({
     data: {
+      ...fields,
       semesterId: scope.semester.id,
       sourceClassId: group.id,
       classId: scope.current ? group.id : null,
-      name: group.portalClassName,
-      scheduleType: group.scheduleType,
+      name: scope.current
+        ? group.portalClassName
+        : await plannedClassName(context.database, fields),
       format: group.format,
-      sharedStageId: nextStage?.id ?? group.sharedStageId,
-      teacherId: group.teacherAssignments[0]?.teacherId ?? group.teacherId,
-      slots,
       recordedById: context.staffUser.id,
     },
   });
@@ -224,6 +230,9 @@ function preparedPlacementData(
   return {
     semesterId: scope.semester.id,
     ...inheritedContinuity(previous, plan),
+    classClosurePending: Boolean(
+      plan.closedAt || (previous?.classClosurePending && previous.continuity === "CHANGE"),
+    ),
     studentId: enrollment.studentId,
     trackId: progress.stage.trackId,
     stageId:
@@ -232,6 +241,9 @@ function preparedPlacementData(
     sourceEnrollmentId: enrollment.id,
     mode: placementMode(scope, { plan, progress }),
     attentionNote: previous?.attentionNote ?? null,
+    exitRiskActive: previous?.exitRiskActive ?? false,
+    declinedAt: previous?.declinedAt ?? null,
+    declinedReason: previous?.declinedReason ?? null,
     effectiveDate: scope.current ? enrollment.entryDate : scope.semester.startDate,
     recordedById: context.staffUser.id,
     ...(scope.current
@@ -262,8 +274,8 @@ function inheritedContinuity(
   if (plan.closedAt)
     return {
       planId: null,
-      continuity: "CHANGE",
-      continuityReason: "Turma desfeita. Aguardando novo encaixe.",
+      continuity: previous?.continuity ?? "UNDECIDED",
+      continuityReason: previous?.continuityReason ?? null,
     };
   if (!previous || previous.continuity === "STAY")
     return { planId: plan.id, continuity: "UNDECIDED", continuityReason: null };
@@ -340,6 +352,8 @@ async function carryWaitingPlacement(
       mode: previous.mode,
       notes: previous.notes,
       attentionNote: previous.attentionNote,
+      exitRiskActive: previous.exitRiskActive,
+      classClosurePending: previous.classClosurePending,
       effectiveDate: scope.semester.startDate,
       continuity: previous.continuity === "STAY" ? "UNDECIDED" : previous.continuity,
       continuityReason: previous.continuity === "STAY" ? null : previous.continuityReason,

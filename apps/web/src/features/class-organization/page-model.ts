@@ -20,8 +20,6 @@ export type OrganizationPageModel = SemesterData & {
   ended: boolean;
   tab: string;
   setTab: (value: string) => void;
-  search: string;
-  setSearch: Setter<string>;
   planId: string | null;
   setPlanId: Setter<string | null>;
   action: OrganizationAction | null;
@@ -43,8 +41,6 @@ type PageControls = Pick<
   OrganizationPageModel,
   | "tab"
   | "setTab"
-  | "search"
-  | "setSearch"
   | "planId"
   | "setPlanId"
   | "action"
@@ -76,7 +72,6 @@ function usePageControls(): PageControls {
     parseAsString.withDefault(""),
   );
   const [tab, setTabState] = useQueryState("visao", parseAsString.withDefault("agenda"));
-  const [search, setSearch] = useQueryState("busca", parseAsString.withDefault(""));
   const [planId, setPlanQuery] = useQueryState("turma", parseAsString);
   const setPlanId: Setter<string | null> = (value) => {
     void setPlanQuery(value);
@@ -95,8 +90,6 @@ function usePageControls(): PageControls {
     selectedPeriod,
     tab,
     setTab,
-    search,
-    setSearch,
     planId,
     setPlanId,
     action,

@@ -96,15 +96,27 @@ function CompositionMenuItems({
           <CalendarClock /> Adiar início
         </Button>
       )}
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={ended}
-        onClick={() => onAction({ kind: "planStatus", plan, open: !plan.active })}
-      >
-        {plan.active ? <Archive /> : <RotateCcw />}
-        {plan.active ? "Desfazer turma" : "Reabrir turma"}
-      </Button>
+      {plan.active && plan.classId ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={ended}
+          nativeButton={false}
+          render={<Link href={`/turmas/${plan.classId}?acao=desfazer`} />}
+        >
+          <Archive /> Desfazer turma
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={ended}
+          onClick={() => onAction({ kind: "planStatus", plan, open: !plan.active })}
+        >
+          {plan.active ? <Archive /> : <RotateCcw />}
+          {plan.active ? "Desfazer turma" : "Reabrir turma"}
+        </Button>
+      )}
     </div>
   );
 }

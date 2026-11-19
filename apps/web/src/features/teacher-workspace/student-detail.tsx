@@ -1,3 +1,4 @@
+import { TeacherFormationRisk } from "./formation-risk";
 import type { JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
@@ -39,7 +40,8 @@ export function TeacherStudentTabs({
         )}
       </TabsList>
       <TabsPanel value="acompanhamento">
-        <div className="pt-4">
+        <div className="grid gap-4 pt-4">
+          {detail.current && <TeacherFormationRisk studentId={id} name={detail.name} />}
           <StudentFollowUp studentId={id} studentName={detail.name} canRecord={detail.current} />
         </div>
       </TabsPanel>

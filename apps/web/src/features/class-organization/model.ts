@@ -10,13 +10,17 @@ export type OrganizationAction =
   | { kind: "postpone"; plan: ClassPlan }
   | { kind: "plan"; plan?: ClassPlan; group?: PendingGroup }
   | { kind: "placement"; studentId: string; row?: Placement; planId?: string }
+  | { kind: "placementDate"; row: Placement }
   | { kind: "move" | "decline"; rows: Placement[]; planId?: string }
   | { kind: "continuity"; row: Placement }
   | { kind: "planStatus"; plan: ClassPlan; open: boolean }
   | { kind: "history" | "withdraw"; row: Placement }
   | { kind: "findStudent" };
 export const rowsFor = (board: OrganizationBoard, planId: string): Placement[] =>
-  board.placements.filter((row) => row.planId === planId && !row.declinedAt);
+  board.placements.filter(
+    (row) =>
+      row.planId === planId && !row.declinedAt && (row.publishedAt || row.continuity !== "CHANGE"),
+  );
 export type PendingGroup = {
   stageId: string;
   stageCode: string;

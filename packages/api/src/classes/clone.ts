@@ -23,11 +23,7 @@ import {
   STAGE_NOT_FOUND_MESSAGE,
 } from "./errors.js";
 import { assertTeacherIsActive, loadActiveStage, loadSemester } from "./guards.js";
-import {
-  assertActivePortalClassNameAvailable,
-  resolveRegularPortalClassName,
-} from "./portal-name.js";
-import { dateToTimeString } from "./time.js";
+import { resolvePortalClassName } from "./portal-name.js";
 
 const sourceClassInclude = {
   scheduleSlots: {
@@ -71,13 +67,12 @@ export async function cloneClassForNextPeriod(
     source,
     ...optionalSharedStageIdOverride(input.sharedStageId),
   });
-  const portalClassName = await resolveClonePortalClassName({
-    database: input.database,
-    source,
-    successorStageId,
-    semesterName: semester.name,
-    year: semester.startDate.getUTCFullYear(),
-    ...optionalPortalClassName(input.portalClassName),
+  const archivedSource = await archiveClass({ database: input.database, id: source.id });
+  const portalClassName = await resolvePortalClassName(input.database, {
+    scheduleType: source.scheduleType,
+    sharedStageId: successorStageId,
+    teacherId: source.teacherId,
+    slots: source.scheduleSlots.map(databaseSlotToCandidate),
   });
 
   const successor = await input.database.class.create({
@@ -97,7 +92,6 @@ export async function cloneClassForNextPeriod(
     classId: successor.id,
     recordedById: input.recordedById,
   });
-  const archivedSource = await archiveClass({ database: input.database, id: source.id });
   return { source: archivedSource, successor };
 }
 
@@ -112,44 +106,6 @@ async function loadSourceClass(database: ClassDatabase, id: string): Promise<Sou
   }
 
   return source;
-}
-
-async function resolveClonePortalClassName(
-  input: ResolveClonePortalClassNameInput,
-): Promise<string> {
-  if (input.source.scheduleType === "PERSONALIZED") {
-    return resolvePersonalizedClonePortalClassName(input);
-  }
-
-  const successorStage = await loadActiveStage({
-    database: input.database,
-    stageId: input.successorStageId ?? "",
-  });
-
-  return resolveRegularPortalClassName({
-    database: input.database,
-    stageInternalCode: successorStage.internalCode,
-    slots: input.source.scheduleSlots.map((slot) => ({
-      weekday: slot.weekday,
-      startTime: dateToTimeString(slot.startTime),
-      endTime: dateToTimeString(slot.endTime),
-    })),
-    semesterName: input.semesterName,
-    year: input.year,
-  });
-}
-
-async function resolvePersonalizedClonePortalClassName(
-  input: ResolvePersonalizedClonePortalClassNameInput,
-): Promise<string> {
-  if (input.portalClassName === undefined) {
-    throw badRequest("Turma personalizada exige nome Portal manual ao clonar.");
-  }
-  await assertActivePortalClassNameAvailable({
-    database: input.database,
-    portalClassName: input.portalClassName,
-  });
-  return input.portalClassName;
 }
 
 async function resolveSuccessorStageId(
@@ -180,7 +136,8 @@ async function resolveSuccessorStageId(
     throw badRequest(END_OF_TRACK_MESSAGE);
   }
 
-  return nextStage.id;
+  const stage = await loadActiveStage({ database: input.database, stageId: nextStage.id });
+  return stage.id;
 }
 
 function buildSuccessorCreateData(
@@ -215,31 +172,12 @@ function optionalSharedStageIdOverride(sharedStageId: string | undefined): {
   return typeof sharedStageId === "string" ? { sharedStageIdOverride: sharedStageId } : {};
 }
 
-function optionalPortalClassName(portalClassName: string | undefined): {
-  portalClassName?: string;
-} {
-  return typeof portalClassName === "string" ? { portalClassName } : {};
-}
-
 type CloneClassForNextPeriodInput = {
   database: ClassDatabase;
   id: string;
   semesterId: string;
   sharedStageId?: string;
-  portalClassName?: string;
   recordedById?: string;
-};
-type ResolveClonePortalClassNameInput = {
-  database: ClassDatabase;
-  source: SourceClass;
-  successorStageId: string | null;
-  semesterName: string;
-  year: number;
-  portalClassName?: string;
-};
-type ResolvePersonalizedClonePortalClassNameInput = {
-  database: ClassDatabase;
-  portalClassName?: string;
 };
 type ResolveSuccessorStageIdInput = {
   database: ClassDatabase;
@@ -277,17 +215,13 @@ async function assignCloneTeacher(
     database: input.database,
     teacherId: source.teacherId,
     semesterId: input.semesterId,
-    slots: source.scheduleSlots.map((slot) => databaseSlotToCandidate(slot)),
+    slots: source.scheduleSlots.map(databaseSlotToCandidate),
   });
 }
 
 function assertCloneSchedule(source: SourceClass): void {
   const schedule = classScheduleSlotsInputSchema.safeParse(
-    source.scheduleSlots.map((slot) => ({
-      weekday: slot.weekday,
-      startTime: dateToTimeString(slot.startTime),
-      endTime: dateToTimeString(slot.endTime),
-    })),
+    source.scheduleSlots.map(databaseSlotToCandidate),
   );
   if (!schedule.success)
     throw badRequest(schedule.error.issues[0]?.message ?? "Horários inválidos.");

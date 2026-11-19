@@ -17,13 +17,16 @@ export function AppBreadcrumb({ role }: AppBreadcrumbInput): ReactNode {
     return null;
   }
 
-  if (parent)
+  if (parent && pathname === "/turmas/formacao")
     return (
-      <ReturnBreadcrumb
-        parent={parent}
-        page={pathname === "/turmas/formacao" ? "Formação de turmas" : "Detalhes"}
-      />
+      <div className="min-w-0">
+        <div id="formation-detail-breadcrumb" className="peer empty:hidden" />
+        <div className="peer-[:not(:empty)]:hidden">
+          <ReturnBreadcrumb parent={parent} page="Formação de turmas" />
+        </div>
+      </div>
     );
+  if (parent) return <ReturnBreadcrumb parent={parent} page="Detalhes" />;
   if (
     pathname === "/aulas" &&
     params.get("visao") === "academico" &&
@@ -124,15 +127,17 @@ function AcademicCalendarBreadcrumb({ params }: { params: ReadonlyURLSearchParam
 
 type ReturnBreadcrumbProps = {
   page: string;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
   parent: { href: string; label: string };
 };
-function ReturnBreadcrumb(props: ReturnBreadcrumbProps): ReactElement {
+export function ReturnBreadcrumb(props: ReturnBreadcrumbProps): ReactElement {
   return (
     <nav aria-label="Navegação da página" className="min-w-0">
       <ol className="flex min-w-0 items-center gap-3 text-caption">
         <li className="min-w-0">
           <Link
             href={props.parent.href}
+            {...(props.onClick && { onClick: props.onClick })}
             aria-label={`Voltar para ${props.parent.label}`}
             className="flex min-h-11 items-center gap-2 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus"
           >
@@ -143,7 +148,7 @@ function ReturnBreadcrumb(props: ReturnBreadcrumbProps): ReactElement {
         <li aria-hidden="true" className="hidden text-border-strong sm:block">
           <ChevronRight className="size-3.5" />
         </li>
-        <li aria-current="page" className="hidden font-semibold sm:block">
+        <li aria-current="page" className="hidden min-w-0 truncate font-semibold sm:block">
           {props.page}
         </li>
       </ol>

@@ -1,15 +1,15 @@
-/** Weekday order for choosing the primary slot in multi-slot classes. */
-const WEEKDAY_ORDER = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
-] as const;
-
-export type Weekday = (typeof WEEKDAY_ORDER)[number];
+const WEEKDAY_LABELS = {
+  MONDAY: "SEG",
+  TUESDAY: "TER",
+  WEDNESDAY: "QUA",
+  THURSDAY: "QUI",
+  FRIDAY: "SEX",
+  SATURDAY: "SÁB",
+  SUNDAY: "DOM",
+} as const;
+export type Weekday = keyof typeof WEEKDAY_LABELS;
+const weekdayOrder = Object.keys(WEEKDAY_LABELS) as Weekday[];
+const MAX_LABEL_LENGTH_WITH_TEACHER = 80;
 
 export type PortalClassNameSlot = {
   weekday: Weekday;
@@ -18,55 +18,40 @@ export type PortalClassNameSlot = {
   endTime: string;
 };
 
-export type GenerateRegularPortalClassNameInput = {
-  stageInternalCode: string;
+export type ClassNameInput = {
+  scheduleType: "REGULAR" | "PERSONALIZED";
+  stageInternalCode?: string | null | undefined;
   slots: readonly PortalClassNameSlot[];
-  semesterName: string;
-  year: number;
-  /** Disambiguation suffix when active portalClassName would collide (· 2, · 3, …). */
-  sequence: number;
+  teacherName?: string | null | undefined;
 };
 
-/** Human-facing class labels use modality and the first meeting's start time. */
-export function generateRegularPortalClassName(input: GenerateRegularPortalClassNameInput): string {
-  return generatePortalClassName(input, "REG");
-}
+export function generatePortalClassName(input: ClassNameInput, sequence = 1): string {
+  const { scheduleType, slots, stageInternalCode, teacherName } = input;
+  if (!slots.length) throw new Error("A class name requires at least one schedule slot.");
 
-export function generatePersonalizedPortalClassName(
-  input: Omit<GenerateRegularPortalClassNameInput, "stageInternalCode">,
-): string {
-  return generatePortalClassName(input, "PPT");
-}
-
-function generatePortalClassName(
-  input: Omit<GenerateRegularPortalClassNameInput, "stageInternalCode">,
-  prefix: string,
-): string {
-  const primarySlot = selectPrimarySlot(input.slots);
-  if (primarySlot === undefined) {
-    throw new Error("At least one schedule slot is required to derive a Portal class name.");
+  const ranges = new Map<string, Set<string>>();
+  for (const slot of slots.toSorted(compareSlots)) {
+    const range = `${slot.startTime}-${slot.endTime}`;
+    const days = ranges.get(range) ?? new Set<string>();
+    days.add(WEEKDAY_LABELS[slot.weekday]);
+    ranges.set(range, days);
   }
-  const suffix = input.sequence === 1 ? "" : ` · ${input.sequence}`;
-  return `${prefix} ${primarySlot.startTime}${suffix}`;
-}
-
-function selectPrimarySlot(slots: readonly PortalClassNameSlot[]): PortalClassNameSlot | undefined {
-  let selected: PortalClassNameSlot | undefined;
-
-  for (const slot of slots) {
-    if (selected === undefined || compareSlots(slot, selected) < 0) {
-      selected = slot;
-    }
+  const schedule = [...ranges].map(([range, days]) => [...days, range].join("/")).join(" + ");
+  const prefix = scheduleType === "REGULAR" ? ["REG", stageInternalCode] : ["PPT"];
+  const base = [...prefix, schedule].filter(Boolean).join(" ");
+  const suffix = sequence > 1 ? ` · ${sequence}` : "";
+  const teacher = teacherName?.trim();
+  if (teacher) {
+    const fullName = `${base} ${teacher}${suffix}`;
+    if (Array.from(fullName).length <= MAX_LABEL_LENGTH_WITH_TEACHER) return fullName;
   }
-
-  return selected;
+  return base + suffix;
 }
 
 function compareSlots(left: PortalClassNameSlot, right: PortalClassNameSlot): number {
-  const weekdayDelta = WEEKDAY_ORDER.indexOf(left.weekday) - WEEKDAY_ORDER.indexOf(right.weekday);
-  if (weekdayDelta !== 0) {
-    return weekdayDelta;
-  }
-
-  return left.startTime.localeCompare(right.startTime);
+  return (
+    weekdayOrder.indexOf(left.weekday) - weekdayOrder.indexOf(right.weekday) ||
+    left.startTime.localeCompare(right.startTime) ||
+    left.endTime.localeCompare(right.endTime)
+  );
 }

@@ -1,4 +1,4 @@
-import { purchasedBooks, studentMaterialSaleWhere } from "./material-purchases.js";
+import { purchasedBooks, studentMaterialSaleWhere } from "@lazuli/db/material-purchases";
 import { ledgerQuery } from "./installments-query.js";
 import { toPublicRow } from "../installments-groups.js";
 import type { FinanceInstallmentRow } from "@lazuli/validators";

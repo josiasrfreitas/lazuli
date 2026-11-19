@@ -1,4 +1,4 @@
-import { readAcquiredStages } from "../finance/index.js";
+import { readAcquiredStages } from "@lazuli/db/material-purchases";
 import {
   emptyFormationAcademics,
   readFormationAcademics,
@@ -8,8 +8,6 @@ import {
   contractCoverageEnd,
   formationContractStatus,
   LOW_HEALTH_SCORE,
-  MISSING_ENTRY_CONTRACT,
-  meetsFormationAverages,
   type FormationContractStatus,
 } from "@lazuli/domain";
 import type { Period } from "@lazuli/db";
@@ -78,20 +76,4 @@ export function formationAttention(input: {
       row.stageId && !signals.materials.get(row.studentId)?.has(row.stageId),
     ),
   };
-}
-
-export function formationReviewReasons(row: PlacementRow, attention: FormationAttention): string[] {
-  const reasons: string[] = [];
-  if (attention.contractStatus === "MISSING") reasons.push(MISSING_ENTRY_CONTRACT);
-  if (row.continuity === "CHANGE") reasons.push("Escolha a nova turma para continuar.");
-  if (row.continuity === "STAY" || !attention.rollover) return reasons;
-  if (attention.contractStatus === "EARLY_END")
-    reasons.push(
-      "O contrato termina nos primeiros três meses do semestre. Pergunte se o aluno vai ficar na turma e registre a resposta.",
-    );
-  if (!meetsFormationAverages(attention))
-    reasons.push("Confira as notas e a frequência antes de combinar a permanência na turma.");
-  if (row.attentionNote || attention.lowHealth)
-    reasons.push("Revise o acompanhamento do aluno antes de confirmar.");
-  return reasons;
 }

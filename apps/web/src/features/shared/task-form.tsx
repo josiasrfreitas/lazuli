@@ -171,7 +171,7 @@ export function TaskDialog(props: TaskDialogProps): ReactElement {
 function TaskContent(props: TaskDialogProps): ReactElement {
   const actions = <TaskActions {...props} />;
   useEffect(() => {
-    if (!props.embedded) return;
+    if (!props.embedded || !props.firstField) return;
     const frame = requestAnimationFrame(() =>
       document
         .querySelector<HTMLElement>(
@@ -190,10 +190,13 @@ function TaskContent(props: TaskDialogProps): ReactElement {
       data-layout={props.layout}
       data-schedule-frame={props.scheduleFrame || undefined}
       showCloseButton={!props.pending}
-      initialFocus={() =>
-        document.querySelector<HTMLElement>(
-          `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
-        )
+      initialFocus={
+        props.firstField
+          ? () =>
+              document.querySelector<HTMLElement>(
+                `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
+              )
+          : true
       }
     >
       {body}

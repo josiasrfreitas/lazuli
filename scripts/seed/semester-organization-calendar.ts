@@ -10,10 +10,7 @@ import {
 import { brazilFederalHolidaysForYear } from "../../packages/domain/src/brazil-federal-holidays.js";
 import { CLASS_REFERENCE_CAPACITY } from "../../packages/domain/src/class-occupancy.js";
 import { planClassSessionRows } from "../../packages/worker-handlers/src/sessions/generate.js";
-import {
-  resolvePersonalizedPortalClassName,
-  resolveRegularPortalClassName,
-} from "../../packages/api/src/classes/portal-name.js";
+import { resolvePortalClassName } from "../../packages/api/src/classes/portal-name.js";
 import {
   assertNoTeacherConflict,
   assertTeacherEligible,
@@ -91,16 +88,12 @@ export async function publishedOrganizationClass(
     through: isoOf(semester.endDate),
     slots: group.slots,
   });
-  const naming = {
-    database,
+  const portalClassName = await resolvePortalClassName(database, {
+    scheduleType: group.scheduleType,
     slots: group.slots,
-    semesterName: semester.name,
-    year: semester.startDate.getUTCFullYear(),
-  };
-  const portalClassName =
-    group.scheduleType === "PERSONALIZED"
-      ? await resolvePersonalizedPortalClassName(naming)
-      : await resolveRegularPortalClassName({ ...naming, stageInternalCode: group.stageCode! });
+    teacherId,
+    sharedStageId: input.stageId,
+  });
   const id = organizationId("class", { semesterName: semester.name, key: group.key });
   await createPublishedClass(input, { id, portalClassName });
   await assignPublishedTeacher(input, id);

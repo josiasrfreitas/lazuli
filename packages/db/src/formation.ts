@@ -12,6 +12,7 @@ export const contractAt = (at: Date): Prisma.ContractWhereInput => ({
 
 export type FormationAcademics = {
   gradeAverage: number | null;
+  gradesIncomplete: boolean;
   grades: "INCOMPLETE" | "SUFFICIENT" | "NEEDS_SUPPORT";
   attendance: number | null;
   attendanceFlagged: boolean;
@@ -19,6 +20,7 @@ export type FormationAcademics = {
 
 export const emptyFormationAcademics: FormationAcademics = {
   gradeAverage: null,
+  gradesIncomplete: true,
   grades: "INCOMPLETE",
   attendance: null,
   attendanceFlagged: false,
@@ -61,6 +63,7 @@ export async function readFormationAcademics(
     const period = group[0]!.enrollment.class.semester;
     const attendance = await computeEnrollmentsPercentInWindow({
       database,
+      requireAttendanceRecord: true,
       values: {
         enrollments: group.map((row) => row.enrollment),
         semester: {
@@ -79,7 +82,10 @@ export async function readFormationAcademics(
       );
       const presence = attendance.get(row.enrollment.id);
       result.set(row.id, {
-        grades: assessmentStatus(results),
+        gradesIncomplete: results.some((result) => result.effective === null),
+        grades: results.some((result) => result.passed === false)
+          ? "NEEDS_SUPPORT"
+          : assessmentStatus(results),
         gradeAverage:
           effectiveScores.length > 0
             ? effectiveScores.reduce((sum, score) => sum + score, 0) / effectiveScores.length

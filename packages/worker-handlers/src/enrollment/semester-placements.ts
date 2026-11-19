@@ -1,10 +1,10 @@
 import { readFormationAcademics, type TransactionClient } from "@lazuli/db";
+import { readAcquiredStages } from "@lazuli/db/material-purchases";
 import {
+  followsOwnClass,
+  formationPlacementBlockers,
   contractCoverageEnd,
   formationContractStatus,
-  meetsFormationAverages,
-  LOW_HEALTH_SCORE,
-  MISSING_ENTRY_CONTRACT,
   semesterPlacementBlockers,
 } from "@lazuli/domain";
 import { z } from "@lazuli/validators";
@@ -44,84 +44,61 @@ async function placementBlockers(
   { row, now }: { row: Placement; now: Date },
 ): Promise<string[]> {
   const input = eligibility(row);
-  const rollover = Boolean(input.source && input.source.semesterId !== row.semesterId);
-  const healthy = await hasFormationAverages(database, {
-    progressId: rollover ? row.sourceProgressId : null,
-    now,
-  });
-  input.cohortAdvance =
-    !!row.plan?.sourceClassId &&
-    row.plan.sourceClassId === row.sourceEnrollment?.classId &&
-    healthy;
-  return [
-    ...semesterPlacementBlockers(input),
-    ...coverageBlockers(row, { entryOn: input.entryOn, rollover, healthy }),
-    ...changeBlockers(row, input.entryOn),
-  ];
-}
-
-async function hasFormationAverages(
-  database: TransactionClient,
-  { progressId, now }: { progressId: string | null; now: Date },
-): Promise<boolean> {
-  if (!progressId) return meetsFormationAverages(null);
-  const metrics = await readFormationAcademics(database, { progressIds: [progressId], now });
-  return meetsFormationAverages(metrics.get(progressId));
-}
-
-function coverageBlockers(
-  row: Placement,
-  { entryOn, rollover, healthy }: { entryOn: string; rollover: boolean; healthy: boolean },
-): string[] {
+  const target = row.enrollment?.class;
+  const continuing =
+    row.mode !== "ENTRY" &&
+    followsOwnClass(
+      row.sourceEnrollment?.classId ?? null,
+      target && row.plan
+        ? {
+            classId: target.id,
+            previousClassId: target.previousClassId,
+            sourceClassId: row.plan.sourceClassId,
+          }
+        : null,
+    );
+  input.cohortAdvance = continuing;
+  const [academic, materials] = continuing
+    ? await Promise.all([
+        readFormationAcademics(database, {
+          progressIds: row.sourceProgressId ? [row.sourceProgressId] : [],
+          now,
+        }),
+        readAcquiredStages(database, [row.studentId]),
+      ])
+    : [];
+  const metrics = academic?.get(row.sourceProgressId ?? "");
   const contractEnd = contractCoverageEnd(
     row.student.contracts.map(({ startsOn, endsOn }) => ({
       startsOn: startsOn && dateOnly(startsOn),
       endsOn: endsOn && dateOnly(endsOn),
     })),
-    entryOn,
+    input.entryOn,
   );
-  const blockers = contractEnd ? [] : [MISSING_ENTRY_CONTRACT];
-  if (!rollover) return blockers;
-  const evidence = z
-    .object({
-      manualContinuity: z.boolean().optional(),
-      acceptedEarlyEnd: z.string().nullable().optional(),
-    })
-    .safeParse(row.publishedEvidence).data;
-  if (requiresEarlyEndConfirmation(row, { contractEnd, accepted: evidence?.acceptedEarlyEnd }))
-    blockers.push("Confirme o vencimento antecipado do contrato.");
-  if (!evidence?.manualContinuity && !eligibleForAutomaticRollover(row, healthy))
-    blockers.push("Revise a continuidade com a coordenação.");
-  return blockers;
-}
-
-function requiresEarlyEndConfirmation(
-  row: Placement,
-  { contractEnd, accepted }: { contractEnd: string | null; accepted: string | null | undefined },
-): boolean {
-  return Boolean(
-    contractEnd &&
-    formationContractStatus(contractEnd, {
-      from: dateOnly(row.semester.startDate),
-      through: dateOnly(row.semester.endDate),
-    }) === "EARLY_END" &&
-    (!accepted || accepted > contractEnd),
-  );
-}
-
-function eligibleForAutomaticRollover(row: Placement, healthy: boolean): boolean {
-  return (
-    healthy &&
-    !row.attentionNote &&
-    (row.student.healthPending?.score ?? LOW_HEALTH_SCORE) >= LOW_HEALTH_SCORE
-  );
+  return [
+    ...semesterPlacementBlockers(input),
+    ...formationPlacementBlockers({
+      continuing,
+      continuity: row.continuity,
+      contractStatus: formationContractStatus(contractEnd, {
+        from: dateOnly(row.semester.startDate),
+        through: dateOnly(row.semester.endDate),
+      }),
+      materialMissing: Boolean(row.stageId && !materials?.get(row.studentId)?.has(row.stageId)),
+      grades: metrics?.grades,
+      attendanceFlagged: metrics?.attendanceFlagged ?? false,
+      classClosurePending: row.classClosurePending,
+      exitRiskActive: row.exitRiskActive,
+      staffImpediment: Boolean(row.attentionNote?.trim()),
+    }),
+    ...changeBlockers(row, input.entryOn),
+  ];
 }
 
 function changeBlockers(row: Placement, entryOn: string): string[] {
   const blockers: string[] = [];
   if (entryOrClassChanged(row, entryOn)) blockers.push("A data ou a turma de entrada mudou.");
-  if (row.continuity === "LEAVING" || row.continuity === "CHANGE")
-    blockers.push("A intenção de continuidade mudou.");
+  if (row.declinedAt) blockers.push("O aluno não continuará neste semestre.");
   if (row.sourceEnrollmentId && row.sourceExitAction?.status !== "SCHEDULED")
     blockers.push("A saída de origem foi alterada");
   if (continuationEvidenceChanged(row))

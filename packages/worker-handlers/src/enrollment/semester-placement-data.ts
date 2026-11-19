@@ -5,7 +5,6 @@ export const include = {
   plan: { select: { sourceClassId: true, startsOn: true, closedAt: true } },
   student: {
     include: {
-      healthPending: true,
       contracts: {
         where: { deletedAt: null, terminatedAt: null },
         select: { startsOn: true, endsOn: true },

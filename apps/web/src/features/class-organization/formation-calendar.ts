@@ -41,10 +41,20 @@ export function matchesPlan(plan: ClassPlan, query: string): boolean {
       plan.name,
       plan.teacherName,
       plan.stageCode,
+      plan.stageName,
       plan.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
     ].join(" "),
   ).includes(normalizeSearch(query));
 }
 export function atRisk(board: OrganizationBoard, plan: ClassPlan): boolean {
-  return plan.active && planMetrics(board, plan).confirmed <= board.semester.formationRiskLimit;
+  return plan.active && planMetrics(board, plan).expected < board.semester.formationRiskLimit;
+}
+
+export function significantReduction(board: OrganizationBoard, plan: ClassPlan): boolean {
+  if (!plan.active) return false;
+  const previous = plan.previousStudentCount;
+  const loss = previous - planMetrics(board, plan).expected;
+  return (
+    loss >= Math.max(2, Math.ceil(previous / 4), Math.ceil(board.semester.formationRiskLimit / 2))
+  );
 }

@@ -166,10 +166,13 @@ Payments use the application's finance service, including punctuality-discount a
 Birthdays, the current academic semester, sessions and contract dates derive from the current
 business date in `America/Sao_Paulo`; no seed year needs to be updated manually.
 
-Classes use the same generated labels as the application: `REG 14:00` or `PPT 19:00`.
-The first meeting of the week supplies the start time. A short numeric suffix distinguishes
-active classes with matching labels (`REG 14:00 · 2`). Stage, full schedule and semester remain
-separate information; technical identifiers remain internal.
+Class and formation plan names use the modality, shared stage code for regular classes, and
+the complete weekly schedule, for example `REG MWR TER/QUI/14:00-15:30 Rafael Mendes` or
+`PPT SEG/QUA/19:00-20:00`. Equal time ranges share a weekday list. Distinct ranges use
+`+`. The teacher’s full name is included when the resulting label fits in 80 characters.
+A numeric suffix is reserved for otherwise identical active class names.
+To preview updates to existing records, run `node --env-file=.env --import tsx scripts/rename-class-labels.ts`.
+Add `--apply` to update the labels in place.
 
 The former `prisma:seed`, `seed:settings`, `seed:contracts`, `seed:gcs`, and
 `workspace:fixtures refresh` commands now delegate to the same complete reset.
