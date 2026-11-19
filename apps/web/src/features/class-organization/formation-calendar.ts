@@ -2,6 +2,8 @@ import { formationTeachingDay, normalizeSearch } from "@lazuli/domain";
 import { planMetrics } from "./confirmation";
 import type { ClassPlan, OrganizationBoard } from "./shared";
 
+const significantLossShare = 0.25;
+
 export const teachingWeek = [
   "MONDAY",
   "TUESDAY",
@@ -52,9 +54,13 @@ export function atRisk(board: OrganizationBoard, plan: ClassPlan): boolean {
 
 export function significantReduction(board: OrganizationBoard, plan: ClassPlan): boolean {
   if (!plan.active) return false;
+  const riskLimit = board.semester.formationRiskLimit;
+  const expected = planMetrics(board, plan).expected;
   const previous = plan.previousStudentCount;
-  const loss = previous - planMetrics(board, plan).expected;
-  return (
-    loss >= Math.max(2, Math.ceil(previous / 4), Math.ceil(board.semester.formationRiskLimit / 2))
+  const minimumLoss = Math.max(
+    2,
+    Math.ceil(previous * significantLossShare),
+    Math.ceil(riskLimit / 2),
   );
+  return expected >= riskLimit && previous - expected >= minimumLoss;
 }

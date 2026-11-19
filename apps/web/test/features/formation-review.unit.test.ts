@@ -819,6 +819,39 @@ void it("distinguishes falling below the minimum from a significant loss of stud
   assert.equal(significantReduction(board, { ...plan, previousStudentCount: 9 }), true);
   assert.equal(atRisk(board, { ...plan, enrolledStudentIds: ["1", "2", "3", "4", "5"] }), true);
 });
+
+void it("includes classes at risk only when their own filter is selected", () => {
+  const board = reviewBoard([
+    placement("at-risk", { planId: "class-10", confirmation: "PENDING" }),
+    placement("significant-reduction", { confirmation: "PENDING" }),
+  ]);
+  board.semester.formationRiskLimit = 6;
+  board.plans = [
+    {
+      ...reviewPlan,
+      id: "class-10",
+      previousStudentCount: 9,
+      enrolledStudentIds: ["1", "2", "3", "4", "5"],
+    },
+    {
+      ...reviewPlan,
+      id: "class-2",
+      previousStudentCount: 9,
+      enrolledStudentIds: ["1", "2", "3", "4", "5", "6"],
+    },
+  ];
+
+  const reduction = { ...criteria, reducaoSignificativa: true };
+  assert.deepEqual(rowIds(reviewResults(board, reduction, "all").rows), ["significant-reduction"]);
+  assert.deepEqual(rowIds(reviewResults(board, { ...criteria, turmasEmRisco: true }, "all").rows), [
+    "at-risk",
+  ]);
+  assert.deepEqual(
+    rowIds(reviewResults(board, { ...reduction, turmasEmRisco: true }, "all").rows),
+    ["at-risk", "significant-reduction"],
+  );
+});
+
 void it("uses attention reasons within blocked continuity and ignores stale reasons for preconfirmed students", () => {
   const board = reviewBoard([
     placement("risk", { confirmation: "BLOCKED", continuity: "LEAVING" }),
