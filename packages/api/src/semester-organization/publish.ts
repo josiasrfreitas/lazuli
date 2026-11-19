@@ -348,7 +348,10 @@ async function markPlacementPublished(
   });
 }
 
-async function confirmContinuity(context: OrganizationContext, row: PlacementRow): Promise<void> {
+async function confirmContinuity(
+  context: OrganizationContext,
+  row: Pick<PlacementRow, "id" | "sourceEnrollmentId">,
+): Promise<void> {
   await context.database.semesterPlacement.update({
     where: { id: row.id },
     data: {

@@ -4,13 +4,13 @@ export type SemesterEligibility = {
   studentActive: boolean;
   cohortAdvance?: boolean;
   mode: "ENTRY" | "CONTINUE" | "ADVANCE" | "REPEAT";
-  stage: { id: string; trackId: string; sequence: number } | null;
+  stage: { id: string; trackId: string } | null;
   source: {
     semesterId: string;
     active: boolean;
     stageId: string;
     trackId: string;
-    sequence: number;
+    nextStageId: string | null;
     scheduleType: "REGULAR" | "PERSONALIZED";
     decision: string | null;
     confirmed: boolean;
@@ -87,5 +87,5 @@ function hasAcademicDecision(input: SemesterEligibility, source: Source): boolea
 }
 
 function isNextStage(stage: SemesterEligibility["stage"], source: Source): boolean {
-  return stage?.trackId === source.trackId && stage.sequence === source.sequence + 1;
+  return stage?.trackId === source.trackId && stage.id === source.nextStageId;
 }

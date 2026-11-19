@@ -54,6 +54,7 @@ export {
 export {
   contractAt,
   readFormationAcademics,
+  readNextActiveStageIds,
   emptyFormationAcademics,
   type FormationAcademics,
 } from "./formation.js";

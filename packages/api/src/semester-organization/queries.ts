@@ -11,7 +11,7 @@ import {
   type SemesterEligibility,
 } from "@lazuli/domain";
 import { z } from "@lazuli/validators";
-import type { Prisma, Period } from "@lazuli/db";
+import { readNextActiveStageIds, type Prisma, type Period } from "@lazuli/db";
 import {
   dateOnly,
   readSlots,
@@ -138,6 +138,7 @@ export type PlacementRow = {
   stagePlanId: string | null;
   sourceTrackId: string | null;
   sourceSequence: number | null;
+  sourceNextStageId: string | null;
   sourceStageCode: string | null;
   sourceStageName: string | null;
   decision: AssessmentModel["decision"] | null;
@@ -174,9 +175,14 @@ export async function readPlacementRows(
     .where("placement.deleted_at", "is", null)
     .orderBy("student.full_name")
     .execute();
+  const advancingSources = rows.flatMap((row) =>
+    row.mode === "ADVANCE" && row.sourceStageId ? [row.sourceStageId] : [],
+  );
+  const successors = await readNextActiveStageIds(context.database, [...new Set(advancingSources)]);
   return rows.map((row) => ({
     ...row,
     publishedEvidence: row.publishedEvidence as Prisma.JsonValue,
+    sourceNextStageId: successors.get(row.sourceStageId ?? "") ?? null,
   }));
 }
 const evidenceSchema = z.object({
@@ -214,7 +220,7 @@ function eligibilityStage(row: PlacementRow): SemesterEligibility["stage"] {
     row.trackStatus !== "ACTIVE"
   )
     return null;
-  return { id: row.stageId, trackId: row.targetTrackId, sequence: row.targetSequence };
+  return { id: row.stageId, trackId: row.targetTrackId };
 }
 
 function eligibilityPlan(plan: ClassPlan | null): SemesterEligibility["plan"] {
@@ -242,7 +248,7 @@ function eligibilitySource(row: PlacementRow, entryOn: string): SemesterEligibil
     active: sourceActive(row, entryOn),
     stageId: row.sourceStageId,
     trackId: row.sourceTrackId,
-    sequence: row.sourceSequence,
+    nextStageId: row.sourceNextStageId,
     scheduleType: row.sourceScheduleType,
     decision: row.decision,
     confirmed: Boolean(row.confirmedAt && !row.assessmentDeletedAt),
@@ -326,7 +332,7 @@ const waitingLeadSelect = {
 type WaitingLead = Prisma.AdmissionCandidateGetPayload<{ select: typeof waitingLeadSelect }>;
 type NextSemester = Pick<Period, "id" | "name" | "startDate" | "endDate">;
 type Slots = ReturnType<typeof readSlots>;
-type PlacementView = PlacementRow & {
+type PlacementView = Omit<PlacementRow, "sourceNextStageId"> & {
   attention: FormationAttention;
   confirmation: PeriodConfirmation;
   upcomingContract: SemesterContract | null;
@@ -431,8 +437,9 @@ function placementView(context: OrganizationContext, options: PlacementViewOptio
     row.declinedAt || (!row.classClosurePending && placementAlreadySettled(row))
       ? []
       : [...reviewReasons, ...placementViewBlockers(context, { row, semester, plan, continuing })];
+  const { sourceNextStageId: _nextStageId, ...placement } = row;
   return {
-    ...row,
+    ...placement,
     attention,
     confirmation: viewConfirmation(row, { continuing, blockers }),
     ...contractCoverage(contracts, { row, semester, nextSemester, coverageDate }),

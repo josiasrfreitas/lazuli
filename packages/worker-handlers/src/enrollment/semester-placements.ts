@@ -43,7 +43,7 @@ async function placementBlockers(
   database: TransactionClient,
   { row, now }: { row: Placement; now: Date },
 ): Promise<string[]> {
-  const input = eligibility(row);
+  const input = await eligibility(database, row);
   const continuing = continuesOwnClass(row);
   input.cohortAdvance = continuing;
   const formation = await scheduledFormationBlockers(database, {

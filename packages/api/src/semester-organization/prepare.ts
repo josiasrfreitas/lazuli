@@ -1,4 +1,4 @@
-import type { Prisma, Period } from "@lazuli/db";
+import { readNextActiveStageIds, type Prisma, type Period } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   lockSemester,
@@ -154,13 +154,14 @@ async function preparationPlanFields(
   context: OrganizationContext,
   { scope, group, slots }: { scope: PreparationScope; group: PreparationClass; slots: Slots },
 ): Promise<Pick<ClassPlan, "scheduleType" | "sharedStageId" | "teacherId"> & { slots: Slots }> {
-  const nextStage =
-    !scope.current && group.scheduleType === "REGULAR" && group.sharedStageId
-      ? await nextRegularStage(context, group.sharedStageId)
+  const { sharedStageId } = group;
+  const successors =
+    !scope.current && group.scheduleType === "REGULAR" && sharedStageId
+      ? await readNextActiveStageIds(context.database, [sharedStageId])
       : null;
   return {
     scheduleType: group.scheduleType,
-    sharedStageId: nextStage?.id ?? group.sharedStageId,
+    sharedStageId: successors?.get(sharedStageId ?? "") ?? sharedStageId,
     teacherId: group.teacherAssignments[0]?.teacherId ?? group.teacherId,
     slots,
   };
@@ -392,22 +393,4 @@ async function carryWaitingPlacement(
   });
   await recordPlacementRevision(context, { id: row.id, action: "CARRIED_FORWARD" });
   return true;
-}
-
-async function nextRegularStage(
-  context: OrganizationContext,
-  stageId: string,
-): Promise<{ id: string } | null> {
-  const stage = await context.database.stage.findUniqueOrThrow({ where: { id: stageId } });
-  return context.database.stage.findFirst({
-    where: {
-      trackId: stage.trackId,
-      sequence: { gt: stage.sequence },
-      status: "ACTIVE",
-      deletedAt: null,
-      track: { status: "ACTIVE" },
-    },
-    orderBy: { sequence: "asc" },
-    select: { id: true },
-  });
 }

@@ -879,8 +879,20 @@ void it("keeps an unassigned new student in the next period's queue across repea
   assert.equal(waiting[0]?.planId, null);
 });
 
-void it("carries a healthy regular cohort forward to the next stage with its teacher, weekly slot and lineage", async () => {
+void it("publishes a healthy regular cohort in the next active stage past a Legacy stage", async () => {
   const scope = await fixture();
+  const legacy = await db.stage.update({
+    where: { id: scope.catalog.secondStageId },
+    data: { status: "LEGACY" },
+  });
+  const successor = await db.stage.create({
+    data: {
+      trackId: legacy.trackId,
+      sequence: legacy.sequence + 1,
+      name: config.prefix + "Stage 3",
+      internalCode: config.catalogKey + "_s3",
+    },
+  });
   await db.semesterClassPlan.delete({ where: { id: scope.plan.id } });
   await db.class.update({
     where: { id: scope.sourceClass.id },
@@ -902,7 +914,7 @@ void it("carries a healthy regular cohort forward to the next stage with its tea
     classId: scope.sourceClass.id,
   });
   await seedPassingResults(scope, [{ ...student, source }]);
-  await acquireMaterial(student.id, scope.catalog.secondStageId);
+  await acquireMaterial(student.id, successor.id);
   const prepare = (): ReturnType<FormationCaller["prepare"]> =>
     caller().semesterOrganization.prepare({ semesterId: scope.semester.id });
   assert.deepEqual(await prepare(), { plans: 1, students: 1 });
@@ -911,7 +923,7 @@ void it("carries a healthy regular cohort forward to the next stage with its tea
   const [plan] = board.plans,
     [row] = board.placements;
   assert.equal(plan?.sourceClassId, scope.sourceClass.id);
-  assert.equal(plan?.sharedStageId, scope.catalog.secondStageId);
+  assert.equal(plan?.sharedStageId, successor.id);
   assert.deepEqual(plan?.slots, slots);
   assert.equal(plan?.teacherId, config.teacherId);
   assert.equal(row?.confirmation, "PRECONFIRMED");
@@ -923,6 +935,7 @@ void it("carries a healthy regular cohort forward to the next stage with its tea
   });
   const published = await db.class.findUniqueOrThrow({ where: { id: result.classId } });
   assert.equal(published.previousClassId, scope.sourceClass.id);
+  assert.equal(published.sharedStageId, successor.id);
 });
 
 void it("restarts provisional placements while keeping real confirmations, marks, scheduled entries and student follow-up", async () => {

@@ -3,6 +3,34 @@ import { computeEnrollmentsPercentInWindow } from "./attendance-percent.js";
 import type { Prisma } from "./generated/prisma/client.js";
 import type { TransactionClient } from "./client.js";
 
+/** Find the next active stage for each source without requiring consecutive sequence numbers. */
+export async function readNextActiveStageIds(
+  database: Pick<TransactionClient, "$kysely">,
+  sourceStageIds: string[],
+): Promise<Map<string, string | null>> {
+  if (sourceStageIds.length === 0) return new Map();
+  const rows = await database.$kysely
+    .selectFrom("Stage as source")
+    .select((eb) => [
+      "source.id",
+      eb
+        .selectFrom("Stage as following")
+        .innerJoin("Track as track", "track.id", "following.track_id")
+        .select("following.id")
+        .whereRef("following.track_id", "=", "source.track_id")
+        .whereRef("following.sequence", ">", "source.sequence")
+        .where("following.status", "=", "ACTIVE")
+        .where("following.deleted_at", "is", null)
+        .where("track.status", "=", "ACTIVE")
+        .orderBy("following.sequence")
+        .limit(1)
+        .as("nextStageId"),
+    ])
+    .where("source.id", "in", sourceStageIds)
+    .execute();
+  return new Map(rows.map(({ id, nextStageId }) => [id, nextStageId]));
+}
+
 export const contractAt = (at: Date): Prisma.ContractWhereInput => ({
   deletedAt: null,
   terminatedAt: null,
