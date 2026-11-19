@@ -824,3 +824,80 @@
 .placeTitle small {
   margin-inline-start: auto;
 }
+
+.page:has([data-student-detail]) > .header {
+  display: none;
+}
+
+.panelTitleContents {
+  display: contents;
+}
+
+.studentHeader,
+.studentDetailBody {
+  width: min(100%, 74rem);
+  margin-inline: auto;
+}
+
+.panel[data-student-detail] .panelTitle {
+  padding: 0;
+}
+
+.studentHeader,
+.studentDetailBody {
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
+}
+
+.studentHeader {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vw, 1rem);
+  padding-block: 0.875rem;
+}
+
+.studentHeader h2 {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--lz-text-h3);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.studentDetailBody {
+  container-type: inline-size;
+  display: grid;
+  gap: 1.5rem;
+  padding-block: 1.25rem 2rem;
+}
+
+.studentDetailBody .suggestions {
+  padding-top: 1rem;
+}
+
+.studentDetailBody .suggestions h3 {
+  padding: 0;
+  font-size: var(--lz-text-body);
+}
+
+.studentDetailBody .suggestionNote {
+  padding: 0;
+  margin-block: 0.25rem 0.75rem;
+}
+
+.suggestionList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.suggestionList .item {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+@container (min-width: 42rem) {
+  .suggestionList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

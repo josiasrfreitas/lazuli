@@ -2,6 +2,7 @@
 import { type ReactElement } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, UsersRound } from "lucide-react";
+import { StudentAvatar } from "~/components/student-avatar";
 import { Button } from "@lazuli/ui";
 import { FormationQueue } from "./formation-queue";
 import { formatDateOnlyBR } from "~/lib/format";
@@ -39,9 +40,15 @@ export function FormationPanel(props: Props): ReactElement {
   const { board, selection, plan, onBack } = props;
   const { student, lead } = selectedPerson(board, selection);
   const personName = student?.studentName ?? lead?.fullName;
+  const studentDetail = student && !plan ? student : undefined;
   const title = plan ? planTitle(plan) : personName;
   return (
-    <aside id="formation-panel" className={styles.panel} aria-label="Painel de formação">
+    <aside
+      id="formation-panel"
+      className={styles.panel}
+      aria-label="Painel de formação"
+      data-student-detail={studentDetail ? "" : undefined}
+    >
       <FormationQueue
         board={board}
         grouped={props.grouped}
@@ -54,17 +61,26 @@ export function FormationPanel(props: Props): ReactElement {
       />
       {title && (
         <div className={styles.panelTitle}>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onBack}
-            aria-label="Voltar à visualização anterior"
-          >
-            <ArrowLeft size={16} /> Voltar
-          </Button>
-          <h2 id="formation-panel-heading" tabIndex={-1}>
-            {title}
-          </h2>
+          <div className={studentDetail ? styles.studentHeader : styles.panelTitleContents}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onBack}
+              aria-label="Voltar à visualização anterior"
+            >
+              <ArrowLeft size={16} /> Voltar
+            </Button>
+            {studentDetail && (
+              <StudentAvatar
+                name={studentDetail.studentName}
+                colorKey={studentDetail.studentId}
+                size="lg"
+              />
+            )}
+            <h2 id="formation-panel-heading" tabIndex={-1}>
+              {title}
+            </h2>
+          </div>
         </div>
       )}
       {plan ? (

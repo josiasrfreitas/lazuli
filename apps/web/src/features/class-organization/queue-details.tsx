@@ -45,20 +45,22 @@ export function PendingStudent({
   return (
     <>
       <div className={formation.panelScroll} data-formation-scroll="">
-        <StudentReviewDetail board={board} row={row} readOnly={ended} onAction={onAction} />
-        {!row.declinedAt && row.continuity !== "LEAVING" && (
-          <StudentSuggestions suggestions={suggestions} ended={ended} choose={choose} />
-        )}
-        {row.planId && !row.publishedAt && (
-          <Button
-            size="sm"
-            variant="ghost"
-            data-formation-focus="proposed"
-            onClick={(event) => onSelect(row.planId, event.currentTarget)}
-          >
-            Ver turma proposta
-          </Button>
-        )}
+        <div className={formation.studentDetailBody}>
+          <StudentReviewDetail board={board} row={row} readOnly={ended} onAction={onAction} />
+          {!row.declinedAt && row.continuity !== "LEAVING" && (
+            <StudentSuggestions suggestions={suggestions} ended={ended} choose={choose} />
+          )}
+          {row.planId && !row.publishedAt && (
+            <Button
+              size="sm"
+              variant="ghost"
+              data-formation-focus="proposed"
+              onClick={(event) => onSelect(row.planId, event.currentTarget)}
+            >
+              Ver turma proposta
+            </Button>
+          )}
+        </div>
       </div>
     </>
   );
@@ -81,24 +83,26 @@ function StudentSuggestions({
           Selecione um horário para revisar a proposta de alocação.
         </p>
       )}
-      {suggestions.slice(0, MAX_PLAN_SUGGESTIONS).map((plan) => (
-        <button
-          type="button"
-          className={formation.item}
-          key={plan.id}
-          disabled={ended}
-          onClick={() => choose(plan.id)}
-        >
-          <span>
-            <strong>
-              {plan.scheduleType === "PERSONALIZED" ? "PPT" : (plan.stageCode ?? plan.name)} ·{" "}
-              {plan.teacherName ?? "Professor a definir"}
-            </strong>
-            <small>{scheduleLabel(plan.slots) || "Horário a definir"}</small>
-          </span>
-          <ChevronRight size={14} />
-        </button>
-      ))}
+      <div className={formation.suggestionList}>
+        {suggestions.slice(0, MAX_PLAN_SUGGESTIONS).map((plan) => (
+          <button
+            type="button"
+            className={formation.item}
+            key={plan.id}
+            disabled={ended}
+            onClick={() => choose(plan.id)}
+          >
+            <span>
+              <strong>
+                {plan.scheduleType === "PERSONALIZED" ? "PPT" : (plan.stageCode ?? plan.name)} ·{" "}
+                {plan.teacherName ?? "Professor a definir"}
+              </strong>
+              <small>{scheduleLabel(plan.slots) || "Horário a definir"}</small>
+            </span>
+            <ChevronRight size={14} />
+          </button>
+        ))}
+      </div>
       {suggestions.length > MAX_PLAN_SUGGESTIONS && (
         <Button size="sm" variant="ghost" disabled={ended} onClick={() => choose()}>
           Escolher entre as {suggestions.length} turmas
