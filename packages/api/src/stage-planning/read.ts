@@ -227,8 +227,8 @@ function planningPreview({
           title: labels.get(activity.id)?.title ?? activity.title,
           kind: programActivityKind(activity.kind),
           reference: null,
-          pageFrom: null,
-          pageTo: null,
+          pageFrom: activity.pageStart,
+          pageTo: activity.pageEnd,
           curriculum: labels.get(activity.id) ?? null,
         })),
       }
@@ -249,7 +249,11 @@ function planningSnapshot(
           const curriculum = item.programActivityId
             ? (labels.get(item.programActivityId) ?? null)
             : null;
-          return { ...item, title: curriculum?.title ?? item.title, curriculum };
+          return {
+            ...item,
+            title: curriculum?.bookTitle === item.title ? curriculum.title : item.title,
+            curriculum,
+          };
         }),
       }
     : null;

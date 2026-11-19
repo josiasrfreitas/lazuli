@@ -541,6 +541,7 @@ model ClassScheduleSlot {
 }
 
 model Track {
+  displayOrder Int @default(autoincrement()) @map("display_order")
   ageGroup TrackAgeGroup @default(ADULT) @map("age_group")
   semesterPlacements SemesterPlacement[]
   id            String        @id @default(uuid()) @db.Uuid
@@ -559,6 +560,7 @@ model Track {
 }
 
 model Stage {
+  status CatalogStatus @default(ACTIVE)
   contractBooks ContractBook[]
   undatedIntakes UndatedStudentIntake[]
   id           String    @id @default(uuid()) @db.Uuid
@@ -2329,6 +2331,8 @@ model ProgramAssessment {
 }
 
 model ProgramActivity {
+  pageStart Int? @map("page_start")
+  pageEnd Int? @map("page_end")
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz

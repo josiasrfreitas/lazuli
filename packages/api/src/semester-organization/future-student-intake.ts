@@ -88,7 +88,7 @@ async function selectedStage(
 ): Promise<Stage | null> {
   if (!stageId) return null;
   const stage = await database.stage.findFirst({
-    where: { id: stageId, deletedAt: null, track: { status: "ACTIVE" } },
+    where: { id: stageId, deletedAt: null, status: "ACTIVE", track: { status: "ACTIVE" } },
   });
   if (!stage) throw badRequest("O estágio escolhido não está disponível.");
   return stage;
@@ -237,7 +237,9 @@ export async function bindUndatedIntakes(
       requestedOn: { lt: period.startDate },
       student: { deletedAt: null, status: "ACTIVE" },
     },
-    include: { stage: { select: { deletedAt: true, track: { select: { status: true } } } } },
+    include: {
+      stage: { select: { deletedAt: true, status: true, track: { select: { status: true } } } },
+    },
     orderBy: { studentId: "asc" },
   });
   for (const item of waiting) {
@@ -245,7 +247,10 @@ export async function bindUndatedIntakes(
       semester: period,
       studentId: item.studentId,
       stageId:
-        item.stage && !item.stage.deletedAt && item.stage.track.status === "ACTIVE"
+        item.stage &&
+        !item.stage.deletedAt &&
+        item.stage.status === "ACTIVE" &&
+        item.stage.track.status === "ACTIVE"
           ? item.stageId
           : null,
       recordedById: item.recordedById,

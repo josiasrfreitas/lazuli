@@ -1,0 +1,361 @@
+.scroll {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  color: var(--foreground);
+  scrollbar-gutter: stable;
+}
+.page {
+  width: min(100%, 76rem);
+  margin-inline: auto;
+  padding: clamp(1rem, 2.8vw, 2.5rem);
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+}
+.meta,
+.count,
+.source,
+.emptyLine,
+.unitTitle p,
+.activity p,
+.activity small {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  line-height: 1.5;
+}
+.toolbar,
+.programBar,
+.unitTitle,
+.indexHead,
+.trackHead,
+.activity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.toolbar {
+  flex-wrap: wrap;
+  border-block: 1px solid var(--border);
+  padding-block: 0.75rem;
+}
+.legacyLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.search {
+  flex: 1;
+  max-width: 28rem;
+  margin-right: auto;
+}
+.tracks {
+  border-top: 1px solid var(--border-strong);
+}
+.track {
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 1rem;
+}
+.trackHead {
+  min-height: 3.75rem;
+}
+.trackToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0.65rem 0.25rem;
+  cursor: pointer;
+}
+.trackToggle small,
+.trackToggle strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.trackToggle small {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.trackToggle strong,
+.activity strong,
+.lessons strong {
+  font-weight: 600;
+}
+.trackToggle strong {
+  font-size: var(--lz-text-h3);
+  color: var(--heading);
+}
+.trackBody {
+  padding: 0 0 0.75rem 1.75rem;
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.trackBody table {
+  width: 100%;
+  table-layout: fixed;
+}
+.trackBody th:first-child {
+  width: 56%;
+}
+.trackBody th:last-child {
+  width: 5.25rem;
+}
+.trackBody td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.stageCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.stageCell a {
+  color: var(--interactive);
+  text-underline-offset: 0.2em;
+}
+.stageCell a:hover {
+  text-decoration: underline;
+}
+.ordinal,
+.hourNumber,
+.count {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-numeric);
+  color: var(--muted-foreground);
+}
+.ordinal,
+.hourNumber {
+  font-size: var(--lz-text-caption);
+}
+.tabs {
+  display: flex;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.tabs button {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: var(--muted-foreground);
+}
+.tabs button[aria-current] {
+  color: var(--heading);
+  font-weight: 600;
+  border-color: var(--primary);
+}
+.tabs span {
+  font-size: var(--lz-text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.programBar {
+  flex-wrap: wrap;
+}
+.curriculum {
+  display: grid;
+  grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2.5rem);
+  align-items: start;
+}
+.index {
+  position: sticky;
+  top: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  padding-right: 1rem;
+  border-right: 1px solid var(--border);
+  max-height: 80vh;
+  overflow: auto;
+}
+.indexHead h2 {
+  font-size: var(--lz-text-control);
+  font-weight: 600;
+}
+.index > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--lz-text-control);
+}
+.index > button:hover,
+.hourToggle:hover,
+.trackToggle:hover {
+  background: var(--accent);
+}
+.index > button[aria-current] {
+  background: var(--muted);
+  color: var(--heading);
+  font-weight: 600;
+}
+.unit {
+  min-width: 0;
+}
+.unitTitle {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-strong);
+  flex-wrap: wrap;
+}
+.unitTitle h2 {
+  font: 500 var(--lz-text-h2)/1.2 var(--font-display);
+  color: var(--heading);
+}
+.hours {
+  display: grid;
+}
+.hour {
+  border-bottom: 1px solid var(--border);
+}
+.hourToggle {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow-wrap: anywhere;
+}
+.preview svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.hourBody {
+  display: grid;
+  justify-items: stretch;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem 0.85rem clamp(0.75rem, 5vw, 5rem);
+  background: var(--muted);
+}
+.hourBody > button {
+  justify-self: start;
+}
+.activity {
+  border-left: 2px solid var(--border-strong);
+  padding: 0.45rem 0.75rem;
+  overflow-wrap: anywhere;
+}
+.source {
+  border-top: 1px solid var(--border);
+  padding-block: 0.65rem;
+  overflow-wrap: anywhere;
+}
+.lessons {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.lessons li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.lessons strong {
+  margin-right: auto;
+  overflow-wrap: anywhere;
+}
+.page button:focus-visible,
+.page a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .page {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .trackHead,
+  .stageCell {
+    gap: 0.4rem;
+  }
+  .count {
+    white-space: nowrap;
+  }
+  .trackBody {
+    padding-left: 0;
+  }
+  .trackBody th:first-child {
+    width: 48%;
+  }
+  .trackBody th:last-child {
+    width: 4.5rem;
+  }
+  .stageCell .ordinal {
+    display: none;
+  }
+  .curriculum {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .index {
+    position: static;
+    display: flex;
+    align-items: center;
+    max-width: 100%;
+    overflow: auto;
+    gap: 0.4rem;
+    border: 0;
+    padding: 0;
+  }
+  .index > button {
+    flex-shrink: 0;
+  }
+  .indexHead {
+    gap: 0.2rem;
+  }
+  .hourToggle {
+    grid-template-columns: 4.75rem minmax(0, 1fr) auto;
+    gap: 0.35rem;
+  }
+  .hourBody {
+    padding: 0.5rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .identification > div {
+    grid-template-columns: minmax(0, 1fr) 7rem;
+  }
+}
+
+.caption,
+.fieldAlert,
+.fieldLabel {
+  font-size: var(--lz-text-caption);
+}
+.controlTitle {
+  font-size: var(--lz-text-control);
+  font-weight: 600;
+}
+.fieldAlert {
+  color: var(--destructive);
+}
+.fieldLabel {
+  font-weight: 500;
+}

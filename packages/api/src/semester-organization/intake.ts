@@ -58,7 +58,7 @@ async function intakeStage(
 ): Promise<Stage | null> {
   if (!stageId) return null;
   const stage = await database.stage.findFirst({
-    where: { id: stageId, deletedAt: null, track: { status: "ACTIVE" } },
+    where: { id: stageId, deletedAt: null, status: "ACTIVE", track: { status: "ACTIVE" } },
   });
   if (!stage) throw badRequest("O estágio escolhido não está disponível.");
   return stage;

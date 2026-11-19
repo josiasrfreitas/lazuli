@@ -215,37 +215,18 @@ async function seedTrack(
     },
     update: {
       name: trackSeed.name,
-      status: trackSeed.status,
       ageGroup: trackSeed.ageGroup,
       portalPrefix: trackSeed.portalPrefix,
     },
   });
 
-  for (const [stageIndex, stageSeed] of trackSeed.stages.entries()) {
-    await seedStage(database, { stageIndex, stageSeed, trackId: track.id });
-  }
-}
-
-async function seedStage(
-  database: DatabaseClient,
-  { stageIndex, stageSeed, trackId }: { stageIndex: number; stageSeed: StageSeed; trackId: string },
-): Promise<void> {
-  await database.stage.upsert({
-    where: {
-      trackId_internalCode: {
-        trackId,
-        internalCode: stageSeed.internalCode,
-      },
-    },
-    create: {
-      trackId,
-      name: stageSeed.name,
-      internalCode: stageSeed.internalCode,
-      sequence: stageIndex + 1,
-    },
-    update: {
-      name: stageSeed.name,
-      sequence: stageIndex + 1,
-    },
+  // A setup rerun can fill missing slots without resetting names, codes or positions edited at school.
+  await database.stage.createMany({
+    data: trackSeed.stages.map((stage, index) => ({
+      ...stage,
+      trackId: track.id,
+      sequence: index + 1,
+    })),
+    skipDuplicates: true,
   });
 }

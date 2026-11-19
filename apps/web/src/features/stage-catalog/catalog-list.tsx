@@ -1,146 +1,327 @@
-import type { JSX as ReactJSX, ReactNode } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import {
-  DataTable,
+  Archive,
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  MoreHorizontal,
+  Plus,
+} from "lucide-react";
+import {
+  Badge,
+  Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableHeader,
   TableRow,
-  type DataTableState,
 } from "@lazuli/ui";
-import type { StageSummary } from "./types";
-import { TrackName } from "./track-name";
-import styles from "./catalog.module.css";
+import type { Stage, Track } from "./types";
+import type { CatalogDialogState } from "./catalog-dialog";
+import styles from "./workspace.module.css";
 
-type CatalogProps = {
-  state: DataTableState<StageSummary>;
-  selectedId: string | null;
-  onSelect: (stage: StageSummary) => void;
-  onRetry: () => void;
-  footer: ReactNode;
-};
-type StageGroup = { track: StageSummary["track"]; stages: StageSummary[] };
-
-function StageIdentity({
-  stage,
-  selected,
+export function ActionsMenu({
+  name,
+  actions,
 }: {
-  stage: StageSummary;
-  selected: boolean;
-}): ReactJSX.Element {
+  name: string;
+  actions: { label: string; onClick: () => void }[];
+}): React.JSX.Element | null {
+  const [open, setOpen] = useState(false);
+  if (actions.length === 0) return null;
   return (
-    <div className={styles.bookCell} data-selected={selected || undefined}>
-      <div>
-        <strong>{stage.name}</strong>
-        <span>
-          {stage.internalCode} ·{" "}
-          {stage.bookLessonCount === null
-            ? "Lições não informadas"
-            : `${stage.bookLessonCount} lições`}
-        </span>
-      </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={<Button variant="ghost" size="icon-sm" aria-label={"Ações de " + name} />}
+      >
+        <MoreHorizontal />
+      </PopoverTrigger>
+      <PopoverContent size="menu" align="end" showArrow={false}>
+        <div className="grid">
+          {actions.map((action) => (
+            <Button
+              key={action.label}
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setOpen(false);
+                action.onClick();
+              }}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+type Move = (command: {
+  target: "track" | "stage";
+  id: string;
+  neighborId: string;
+  direction: "up" | "down";
+}) => void;
+function OrderButtons({
+  list,
+  id,
+  target,
+  move,
+  pending,
+}: {
+  list: { id: string }[];
+  id: string;
+  target: "track" | "stage";
+  move: Move;
+  pending: boolean;
+}): React.JSX.Element {
+  const index = list.findIndex((item) => item.id === id);
+  return (
+    <div className="flex">
+      {(["up", "down"] as const).map((direction) => {
+        const neighbor = list[index + (direction === "up" ? -1 : 1)];
+        const label = direction === "up" ? "Mover para cima" : "Mover para baixo";
+        return (
+          <Button
+            key={direction}
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={!neighbor || pending}
+            aria-label={label}
+            title={label}
+            onClick={() => neighbor && move({ target, id, neighborId: neighbor.id, direction })}
+          >
+            {direction === "up" ? <ArrowUp /> : <ArrowDown />}
+          </Button>
+        );
+      })}
     </div>
   );
 }
-
-function groupStages(rows: readonly StageSummary[]): StageGroup[] {
-  // Preserve the catalog's track order and each track's stage progression.
-  const groups = new Map<string, StageGroup>();
-  for (const stage of rows) {
-    const group = groups.get(stage.track.id);
-    if (group) group.stages.push(stage);
-    else groups.set(stage.track.id, { track: stage.track, stages: [stage] });
-  }
-  return [...groups.values()];
-}
-
-export function StageCatalogList(props: CatalogProps): ReactJSX.Element {
-  if (props.state.kind !== "data") return <CatalogState {...props} />;
+type Props = {
+  track: Track;
+  tracks: Track[];
+  expanded: boolean;
+  filtered: boolean;
+  toggle: () => void;
+  reorder: boolean;
+  pending: boolean;
+  move: Move;
+  open: (item: CatalogDialogState) => void;
+  href: (id: string, trackId: string) => string;
+};
+export function CatalogTrack({
+  track,
+  tracks,
+  expanded: selected,
+  filtered,
+  toggle: toggleTrack,
+  reorder,
+  pending,
+  move,
+  open,
+  href,
+}: Props): React.JSX.Element {
+  const [folded, setFolded] = useState(false);
+  const expanded = filtered ? !folded : selected;
+  const toggle = (): void => {
+    if (filtered) setFolded(!folded);
+    else toggleTrack();
+  };
+  const legacy = track.status === "LEGACY";
+  const add = (): void => open({ action: "createStage", trackId: track.id, trackName: track.name });
   return (
-    <TableContainer viewportBound footer={props.footer}>
-      {groupStages(props.state.rows).map((group) => (
-        <StageTrack
-          key={group.track.id}
-          group={group}
-          selectedId={props.selectedId}
-          onSelect={props.onSelect}
-        />
-      ))}
-    </TableContainer>
+    <section className={styles.track} aria-label={track.name} id={"track-" + track.id}>
+      <TrackHeading
+        track={track}
+        tracks={tracks}
+        expanded={expanded}
+        toggle={toggle}
+        reorder={reorder}
+        legacy={legacy}
+        pending={pending}
+        move={move}
+        add={add}
+        open={open}
+      />
+      {expanded && (
+        <div id={"stages-" + track.id} className={styles.trackBody}>
+          {track.stages.length > 0 ? (
+            <StageTable
+              track={track}
+              reorder={reorder}
+              pending={pending}
+              move={move}
+              open={open}
+              href={href}
+            />
+          ) : (
+            <p className={styles.emptyLine}>
+              {legacy ? <Archive aria-hidden="true" size={15} /> : null}Nenhum estágio nesta track.
+            </p>
+          )}
+          {!legacy && !reorder && (
+            <Button
+              type="button"
+              size="sm"
+              variant={track.stages.length > 0 ? "text" : "primary"}
+              onClick={add}
+            >
+              <Plus />
+              Adicionar estágio
+            </Button>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
-function CatalogState({ state, selectedId, onRetry, footer }: CatalogProps): ReactJSX.Element {
+type StageTableProps = Pick<Props, "track" | "reorder" | "pending" | "move" | "open" | "href">;
+function StageTable(props: StageTableProps): React.JSX.Element {
+  const { track } = props;
   return (
-    <DataTable<StageSummary>
-      label="Estágios"
-      columns={[
-        {
-          id: "stage",
-          header: "Estágio",
-          width: "wide",
-          cell: (stage) => <StageIdentity stage={stage} selected={stage.id === selectedId} />,
-        },
-      ]}
-      state={state}
-      loadingRows={7}
-      empty={{
-        title: "Nenhum estágio disponível",
-        description: "Os estágios serão disponibilizados pelo catálogo da escola.",
-      }}
-      errorTitle="Não foi possível carregar os estágios"
-      onRetry={onRetry}
-      footer={footer}
-    />
-  );
-}
-
-function StageTrack({
-  group,
-  selectedId,
-  onSelect,
-}: {
-  group: StageGroup;
-  selectedId: string | null;
-  onSelect: CatalogProps["onSelect"];
-}): ReactJSX.Element {
-  const { track, stages } = group;
-  return (
-    <Table aria-labelledby={`track-${track.id}`} className="min-w-0 table-fixed">
-      <TableHeader sticky>
+    <Table className="min-w-0" aria-label={"Estágios de " + track.name}>
+      <TableHeader>
         <TableRow interactive={false}>
+          <TableHead>Estágio</TableHead>
+          <TableHead>Código</TableHead>
+          <TableHead>Lições</TableHead>
           <TableHead>
-            <div className={styles.trackHeading}>
-              <h2 id={`track-${track.id}`}>
-                <TrackName track={track} />
-              </h2>
-              <span>{track.ageGroup === "CHILD" ? "Infantil" : "Adulto"}</span>
-            </div>
+            <span className="sr-only">Ações</span>
           </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {stages.map((stage) => (
-          <TableRow
-            key={stage.id}
-            selected={stage.id === selectedId}
-            tabIndex={0}
-            className="cursor-pointer data-[selected]:outline data-[selected]:outline-1 data-[selected]:-outline-offset-1 data-[selected]:outline-border-strong focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-            onClick={() => onSelect(stage)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              event.preventDefault();
-              onSelect(stage);
-            }}
-          >
-            <TableCell>
-              <StageIdentity stage={stage} selected={stage.id === selectedId} />
-            </TableCell>
-          </TableRow>
+        {track.stages.map((stage) => (
+          <StageRow key={stage.id} {...props} stage={stage} />
         ))}
       </TableBody>
     </Table>
+  );
+}
+function StageRow({
+  track,
+  stage,
+  reorder,
+  move,
+  pending,
+  open,
+  href,
+}: StageTableProps & { stage: Stage }): React.JSX.Element {
+  const legacy = track.status === "LEGACY";
+  return (
+    <TableRow interactive={false}>
+      <TableCell>
+        <div className={styles.stageCell}>
+          <span className={styles.ordinal}>{stage.sequence.toString().padStart(2, "0")}</span>
+          <Link id={"stage-" + stage.id} href={href(stage.id, track.id)}>
+            {stage.name}
+          </Link>
+          {(legacy || stage.status === "LEGACY") && <Badge variant="neutral">Legacy</Badge>}
+        </div>
+      </TableCell>
+      <TableCell>{stage.internalCode}</TableCell>
+      <TableCell>{stage.bookLessonCount ?? "—"}</TableCell>
+      <TableCell>
+        {reorder ? (
+          <OrderButtons
+            target="stage"
+            list={track.stages}
+            id={stage.id}
+            move={move}
+            pending={pending}
+          />
+        ) : (
+          <ActionsMenu
+            name={stage.name}
+            actions={[
+              {
+                label: "Editar identificação",
+                onClick: () => open({ action: "editStage", ...stage }),
+              },
+              ...(!legacy && stage.status === "ACTIVE"
+                ? [
+                    {
+                      label: "Marcar como Legacy",
+                      onClick: () =>
+                        open({
+                          action: "legacy",
+                          target: "stage",
+                          id: stage.id,
+                          name: stage.name,
+                        }),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function TrackHeading({
+  track,
+  tracks,
+  expanded,
+  toggle,
+  reorder,
+  legacy,
+  pending,
+  move,
+  add,
+  open,
+}: Omit<Props, "filtered" | "href"> & { legacy: boolean; add: () => void }): React.JSX.Element {
+  return (
+    <header className={styles.trackHead}>
+      <button
+        type="button"
+        className={styles.trackToggle}
+        onClick={toggle}
+        aria-expanded={expanded}
+        aria-controls={"stages-" + track.id}
+      >
+        {expanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
+        <span>
+          <strong>{track.name}</strong>
+          <small>
+            {track.productLine.name} ·{" "}
+            {track.ageGroup === "CHILD" ? "Público infantil" : "Público adulto"}
+          </small>
+        </span>
+      </button>
+      {legacy && <Badge variant="neutral">Legacy</Badge>}
+      <span className={styles.count}>
+        {track.stages.length} {track.stages.length === 1 ? "estágio" : "estágios"}
+      </span>
+      {reorder ? (
+        <OrderButtons target="track" list={tracks} id={track.id} move={move} pending={pending} />
+      ) : (
+        <ActionsMenu
+          name={track.name}
+          actions={
+            legacy
+              ? []
+              : [
+                  { label: "Adicionar estágio", onClick: add },
+                  {
+                    label: "Marcar como Legacy",
+                    onClick: () =>
+                      open({ action: "legacy", target: "track", id: track.id, name: track.name }),
+                  },
+                ]
+          }
+        />
+      )}
+    </header>
   );
 }

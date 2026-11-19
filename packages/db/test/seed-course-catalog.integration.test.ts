@@ -66,6 +66,33 @@ void describe("course catalog seed", () => {
       tracks: EXPECTED_TRACK_COUNT,
     });
   });
+  void it("preserves edits to the school catalog on subsequent seeds", async () => {
+    await seedCourseCatalog(database);
+    const track = await database.track.findFirstOrThrow({
+      where: { name: "Adultos / English Main" },
+    });
+    const stage = await database.stage.findFirstOrThrow({
+      where: { trackId: track.id, sequence: 1 },
+    });
+    await database.track.update({ where: { id: track.id }, data: { status: "LEGACY" } });
+    const correction = {
+      internalCode: "ERC",
+      name: "Essentials revisado",
+      status: "LEGACY" as const,
+    };
+    await database.stage.update({ where: { id: stage.id }, data: correction });
+    await seedCourseCatalog(database);
+    const storedTrack = await database.track.findUniqueOrThrow({ where: { id: track.id } });
+    assert.equal(storedTrack.status, "LEGACY");
+    assert.deepEqual(
+      await database.stage.findUniqueOrThrow({
+        where: { id: stage.id },
+        select: { name: true, internalCode: true, status: true },
+      }),
+      correction,
+    );
+    await expectCatalogCounts(database);
+  });
 });
 
 async function cleanSeededCatalog(database: DatabaseClient): Promise<void> {

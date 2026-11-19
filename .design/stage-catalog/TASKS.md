@@ -1,0 +1,26 @@
+# Implementação · Editor dedicado ao estágio
+
+Direção escolhida em 19/11/2026 para a [issue #238](https://github.com/josiasrfreitas/lazuli/issues/238). As tarefas abaixo entregam comportamentos verificáveis na aplicação. [Brief](DESIGN_BRIEF.md) · [Arquitetura da informação](INFORMATION_ARCHITECTURE.md)
+
+## Editor e programação-base
+
+- [x] **1. Abrir e editar um estágio em página própria.** Adaptar a lista de `stage-catalog` para abrir `/estagios/{id}`. Reusar a consulta, o seletor de programação e o mapa de aulas. Criar a edição de nome e código com gravação administrativa. A página dá espaço à sequência do livro e mantém os campos compactos. **Aceite:** buscar um estágio, abrir, corrigir o nome, recarregar e voltar à mesma busca. Conferir também um estágio sem programação, o acesso por link direto e o tratamento de código duplicado.
+- [x] **2. Cadastrar e corrigir lições do livro.** No editor da tarefa 1, criar a área **Lições** com campos do sistema visual e usar a lista de lições do estágio. **Aceite:** adicionar uma lição a um estágio recém-cadastrado ou existente, corrigir o título e conferir a ordem e a quantidade após recarregar. Uma correção mantém os vínculos das atividades com aquela lição.
+- [x] **3. Inserir e editar uma atividade no ponto escolhido.** Adaptar o mapa da tarefa 1 para mostrar a hora-aula individual durante a edição. Criar **Inserir aqui** e o formulário contextual de título, duração, referências ao livro e páginas opcionais. Reusar as regras da programação e gravar a alteração inteira em uma confirmação. **Aceite:** inserir uma atividade de 10 minutos entre duas de 30, ajustar a primeira para 20 e reler a sequência 20/10/30. Verificar página única, intervalo e páginas em branco. Uma tentativa inválida preserva a sequência anterior e os campos digitados. Conferir também uma atividade já referenciada em um plano e a integridade dos registros anteriores. [Contrato atual](../../packages/api/src/teaching-programs/README.md)
+- [x] **4. Montar a programação de um estágio novo e incluir a prova do livro.** Estender o editor das tarefas 2 e 3 para atender o estado vazio e a inclusão de unidades e horas-aula. Reusar a estrutura de prova da unidade e o filtro **Provas**. Permitir que a coordenação monte a programação por operações atômicas, com o contexto de Regular/PPT e da carga semanal visível. **Aceite:** partir de um estágio sem programação, cadastrar conteúdo do livro e incluir a avaliação prevista sem preencher páginas. Conferir o encerramento da unidade e uma prova distribuída por duas horas consecutivas.
+
+## Organização do catálogo
+
+- [x] **5. Criar uma track e adicionar estágios.** Adaptar a consulta e a lista para representar tracks vazias. Criar os formulários **Nova track** e **Adicionar estágio** usando os controles compartilhados. **Aceite:** criar a track na linha de produto escolhida, recarregar, incluir dois estágios e abrir cada um no editor da tarefa 1.
+- [x] **6. Mudar as duas ordens.** Adicionar à lista comandos acessíveis pelo teclado para mover tracks na apresentação e estágios na progressão da própria track. Cada movimento persiste como uma operação. **Aceite:** mover uma track e conferir que a progressão das demais continua igual. Mover o segundo estágio para o primeiro lugar, recarregar e conferir a sequência. Exercitar duas alterações concorrentes para verificar que os itens continuam acessíveis e com posições consistentes. [Hierarquia do catálogo](../../docs/decisions/0008-model-the-academic-catalog-hierarchy.md)
+- [x] **7. Marcar como Legacy e consultar o histórico.** Adaptar as ações de track e estágio, o selo Legacy e os seletores usados para criar turmas. Reusar o diálogo compartilhado para explicar o alcance antes de confirmar. **Aceite:** desativar um estágio, recuperá-lo em **Mostrar Legacy** e verificar que seus vizinhos ativos continuam disponíveis. Repetir para uma track inteira. Testar a seleção e a gravação de uma turma nova e o acesso pela turma já em andamento.
+
+## Validação
+
+Em cada tarefa, verificar a ação principal no navegador do Orca, em largura de desktop e estreita, incluindo foco, teclado e retorno ao ponto de edição. Nas gravações, cobrir o contrato do formulário e testar na camada responsável a persistência, a autorização e o efeito de uma falha. Os testes completos ficam para a entrega. [Guia de frontend](../../docs/frontend/README.md) · [Guia de testes](../../docs/testing/README.md)
+
+A escola confirmou que “alterar o formato” significa editar a própria programação do livro.
+
+Na validação pelo navegador do Orca, foi possível criar uma track com dois estágios, mover ambos os níveis, corrigir um código duplicado e retornar à busca depois de editar. A programação recebeu uma lição, uma unidade, uma prova de duas horas e uma atividade inserida entre duas existentes, com durações de 20, 10 e 30 minutos. Foram conferidas páginas em branco, uma página e o intervalo 18–21. No celular, também foram exercitados o formulário contextual, a criação de unidade e o filtro Legacy para o estágio e a track.
+
+Os testes de integração cobrem o acesso administrativo, duas reordenações concorrentes, a rejeição de dados desatualizados e a preservação de um planejamento já salvo. A revisão visual confirmou o código do livro nas horas com descrição pendente e a contagem junto ao filtro de provas.

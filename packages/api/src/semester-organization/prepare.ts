@@ -372,10 +372,12 @@ async function nextRegularStage(
   return context.database.stage.findFirst({
     where: {
       trackId: stage.trackId,
-      sequence: stage.sequence + 1,
+      sequence: { gt: stage.sequence },
+      status: "ACTIVE",
       deletedAt: null,
       track: { status: "ACTIVE" },
     },
+    orderBy: { sequence: "asc" },
     select: { id: true },
   });
 }

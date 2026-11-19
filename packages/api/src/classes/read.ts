@@ -158,7 +158,7 @@ async function classBooks(
   }
   const stages = await database.stage.findMany({
     where: { deletedAt: null, track: { stages: { some: { id: row.sharedStage.id } } } },
-    select: { id: true, name: true, internalCode: true, sequence: true },
+    select: { id: true, name: true, internalCode: true, sequence: true, status: true },
     orderBy: { sequence: "asc" },
   });
   const next = findNextStageInTrack({ stages, currentStageId: row.sharedStage.id });
@@ -385,7 +385,7 @@ export async function classFormOptions(database: Database): Promise<{
       take: 20,
     }),
     database.stage.findMany({
-      where: { deletedAt: null, track: { status: "ACTIVE" } },
+      where: { deletedAt: null, status: "ACTIVE", track: { status: "ACTIVE" } },
       select: { id: true, name: true, internalCode: true },
       orderBy: { internalCode: "asc" },
     }),

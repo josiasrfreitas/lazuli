@@ -13,8 +13,8 @@ type ProgramRow = {
   kind: "CONTENT" | "ASSESSMENT" | "REVIEW" | "ACTIVITY";
   title: string;
   reference: string;
-  pageFrom: null;
-  pageTo: null;
+  pageFrom: number | null;
+  pageTo: number | null;
 };
 
 type ScheduleInput = { scope: PlanningScope; startOn: string; plan: Plan | null };
@@ -89,8 +89,8 @@ export async function previewProgramSchedule(
     kind: programActivityKind(activity.kind),
     title: activity.title,
     reference: `Unidade ${activity.unit.sequence} · hora-aula ${activity.teachingHour.sequence}`,
-    pageFrom: null,
-    pageTo: null,
+    pageFrom: activity.pageStart,
+    pageTo: activity.pageEnd,
   }));
   return { rows, activities, missingMinutes: result.missingMinutes };
 }

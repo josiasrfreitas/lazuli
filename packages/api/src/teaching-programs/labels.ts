@@ -1,6 +1,7 @@
 import type { Prisma } from "@lazuli/db";
 import { programActivityLabels } from "@lazuli/domain";
 export type ActivityContext = {
+  bookTitle: string;
   title: string;
   sequence: number;
   durationMinutes: number;
@@ -31,6 +32,7 @@ export async function readActivityContexts(
     for (const item of source)
       result.set(item.id, {
         title: labels.get(item.id) ?? item.title,
+        bookTitle: item.title,
         sequence: item.sequence,
         durationMinutes: item.durationMinutes,
         unit: { id: item.unit.id, sequence: item.unit.sequence, title: item.unit.title },
