@@ -193,10 +193,20 @@ export type ContractFormState = {
   setSubmissionError: (message: string) => void;
 };
 
+function shiftSuggestedDates(
+  current: ContractFields,
+  { previous, defaultStart }: { previous: string; defaultStart: string },
+): boolean {
+  return (
+    previous !== defaultStart &&
+    current.firstDueDate === previous &&
+    (!current.endsOn || current.endsOn === suggestedContractEnd(previous))
+  );
+}
+
 function useInitialContractDates(
-  open: boolean,
   setFields: Dispatch<SetStateAction<ContractFields>>,
-  suggestedStart: string | undefined,
+  { open, suggestedStart }: { open: boolean; suggestedStart: string | undefined },
 ): void {
   const previousDefault = useRef("");
   useEffect(() => {
@@ -206,10 +216,7 @@ function useInitialContractDates(
     const previous = previousDefault.current;
     previousDefault.current = defaultStart;
     setFields((current) => {
-      const shiftDefault =
-        previous !== defaultStart &&
-        current.firstDueDate === previous &&
-        (!current.endsOn || current.endsOn === suggestedContractEnd(previous));
+      const shiftDefault = shiftSuggestedDates(current, { previous, defaultStart });
       const firstDueDate =
         !current.firstDueDate || shiftDefault ? defaultStart : current.firstDueDate;
       const endsOn =
@@ -245,14 +252,22 @@ function clearedErrors(
   return next;
 }
 
+type ContractFormOptions = {
+  initialFields?: ContractFields;
+  suggestAgreementDate?: boolean;
+  suggestedStart?: string | undefined;
+};
+
 export function useContractFormState(
   open: boolean,
-  initialFields: ContractFields = emptyContractFields,
-  suggestAgreementDate = true,
-  suggestedStart?: string,
+  {
+    initialFields = emptyContractFields,
+    suggestAgreementDate = true,
+    suggestedStart,
+  }: ContractFormOptions = {},
 ): ContractFormState {
   const [fields, setFields] = useState<ContractFields>(initialFields);
-  useInitialContractDates(open && suggestAgreementDate, setFields, suggestedStart);
+  useInitialContractDates(setFields, { open: open && suggestAgreementDate, suggestedStart });
   const [errors, setErrors] = useState<Errors>({});
   const [submissionError, setSubmissionError] = useState("");
   const commandId = useRef(crypto.randomUUID());

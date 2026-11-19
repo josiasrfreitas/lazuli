@@ -30,7 +30,9 @@ export function NewContractDialog({
   onCreated: () => void;
   initialFields?: Partial<ContractFields>;
 }): ReactElement {
-  const state = useContractFormState(open, { ...emptyContractFields, ...initialFields });
+  const state = useContractFormState(open, {
+    initialFields: { ...emptyContractFields, ...initialFields },
+  });
   const operation = useContractOperation({ open, onOpenChange, onCreated, state });
   return (
     <Dialog open={open} onOpenChange={operation.close}>

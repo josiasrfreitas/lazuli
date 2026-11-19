@@ -1,11 +1,19 @@
 # PR 305 lint progress
 
-Locked batch: contracts, enrollment, and assessment file polling.
-Original count: 14 errors in this batch, 14 overall.
-Latest measured remaining: 14 in the locked files and 14 overall.
+Locked batch: none. The backlog is closed.
+Original count: 233 errors on PR head `f0f0bfe2`.
+Latest measured remaining: 0 overall.
 Snapshot: `pnpm lint --continue=dependencies-successful --output-logs=errors-only`,
-`/tmp/lazuli-pr305-lint-after-formation.log` and `/tmp/lazuli-pr305-lint-after-formation.json`.
-Next gate: zero errors in the locked files, web typecheck and affected tests, then compare full lint.
+`/tmp/lazuli-pr305-lint-final.log` and `/tmp/lazuli-pr305-lint-final.json`.
+Next gate: publish the local commits when GitHub authentication is available and verify CI on the pushed head.
+
+## Closed batch: contracts, enrollment, and assessment file polling
+
+Targeted lint removed all 14 locked errors. Web typecheck and all 445 web unit tests
+passed. Orca verified the suggested dates in the new contract dialog on desktop and
+at 390 px. Full lint confirmed 14 → 0, with zero added by file, rule, and message.
+All 17 tasks passed, including duplication. The contract form hook callers and
+shared duration model followed their interface changes and had zero baseline errors.
 
 - `apps/web/src/features/assessment-files/queue-provider.tsx` — 2
 - `apps/web/src/features/contracts/contract-form-model.ts` — 1

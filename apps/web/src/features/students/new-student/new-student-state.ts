@@ -154,12 +154,9 @@ export function useEnrollmentContract(
   flow: EnrollmentFlow,
   contractStart: string | undefined,
 ): EnrollmentContract {
-  const contractState = useContractFormState(
-    flow.step === "contract",
-    undefined,
-    true,
-    contractStart,
-  );
+  const contractState = useContractFormState(flow.step === "contract", {
+    suggestedStart: contractStart,
+  });
   const contract = {
     ...contractState,
     change: (...args: Parameters<typeof contractState.change>): void => {

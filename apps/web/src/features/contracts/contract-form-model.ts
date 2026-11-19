@@ -241,7 +241,7 @@ function contractMaterialInput(fields: ContractFields): object {
       ? (JSON.parse(fields.materialBooks) as z.input<
           typeof createMonthlyContractInputSchema
         >["books"])
-      : Array.from({ length: semesters }, (_, index) => ({
+      : Array.from({ length: semesters }, (_unused, index) => ({
           stageId: null,
           acquisitionSemester: index === 0 ? 1 : null,
         }));

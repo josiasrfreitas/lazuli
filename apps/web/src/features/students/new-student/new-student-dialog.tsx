@@ -6,6 +6,7 @@ import {
 import { useEffect, type JSX as ReactJSX } from "react";
 import { showMobileUploadHint } from "~/features/student-documents/mobile-upload-hint";
 import { toDateOnlySaoPaulo } from "~/lib/format";
+import { dateOnly } from "~/features/class-organization/shared";
 import { EnrollmentDialogView } from "./new-student-view";
 import {
   useEnrollmentIdentity,
@@ -88,10 +89,9 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
     flow,
     today,
   });
+  const nextPeriodStart = classSources.options.data?.semester?.startDate;
   const contractStart =
-    identity.entryPeriod === "NEXT"
-      ? classSources.options.data?.semester?.startDate.toISOString().slice(0, 10)
-      : undefined;
+    identity.entryPeriod === "NEXT" && nextPeriodStart ? dateOnly(nextPeriodStart) : undefined;
   const contractData = useEnrollmentContract(flow, contractStart);
   useEffect(() => {
     if (existingSources.existingContract && flow.step === "contract") flow.setStep("pedagogy");

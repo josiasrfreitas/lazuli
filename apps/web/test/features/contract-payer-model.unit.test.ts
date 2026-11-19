@@ -113,7 +113,7 @@ for (const [endsOn, months, books] of [
     );
     assert.equal(parsed.data?.durationMonths, months);
     assert.equal(parsed.data?.books?.length, books);
-    assert.equal(parsed.data?.endsOn, endsOn.split("/").reverse().join("-"));
+    assert.equal(parsed.data?.endsOn, endsOn.split("/").toReversed().join("-"));
   });
 }
 

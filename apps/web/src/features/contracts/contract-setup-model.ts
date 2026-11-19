@@ -13,7 +13,7 @@ import { fieldErrors, monthlyAmountError } from "./new-contract-state";
 export const setupSteps = ["parties", "tuition", "material", "review"] as const;
 export type SetupStep = (typeof setupSteps)[number];
 export type SetupErrors = FormProps["errors"];
-const MAX_CONTRACT_MONTHS = 120;
+export const MAX_CONTRACT_MONTHS = 120;
 const PERCENT_DIVISOR = 100;
 
 export const setupTitles: Record<SetupStep, string> = {

@@ -74,6 +74,15 @@ export function SemesterBooks({
   );
 }
 
+type BookRowProps = {
+  book: Book;
+  index: number;
+  rows: Book[];
+  catalog: NonNullable<SetupMaterial["stages"]["data"]>;
+  material: SetupMaterial;
+  update: (book: Book) => void;
+};
+
 function SemesterBookRow({
   book,
   index,
@@ -81,14 +90,7 @@ function SemesterBookRow({
   catalog,
   material,
   update,
-}: {
-  book: Book;
-  index: number;
-  rows: Book[];
-  catalog: NonNullable<SetupMaterial["stages"]["data"]>;
-  material: SetupMaterial;
-  update: (book: Book) => void;
-}): ReactElement {
+}: BookRowProps): ReactElement {
   const prices = material.prices.data;
   return (
     <fieldset className="grid gap-3 border-t border-border py-3 sm:grid-cols-2">
@@ -106,26 +108,13 @@ function SemesterBookRow({
           })
         }
       />
-      <div className="grid content-start justify-items-start gap-1">
-        <span>Pagamento do livro</span>
-        <SegmentedControl
-          size="sm"
-          aria-label={`Pagamento do livro do ${index + 1}º semestre`}
-          disabled={!book.stageId}
-          value={!book.stageId ? null : book.acquisition ? "now" : "later"}
-          onValueChange={(mode) => {
-            if (!mode) return;
-            const value = mode === "now" ? "now" : index === 0 ? "1" : "open";
-            update(bookForPayment({ book, value, catalog, prices }));
-          }}
-        >
-          <SegmentedControlItem value="later">Registrar depois</SegmentedControlItem>
-          <SegmentedControlItem value="now" disabled={!book.stageId || !prices}>
-            Registrar agora
-          </SegmentedControlItem>
-        </SegmentedControl>
-        {!book.stageId && <small>Selecione o livro para definir o pagamento.</small>}
-      </div>
+      <SemesterBookPayment
+        book={book}
+        index={index}
+        catalog={catalog}
+        prices={prices}
+        update={update}
+      />
       {book.stageId &&
         !book.acquisition &&
         (index === 0 ? (
@@ -163,6 +152,41 @@ function SemesterBookRow({
         />
       )}
     </fieldset>
+  );
+}
+
+function SemesterBookPayment({
+  book,
+  index,
+  catalog,
+  prices,
+  update,
+}: Pick<BookRowProps, "book" | "index" | "catalog" | "update"> & {
+  prices: SetupMaterial["prices"]["data"];
+}): ReactElement {
+  const paymentMode = book.acquisition ? "now" : "later";
+  const deferredValue = index === 0 ? "1" : "open";
+  return (
+    <div className="grid content-start justify-items-start gap-1">
+      <span>Pagamento do livro</span>
+      <SegmentedControl
+        size="sm"
+        aria-label={`Pagamento do livro do ${index + 1}º semestre`}
+        disabled={!book.stageId}
+        value={book.stageId ? paymentMode : null}
+        onValueChange={(mode) => {
+          if (!mode) return;
+          const value = mode === "now" ? "now" : deferredValue;
+          update(bookForPayment({ book, value, catalog, prices }));
+        }}
+      >
+        <SegmentedControlItem value="later">Registrar depois</SegmentedControlItem>
+        <SegmentedControlItem value="now" disabled={!book.stageId || !prices}>
+          Registrar agora
+        </SegmentedControlItem>
+      </SegmentedControl>
+      {!book.stageId && <small>Selecione o livro para definir o pagamento.</small>}
+    </div>
   );
 }
 

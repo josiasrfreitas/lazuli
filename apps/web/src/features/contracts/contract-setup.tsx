@@ -19,6 +19,7 @@ import type { ContractFormState, ContractOperation } from "./new-contract-state"
 import { validatePrice } from "./new-contract-state";
 import {
   firstInvalidStep,
+  MAX_CONTRACT_MONTHS,
   setupSteps,
   setupTitles,
   setupTuitionPreview,
@@ -504,7 +505,7 @@ function SetupStepFields({
     return <SetupTuition {...formProps} allowEnrollmentFee={props.allowEnrollmentFee ?? false} />;
   if (step === "material") {
     const months = durationFromDates(formProps.fields);
-    return months >= 1 && months <= 120 ? (
+    return months >= 1 && months <= MAX_CONTRACT_MONTHS ? (
       <SemesterBooks {...formProps} material={material} />
     ) : (
       <p>Defina a vigência do contrato para selecionar os livros.</p>

@@ -47,7 +47,7 @@ export function useRenewalModel({
   onSaved: () => void;
 }): RenewalModel {
   const [initial] = useState(() => emptyRenewalFields(data));
-  const state = useContractFormState(true, initial, false);
+  const state = useContractFormState(true, { initialFields: initial, suggestAgreementDate: false });
   const due = useRenewalDueDate();
   const restoreTerms = (): void => restoreRenewalTerms(data, { state, due });
   const preview = renewalPreview({ data, state, firstDueDate: due.firstDueDate });

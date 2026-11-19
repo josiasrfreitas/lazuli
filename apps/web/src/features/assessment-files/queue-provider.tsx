@@ -19,6 +19,7 @@ import {
 
 const ACTIVE_QUEUE_REFRESH_INTERVAL_MS = 3000;
 const IDLE_QUEUE_REFRESH_INTERVAL_MS = 15_000;
+const RECENT_QUEUE_MAX_RETRIES = 3;
 const COMPLETE_UPLOAD_PERCENT = 100;
 type QueueStatus =
   | "QUEUED"
@@ -269,6 +270,30 @@ function queueIsActive(items: QueueItem[]): boolean {
   );
 }
 
+function useRecentAssessmentFiles(
+  email: string,
+  active: boolean,
+): { files: RecentFiles | undefined; error: string | undefined; refresh: () => void } {
+  const session = authClient.useSession();
+  const sessionMatches = !session.isPending && !session.error && session.data?.user.email === email;
+  const recent = trpc.assessmentFiles.recent.useQuery(undefined, {
+    enabled: sessionMatches,
+    retry: (attempt, error) =>
+      error.data?.code !== "UNAUTHORIZED" && attempt < RECENT_QUEUE_MAX_RETRIES,
+    refetchInterval: (query) => {
+      if (query.state.error?.data?.code === "UNAUTHORIZED") return false;
+      return active ? ACTIVE_QUEUE_REFRESH_INTERVAL_MS : IDLE_QUEUE_REFRESH_INTERVAL_MS;
+    },
+  });
+  return {
+    files: recent.data,
+    error: recent.error?.message,
+    refresh: () => {
+      if (sessionMatches) void recent.refetch();
+    },
+  };
+}
+
 function useQueueController(userId: string, email: string): QueueController {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [storageError, setStorageError] = useState("");
@@ -276,17 +301,7 @@ function useQueueController(userId: string, email: string): QueueController {
   const running = useRef<XMLHttpRequest | null>(null);
   const dismissed = useRef(new Set<string>());
   const utils = trpc.useUtils();
-  const active = queueIsActive(items);
-  const session = authClient.useSession();
-  const sessionMatches = !session.isPending && !session.error && session.data?.user.email === email;
-  const recent = trpc.assessmentFiles.recent.useQuery(undefined, {
-    enabled: sessionMatches,
-    retry: (attempt, error) => error.data?.code !== "UNAUTHORIZED" && attempt < 3,
-    refetchInterval: (query) => {
-      if (query.state.error?.data?.code === "UNAUTHORIZED") return false;
-      return active ? ACTIVE_QUEUE_REFRESH_INTERVAL_MS : IDLE_QUEUE_REFRESH_INTERVAL_MS;
-    },
-  });
+  const recent = useRecentAssessmentFiles(email, queueIsActive(items));
   const retry = trpc.assessmentFiles.retry.useMutation({
     onSuccess: () => utils.assessmentFiles.invalidate(),
     onError: (error, input) =>
@@ -301,7 +316,7 @@ function useQueueController(userId: string, email: string): QueueController {
     void Promise.all([utils.assessmentFiles.invalidate(), utils.assessments.invalidate()]);
   }, [utils]);
   usePendingHydration({ userId, setItems, setStorageError, setHydrated, running });
-  useRecentSync({ userId, recent: recent.data, hydrated, setItems, dismissed });
+  useRecentSync({ userId, recent: recent.files, hydrated, setItems, dismissed });
   useUploadRunner({ items, setItems, userId, running, refresh });
   useUnloadProtection(running);
   const add = useAddQueueFiles(userId, { hydrated, setItems });
@@ -329,12 +344,10 @@ function useQueueController(userId: string, email: string): QueueController {
     resume,
     discard,
     clearFinished,
-    recentError: recent.error?.message,
+    recentError: recent.error,
     retryError: retry.error?.message,
     retryPending: retry.isPending,
-    refreshRecent: () => {
-      if (sessionMatches) void recent.refetch();
-    },
+    refreshRecent: recent.refresh,
     retryItem: (id) => retry.mutate({ id }),
   };
 }
