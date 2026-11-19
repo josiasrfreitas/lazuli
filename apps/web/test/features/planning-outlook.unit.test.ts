@@ -13,6 +13,7 @@ function scenario(completed: number): Input {
     pageTo: null,
     programActivityId: String(item + 1),
     curriculum: {
+      bookTitle: "Livro de referência",
       title: `Conteúdo ${item + 1}`,
       sequence: item + 1,
       durationMinutes: 60,
