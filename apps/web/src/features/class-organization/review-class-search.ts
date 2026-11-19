@@ -11,42 +11,53 @@ type Choice = {
   slots: ClassPlan["slots"];
 };
 
+type ClassSearchResult = { id: string; label: string; description: string };
+type ClassChoices = { destinations: Choice[]; origins: Choice[] };
+const minimumDayPrefixLength = 3;
+const ignoredTerms = new Set(["feira", "e", "das", "de"]);
+
 function words(text: string): string {
   return text
     .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+    .replaceAll(/\p{M}/gu, "")
     .toLowerCase()
-    .replace(/-feira\b/g, "");
+    .replaceAll(/-feira\b/g, "");
 }
 
-export function findReviewClasses(choices: Choice[], query: string) {
+function formatHour(hour: string, minute?: string): string {
+  return hour.padStart(2, "0") + ":" + (minute ?? "00");
+}
+
+export function findReviewClasses(choices: Choice[], query: string): ClassSearchResult[] {
   const text = words(query);
   const range =
     /\b(\d{1,2})(?:[:h](\d{2})?)?\s*(?:[-–—]|as?|ate)\s*(\d{1,2})(?:[:h](\d{2})?)?\b/.exec(text);
-  const time = (hour: string, minute?: string) => hour.padStart(2, "0") + ":" + (minute ?? "00");
   const terms = (range ? text.replace(range[0], " ") : text)
-    .replace(/(\d)h(\d{2})/g, "$1:$2")
+    .replaceAll(/(\d)h(\d{2})/g, "$1:$2")
     .split(/[^a-z0-9:]+/)
-    .filter((t) => t && !["feira", "e", "das", "de"].includes(t));
-  const days = Object.values(weekdays).map(words);
-  const dayTerms = terms.filter((t) => t.length >= 3 && days.some((day) => day.startsWith(t)));
-  const otherTerms = terms.filter((t) => !dayTerms.includes(t));
+    .filter((term) => term && !ignoredTerms.has(term));
+  const days = Object.values(weekdays).map((day) => words(day));
+  const dayTerms = terms.filter(
+    (term) => term.length >= minimumDayPrefixLength && days.some((day) => day.startsWith(term)),
+  );
+  const otherTerms = terms.filter((term) => !dayTerms.includes(term));
+  const start = range ? formatHour(range[1]!, range[2]) : null;
+  const end = range ? formatHour(range[3]!, range[4]) : null;
   return choices
     .filter((choice) => {
       const scheduleMatches = choice.slots.filter(
         (slot) =>
-          (!range ||
-            (slot.startTime === time(range[1]!, range[2]) &&
-              slot.endTime === time(range[3]!, range[4]))) &&
-          (!dayTerms.length || dayTerms.some((t) => words(weekdays[slot.weekday]).startsWith(t))),
+          (!range || (slot.startTime === start && slot.endTime === end)) &&
+          (dayTerms.length === 0 ||
+            dayTerms.some((term) => words(weekdays[slot.weekday]).startsWith(term))),
       );
-      if ((range || dayTerms.length) && !scheduleMatches.length) return false;
+      if ((range || dayTerms.length > 0) && scheduleMatches.length === 0) return false;
       const haystack = words(
         [choice.label, choice.teacher, ...choice.stages, compactSchedule(scheduleMatches)].join(
           " ",
         ),
       );
-      return otherTerms.every((t) => haystack.includes(t));
+      return otherTerms.every((term) => haystack.includes(term));
     })
     .map((choice) => ({
       id: choice.id,
@@ -57,16 +68,30 @@ export function findReviewClasses(choices: Choice[], query: string) {
     }));
 }
 
-export function reviewClassChoices(board: OrganizationBoard) {
+function addStages(choice: Choice, values: readonly (string | null)[]): void {
+  for (const stage of values) {
+    if (stage) choice.stages.add(stage);
+  }
+}
+
+function sortedChoices(items: Choice[]): Choice[] {
+  return items.toSorted((left, right) =>
+    left.label.localeCompare(right.label, "pt-BR", { numeric: true }),
+  );
+}
+
+export function reviewClassChoices(board: OrganizationBoard): ClassChoices {
   const origins = new Map<string, Choice>();
-  const destinations = new Map(
+  const destinations = new Map<string, Choice>(
     board.plans.map((plan) => [
       plan.id,
       {
         id: plan.id,
         label: reviewPlanName(plan),
         teacher: plan.teacherName ?? "",
-        stages: new Set([plan.stageCode, plan.stageName].filter((s): s is string => !!s)),
+        stages: new Set(
+          [plan.stageCode, plan.stageName].filter((stage): stage is string => Boolean(stage)),
+        ),
         slots: plan.slots,
       },
     ]),
@@ -80,19 +105,16 @@ export function reviewClassChoices(board: OrganizationBoard) {
         slots: row.sourceSchedule,
         stages: new Set<string>(),
       };
-      for (const stage of [row.sourceStageCode, row.sourceStageName])
-        if (stage) origin.stages.add(stage);
+      addStages(origin, [row.sourceStageCode, row.sourceStageName]);
       origins.set(origin.id, origin);
     }
-    const dest = destinations.get(row.planId ?? "");
-    if (dest) for (const stage of [row.stageCode, row.stageName]) if (stage) dest.stages.add(stage);
+    const destination = destinations.get(row.planId ?? "");
+    if (destination) addStages(destination, [row.stageCode, row.stageName]);
   }
-  const sorted = (items: Choice[]) =>
-    items.sort((a, b) => a.label.localeCompare(b.label, "pt-BR", { numeric: true }));
   return {
-    destinations: sorted([...destinations.values()]),
+    destinations: sortedChoices([...destinations.values()]),
     origins: [
-      ...sorted([...origins.values()]),
+      ...sortedChoices([...origins.values()]),
       {
         id: REVIEW_NO_ORIGIN,
         label: "Sem turma de origem",

@@ -60,10 +60,16 @@ export function matchesReviewScope(row: Placement, scope: ReviewScope): boolean 
   return row.confirmation === (scope === "ready" ? "PRECONFIRMED" : "BLOCKED");
 }
 
-function matchesAcademicFilters(row: Placement, criteria: ReviewCriteria): boolean {
+function matchesOriginFilters(
+  row: Pick<Placement, "sourceClassId" | "sourceStageId">,
+  criteria: ReviewCriteria,
+): boolean {
   if (criteria.origemVinculo && (row.sourceClassId ?? REVIEW_NO_ORIGIN) !== criteria.origemVinculo)
     return false;
-  if (criteria.estagioOrigem && row.sourceStageId !== criteria.estagioOrigem) return false;
+  return !criteria.estagioOrigem || row.sourceStageId === criteria.estagioOrigem;
+}
+
+function matchesDestinationFilters(row: Placement, criteria: ReviewCriteria): boolean {
   if (
     criteria.estagioVinculo &&
     (row.declinedAt || (row.stageId ?? REVIEW_NO_STAGE) !== criteria.estagioVinculo)
@@ -89,16 +95,14 @@ export function reviewLeadReasonKeys(lead: WaitingLead): string[] {
 }
 
 function matchesAttention(row: Placement, selected: string[]): boolean {
-  if (!selected.length) return true;
+  if (selected.length === 0) return true;
   if (row.declinedAt) return false;
   const keys = reviewStudentReasonKeys(row);
-  return selected.some((key) =>
-    key === "pending"
-      ? matchesFilter(row, "pending")
-      : key === "unassigned"
-        ? needsReviewDestination(row)
-        : keys.includes(key),
-  );
+  return selected.some((key) => {
+    if (key === "pending") return matchesFilter(row, "pending");
+    if (key === "unassigned") return needsReviewDestination(row);
+    return keys.includes(key);
+  });
 }
 
 function matchesDeparture(row: Placement, filter: ReviewDepartureFilter | null): boolean {
@@ -108,27 +112,20 @@ function matchesDeparture(row: Placement, filter: ReviewDepartureFilter | null):
   return isReviewDeparture(row);
 }
 
-function matchesLeadFilters(
-  lead: WaitingLead,
-  criteria: ReviewCriteria,
-  selected: string[],
-): boolean {
+function matchesLeadFilters(lead: WaitingLead, criteria: ReviewCriteria): boolean {
   if (criteria.saidaVinculo) return false;
-  if (
-    criteria.estagioOrigem ||
-    (criteria.origemVinculo && criteria.origemVinculo !== REVIEW_NO_ORIGIN)
-  )
-    return false;
+  if (!matchesOriginFilters({ sourceClassId: null, sourceStageId: null }, criteria)) return false;
   if (criteria.estagioVinculo && (lead.stageId ?? REVIEW_NO_STAGE) !== criteria.estagioVinculo)
     return false;
   if (criteria.destinoVinculo && lead.allocationPlanId !== criteria.destinoVinculo) return false;
-  if (criteria.precisaTurma && lead.allocationPlanId) return false;
+  return !criteria.precisaTurma || !lead.allocationPlanId;
+}
+
+function matchesLeadAttention(lead: WaitingLead, selected: string[]): boolean {
+  if (selected.length === 0) return true;
   const keys = reviewLeadReasonKeys(lead);
-  return (
-    !selected.length ||
-    selected.some(
-      (key) => key === "pending" || keys.includes(key === "unassigned" ? "noDestination" : key),
-    )
+  return selected.some(
+    (key) => key === "pending" || keys.includes(key === "unassigned" ? "noDestination" : key),
   );
 }
 
@@ -153,13 +150,8 @@ function matchesReviewSearch(
   );
 }
 
-export function reviewResults(
-  board: OrganizationBoard,
-  criteria: ReviewCriteria,
-  scope: ReviewScope,
-  ended = false,
-): ReviewResults {
-  const name = normalizeSearch(criteria.busca.trim());
+function buildReviewSearch(board: OrganizationBoard, query: string): ReviewSearch {
+  const name = normalizeSearch(query.trim());
   const matchingPlans = new Set(
     board.plans
       .filter(
@@ -171,19 +163,29 @@ export function reviewResults(
       )
       .map((plan) => plan.id),
   );
-  const riskPlans =
-    criteria.turmasEmRisco || criteria.reducaoSignificativa
-      ? new Set(
-          board.plans
-            .filter(
-              (plan) =>
-                (criteria.turmasEmRisco && atRisk(board, plan)) ||
-                (criteria.reducaoSignificativa && significantReduction(board, plan)),
-            )
-            .map((plan) => plan.id),
-        )
-      : null;
-  const search = { name, matchingPlans, origins: reviewOriginPlans(board.plans) };
+  return { name, matchingPlans, origins: reviewOriginPlans(board.plans) };
+}
+
+function filterRiskPlans(board: OrganizationBoard, criteria: ReviewCriteria): Set<string> | null {
+  if (!criteria.turmasEmRisco && !criteria.reducaoSignificativa) return null;
+  return new Set(
+    board.plans
+      .filter(
+        (plan) =>
+          (criteria.turmasEmRisco && atRisk(board, plan)) ||
+          (criteria.reducaoSignificativa && significantReduction(board, plan)),
+      )
+      .map((plan) => plan.id),
+  );
+}
+
+function classMatchers(
+  board: OrganizationBoard,
+  criteria: ReviewCriteria,
+): {
+  matchesStudentClass: (row: Placement) => boolean;
+  matchesLeadClass: (lead: WaitingLead) => boolean;
+} {
   const plans = new Map(board.plans.map((plan) => [plan.id, plan]));
   function matchesClass(
     teacher: string | null | undefined,
@@ -205,49 +207,75 @@ export function reviewResults(
     const plan = plans.get(lead.allocationPlanId ?? "");
     return matchesClass(plan?.teacherName, plan?.scheduleType ?? lead.scheduleType);
   }
+  return { matchesStudentClass, matchesLeadClass };
+}
+
+function reviewCounts(
+  matching: Placement[],
+  { leadCount, selectedReasons }: { leadCount: number; selectedReasons: string[] },
+): ReviewResults["counts"] {
+  const counts: Record<ReviewScope, number> = {
+    all: matching.length + leadCount,
+    pending: leadCount,
+    ready: 0,
+    blocked: 0,
+    published: 0,
+  };
+  for (const row of matching) {
+    const attention = matchesAttention(row, selectedReasons);
+    if (!attention) counts.all--;
+    if (row.declinedAt) continue;
+    if (matchesReviewScope(row, "published")) {
+      counts.published++;
+      continue;
+    }
+    if (attention) counts.pending++;
+    if (matchesReviewScope(row, "ready")) counts.ready++;
+    if (attention && matchesReviewScope(row, "blocked")) counts.blocked++;
+  }
+  return counts;
+}
+
+export function reviewResults(
+  board: OrganizationBoard,
+  {
+    criteria,
+    scope,
+    ended = false,
+  }: { criteria: ReviewCriteria; scope: ReviewScope; ended?: boolean },
+): ReviewResults {
+  const search = buildReviewSearch(board, criteria.busca);
+  const riskPlans = filterRiskPlans(board, criteria);
+  const { matchesStudentClass, matchesLeadClass } = classMatchers(board, criteria);
   const selectedReasons = selectedReviewReasons(criteria.atencaoVinculo);
   const matching = board.placements.filter(
     (row) =>
       (!riskPlans || riskPlans.has(reviewGroupPlanId(row, search.origins) ?? "")) &&
       matchesReviewSearch(row, search) &&
-      matchesAcademicFilters(row, criteria) &&
+      matchesOriginFilters(row, criteria) &&
+      matchesDestinationFilters(row, criteria) &&
       matchesStudentClass(row) &&
       matchesDeparture(row, criteria.saidaVinculo) &&
       (!criteria.precisaTurma || needsReviewDestination(row)),
   );
-  const leads = board.waitingLeads.filter(
-    (lead) =>
-      (!riskPlans || riskPlans.has(lead.allocationPlanId ?? "")) &&
+  const leads = board.waitingLeads.filter((lead) => {
+    const allocationPlanId = lead.allocationPlanId ?? "";
+    return (
+      (!riskPlans || riskPlans.has(allocationPlanId)) &&
       (!ended || Boolean(lead.allocationPlanId)) &&
-      (normalizeSearch(lead.fullName).includes(name) ||
-        matchingPlans.has(lead.allocationPlanId ?? "")) &&
+      (normalizeSearch(lead.fullName).includes(search.name) ||
+        search.matchingPlans.has(allocationPlanId)) &&
       matchesLeadClass(lead) &&
-      matchesLeadFilters(lead, criteria, selectedReasons),
-  );
-  const counts: Record<ReviewScope, number> = {
-    all: matching.length + leads.length,
-    pending: leads.length,
-    ready: 0,
-    blocked: 0,
-    published: 0,
-  };
+      matchesLeadFilters(lead, criteria) &&
+      matchesLeadAttention(lead, selectedReasons)
+    );
+  });
   const visible = matching.filter(
     (row) => !allowsAttention(scope) || matchesAttention(row, selectedReasons),
   );
-  for (const row of matching) {
-    const attention = matchesAttention(row, selectedReasons);
-    if (!attention) counts.all--;
-    if (row.declinedAt) continue;
-    if (matchesReviewScope(row, "published")) counts.published++;
-    else {
-      if (attention) counts.pending++;
-      if (matchesReviewScope(row, "ready")) counts.ready++;
-      if (attention && matchesReviewScope(row, "blocked")) counts.blocked++;
-    }
-  }
   return {
     rows: visible.filter((row) => matchesReviewScope(row, scope)),
     leads: scope === "all" || scope === "pending" ? leads : [],
-    counts,
+    counts: reviewCounts(matching, { leadCount: leads.length, selectedReasons }),
   };
 }

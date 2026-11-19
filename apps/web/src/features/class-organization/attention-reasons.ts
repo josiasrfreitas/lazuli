@@ -28,40 +28,64 @@ export type AttentionReason = {
   blocker?: string;
 };
 
-export function attentionReasons(row: Placement): AttentionReason[] {
+function reason(kind: string, risk: Risk): AttentionReason {
+  return { kind, risk, label: riskLabels[risk] };
+}
+
+function contractReasons(attention: Placement["attention"]): AttentionReason[] {
+  if (attention.contractStatus === "MISSING") return [reason("contract", "missingContract")];
+  if (attention.contractStatus !== "EARLY_END") return [];
+  const earlyEnd = reason("contract", "earlyContractEnd");
+  if (attention.coverageThrough)
+    earlyEnd.label = `Contrato até ${formatDateOnlyBR(attention.coverageThrough)}`;
+  return [earlyEnd];
+}
+
+function academicReasons(row: Placement): AttentionReason[] {
+  if (!row.sourceProgressId) return [];
   const { attention } = row;
   const reasons: AttentionReason[] = [];
-  function add(kind: string, risk: Risk, label: string = riskLabels[risk]): void {
-    reasons.push({ kind, risk, label });
-  }
-  if (row.classClosurePending) add("placement", "classClosed");
-  if (!row.planId) add("unassigned", "unassigned");
-  if (row.continuity === "CHANGE") add("unassigned", "change");
-  if (attention.contractStatus === "MISSING") add("contract", "missingContract");
-  if (attention.contractStatus === "EARLY_END")
-    add(
-      "contract",
-      "earlyContractEnd",
-      attention.coverageThrough
-        ? `Contrato até ${formatDateOnlyBR(attention.coverageThrough)}`
-        : riskLabels.earlyContractEnd,
-    );
-  if (row.sourceProgressId) {
-    if (attention.grades === "NEEDS_SUPPORT") add("grades", "lowGrade");
-    if (attention.gradesIncomplete || attention.grades === "INCOMPLETE")
-      add("grades", "incomplete");
-    if (attention.attendance === null) add("attendance", "missingAttendance");
-    else if (attention.attendanceFlagged) add("attendance", "lowAttendance");
-  }
-  if (row.exitRiskActive || row.continuity === "LEAVING") add("engagement", "leaving");
-  if (attention.lowHealth) add("engagement", "lowHealth", `Health Score ${attention.healthScore}`);
-  if (row.attentionNote?.trim()) add("engagement", "staff");
-  if (
+  if (attention.grades === "NEEDS_SUPPORT") reasons.push(reason("grades", "lowGrade"));
+  if (attention.gradesIncomplete || attention.grades === "INCOMPLETE")
+    reasons.push(reason("grades", "incomplete"));
+  if (attention.attendance === null) reasons.push(reason("attendance", "missingAttendance"));
+  else if (attention.attendanceFlagged) reasons.push(reason("attendance", "lowAttendance"));
+  return reasons;
+}
+
+function hasTeamObservation(row: Placement): boolean {
+  return Boolean(
     row.notes?.trim() ||
-    ((row.continuity === "UNDECIDED" || row.continuity === "STAY") && row.continuityReason?.trim())
-  )
-    add("engagement", "other");
-  if (attention.materialMissing) add("material", "material");
+    ((row.continuity === "UNDECIDED" || row.continuity === "STAY") && row.continuityReason?.trim()),
+  );
+}
+
+function engagementReasons(row: Placement): AttentionReason[] {
+  const reasons: AttentionReason[] = [];
+  if (row.exitRiskActive || row.continuity === "LEAVING")
+    reasons.push(reason("engagement", "leaving"));
+  if (row.attention.lowHealth)
+    reasons.push({
+      kind: "engagement",
+      risk: "lowHealth",
+      label: `Health Score ${row.attention.healthScore}`,
+    });
+  if (row.attentionNote?.trim()) reasons.push(reason("engagement", "staff"));
+  if (hasTeamObservation(row)) reasons.push(reason("engagement", "other"));
+  return reasons;
+}
+
+export function attentionReasons(row: Placement): AttentionReason[] {
+  const reasons: AttentionReason[] = [];
+  if (row.classClosurePending) reasons.push(reason("placement", "classClosed"));
+  if (!row.planId) reasons.push(reason("unassigned", "unassigned"));
+  if (row.continuity === "CHANGE") reasons.push(reason("unassigned", "change"));
+  reasons.push(
+    ...contractReasons(row.attention),
+    ...academicReasons(row),
+    ...engagementReasons(row),
+  );
+  if (row.attention.materialMissing) reasons.push(reason("material", "material"));
   return reasons;
 }
 
@@ -91,7 +115,7 @@ export function rosterAttentionReasons(row: Placement): AttentionReason[] {
   for (const blocker of reviewBlockers(row)) {
     const keys = coveredBy.get(blocker);
     const matching = reasons.filter((reason) => keys?.some((risk) => risk === reason.risk));
-    if (matching.length) {
+    if (matching.length > 0) {
       for (const reason of matching) reason.blocker = blocker;
     } else {
       reasons.push({ kind: "placement", risk: `blocker:${blocker}`, label: blocker, blocker });
@@ -117,8 +141,8 @@ export function rosterRiskOptions(
   return [
     { value: "all", label: "Todos os motivos" },
     ...choices,
-    ...Array.from(blockers, ([value, label]) => ({ value, label })).sort((a, b) =>
-      a.label.localeCompare(b.label, "pt-BR"),
+    ...Array.from(blockers, ([value, label]) => ({ value, label })).toSorted((left, right) =>
+      left.label.localeCompare(right.label, "pt-BR"),
     ),
     ...(hasNote ? [{ value: "other", label: riskLabels.other }] : []),
   ];

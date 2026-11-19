@@ -68,33 +68,33 @@
   margin-inline-start: calc(-1 * var(--heading-indent));
 }
 
-.planLink {
+.headingActions [data-review-plan-link] {
   color: var(--interactive);
   cursor: pointer;
 }
 
-.planLink svg {
+.headingActions [data-review-plan-link] svg {
   pointer-events: none;
 }
 
-.planLink:hover,
-.planLink:focus-visible {
+.headingActions [data-review-plan-link]:hover,
+.headingActions [data-review-plan-link]:focus-visible {
   color: var(--interactive-hover);
   background-color: var(--accent-hover);
 }
 
-.planLink:focus-visible {
+.headingActions [data-review-plan-link]:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
 
-.planLink:active {
+.headingActions [data-review-plan-link]:active {
   color: var(--interactive-active);
   background-color: var(--accent-active);
 }
 
-.planLink:hover svg,
-.planLink:focus-visible svg {
+.headingActions [data-review-plan-link]:hover svg,
+.headingActions [data-review-plan-link]:focus-visible svg {
   stroke-width: 2.5;
 }
 
@@ -307,11 +307,11 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .groupChevron,
-  .planLink svg {
+  .headingActions [data-review-plan-link] svg {
     transition: transform var(--lz-duration-fast) var(--lz-ease-standard);
   }
 
-  .planLink:hover svg {
+  .headingActions [data-review-plan-link]:hover svg {
     transform: translate(1px, -1px);
   }
 }

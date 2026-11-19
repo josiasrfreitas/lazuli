@@ -234,7 +234,7 @@ void it("counts readiness separately from the family response and published or d
     placement("published", { publishedAt: recordedOn, confirmation: "CONFIRMED" }),
     placement("declined", { declinedAt: recordedOn }),
   ]);
-  const ready = reviewResults(board, criteria, "ready");
+  const ready = reviewResults(board, { criteria, scope: "ready" });
   assert.deepEqual(rowIds(ready.rows), ["no-response"]);
   assert.deepEqual(ready.counts, {
     all: 7,
@@ -243,7 +243,7 @@ void it("counts readiness separately from the family response and published or d
     blocked: 2,
     published: 1,
   });
-  assert.deepEqual(rowIds(reviewResults(board, criteria, "blocked").rows), [
+  assert.deepEqual(rowIds(reviewResults(board, { criteria, scope: "blocked" }).rows), [
     "staying-blocked",
     "possible-exit",
   ]);
@@ -277,18 +277,20 @@ void it("keeps allocation and readiness independent from presumed continuity", (
     ],
     [waitingLead("assigned", { allocationPlanId: "class-2" })],
   );
-  assert.deepEqual(reviewResults(board, criteria, "all").counts, {
+  assert.deepEqual(reviewResults(board, { criteria, scope: "all" }).counts, {
     all: 7,
     pending: 4,
     ready: 1,
     blocked: 1,
     published: 2,
   });
-  assert.deepEqual(rowIds(reviewResults(board, criteria, "published").rows), [
+  assert.deepEqual(rowIds(reviewResults(board, { criteria, scope: "published" }).rows), [
     "enrolled",
     "published-change",
   ]);
-  assert.deepEqual(rowIds(reviewResults(board, criteria, "ready").rows), ["preconfirmed"]);
+  assert.deepEqual(rowIds(reviewResults(board, { criteria, scope: "ready" }).rows), [
+    "preconfirmed",
+  ]);
 });
 
 void it("keeps unconfirmed proposals, confirmed allocations and recorded exits distinct in a closed period", () => {
@@ -297,13 +299,17 @@ void it("keeps unconfirmed proposals, confirmed allocations and recorded exits d
     placement("enrolled", { publishedAt: recordedOn, entryStatus: "APPLIED" }),
     placement("withdrawn", { declinedAt: recordedOn }),
   ]);
-  const all = reviewResults(board, criteria, "all");
+  const all = reviewResults(board, { criteria, scope: "all" });
   assert.deepEqual(
     all.rows.map((row) => reviewStatus(row, true).label),
     ["Sem alocação", "Confirmado na turma", "Não vai continuar"],
   );
-  assert.deepEqual(rowIds(reviewResults(board, criteria, "pending").rows), ["unconfirmed"]);
-  assert.deepEqual(rowIds(reviewResults(board, criteria, "published").rows), ["enrolled"]);
+  assert.deepEqual(rowIds(reviewResults(board, { criteria, scope: "pending" }).rows), [
+    "unconfirmed",
+  ]);
+  assert.deepEqual(rowIds(reviewResults(board, { criteria, scope: "published" }).rows), [
+    "enrolled",
+  ]);
 });
 
 void it("combines an accent-insensitive name, destination and target stage before counting scopes", () => {
@@ -325,7 +331,7 @@ void it("combines an accent-insensitive name, destination and target stage befor
     destinoVinculo: "class-2",
     estagioVinculo: "essentials-2",
   };
-  const result = reviewResults(board, filters, "pending");
+  const result = reviewResults(board, { criteria: filters, scope: "pending" });
   assert.deepEqual(rowIds(result.rows), ["ready"]);
   assert.deepEqual(result.counts, {
     all: 2,
@@ -335,7 +341,12 @@ void it("combines an accent-insensitive name, destination and target stage befor
     published: 1,
   });
   assert.deepEqual(
-    rowIds(reviewResults(board, { ...criteria, estagioVinculo: "essentials-2" }, "all").rows),
+    rowIds(
+      reviewResults(board, {
+        criteria: { ...criteria, estagioVinculo: "essentials-2" },
+        scope: "all",
+      }).rows,
+    ),
     ["ready", "published", "other-class", "other-name"],
   );
 });
@@ -356,7 +367,7 @@ void it("includes a requested replacement even with a former destination or exis
     placement("declined", { ...changeRequest, declinedAt: recordedOn }),
   ]);
   const filters = { ...criteria, precisaTurma: true };
-  const all = reviewResults(board, filters, "all");
+  const all = reviewResults(board, { criteria: filters, scope: "all" });
   assert.deepEqual(rowIds(all.rows), ["unassigned", "change-with-destination", "published-change"]);
   assert.deepEqual(all.counts, {
     all: 3,
@@ -365,7 +376,9 @@ void it("includes a requested replacement even with a former destination or exis
     blocked: 0,
     published: 1,
   });
-  assert.deepEqual(rowIds(reviewResults(board, filters, "published").rows), ["published-change"]);
+  assert.deepEqual(rowIds(reviewResults(board, { criteria: filters, scope: "published" }).rows), [
+    "published-change",
+  ]);
 });
 
 void it("orders destinations numerically, dates by effective start, and ties consistently by name and id", () => {
@@ -430,7 +443,11 @@ void it("places each record once in its actual destination or its corresponding 
     className: plan.id === "class-2" ? "PPT 2" : "PPT 10",
     name: plan.id === "class-2" ? "Rascunho Z" : "Rascunho A",
   }));
-  const groups = groupReviewRows(board, board.placements, board.waitingLeads, "destino");
+  const groups = groupReviewRows(board, {
+    rows: board.placements,
+    leads: board.waitingLeads,
+    order: "destino",
+  });
   assert.deepEqual(
     groups.map((group) => ({
       id: group.id,
@@ -445,7 +462,10 @@ void it("places each record once in its actual destination or its corresponding 
       { id: "leads", rows: [], leads: ["lead-without-class"] },
     ],
   );
-  const destination = reviewResults(board, { ...criteria, destinoVinculo: "class-2" }, "all");
+  const destination = reviewResults(board, {
+    criteria: { ...criteria, destinoVinculo: "class-2" },
+    scope: "all",
+  });
   assert.deepEqual(rowIds(destination.rows), ["published-change"]);
   assert.deepEqual(
     destination.leads.map((lead) => lead.id),
@@ -526,15 +546,22 @@ function departuresBoard(): OrganizationBoard {
 
 void it("keeps departures in their source class, preferring its physical identity and preserving the separate published destination", () => {
   const board = departuresBoard();
-  const groups = groupReviewRows(board, board.placements, board.waitingLeads, "destino");
-  assert.deepEqual(groups.map(reviewGroupName), [
-    "Antiga turma verde",
-    "Destino 10",
-    "Turma de origem 2",
-    "Turma de origem 7",
-    "Turma de origem 10",
-    "Sem turma de origem",
-  ]);
+  const groups = groupReviewRows(board, {
+    rows: board.placements,
+    leads: board.waitingLeads,
+    order: "destino",
+  });
+  assert.deepEqual(
+    groups.map((group) => reviewGroupName(group)),
+    [
+      "Antiga turma verde",
+      "Destino 10",
+      "Turma de origem 2",
+      "Turma de origem 7",
+      "Turma de origem 10",
+      "Sem turma de origem",
+    ],
+  );
   assert.deepEqual(
     groups.map((group) => [group.id, rowIds(group.rows)]),
     [
@@ -570,9 +597,11 @@ void it("keeps departures in their source class, preferring its physical identit
   );
   board.plans.reverse();
   assert.deepEqual(
-    groupReviewRows(board, board.placements, board.waitingLeads, "destino").map(
-      (group) => group.id,
-    ),
+    groupReviewRows(board, {
+      rows: board.placements,
+      leads: board.waitingLeads,
+      order: "destino",
+    }).map((group) => group.id),
     groups.map((group) => group.id),
   );
 });
@@ -580,7 +609,7 @@ void it("keeps departures in their source class, preferring its physical identit
 void it("intersects the departure type with origin, destination, group search and scope without returning leads or eligible students", () => {
   const board = departuresBoard();
   const allDepartures: ReviewCriteria = { ...criteria, saidaVinculo: "todas" };
-  const all = reviewResults(board, allDepartures, "all");
+  const all = reviewResults(board, { criteria: allDepartures, scope: "all" });
   assert.equal(all.rows.length, 6);
   assert.ok(all.rows.every(isReviewDeparture));
   assert.deepEqual(all.leads, []);
@@ -591,41 +620,70 @@ void it("intersects the departure type with origin, destination, group search an
     blocked: 2,
     published: 1,
   });
-  assert.deepEqual(reviewResults(board, allDepartures, "ready").rows, []);
+  assert.deepEqual(reviewResults(board, { criteria: allDepartures, scope: "ready" }).rows, []);
   assert.deepEqual(
-    rowIds(reviewResults(board, { ...allDepartures, saidaVinculo: "possivel" }, "all").rows),
+    rowIds(
+      reviewResults(board, {
+        criteria: { ...allDepartures, saidaVinculo: "possivel" },
+        scope: "all",
+      }).rows,
+    ),
     ["published-possible", "inherited-possible", "no-origin"],
   );
   assert.deepEqual(
     rowIds(
-      reviewResults(
-        board,
-        { ...allDepartures, saidaVinculo: "registrada", origemVinculo: "physical-origin" },
-        "all",
-      ).rows,
+      reviewResults(board, {
+        criteria: {
+          ...allDepartures,
+          saidaVinculo: "registrada",
+          origemVinculo: "physical-origin",
+        },
+        scope: "all",
+      }).rows,
     ),
     ["recorded"],
   );
   assert.deepEqual(
     rowIds(
-      reviewResults(board, { ...allDepartures, origemVinculo: "physical-origin" }, "all").rows,
+      reviewResults(board, {
+        criteria: { ...allDepartures, origemVinculo: "physical-origin" },
+        scope: "all",
+      }).rows,
     ),
     ["recorded", "published-possible"],
   );
   assert.deepEqual(
-    rowIds(reviewResults(board, { ...allDepartures, origemVinculo: REVIEW_NO_ORIGIN }, "all").rows),
+    rowIds(
+      reviewResults(board, {
+        criteria: { ...allDepartures, origemVinculo: REVIEW_NO_ORIGIN },
+        scope: "all",
+      }).rows,
+    ),
     ["no-origin"],
   );
   assert.deepEqual(
-    rowIds(reviewResults(board, { ...allDepartures, destinoVinculo: "class-2" }, "all").rows),
+    rowIds(
+      reviewResults(board, {
+        criteria: { ...allDepartures, destinoVinculo: "class-2" },
+        scope: "all",
+      }).rows,
+    ),
     ["published-possible"],
   );
   assert.deepEqual(
-    rowIds(reviewResults(board, { ...allDepartures, busca: "antiga turma verde" }, "all").rows),
+    rowIds(
+      reviewResults(board, {
+        criteria: { ...allDepartures, busca: "antiga turma verde" },
+        scope: "all",
+      }).rows,
+    ),
     ["inherited-possible"],
   );
   assert.deepEqual(
-    reviewResults(board, { ...allDepartures, busca: "continuação verde" }, "all").rows,
+    reviewResults(board, {
+      criteria: { ...allDepartures, busca: "continuação verde" },
+      scope: "all",
+    }).rows,
     [],
   );
   const searches = [
@@ -634,7 +692,10 @@ void it("intersects the departure type with origin, destination, group search an
     ["sem turma de origem", "no-origin"],
   ] as const;
   for (const [busca, id] of searches) {
-    assert.deepEqual(rowIds(reviewResults(board, { ...allDepartures, busca }, "all").rows), [id]);
+    assert.deepEqual(
+      rowIds(reviewResults(board, { criteria: { ...allDepartures, busca }, scope: "all" }).rows),
+      [id],
+    );
   }
 });
 
@@ -660,7 +721,11 @@ void it("sorts groups by their earliest visible student or lead name, and by ind
       waitingLead("untimed", { fullName: "Ana" }),
     ],
   );
-  const named = groupReviewRows(board, board.placements, board.waitingLeads, "nome");
+  const named = groupReviewRows(board, {
+    rows: board.placements,
+    leads: board.waitingLeads,
+    order: "nome",
+  });
   assert.deepEqual(
     named.map((group) => group.id),
     ["class-2", "leads", "class-10"],
@@ -673,7 +738,11 @@ void it("sorts groups by their earliest visible student or lead name, and by ind
     named[2]?.rows.map((row) => row.id),
     ["second", "first"],
   );
-  const dated = groupReviewRows(board, board.placements, board.waitingLeads, "vigencia");
+  const dated = groupReviewRows(board, {
+    rows: board.placements,
+    leads: board.waitingLeads,
+    order: "vigencia",
+  });
   assert.deepEqual(
     dated.map((group) => group.id),
     ["class-10", "class-2", "leads"],
@@ -710,26 +779,27 @@ void it("preserves origin, previous stage and attention filters while keeping ne
     ],
     [waitingLead("waiting")],
   );
-  const prior = reviewResults(
-    board,
-    {
+  const prior = reviewResults(board, {
+    criteria: {
       ...criteria,
       origemVinculo: "old-class",
       estagioOrigem: "essentials-1",
       atencaoVinculo: "contract",
     },
-    "all",
-  );
+    scope: "all",
+  });
   assert.deepEqual(rowIds(prior.rows), ["contract"]);
   assert.deepEqual(prior.leads, []);
-  const grades = reviewResults(board, { ...criteria, atencaoVinculo: "grades" }, "all");
+  const grades = reviewResults(board, {
+    criteria: { ...criteria, atencaoVinculo: "grades" },
+    scope: "all",
+  });
   assert.deepEqual(rowIds(grades.rows), ["grades"]);
   assert.equal(grades.counts.all, 1);
-  const newEntries = reviewResults(
-    board,
-    { ...criteria, origemVinculo: REVIEW_NO_ORIGIN },
-    "pending",
-  );
+  const newEntries = reviewResults(board, {
+    criteria: { ...criteria, origemVinculo: REVIEW_NO_ORIGIN },
+    scope: "pending",
+  });
   assert.deepEqual(rowIds(newEntries.rows), ["entry"]);
   assert.deepEqual(
     newEntries.leads.map((lead) => lead.id),
@@ -756,11 +826,14 @@ void it("searches by the destination's actual name, intersects filters and count
     stageName: plan.id === "class-2" ? "Essentials 2" : null,
   }));
   const search = { ...criteria, busca: " MANHA 2 ", estagioVinculo: "essentials-2" };
-  const all = reviewResults(board, search, "all");
+  const all = reviewResults(board, { criteria: search, scope: "all" });
   assert.deepEqual(rowIds(all.rows), ["ready"]);
-  assert.deepEqual(rowIds(reviewResults(board, { ...search, busca: "Essentials 2" }, "all").rows), [
-    "ready",
-  ]);
+  assert.deepEqual(
+    rowIds(
+      reviewResults(board, { criteria: { ...search, busca: "Essentials 2" }, scope: "all" }).rows,
+    ),
+    ["ready"],
+  );
   assert.deepEqual(
     all.leads.map((lead) => lead.id),
     ["assigned"],
@@ -772,15 +845,17 @@ void it("searches by the destination's actual name, intersects filters and count
     blocked: 0,
     published: 0,
   });
-  assert.deepEqual(reviewResults(board, search, "ready").leads, []);
-  assert.deepEqual(reviewResults(board, search, "blocked").leads, []);
-  assert.deepEqual(reviewResults(board, search, "published").leads, []);
+  assert.deepEqual(reviewResults(board, { criteria: search, scope: "ready" }).leads, []);
+  assert.deepEqual(reviewResults(board, { criteria: search, scope: "blocked" }).leads, []);
+  assert.deepEqual(reviewResults(board, { criteria: search, scope: "published" }).leads, []);
   assert.deepEqual(
-    reviewResults(board, { ...criteria, busca: "jose" }, "all").leads.map((lead) => lead.id),
+    reviewResults(board, { criteria: { ...criteria, busca: "jose" }, scope: "all" }).leads.map(
+      (lead) => lead.id,
+    ),
     ["unassigned-lead"],
   );
   assert.deepEqual(
-    reviewResults(board, criteria, "all", true).leads.map((lead) => lead.id),
+    reviewResults(board, { criteria, scope: "all", ended: true }).leads.map((lead) => lead.id),
     ["assigned"],
   );
 });
@@ -797,7 +872,7 @@ void it("selects a valid transfer and new entry in the batch while counting only
       confirmation: "CONFIRMED",
     }),
   ]);
-  const results = reviewResults(board, criteria, "all");
+  const results = reviewResults(board, { criteria, scope: "all" });
   assert.deepEqual(results.counts, { all: 5, pending: 4, ready: 1, blocked: 1, published: 1 });
   assert.deepEqual(rowIds(results.rows.filter(isReadyForAllocation)), [
     "cohort",
@@ -842,12 +917,19 @@ void it("includes classes at risk only when their own filter is selected", () =>
   ];
 
   const reduction = { ...criteria, reducaoSignificativa: true };
-  assert.deepEqual(rowIds(reviewResults(board, reduction, "all").rows), ["significant-reduction"]);
-  assert.deepEqual(rowIds(reviewResults(board, { ...criteria, turmasEmRisco: true }, "all").rows), [
-    "at-risk",
+  assert.deepEqual(rowIds(reviewResults(board, { criteria: reduction, scope: "all" }).rows), [
+    "significant-reduction",
   ]);
   assert.deepEqual(
-    rowIds(reviewResults(board, { ...reduction, turmasEmRisco: true }, "all").rows),
+    rowIds(
+      reviewResults(board, { criteria: { ...criteria, turmasEmRisco: true }, scope: "all" }).rows,
+    ),
+    ["at-risk"],
+  );
+  assert.deepEqual(
+    rowIds(
+      reviewResults(board, { criteria: { ...reduction, turmasEmRisco: true }, scope: "all" }).rows,
+    ),
     ["at-risk", "significant-reduction"],
   );
 });
@@ -859,6 +941,10 @@ void it("uses attention reasons within blocked continuity and ignores stale reas
     placement("ready", { confirmation: "PRECONFIRMED" }),
   ]);
   const filter = { ...criteria, atencaoVinculo: "leaving" };
-  assert.deepEqual(rowIds(reviewResults(board, filter, "blocked").rows), ["risk"]);
-  assert.deepEqual(rowIds(reviewResults(board, filter, "ready").rows), ["ready"]);
+  assert.deepEqual(rowIds(reviewResults(board, { criteria: filter, scope: "blocked" }).rows), [
+    "risk",
+  ]);
+  assert.deepEqual(rowIds(reviewResults(board, { criteria: filter, scope: "ready" }).rows), [
+    "ready",
+  ]);
 });

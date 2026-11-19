@@ -14,7 +14,7 @@ import {
   type TableFilterField,
 } from "@lazuli/ui";
 import { SelectControl } from "~/features/classes/form-controls";
-import type { OrganizationBoard } from "./model";
+import type { OrganizationBoard, Placement } from "./model";
 import {
   allowsAttention,
   REVIEW_NO_STAGE,
@@ -69,15 +69,36 @@ type FilterKey =
   | "professorVinculo"
   | "modalidadeVinculo";
 type Option = { id: string; label: string };
+type FilterOption = {
+  key: FilterKey;
+  label: string;
+  options: Option[];
+};
 
-function filterFields({ board, criteria, change }: ToolbarProps): TableFilterField[] {
+type StageLabels = {
+  stages: Map<string, string>;
+  pastStages: Map<string, string>;
+  codes: Map<string, string>;
+};
+
+function recordOriginStage(row: Placement, { pastStages, codes }: StageLabels): void {
+  if (!row.sourceStageId) return;
+  if (row.sourceStageCode) codes.set(row.sourceStageId, row.sourceStageCode);
+  pastStages.set(row.sourceStageId, row.sourceStageName ?? row.sourceStageCode ?? "A definir");
+}
+
+function recordStage(row: Placement, labels: StageLabels): void {
+  if (!row.declinedAt)
+    labels.stages.set(
+      row.stageId ?? REVIEW_NO_STAGE,
+      row.stageName ?? row.stageCode ?? "A definir",
+    );
+  if (row.stageId && row.stageCode) labels.codes.set(row.stageId, row.stageCode);
+  recordOriginStage(row, labels);
+}
+
+function stageLabels(board: OrganizationBoard): StageLabels {
   const stages = new Map<string, string>();
-  const { origins, destinations } = reviewClassChoices(board);
-  const teachers = [
-    ...new Set([...destinations, ...origins].map((item) => item.teacher).filter(Boolean)),
-  ]
-    .sort(collator.compare)
-    .map((name) => ({ id: name, label: name }));
   const pastStages = new Map<string, string>();
   const codes = new Map<string, string>();
   for (const lead of board.waitingLeads) {
@@ -87,53 +108,71 @@ function filterFields({ board, criteria, change }: ToolbarProps): TableFilterFie
     );
     if (lead.stageId && lead.stage) codes.set(lead.stageId, lead.stage.internalCode);
   }
-  for (const row of board.placements) {
-    if (!row.declinedAt)
-      stages.set(row.stageId ?? REVIEW_NO_STAGE, row.stageName ?? row.stageCode ?? "A definir");
-    if (row.stageId && row.stageCode) codes.set(row.stageId, row.stageCode);
-    if (row.sourceStageId && row.sourceStageCode) codes.set(row.sourceStageId, row.sourceStageCode);
-    if (row.sourceStageId)
-      pastStages.set(row.sourceStageId, row.sourceStageName ?? row.sourceStageCode ?? "A definir");
-  }
-  const ordered = (items: Map<string, string>): Option[] =>
-    [...items]
-      .map(([id, label]) => ({ id, label }))
-      .sort((a, b) => collator.compare(a.label, b.label));
-  const choice = (
-    key: FilterKey,
-    label: string,
-    options: Option[],
-  ): Extract<TableFilterField, { kind: "options" }> => ({
+  const labels = { stages, pastStages, codes };
+  for (const row of board.placements) recordStage(row, labels);
+  return labels;
+}
+
+function singleChoice(
+  { key, label, options }: FilterOption,
+  { criteria, change }: Pick<ToolbarProps, "criteria" | "change">,
+): Extract<TableFilterField, { kind: "options" }> {
+  const selected = criteria[key];
+  return {
     id: key,
     label,
     kind: "options",
     presentation: "dropdown",
     selectionMode: "single",
     options,
-    selected: criteria[key] ? [criteria[key]] : [],
+    selected: selected ? [selected] : [],
     onChange: (ids) => change({ [key]: ids[0] ?? null }),
     onClear: () => change({ [key]: null }),
-  });
-  function stageField(
-    key: "estagioVinculo" | "estagioOrigem",
-    label: string,
-    items: Map<string, string>,
-  ): TableFilterField {
-    const options = ordered(items).map((option) => {
-      const code = codes.get(option.id);
-      return code && code !== option.label ? { ...option, description: code } : option;
+  };
+}
+
+function stageField(
+  {
+    key,
+    label,
+    items,
+    codes,
+  }: Omit<FilterOption, "options"> & {
+    items: Map<string, string>;
+    codes: Map<string, string>;
+  },
+  controls: Pick<ToolbarProps, "criteria" | "change">,
+): TableFilterField {
+  const options = [...items]
+    .toSorted(([, left], [, right]) => collator.compare(left, right))
+    .map(([id, name]) => {
+      const code = codes.get(id);
+      return code && code !== name ? { id, label: name, description: code } : { id, label: name };
     });
-    return {
-      ...choice(key, label, options),
-      searchOptions: (query) => {
-        const terms = query.trim().split(/\s+/).map(normalizeSearch);
-        return options.filter((option) => {
-          const text = normalizeSearch(option.label + " " + (codes.get(option.id) ?? ""));
-          return terms.every((term) => text.includes(term));
-        });
-      },
-    };
-  }
+  return {
+    ...singleChoice({ key, label, options }, controls),
+    searchOptions: (query) => {
+      const terms = query
+        .trim()
+        .split(/\s+/)
+        .map((term) => normalizeSearch(term));
+      return options.filter((option) => {
+        const text = normalizeSearch(option.label + " " + (codes.get(option.id) ?? ""));
+        return terms.every((term) => text.includes(term));
+      });
+    },
+  };
+}
+
+function filterFields({ board, ...controls }: ToolbarProps): TableFilterField[] {
+  const { criteria, change } = controls;
+  const { origins, destinations } = reviewClassChoices(board);
+  const teachers = [
+    ...new Set([...destinations, ...origins].map((item) => item.teacher).filter(Boolean)),
+  ]
+    .toSorted(collator.compare)
+    .map((name) => ({ id: name, label: name }));
+  const { stages, pastStages, codes } = stageLabels(board);
   return [
     {
       kind: "toggle",
@@ -144,15 +183,21 @@ function filterFields({ board, criteria, change }: ToolbarProps): TableFilterFie
       onClear: () => change({ precisaTurma: false }),
     },
     {
-      ...choice("destinoVinculo", "Turma de destino", destinations),
+      ...singleChoice(
+        { key: "destinoVinculo", label: "Turma de destino", options: destinations },
+        controls,
+      ),
       searchOptions: (query: string) => findReviewClasses(destinations, query),
     },
     {
-      ...choice("origemVinculo", "Turma de origem", origins),
+      ...singleChoice(
+        { key: "origemVinculo", label: "Turma de origem", options: origins },
+        controls,
+      ),
       searchOptions: (query: string) => findReviewClasses(origins, query),
     },
     {
-      ...choice("professorVinculo", "Professor", teachers),
+      ...singleChoice({ key: "professorVinculo", label: "Professor", options: teachers }, controls),
       searchOptions: (query) =>
         teachers.filter((teacher) =>
           normalizeSearch(teacher.label).includes(normalizeSearch(query)),
@@ -171,16 +216,25 @@ function filterFields({ board, criteria, change }: ToolbarProps): TableFilterFie
         { id: "PERSONALIZED", label: "PPT" },
       ],
     },
-    stageField("estagioVinculo", "Estágio de destino", stages),
-    stageField("estagioOrigem", "Estágio de origem", pastStages),
+    stageField(
+      { key: "estagioVinculo", label: "Estágio de destino", items: stages, codes },
+      controls,
+    ),
+    stageField(
+      { key: "estagioOrigem", label: "Estágio de origem", items: pastStages, codes },
+      controls,
+    ),
   ];
 }
 
-export function ReviewToolbar(props: ToolbarProps): ReactElement {
-  const { criteria, change, scope, counts, ended } = props;
+function ScopeFilter({
+  change,
+  scope,
+  counts,
+  ended,
+}: Pick<ToolbarProps, "change" | "scope" | "counts" | "ended">): ReactElement {
   const scopeId = useId();
   const [scopeOpen, setScopeOpen] = useState(false);
-  const riskCount = Number(criteria.turmasEmRisco) + Number(criteria.reducaoSignificativa);
   const scopes: ReviewScope[] = ended
     ? ["all", "published", "pending"]
     : ["all", "ready", "blocked", "published", "pending"];
@@ -190,6 +244,99 @@ export function ReviewToolbar(props: ToolbarProps): ReactElement {
       ? { label: "Sem alocação", description: "O período terminou sem confirmação de turma." }
       : scopeOptions[value]),
   }));
+  return (
+    <Popover open={scopeOpen} onOpenChange={setScopeOpen}>
+      <PopoverTrigger render={<Button size="sm" variant="secondary" />}>
+        <ListFilter /> Situação do aluno
+        {scope !== "all" && ` · ${choices.find((item) => item.value === scope)?.label}`}
+      </PopoverTrigger>
+      <PopoverContent align="start" size="lg" aria-label="Situação do aluno">
+        <div className={styles.scopeList}>
+          {choices.map(({ value, label, description }) => (
+            <Button
+              key={value}
+              size="inline"
+              variant={scope === value ? "secondary" : "ghost"}
+              aria-pressed={scope === value}
+              aria-labelledby={`${scopeId}-${value}-title`}
+              aria-describedby={`${scopeId}-${value}-description`}
+              className="flex-col items-stretch gap-0.5 whitespace-normal px-3 py-2 text-left"
+              onClick={() => {
+                change({
+                  vinculos: value,
+                  ...(allowsAttention(value) ? {} : { atencaoVinculo: null }),
+                });
+                setScopeOpen(false);
+              }}
+            >
+              <span
+                id={`${scopeId}-${value}-title`}
+                className="flex items-baseline justify-between gap-2"
+              >
+                {label}
+                <span className={styles.count}>{counts[value]}</span>
+              </span>
+              <small
+                id={`${scopeId}-${value}-description`}
+                className="font-normal text-muted-foreground"
+              >
+                {description}
+              </small>
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ClassRiskFilter({
+  criteria,
+  change,
+  board,
+}: Pick<ToolbarProps, "criteria" | "change" | "board">): ReactElement {
+  const riskLimit = board.semester.formationRiskLimit;
+  const riskCount = Number(criteria.turmasEmRisco) + Number(criteria.reducaoSignificativa);
+  return (
+    <Popover>
+      <PopoverTrigger render={<Button size="sm" variant="secondary" />}>
+        <ListFilter /> Turmas em risco {riskCount > 0 && `(${riskCount})`}
+      </PopoverTrigger>
+      <PopoverContent align="start" aria-label="Turmas em risco">
+        <div className="grid gap-3">
+          <label className="flex items-start gap-2">
+            <Checkbox
+              checked={criteria.turmasEmRisco}
+              onCheckedChange={(value) => change({ turmasEmRisco: Boolean(value) })}
+            />
+            <span>
+              Abaixo do limite
+              <small className="block text-muted-foreground">
+                Menos de {riskLimit} alunos previstos.
+              </small>
+            </span>
+          </label>
+          <label className="flex items-start gap-2">
+            <Checkbox
+              checked={criteria.reducaoSignificativa}
+              onCheckedChange={(value) => change({ reducaoSignificativa: Boolean(value) })}
+            />
+            <span>
+              Redução significativa
+              <small className="block text-muted-foreground">
+                Queda de pelo menos 25% da turma anterior e de pelo menos{" "}
+                {Math.max(2, Math.ceil(riskLimit / 2))} alunos.
+              </small>
+            </span>
+          </label>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function ReviewToolbar(props: ToolbarProps): ReactElement {
+  const { criteria, change } = props;
   return (
     <div className={styles.toolbar}>
       <div className={styles.search}>
@@ -204,87 +351,8 @@ export function ReviewToolbar(props: ToolbarProps): ReactElement {
           onChange={(event) => change({ busca: event.target.value })}
         />
       </div>
-      <Popover open={scopeOpen} onOpenChange={setScopeOpen}>
-        <PopoverTrigger render={<Button size="sm" variant="secondary" />}>
-          <ListFilter /> Situação do aluno
-          {scope !== "all" && ` · ${choices.find((item) => item.value === scope)?.label}`}
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          size="lg"
-          className={styles.scopePopover}
-          aria-label="Situação do aluno"
-        >
-          <div className={styles.scopeList}>
-            {choices.map(({ value, label, description }) => (
-              <Button
-                key={value}
-                size="inline"
-                variant={scope === value ? "secondary" : "ghost"}
-                aria-pressed={scope === value}
-                aria-labelledby={`${scopeId}-${value}-title`}
-                aria-describedby={`${scopeId}-${value}-description`}
-                className="flex-col items-stretch gap-0.5 whitespace-normal px-3 py-2 text-left"
-                onClick={() => {
-                  change({
-                    vinculos: value,
-                    ...(!allowsAttention(value) ? { atencaoVinculo: null } : {}),
-                  });
-                  setScopeOpen(false);
-                }}
-              >
-                <span
-                  id={`${scopeId}-${value}-title`}
-                  className="flex items-baseline justify-between gap-2"
-                >
-                  {label}
-                  <span className={styles.count}>{counts[value]}</span>
-                </span>
-                <small
-                  id={`${scopeId}-${value}-description`}
-                  className="font-normal text-muted-foreground"
-                >
-                  {description}
-                </small>
-              </Button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-      <Popover>
-        <PopoverTrigger render={<Button size="sm" variant="secondary" />}>
-          <ListFilter /> Turmas em risco {riskCount > 0 && `(${riskCount})`}
-        </PopoverTrigger>
-        <PopoverContent align="start" aria-label="Turmas em risco">
-          <div className="grid gap-3">
-            <label className="flex items-start gap-2">
-              <Checkbox
-                checked={criteria.turmasEmRisco}
-                onCheckedChange={(value) => change({ turmasEmRisco: Boolean(value) })}
-              />
-              <span>
-                Abaixo do limite
-                <small className="block text-muted-foreground">
-                  Menos de {props.board.semester.formationRiskLimit} alunos previstos.
-                </small>
-              </span>
-            </label>
-            <label className="flex items-start gap-2">
-              <Checkbox
-                checked={criteria.reducaoSignificativa}
-                onCheckedChange={(value) => change({ reducaoSignificativa: Boolean(value) })}
-              />
-              <span>
-                Redução significativa
-                <small className="block text-muted-foreground">
-                  Queda de pelo menos 25% da turma anterior e de pelo menos{" "}
-                  {Math.max(2, Math.ceil(props.board.semester.formationRiskLimit / 2))} alunos.
-                </small>
-              </span>
-            </label>
-          </div>
-        </PopoverContent>
-      </Popover>
+      <ScopeFilter {...props} />
+      <ClassRiskFilter {...props} />
       <ReviewReasonFilter {...props} />
       <div className={styles.filters}>
         <TableFilters

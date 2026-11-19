@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
@@ -34,20 +34,27 @@ type ReturnFocus = {
   scrollTop: number;
   offset: number;
 };
-type ReviewHistory = Record<string, unknown> & { lazuliReviewFocus?: ReturnFocus };
+type ReviewHistory = { lazuliReviewFocus?: ReturnFocus };
 
 // The breadcrumb can create a new history entry. Back restores the marker on the original entry.
 let returnFromDetail: ReturnFocus | undefined;
 
 function reviewLocation(semesterId: string): string {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(globalThis.location.search);
   for (const key of ["semestre", "grupoVinculo", "vinculo"]) params.delete(key);
   params.sort();
-  return `${semesterId} ${window.location.pathname}?${params.toString()}`;
+  return `${semesterId} ${globalThis.location.pathname}?${params.toString()}`;
 }
 
-function rememberFocus(semesterId: string, targetId: string, groupId: string): void {
-  const element = document.getElementById(targetId);
+function documentElement(id: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+}
+
+function rememberFocus(
+  semesterId: string,
+  { targetId, groupId }: Pick<ReturnFocus, "targetId" | "groupId">,
+): void {
+  const element = documentElement(targetId);
   const scroller = element?.closest<HTMLElement>("[data-review-groups]");
   if (!element || !scroller) return;
   const focus = {
@@ -58,90 +65,162 @@ function rememberFocus(semesterId: string, targetId: string, groupId: string): v
     offset: element.getBoundingClientRect().top - scroller.getBoundingClientRect().top,
   };
   returnFromDetail = focus;
-  const state = window.history.state as ReviewHistory | null;
-  window.history.replaceState({ ...state, lazuliReviewFocus: focus }, "");
+  const state = globalThis.history.state as ReviewHistory | null;
+  globalThis.history.replaceState({ ...state, lazuliReviewFocus: focus }, "");
 }
 
-export function ReviewGroups(props: Props): ReactElement | null {
-  const [groupId, setGroupId] = useQueryState("grupoVinculo");
-  const [openGroups, setOpenGroups] = useQueryState(
-    "turmasAbertas",
-    parseAsArrayOf(parseAsString).withDefault([]),
+type FocusRequest = {
+  anchor: string | null;
+  expandedId: string | null | undefined;
+  groupId: string | null;
+  groupCount: number;
+  semesterId: string;
+  studentId: string | null;
+};
+
+function takeReviewFocus(semesterId: string): ReturnFocus | undefined {
+  const state = globalThis.history.state as ReviewHistory | null;
+  const context = reviewLocation(semesterId);
+  const saved = [returnFromDetail, state?.lazuliReviewFocus].find(
+    (item) => item?.context === context,
   );
-  const [studentId, setStudentId] = useQueryState("vinculo");
-  const semesterId = props.board.semester.id;
-  const studentHref = useReviewStudentHref(semesterId);
-  const pathname = usePathname();
-  const params = useSearchParams();
-  const [collapsedGroup, setCollapsedGroup] = useState<string | null>(null);
+  returnFromDetail = undefined;
+  return saved;
+}
+
+function revealReviewTarget(
+  target: HTMLElement,
+  {
+    list,
+    saved,
+    original,
+  }: {
+    list: HTMLDivElement | null;
+    saved: ReturnFocus | undefined;
+    original: HTMLElement | null;
+  },
+): void {
+  if (list && saved && original) {
+    const desiredOffset = Math.min(
+      Math.max(0, saved.offset),
+      Math.max(0, list.clientHeight - original.offsetHeight),
+    );
+    list.scrollTop +=
+      original.getBoundingClientRect().top - list.getBoundingClientRect().top - desiredOffset;
+    return;
+  }
+  if (list && saved) list.scrollTop = saved.scrollTop;
+  target.scrollIntoView({ block: "nearest" });
+}
+
+function reviewFocusTarget(
+  original: HTMLElement | null,
+  { anchor, groupId }: Pick<FocusRequest, "anchor" | "groupId">,
+): HTMLElement | null {
+  return (
+    original ??
+    (anchor ? documentElement(anchor) : null) ??
+    (groupId ? documentElement(`review-group-${groupId}`) : null) ??
+    documentElement("formation-page-heading")
+  );
+}
+
+function canRestoreFocus(target: HTMLElement): boolean {
+  const active = document.activeElement;
+  return (
+    !active ||
+    active === document.body ||
+    active === target ||
+    active.id === "formation-page-heading"
+  );
+}
+
+function restoreReviewFocus({
+  saved,
+  anchor,
+  groupId,
+  list,
+}: Pick<FocusRequest, "anchor" | "groupId"> & {
+  saved: ReturnFocus | undefined;
+  list: HTMLDivElement | null;
+}): void {
+  const original = saved ? documentElement(saved.targetId) : null;
+  const target = reviewFocusTarget(original, { anchor, groupId: saved?.groupId ?? groupId });
+  if (!target || !canRestoreFocus(target)) return;
+  const control = target.matches("li") ? target.querySelector<HTMLElement>("button") : target;
+  control?.focus({ preventScroll: true });
+  revealReviewTarget(target, { list, saved, original });
+}
+
+function useReviewGroupFocus({
+  anchor,
+  expandedId,
+  groupId,
+  groupCount,
+  semesterId,
+  studentId,
+}: FocusRequest): { scroller: RefObject<HTMLDivElement | null>; toggledHere: RefObject<boolean> } {
   const toggledHere = useRef(false);
   const onArrival = useRef(true);
   const scroller = useRef<HTMLDivElement>(null);
-  const linkedGroup = studentId
-    ? props.groups.find((group) => group.rows.some((row) => row.id === studentId))
-    : undefined;
-  const namedGroup = props.groups.find((group) => group.id === groupId);
-  const singleGroup =
-    props.autoOpenSingle && props.groups.length === 1 ? props.groups[0] : undefined;
-  const expandedId =
-    linkedGroup?.id ??
-    namedGroup?.id ??
-    (singleGroup?.id === collapsedGroup ? null : singleGroup?.id);
-  const anchor = linkedGroup
-    ? `review-student-${studentId}`
-    : namedGroup
-      ? `review-group-${namedGroup.id}`
-      : null;
   useEffect(() => {
     if (toggledHere.current) {
       toggledHere.current = false;
       return;
     }
     const frame = requestAnimationFrame(() => {
-      let saved: ReturnFocus | undefined;
-      if (onArrival.current) {
-        const state = window.history.state as ReviewHistory | null;
-        const context = reviewLocation(semesterId);
-        saved = [returnFromDetail, state?.lazuliReviewFocus].find(
-          (item) => item?.context === context,
-        );
-        returnFromDetail = undefined;
-        onArrival.current = false;
-      }
-      if (!saved && !studentId && !groupId) return;
-      const original = saved ? document.getElementById(saved.targetId) : null;
-      const group = saved?.groupId ?? groupId;
-      const target =
-        original ??
-        (anchor ? document.getElementById(anchor) : null) ??
-        (group ? document.getElementById(`review-group-${group}`) : null) ??
-        document.getElementById("formation-page-heading");
-      const active = document.activeElement;
-      if (
-        !target ||
-        (active &&
-          active !== document.body &&
-          active !== target &&
-          active.id !== "formation-page-heading")
-      )
-        return;
-      const control = target.matches("li") ? target.querySelector<HTMLElement>("button") : target;
-      control?.focus({ preventScroll: true });
-      const list = scroller.current;
-      if (list && saved && original) {
-        const desiredOffset = Math.min(
-          Math.max(0, saved.offset),
-          Math.max(0, list.clientHeight - original.offsetHeight),
-        );
-        list.scrollTop +=
-          original.getBoundingClientRect().top - list.getBoundingClientRect().top - desiredOffset;
-      } else {
-        if (list && saved) list.scrollTop = saved.scrollTop;
-        target.scrollIntoView({ block: "nearest" });
-      }
+      const saved = onArrival.current ? takeReviewFocus(semesterId) : undefined;
+      onArrival.current = false;
+      if (saved || studentId || groupId)
+        restoreReviewFocus({ saved, anchor, groupId, list: scroller.current });
     });
     return () => cancelAnimationFrame(frame);
-  }, [anchor, expandedId, groupId, semesterId, studentId, props.groups.length]);
+  }, [anchor, expandedId, groupId, semesterId, studentId, groupCount]);
+  return { scroller, toggledHere };
+}
+
+function reviewGroupAnchor(student: string | null, group: string | undefined): string | null {
+  if (student) return `review-student-${student}`;
+  return group ? `review-group-${group}` : null;
+}
+
+function defaultReviewGroup(groups: ReviewGroup[], autoOpenSingle?: boolean): string | undefined {
+  if (autoOpenSingle && groups.length === 1) return groups[0]?.id;
+  return undefined;
+}
+
+function useExpandedReviewGroups({
+  groups,
+  autoOpenSingle,
+  semesterId,
+}: Pick<Props, "groups" | "autoOpenSingle"> & { semesterId: string }): {
+  scroller: RefObject<HTMLDivElement | null>;
+  isExpanded: (id: string) => boolean;
+  toggleGroup: (id: string) => void;
+} {
+  const [groupId, setGroupId] = useQueryState("grupoVinculo");
+  const [openGroups, setOpenGroups] = useQueryState(
+    "turmasAbertas",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  const [studentId, setStudentId] = useQueryState("vinculo");
+  const [collapsedGroup, setCollapsedGroup] = useState<string | null>(null);
+  const linkedGroup = studentId
+    ? groups.find((group) => group.rows.some((row) => row.id === studentId))
+    : undefined;
+  const namedGroup = groups.find((group) => group.id === groupId);
+  const singleGroup = defaultReviewGroup(groups, autoOpenSingle);
+  const expandedId =
+    linkedGroup?.id ?? namedGroup?.id ?? (singleGroup === collapsedGroup ? null : singleGroup);
+  const anchor = reviewGroupAnchor(linkedGroup ? studentId : null, namedGroup?.id);
+  const { scroller, toggledHere } = useReviewGroupFocus({
+    anchor,
+    expandedId,
+    groupId,
+    groupCount: groups.length,
+    semesterId,
+    studentId,
+  });
 
   function toggleGroup(id: string): void {
     toggledHere.current = true;
@@ -151,11 +230,18 @@ export function ReviewGroups(props: Props): ReactElement | null {
     const closing = next.has(id);
     if (closing) next.delete(id);
     else next.add(id);
-    setCollapsedGroup(closing && singleGroup?.id === id ? id : null);
+    setCollapsedGroup(closing && singleGroup === id ? id : null);
     void setOpenGroups([...next]);
     void setGroupId(closing ? null : id);
   }
-  function originHref(group: ReviewGroup): string | undefined {
+  const isExpanded = (id: string): boolean => id === expandedId || openGroups.includes(id);
+  return { scroller, isExpanded, toggleGroup };
+}
+
+function useOriginHref(semesterId: string): (group: ReviewGroup) => string | undefined {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  return (group): string | undefined => {
     if (!group.origin?.classId) return undefined;
     const back = new URLSearchParams(params.toString());
     back.set("visao", "review");
@@ -164,8 +250,19 @@ export function ReviewGroups(props: Props): ReactElement | null {
     back.delete("vinculo");
     const query = new URLSearchParams({ voltar: `${pathname}?${back.toString()}` });
     return `/turmas/${encodeURIComponent(group.origin.classId)}?${query.toString()}`;
-  }
-  if (!props.groups.length) return null;
+  };
+}
+
+export function ReviewGroups(props: Props): ReactElement | null {
+  const semesterId = props.board.semester.id;
+  const studentHref = useReviewStudentHref(semesterId);
+  const originHref = useOriginHref(semesterId);
+  const { scroller, isExpanded, toggleGroup } = useExpandedReviewGroups({
+    groups: props.groups,
+    autoOpenSingle: props.autoOpenSingle === true,
+    semesterId,
+  });
+  if (props.groups.length === 0) return null;
   return (
     <div
       ref={scroller}
@@ -183,7 +280,7 @@ export function ReviewGroups(props: Props): ReactElement | null {
           ended={props.ended}
           working={props.working}
           selectedIds={props.selectedIds}
-          expanded={group.id === expandedId || openGroups.includes(group.id)}
+          expanded={isExpanded(group.id)}
           studentHref={studentHref}
           originHref={originHref(group)}
           onToggle={() => toggleGroup(group.id)}
@@ -204,188 +301,263 @@ type SectionProps = Omit<Props, "groups" | "autoOpenSingle"> & {
   onToggle: () => void;
 };
 
-function ReviewGroupSection({
-  group,
-  board,
-  ended,
-  working,
-  selectedIds,
-  expanded,
-  studentHref,
-  originHref,
-  onToggle,
-  onMark,
-  onOpenPlan,
-  onLead,
-}: SectionProps): ReactElement {
-  const { id, kind, plan, origin, rows, leads } = group;
+function ReviewGroupSection(props: SectionProps): ReactElement {
+  const { group, ended, expanded } = props;
+  const { id, kind, rows } = group;
   const canMark = kind === "plan" && rows.length > 0 && !ended;
   const ready = canMark
     ? rows.filter(
         (row) => row.planId === id && !isReviewDeparture(row) && isReadyForAllocation(row),
       )
     : [];
-  const marked = ready.filter((row) => selectedIds.has(row.id)).length;
   const name = reviewGroupName(group);
-  const heading = headingForGroup(group, name);
-  const groupId = `review-members-${id}`;
-  const checkboxId = `review-select-group-${id}`;
-  const planLabel = `Ver ficha da turma ${name}`;
-  const planFocusId = `review-plan-${id}`;
-  const rememberPlan = () => rememberFocus(board.semester.id, planFocusId, id);
-  const sheetControl = plan
+  return (
+    <section className={styles.group} data-open={expanded || undefined}>
+      <header className={styles.groupHeader}>
+        <div className={styles.groupSummary}>
+          <ReviewGroupHeading {...props} name={name} />
+          <MemberCounts
+            id={`review-context-${id}-counts`}
+            group={group}
+            noReady={canMark && ready.length === 0}
+          />
+        </div>
+        {ready.length > 0 && <ReviewGroupSelection {...props} name={name} ready={ready} />}
+      </header>
+      {expanded && <ReviewGroupMembers {...props} name={name} ready={ready} />}
+    </section>
+  );
+}
+
+type GroupHeadingProps = Pick<
+  SectionProps,
+  "board" | "group" | "expanded" | "originHref" | "onToggle" | "onOpenPlan"
+> & { name: string };
+
+function reviewHeadingLabels(
+  group: ReviewGroup,
+  name: string,
+): ReturnType<typeof reviewClassHeading> & {
+  tooltip: string | undefined;
+  labelledBy: string;
+  scheduleType: string | null | undefined;
+} {
+  const { id, plan, origin } = group;
+  const heading: ReturnType<typeof reviewClassHeading> = headingForGroup(group, name) ?? {
+    title: name,
+    description: "",
+  };
+  const contextId = `review-context-${id}`;
+  return {
+    ...heading,
+    tooltip: plan || origin?.classId ? name : undefined,
+    scheduleType: plan?.scheduleType ?? origin?.scheduleType,
+    labelledBy: [
+      `${contextId}-name`,
+      heading.schedule && `${contextId}-schedule`,
+      heading.description && `${contextId}-meta`,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  };
+}
+
+function ReviewGroupHeading(props: GroupHeadingProps): ReactElement {
+  const { group, board, name, expanded, onToggle } = props;
+  const { id, plan } = group;
+  const { schedule, title, description, labelledBy, tooltip, scheduleType } = reviewHeadingLabels(
+    group,
+    name,
+  );
+  const contextId = `review-context-${id}`;
+  return (
+    <div className={styles.groupIdentity} data-schedule={scheduleType}>
+      <div className={styles.classTitle}>
+        <div className={styles.headingActions}>
+          <h2 className={styles.groupHeading}>
+            <button
+              id={`review-group-${id}`}
+              type="button"
+              className={styles.groupToggle}
+              title={tooltip}
+              aria-labelledby={labelledBy}
+              aria-describedby={`${contextId}-counts`}
+              aria-expanded={expanded}
+              aria-controls={expanded ? `review-members-${id}` : undefined}
+              onClick={onToggle}
+            >
+              <ChevronRight aria-hidden="true" size={17} className={styles.groupChevron} />
+              <strong id={`${contextId}-name`}>{title}</strong>
+            </button>
+          </h2>
+          <GroupSheetLink {...props} />
+        </div>
+        {schedule && (
+          <span id={`${contextId}-schedule`} className={styles.classTime}>
+            {schedule}
+          </span>
+        )}
+        {plan && <GroupRisk board={board} plan={plan} />}
+      </div>
+      {description && (
+        <span id={`${contextId}-meta`} className={styles.groupMeta}>
+          {description}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function GroupRisk({
+  board,
+  plan,
+}: {
+  board: OrganizationBoard;
+  plan: ClassPlan;
+}): ReactElement | null {
+  const risk = atRisk(board, plan);
+  if (!risk && !significantReduction(board, plan)) return null;
+  return (
+    <span className={styles.risk}>
+      <TriangleAlert size={14} aria-hidden="true" />{" "}
+      {risk ? "Turma em risco" : "Redução significativa"}
+    </span>
+  );
+}
+
+function GroupSheetLink({
+  group,
+  board,
+  name,
+  originHref,
+  onOpenPlan,
+}: GroupHeadingProps): ReactElement | null {
+  const { id, plan } = group;
+  if (!plan && !originHref) return null;
+  const label = `Ver ficha da turma ${name}`;
+  const targetId = `review-plan-${id}`;
+  const rememberPlan = (): void => rememberFocus(board.semester.id, { targetId, groupId: id });
+  const buttonProps = plan
     ? {
         onClick: () => {
           rememberPlan();
           onOpenPlan(plan);
         },
       }
-    : originHref
-      ? {
-          nativeButton: false,
-          render: <Link href={originHref} prefetch={false} onNavigate={rememberPlan} />,
-        }
-      : null;
-  const contextId = `review-context-${id}`;
-  const labelledBy = [
-    `${contextId}-name`,
-    heading?.schedule && `${contextId}-schedule`,
-    heading?.description && `${contextId}-meta`,
-  ]
-    .filter(Boolean)
-    .join(" ");
+    : {
+        nativeButton: false,
+        render: <Link href={originHref!} prefetch={false} onNavigate={rememberPlan} />,
+      };
   return (
-    <section className={styles.group} data-open={expanded || undefined}>
-      <header className={styles.groupHeader}>
-        <div className={styles.groupSummary}>
-          <div
-            className={styles.groupIdentity}
-            data-schedule={plan?.scheduleType ?? origin?.scheduleType}
-          >
-            <div className={styles.classTitle}>
-              <div className={styles.headingActions}>
-                <h2 className={styles.groupHeading}>
-                  <button
-                    id={`review-group-${id}`}
-                    type="button"
-                    className={styles.groupToggle}
-                    title={plan || origin?.classId ? name : undefined}
-                    aria-labelledby={labelledBy}
-                    aria-describedby={`${contextId}-counts`}
-                    aria-expanded={expanded}
-                    aria-controls={expanded ? groupId : undefined}
-                    onClick={onToggle}
-                  >
-                    <ChevronRight aria-hidden="true" size={17} className={styles.groupChevron} />
-                    <strong id={`${contextId}-name`}>{heading?.title ?? name}</strong>
-                  </button>
-                </h2>
-                {sheetControl && (
-                  <Button
-                    {...sheetControl}
-                    id={planFocusId}
-                    className={styles.planLink}
-                    size="icon-compact-responsive"
-                    variant="text"
-                    aria-label={planLabel}
-                    title={planLabel}
-                  >
-                    <ExternalLink aria-hidden="true" />
-                  </Button>
-                )}
-              </div>
-              {heading?.schedule && (
-                <span id={`${contextId}-schedule`} className={styles.classTime}>
-                  {heading.schedule}
-                </span>
-              )}
-              {plan && atRisk(board, plan) && (
-                <span className={styles.risk}>
-                  <TriangleAlert size={14} aria-hidden="true" /> Turma em risco
-                </span>
-              )}
-              {plan && significantReduction(board, plan) && (
-                <span className={styles.risk}>
-                  <TriangleAlert size={14} aria-hidden="true" /> Redução significativa
-                </span>
-              )}
-            </div>
-            {heading?.description && (
-              <span id={`${contextId}-meta`} className={styles.groupMeta}>
-                {heading.description}
-              </span>
-            )}
-          </div>
-          <MemberCounts
-            id={`${contextId}-counts`}
-            group={group}
-            noReady={canMark && !ready.length}
-          />
-        </div>
-        {ready.length > 0 && (
-          <label
-            className={styles.groupSelection}
-            htmlFor={checkboxId}
-            data-disabled={working || undefined}
-          >
-            <Checkbox
-              id={checkboxId}
-              size="md"
-              checked={marked === ready.length}
-              indeterminate={marked > 0 && marked < ready.length}
-              disabled={working}
-              aria-labelledby={`${checkboxId}-label`}
-              aria-describedby={marked ? `${checkboxId}-marked` : undefined}
-              onCheckedChange={(value) => onMark(ready, Boolean(value))}
-            />
-            <span id={`${checkboxId}-label`} className="sr-only">
-              Selecionar {ready.length} {ready.length === 1 ? "aluno" : "alunos"} de {name} neste
-              filtro
-            </span>
-            <span aria-hidden="true">
-              Selecionar {ready.length} {ready.length === 1 ? "aluno" : "alunos"}
-            </span>
-            {marked > 0 && (
-              <strong id={`${checkboxId}-marked`} className={styles.marked}>
-                {marked} no lote
-              </strong>
-            )}
-          </label>
-        )}
-      </header>
-      {expanded && (
-        <div className={styles.groupBody} id={groupId}>
-          <ul className={styles.students} aria-label={`Pessoas em ${name}`}>
-            {rows.map((row) => (
-              <ReviewRow
-                key={row.id}
-                row={row}
-                board={board}
-                plan={plan}
-                ended={ended}
-                eligible={ready.includes(row)}
-                working={working}
-                selected={selectedIds.has(row.id)}
-                href={studentHref(row.id, id)}
-                onNavigate={() => rememberFocus(board.semester.id, `review-student-${row.id}`, id)}
-                onSelection={(person, checked) => onMark([person], checked)}
-              />
-            ))}
-            {leads.map((lead) => (
-              <li key={lead.id} id={`review-lead-${lead.id}`} className={styles.lead}>
-                <LeadItem
-                  lead={lead}
-                  onSelect={(person) => {
-                    rememberFocus(board.semester.id, `review-lead-${person.id}`, id);
-                    onLead(person.id);
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
+    <Button
+      {...buttonProps}
+      id={targetId}
+      data-review-plan-link=""
+      size="icon-compact-responsive"
+      variant="text"
+      aria-label={label}
+      title={label}
+    >
+      <ExternalLink aria-hidden="true" />
+    </Button>
+  );
+}
+
+function ReviewGroupSelection({
+  group,
+  name,
+  ready,
+  selectedIds,
+  working,
+  onMark,
+}: Pick<SectionProps, "group" | "selectedIds" | "working" | "onMark"> & {
+  name: string;
+  ready: Placement[];
+}): ReactElement {
+  const marked = ready.filter((row) => selectedIds.has(row.id)).length;
+  const checkboxId = `review-select-group-${group.id}`;
+  const label = `Selecionar ${ready.length} ${ready.length === 1 ? "aluno" : "alunos"}`;
+  return (
+    <label
+      className={styles.groupSelection}
+      htmlFor={checkboxId}
+      data-disabled={working || undefined}
+    >
+      <Checkbox
+        id={checkboxId}
+        size="md"
+        checked={marked === ready.length}
+        indeterminate={marked > 0 && marked < ready.length}
+        disabled={working}
+        aria-labelledby={`${checkboxId}-label`}
+        aria-describedby={marked ? `${checkboxId}-marked` : undefined}
+        onCheckedChange={(value) => onMark(ready, Boolean(value))}
+      />
+      <span id={`${checkboxId}-label`} className="sr-only">
+        {label} de {name} neste filtro
+      </span>
+      <span aria-hidden="true">{label}</span>
+      {marked > 0 && (
+        <strong id={`${checkboxId}-marked`} className={styles.marked}>
+          {marked} no lote
+        </strong>
       )}
-    </section>
+    </label>
+  );
+}
+
+function ReviewGroupMembers({
+  group,
+  board,
+  ended,
+  working,
+  selectedIds,
+  studentHref,
+  onMark,
+  onLead,
+  name,
+  ready,
+}: SectionProps & { name: string; ready: Placement[] }): ReactElement {
+  const { id, plan, rows, leads } = group;
+  return (
+    <div className={styles.groupBody} id={`review-members-${id}`}>
+      <ul className={styles.students} aria-label={`Pessoas em ${name}`}>
+        {rows.map((row) => (
+          <ReviewRow
+            key={row.id}
+            row={row}
+            board={board}
+            plan={plan}
+            ended={ended}
+            eligible={ready.includes(row)}
+            working={working}
+            selected={selectedIds.has(row.id)}
+            href={studentHref(row.id, id)}
+            onNavigate={() =>
+              rememberFocus(board.semester.id, {
+                targetId: `review-student-${row.id}`,
+                groupId: id,
+              })
+            }
+            onSelection={(person, checked) => onMark([person], checked)}
+          />
+        ))}
+        {leads.map((lead) => (
+          <li key={lead.id} id={`review-lead-${lead.id}`} className={styles.lead}>
+            <LeadItem
+              lead={lead}
+              onSelect={(person) => {
+                rememberFocus(board.semester.id, {
+                  targetId: `review-lead-${person.id}`,
+                  groupId: id,
+                });
+                onLead(person.id);
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

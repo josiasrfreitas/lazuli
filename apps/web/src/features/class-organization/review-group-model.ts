@@ -116,14 +116,16 @@ function groupForOrigin(row: Placement, groups: Map<string, ReviewGroup>): Revie
   return group;
 }
 
+function namedReviewGroup(group: ReviewGroup): string {
+  return group.plan || group.origin?.classId ? reviewGroupName(group) : "";
+}
+
 function groupComparator(board: OrganizationBoard, order: ReviewOrder) {
-  const groupName = (group: ReviewGroup): string =>
-    group.plan || group.origin?.classId ? reviewGroupName(group) : "";
   const key = (group: ReviewGroup): string => {
     const first = group.rows[0];
     if (order === "vigencia")
       return first && !first.declinedAt ? reviewEffectiveDate(first, board) : "";
-    if (order === "destino") return groupName(group);
+    if (order === "destino") return namedReviewGroup(group);
     const student = first?.studentName ?? "";
     const lead = group.leads[0]?.fullName ?? "";
     return compareValues(student, lead) <= 0 ? student : lead;
@@ -131,16 +133,14 @@ function groupComparator(board: OrganizationBoard, order: ReviewOrder) {
   const rank = { plan: 0, unassigned: 1, origin: 2, leads: 3 };
   return (left: ReviewGroup, right: ReviewGroup): number =>
     compareValues(key(left), key(right)) ||
-    compareValues(groupName(left), groupName(right)) ||
+    compareValues(namedReviewGroup(left), namedReviewGroup(right)) ||
     rank[left.kind] - rank[right.kind] ||
     left.id.localeCompare(right.id);
 }
 
 export function groupReviewRows(
   board: OrganizationBoard,
-  rows: Placement[],
-  leads: Leads,
-  order: ReviewOrder,
+  { rows, leads, order }: { rows: Placement[]; leads: Leads; order: ReviewOrder },
 ): ReviewGroup[] {
   const groupsById = new Map<string, ReviewGroup>(
     board.plans.map((plan) => [plan.id, { id: plan.id, kind: "plan", plan, rows: [], leads: [] }]),
@@ -163,11 +163,11 @@ export function groupReviewRows(
   );
   const compareRows = reviewRowComparator(board, order);
   for (const group of groups) {
-    group.rows.sort(compareRows);
-    group.leads.sort(
+    group.rows = group.rows.toSorted(compareRows);
+    group.leads = group.leads.toSorted(
       (left, right) =>
         collator.compare(left.fullName, right.fullName) || left.id.localeCompare(right.id),
     );
   }
-  return groups.sort(groupComparator(board, order));
+  return groups.toSorted(groupComparator(board, order));
 }
