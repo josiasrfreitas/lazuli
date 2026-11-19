@@ -11,7 +11,8 @@ import {
   type SemesterEligibility,
 } from "@lazuli/domain";
 import { z } from "@lazuli/validators";
-import { readNextActiveStageIds, type Prisma, type Period } from "@lazuli/db";
+import type { Prisma, Period } from "@lazuli/db";
+import { readNextActiveStageIds } from "@lazuli/db/formation";
 import {
   dateOnly,
   readSlots,

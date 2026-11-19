@@ -1,4 +1,5 @@
-import { readNextActiveStageIds, type TransactionClient } from "@lazuli/db";
+import type { TransactionClient } from "@lazuli/db";
+import { readNextActiveStageIds } from "@lazuli/db/formation";
 import { effectiveTeacherId, type SemesterEligibility } from "@lazuli/domain";
 import { dateOnly, type Placement } from "./semester-placement-data.js";
 

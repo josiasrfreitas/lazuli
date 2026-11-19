@@ -1,4 +1,5 @@
-import { readNextActiveStageIds, type Prisma, type Period } from "@lazuli/db";
+import type { Prisma, Period } from "@lazuli/db";
+import { readNextActiveStageIds } from "@lazuli/db/formation";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   lockSemester,
