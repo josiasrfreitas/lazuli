@@ -189,15 +189,32 @@ function placementWriteData(
     sourceProgressId: source?.id ?? null,
     mode: input.mode,
     effectiveDate: new Date(effectiveDate),
-    ...(previous?.continuity === "CHANGE" &&
-    input.planId !== previous.planId &&
-    plan &&
-    !followsOwnClass(source?.enrollment.classId ?? null, plan)
+    ...(clearsChangeRequest(previous, { plan, planId: input.planId, source })
       ? { continuity: "UNDECIDED" as const, continuityReason: null }
       : {}),
     notes: input.notes || null,
     recordedById: context.staffUser.id,
   };
+}
+
+function clearsChangeRequest(
+  previous: Placement | null,
+  {
+    plan,
+    planId,
+    source,
+  }: {
+    plan: Destination | null;
+    planId: SemesterPlacementInput["planId"];
+    source: SourceProgress | null;
+  },
+): boolean {
+  return (
+    previous?.continuity === "CHANGE" &&
+    planId !== previous.planId &&
+    plan !== null &&
+    !followsOwnClass(source?.enrollment.classId ?? null, plan)
+  );
 }
 
 type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;

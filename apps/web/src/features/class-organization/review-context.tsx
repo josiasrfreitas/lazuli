@@ -93,12 +93,9 @@ export function ReviewPending({
 }): ReactElement | null {
   if (row.declinedAt) return null;
   const blockers = reviewBlockers(row);
-  if (!blockers.length) return null;
-  const heading = historical
-    ? "Impedimentos na consulta"
-    : row.publishedAt
-      ? "Pendências da alocação"
-      : "Antes de alocar";
+  if (blockers.length === 0) return null;
+  const pendingLabel = row.publishedAt ? "Pendências da alocação" : "Antes de alocar";
+  const heading = historical ? "Impedimentos na consulta" : pendingLabel;
   return (
     <Alert variant="warning" role="note">
       <AlertIcon>
@@ -220,10 +217,7 @@ export function ReviewFollowUps({
 }): ReactElement {
   const historical = task === "historico";
   const financial = useReviewContractLink(row, { links, enabled: !historical });
-  const actions = historical ? [] : followUpLinks(row, links);
-  if (!historical && financial) actions.unshift(financial);
-  if (!historical && !financial && (row.exitRiskActive || row.continuity === "LEAVING"))
-    actions.push({ label: "Consultar Financeiro", href: links.profile({ secao: "financeiro" }) });
+  const actions = historical ? [] : profileActions(row, { links, financial });
   const profileLabel = historical ? "Ver histórico no perfil" : "Abrir perfil";
   return (
     <section className={styles.followUps}>
@@ -255,4 +249,15 @@ export function ReviewFollowUps({
       </div>
     </section>
   );
+}
+
+function profileActions(
+  row: Placement,
+  { links, financial }: { links: ProfileLinks; financial: ReviewLink | null },
+): ReviewLink[] {
+  const actions = followUpLinks(row, links);
+  if (financial) actions.unshift(financial);
+  else if (row.exitRiskActive || row.continuity === "LEAVING")
+    actions.push({ label: "Consultar Financeiro", href: links.profile({ secao: "financeiro" }) });
+  return actions;
 }

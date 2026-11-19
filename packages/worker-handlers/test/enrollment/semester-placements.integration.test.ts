@@ -350,10 +350,8 @@ void it("rechecks stage material and early coverage for the published successor 
     revision.reason ?? "",
     /Contrato termina na primeira metade.*Material sem compra registrada/u,
   );
-  assert.equal(
-    (await db.enrollment.findUniqueOrThrow({ where: { id: data.source.id } })).exitDate,
-    null,
-  );
+  const source = await db.enrollment.findUniqueOrThrow({ where: { id: data.source.id } });
+  assert.equal(source.exitDate, null);
 });
 
 void it("returns a scheduled transfer to the queue when its target entry loses contract coverage", async () => {

@@ -7,6 +7,23 @@ import type { ClassPlan } from "./model";
 import styles from "./organization.module.css";
 export { ContinuityDialog } from "./continuity-form";
 
+function planStatusText(
+  open: boolean,
+  alreadyPublished: boolean,
+): {
+  title: string;
+  submitLabel: string;
+  submitVariant: "primary" | "destructive";
+} {
+  if (!open)
+    return { title: "Desfazer turma", submitLabel: "Desfazer turma", submitVariant: "destructive" };
+  return {
+    title: alreadyPublished ? "Reabrir turma" : "Abrir turma",
+    submitLabel: "Abrir turma",
+    submitVariant: "primary",
+  };
+}
+
 export function PlanStatusDialog({
   plan,
   classroom,
@@ -37,12 +54,10 @@ export function PlanStatusDialog({
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title={open ? (plan?.classId ? "Reabrir turma" : "Abrir turma") : "Desfazer turma"}
+      {...planStatusText(open, Boolean(plan?.classId))}
       description={classroom?.name ?? plan?.name ?? ""}
       formId="plan-status"
       firstField=""
-      submitVariant={open ? "primary" : "destructive"}
-      submitLabel={open ? "Abrir turma" : "Desfazer turma"}
       pending={mutation.isPending}
       error={mutation.error?.message}
       onClose={onClose}

@@ -234,13 +234,23 @@ export function HistoryRow({
         {formatDateOnlyBR(dateOnly(item.createdAt))} · {item.recordedBy?.name ?? "Sistema"} · versão{" "}
         {item.version}
       </p>
-      {snapshot.success && snapshot.data.mode && (
-        <p className="mt-2 text-caption">{modes[snapshot.data.mode]}</p>
-      )}
-      {item.reason && <p className="mt-2 text-caption">{item.reason}</p>}
-      {snapshot.success && snapshot.data.notes && (
-        <p className="mt-2 text-caption text-muted-foreground">{snapshot.data.notes}</p>
-      )}
+      <HistoryDetails item={item} details={snapshot.data} />
     </li>
+  );
+}
+
+function HistoryDetails({
+  item,
+  details,
+}: {
+  item: HistoryItem;
+  details: z.infer<typeof snapshotSchema> | undefined;
+}): ReactJSX.Element {
+  return (
+    <>
+      {details?.mode && <p className="mt-2 text-caption">{modes[details.mode]}</p>}
+      {item.reason && <p className="mt-2 text-caption">{item.reason}</p>}
+      {details?.notes && <p className="mt-2 text-caption text-muted-foreground">{details.notes}</p>}
+    </>
   );
 }

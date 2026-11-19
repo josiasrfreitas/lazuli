@@ -163,39 +163,51 @@ function caseInput(values: {
 }): object {
   const { kind, draft, version, ...base } = values;
   const shared = { ...base, kind, narrative: draft.narrative };
-  const reference = financialReference(draft.reference);
+  return { ...shared, ...eventDetails(kind, { draft, version }) };
+}
+
+function eventDetails(
+  kind: Kind,
+  { draft, version }: { draft: Draft; version: number | undefined },
+): object {
   switch (kind) {
     case "RISK": {
-      return {
-        ...shared,
-        riskReason: draft.riskReason || undefined,
-        verbalReport: draft.verbalReport ? draft.verbalReport === "yes" : undefined,
-      };
-    }
-    case "CONTACT": {
-      return { ...shared, outcome: draft.outcome };
-    }
-    case "HANDOFF": {
-      return { ...shared, outcome: draft.outcome, nextOwner: draft.nextOwner, reference };
-    }
-    case "AGREEMENT": {
-      return { ...shared, reference };
+      return riskDetails(draft);
     }
     case "REVIEW": {
-      return { ...shared, version, reassessment: draft.reassessment };
+      return { version, reassessment: draft.reassessment };
     }
-    case "CHANGE_REQUEST":
-      return { ...shared, version, outcome: draft.outcome };
+    case "CHANGE_REQUEST": {
+      return { version, outcome: draft.outcome };
+    }
     case "SCHEDULE_RISK":
     case "RETRACT_REQUEST":
     case "BLOCK":
     case "UNBLOCK": {
-      return { ...shared, version };
+      return { version };
     }
-    case "NOTE": {
-      return shared;
+    default: {
+      return interventionDetails(kind, draft);
     }
   }
+}
+
+function riskDetails(draft: Draft): object {
+  return {
+    riskReason: draft.riskReason || undefined,
+    verbalReport: draft.verbalReport ? draft.verbalReport === "yes" : undefined,
+  };
+}
+
+function interventionDetails(
+  kind: "CONTACT" | "HANDOFF" | "AGREEMENT" | "NOTE",
+  draft: Draft,
+): object {
+  if (kind === "CONTACT") return { outcome: draft.outcome };
+  if (kind === "NOTE") return {};
+  const reference = financialReference(draft.reference);
+  if (kind === "HANDOFF") return { outcome: draft.outcome, nextOwner: draft.nextOwner, reference };
+  return { reference };
 }
 
 export function CaseEntryForm(props: EntryProps): ReactElement {
@@ -276,25 +288,7 @@ function EventFields({ kind, field }: FieldsProps): ReactElement {
   const [label, placeholder] = narratives[kind];
   return (
     <>
-      {kind === "RISK" && (
-        <SelectControl
-          {...field("riskReason")}
-          value={field("riskReason").value || "unknown"}
-          onChange={(value) => field("riskReason").onChange(value === "unknown" ? "" : value)}
-          label="Motivo do risco de saída"
-          choices={[
-            { value: "unknown", label: "Ainda não identificado" },
-            ...Object.entries(exitRiskReasonLabels).map(([value, label]) => ({ value, label })),
-          ]}
-        />
-      )}
-      {kind === "RISK" && (
-        <Choices
-          {...field("verbalReport")}
-          label="O aluno ou a família falou em sair?"
-          options={{ yes: "Sim", no: "Não" }}
-        />
-      )}
+      {kind === "RISK" && <RiskEventFields field={field} />}
       {kind === "CHANGE_REQUEST" && (
         <Choices
           {...field("outcome")}
@@ -330,6 +324,28 @@ function EventFields({ kind, field }: FieldsProps): ReactElement {
           }
         />
       )}
+    </>
+  );
+}
+
+function RiskEventFields({ field }: Pick<FieldsProps, "field">): ReactElement {
+  return (
+    <>
+      <SelectControl
+        {...field("riskReason")}
+        value={field("riskReason").value || "unknown"}
+        onChange={(value) => field("riskReason").onChange(value === "unknown" ? "" : value)}
+        label="Motivo do risco de saída"
+        choices={[
+          { value: "unknown", label: "Ainda não identificado" },
+          ...Object.entries(exitRiskReasonLabels).map(([value, label]) => ({ value, label })),
+        ]}
+      />
+      <Choices
+        {...field("verbalReport")}
+        label="O aluno ou a família falou em sair?"
+        options={{ yes: "Sim", no: "Não" }}
+      />
     </>
   );
 }

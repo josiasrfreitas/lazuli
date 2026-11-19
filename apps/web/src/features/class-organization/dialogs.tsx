@@ -55,8 +55,9 @@ function renderStudentDialogs(props: Props): ReactJSX.Element | null {
 function renderPlanDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose } = props;
   switch (action.kind) {
-    case "resetFormation":
+    case "resetFormation": {
       return <ResetFormationDialog board={board} onClose={onClose} onFeedback={props.onFeedback} />;
+    }
     case "riskLimit": {
       return <RiskLimitDialog {...props} />;
     }
@@ -106,7 +107,7 @@ function renderPlanDialogs(props: Props): ReactJSX.Element | null {
 function renderPlacementDialogs(props: Props): ReactJSX.Element | null {
   const { action, board, onClose } = props;
   switch (action.kind) {
-    case "placementDate":
+    case "placementDate": {
       return (
         <PlacementDateDialog
           row={action.row}
@@ -115,6 +116,7 @@ function renderPlacementDialogs(props: Props): ReactJSX.Element | null {
           onFeedback={props.onFeedback}
         />
       );
+    }
     case "placement": {
       return (
         <PlacementForm

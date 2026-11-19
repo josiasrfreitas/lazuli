@@ -107,7 +107,7 @@ export async function releaseEnrollments(
       stageId: enrollment.class.sharedStage?.id ?? null,
       trackId: enrollment.class.sharedStage?.trackId ?? null,
     };
-    for (const target of targets.length ? targets : [fallback]) {
+    for (const target of targets.length > 0 ? targets : [fallback]) {
       await flagEnrollmentClosure(context, { target, enrollment, semesterId, today });
     }
     if (enrollment.entryDate > today) {

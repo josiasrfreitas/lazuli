@@ -43,7 +43,7 @@ void it("returns from the placement's formation sheet to the filtered student, g
   });
   const before = current.toString();
   const target = new URL(
-    reviewStudentHref(page, current, "placement-ana", "origin:class-42"),
+    reviewStudentHref(page, { current, rowId: "placement-ana", groupId: "origin:class-42" }),
     site,
   );
   const detail = target.searchParams;
@@ -68,7 +68,10 @@ void it("returns from the placement's formation sheet to the filtered student, g
 
 void it("restores a lead opened from the schedule and supports a standalone sheet without a previous panel", () => {
   const fromLead = new URLSearchParams({ visao: "review", leadFormacao: "lead-before-review" });
-  const child = new URL(reviewStudentHref(page, fromLead, "placement", "unassigned"), site);
+  const child = new URL(
+    reviewStudentHref(page, { current: fromLead, rowId: "placement", groupId: "unassigned" }),
+    site,
+  );
   assert.equal(child.searchParams.has("leadFormacao"), false);
   restoreReviewFormationLocation(child.searchParams);
   assert.deepEqual(Object.fromEntries(child.searchParams), {
@@ -218,11 +221,13 @@ void it("links the name in the grouped results to the formation sheet, independe
 
 function sheetMarkup(
   row: Placement,
-  group: string,
-  today: string,
-  current = new URLSearchParams(search),
+  {
+    group,
+    today,
+    current = new URLSearchParams(search),
+  }: { group: string; today: string; current?: URLSearchParams },
 ): string {
-  const url = new URL(reviewStudentHref(page, current, row.id, group), site);
+  const url = new URL(reviewStudentHref(page, { current, rowId: row.id, groupId: group }), site);
   const html = renderAt(
     createElement(OrganizationAgenda, {
       selected: url.searchParams.get("turma"),
@@ -247,14 +252,18 @@ function sheetMarkup(
 
 function readableText(html: string): string {
   return html
-    .replace(/<[^>]*>/gu, " ")
-    .replace(/\s+/gu, " ")
+    .replaceAll(/<[^>]*>/gu, " ")
+    .replaceAll(/\s+/gu, " ")
     .trim();
 }
 
 void it("omits the allocation review button from the individual sheet", (context) => {
   context.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-19T12:00:00Z") });
-  const panel = sheetMarkup(ready, destination.id, "2026-11-19", new URLSearchParams(search));
+  const panel = sheetMarkup(ready, {
+    group: destination.id,
+    today: "2026-11-19",
+    current: new URLSearchParams(search),
+  });
   assert.doesNotMatch(
     readableText(panel),
     /Revisar alocação|Registrar intervenção|Acompanhamento da equipe/u,
@@ -262,8 +271,7 @@ void it("omits the allocation review button from the individual sheet", (context
   assert.match(readableText(panel), /Compra registrada/u);
   const signaled = sheetMarkup(
     { ...ready, exitRiskActive: true, confirmation: "BLOCKED" },
-    destination.id,
-    "2026-11-19",
+    { group: destination.id, today: "2026-11-19" },
   );
   assert.match(readableText(signaled), /Registrar intervenção/u);
 });
@@ -276,7 +284,8 @@ void it("shows the destination class start only for new students assigned to a c
     mode: "ENTRY",
     effectiveDate: ready.effectiveDate,
   };
-  const text = (row: Placement) => readableText(sheetMarkup(row, destination.id, "2026-11-19"));
+  const text = (row: Placement): string =>
+    readableText(sheetMarkup(row, { group: destination.id, today: "2026-11-19" }));
   assert.match(text(entry), /Data de início da turma 06\/01\/2027/u);
   assert.doesNotMatch(text(entry), /20\/01\/2027/u);
   for (const row of [
@@ -300,9 +309,11 @@ void it("shows the student's reason on the formation sheet without presenting a 
         continuityReason: "O novo trabalho impede as aulas à noite.",
         blockers: ["Escolha a nova turma para continuar.", "Aprovação pedagógica pendente"],
       },
-      "unassigned",
-      "2026-11-19",
-      new URLSearchParams({ ...search, vinculos: "all" }),
+      {
+        group: "unassigned",
+        today: "2026-11-19",
+        current: new URLSearchParams({ ...search, vinculos: "all" }),
+      },
     ),
   );
   assert.match(text, /O novo trabalho impede as aulas à noite\./u);
@@ -324,8 +335,7 @@ void it("keeps the cancelled publication's local date and author beside its unre
         entryStatus: "CANCELLED",
         blockers: ["A entrada programada mudou"],
       },
-      destination.id,
-      "2027-07-19",
+      { group: destination.id, today: "2027-07-19" },
     ),
   );
   assert.match(text, /cancelad[ao]/iu);

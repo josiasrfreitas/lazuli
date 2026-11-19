@@ -67,20 +67,32 @@ function reviewRisk(row: Placement, reassessment: string): Prisma.SemesterPlacem
   };
 }
 
+function assertCaseState(row: Placement, input: FormationCaseInput): void {
+  if ("version" in input) assertVersion(row.version, input.version);
+  if (!["BLOCK", "SCHEDULE_RISK", "RISK"].includes(input.kind) && !hasFormationSignal(row))
+    throw badRequest("Registre uma sinalização antes de registrar uma intervenção.");
+}
+
+function changeRequestState(
+  row: Placement,
+  input: Extract<FormationCaseInput, { kind: "CHANGE_REQUEST" }>,
+): Prisma.SemesterPlacementUpdateInput {
+  return {
+    continuity: "CHANGE",
+    continuityReason: [input.outcome, input.narrative].join(" · "),
+    exitRiskActive: row.exitRiskActive || row.continuity === "LEAVING",
+  };
+}
+
 function stateChange(
   row: Placement,
   input: FormationCaseInput,
 ): Prisma.SemesterPlacementUpdateInput | null {
-  if ("version" in input) assertVersion(row.version, input.version);
-  if (!["BLOCK", "SCHEDULE_RISK", "RISK"].includes(input.kind) && !hasFormationSignal(row))
-    throw badRequest("Registre uma sinalização antes de registrar uma intervenção.");
+  assertCaseState(row, input);
   switch (input.kind) {
-    case "CHANGE_REQUEST":
-      return {
-        continuity: "CHANGE",
-        continuityReason: [input.outcome, input.narrative].join(" · "),
-        exitRiskActive: row.exitRiskActive || row.continuity === "LEAVING",
-      };
+    case "CHANGE_REQUEST": {
+      return changeRequestState(row, input);
+    }
     case "RETRACT_REQUEST": {
       if (row.continuity !== "CHANGE") throw badRequest("Não há pedido de troca em aberto.");
       return { continuity: "UNDECIDED", continuityReason: null };
@@ -119,11 +131,21 @@ type EventData = Pick<
   | "renegotiationId"
   | "renewalId"
 >;
+
+function eventReferences(
+  input: FormationCaseInput,
+): Pick<EventData, "renegotiationId" | "renewalId"> {
+  const reference = "reference" in input ? input.reference : null;
+  return {
+    renegotiationId: reference?.type === "renegotiation" ? reference.id : null,
+    renewalId: reference?.type === "renewal" ? reference.id : null,
+  };
+}
+
 function eventData(
   input: FormationCaseInput,
   actor: Pick<EventData, "placementId" | "recordedById">,
 ): EventData {
-  const reference = "reference" in input ? input.reference : null;
   return {
     ...actor,
     kind: input.kind,
@@ -133,8 +155,7 @@ function eventData(
     outcome: "outcome" in input ? input.outcome : null,
     reassessment: input.kind === "REVIEW" ? input.reassessment : null,
     nextOwner: input.kind === "HANDOFF" ? input.nextOwner : null,
-    renegotiationId: reference?.type === "renegotiation" ? reference.id : null,
-    renewalId: reference?.type === "renewal" ? reference.id : null,
+    ...eventReferences(input),
   };
 }
 

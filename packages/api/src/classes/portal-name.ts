@@ -46,7 +46,7 @@ export async function resolvePortalClassName(
   fields: ClassNameFields,
 ): Promise<string> {
   const details = await namingDetails(database, fields);
-  const candidates = Array.from({ length: MAX_PORTAL_NAME_ATTEMPTS }, (_, index) =>
+  const candidates = Array.from({ length: MAX_PORTAL_NAME_ATTEMPTS }, (_unused, index) =>
     generatePortalClassName(details, index + 1),
   );
   const existing = await database.class.findMany({

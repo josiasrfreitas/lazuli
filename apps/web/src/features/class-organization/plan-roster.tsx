@@ -38,6 +38,21 @@ function matchesStatus({ row, risks }: Entry, status: string): boolean {
   return status === "all" || (status === "risk" ? risks.size > 0 : row.confirmation === status);
 }
 
+function studentLineLabel(
+  { row, reasons }: Entry,
+  { stage, average }: { stage: string | false; average: string | undefined },
+): string {
+  return [
+    `Revisar ${row.studentName}`,
+    stage,
+    confirmationLabels[row.confirmation],
+    average && `Média ${average}`,
+    ...reasons.map((reason) => reason.label),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function StudentLine({
   entry,
   showStage,
@@ -49,23 +64,15 @@ function StudentLine({
 }): ReactElement {
   const { row, reasons } = entry;
   const blocked = row.confirmation === "BLOCKED";
-  const blockers = blocked ? reasons.filter((reason) => reason.blocker) : [];
   const attention = blocked ? reasons.filter((reason) => !reason.blocker) : reasons;
   const average = row.attention.gradeAverage?.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+  const stage = row.stageName ?? "Estágio a definir";
   return (
     <li>
       <button
         type="button"
         className={styles.row}
-        aria-label={[
-          `Revisar ${row.studentName}`,
-          showStage && (row.stageName ?? "Estágio a definir"),
-          confirmationLabels[row.confirmation],
-          average && `Média ${average}`,
-          ...reasons.map((reason) => reason.label),
-        ]
-          .filter(Boolean)
-          .join(" · ")}
+        aria-label={studentLineLabel(entry, { stage: showStage && stage, average })}
         data-formation-focus={`person-${row.id}`}
         onClick={(event) => onSelect({ kind: "student", id: row.id }, event.currentTarget)}
       >
@@ -73,24 +80,18 @@ function StudentLine({
           <StudentAvatar size="md" name={row.studentName} colorKey={row.studentId} />
           <span>
             <strong>{row.studentName}</strong>
-            {showStage && <small>{row.stageName ?? "Estágio a definir"}</small>}
+            {showStage && <small>{stage}</small>}
           </span>
         </span>
         <span className={styles.status}>
-          {blockers.length ? (
-            blockers.map((reason) => <FormationReason key={reason.risk} reason={reason} />)
-          ) : (
-            <Badge variant={confirmationVariants[row.confirmation]}>
-              {confirmationLabels[row.confirmation]}
-            </Badge>
-          )}
+          <StudentConfirmation entry={entry} />
         </span>
         <span className={styles.grade} data-low={entry.risks.has("lowGrade") || undefined}>
           <span className={styles.mobileLabel}>Média </span>
           {average ?? "—"}
         </span>
         <span className={styles.reasons} data-empty={attention.length === 0 || undefined}>
-          {attention.length
+          {attention.length > 0
             ? attention.map((reason) => <FormationReason key={reason.risk} reason={reason} />)
             : "—"}
         </span>
@@ -98,6 +99,20 @@ function StudentLine({
       </button>
     </li>
   );
+}
+
+function StudentConfirmation({ entry }: { entry: Entry }): ReactElement {
+  const status = entry.row.confirmation;
+  const blockers = status === "BLOCKED" ? entry.reasons.filter((reason) => reason.blocker) : [];
+  if (blockers.length > 0)
+    return (
+      <>
+        {blockers.map((reason) => (
+          <FormationReason key={reason.risk} reason={reason} />
+        ))}
+      </>
+    );
+  return <Badge variant={confirmationVariants[status]}>{confirmationLabels[status]}</Badge>;
 }
 
 const initialCriteria = { status: "all", risk: "all" };
@@ -131,7 +146,7 @@ export function PlanRoster({
   onSelect: SelectPerson;
 }): ReactElement {
   const { status, risk: selectedRisk } = filters.forPlan(planId);
-  const entries = rows.map(rosterEntry);
+  const entries = rows.map((row) => rosterEntry(row));
   const riskOptions = rosterRiskOptions(entries);
   const risk = riskOptions.some((option) => option.value === selectedRisk) ? selectedRisk : "all";
   const showStage = new Set(rows.map((row) => row.stageId)).size > 1;
@@ -153,7 +168,7 @@ export function PlanRoster({
         <span className="sr-only" role="status">
           {visible.length} {visible.length === 1 ? "aluno na lista" : "alunos na lista"}
         </span>
-        {visible.length ? (
+        {visible.length > 0 ? (
           <>
             <div className={styles.columns} aria-hidden="true">
               <span>Aluno</span>
@@ -174,7 +189,7 @@ export function PlanRoster({
           </>
         ) : (
           <p className={styles.empty}>
-            {rows.length
+            {rows.length > 0
               ? "Nenhum aluno corresponde ao filtro selecionado."
               : "Nenhum aluno proposto para esta turma."}
           </p>

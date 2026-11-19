@@ -58,7 +58,7 @@ function focusReturnPoint(root: HTMLElement, target: ReturnPoint | "heading"): v
   const trigger =
     target.trigger &&
     root.querySelector<HTMLElement>(`[data-formation-focus="${CSS.escape(target.trigger)}"]`);
-  const fallback = heading ?? document.getElementById("formation-page-heading");
+  const fallback = heading ?? document.querySelector<HTMLElement>("#formation-page-heading");
   (trigger || fallback)?.focus({ preventScroll: true });
 }
 
@@ -93,7 +93,13 @@ function usePanelFocus(
   return pendingFocus;
 }
 
-function usePanelLocation(previous: PanelView | undefined) {
+function usePanelLocation(previous: PanelView | undefined): Pick<
+  FormationNavigation,
+  "panel" | "returnToReview" | "returnHref"
+> & {
+  setPanel: (person: PanelPerson | null) => void;
+  goToReview: () => void;
+} {
   const [route, setRoute] = useQueryStates(formationDetailParsers);
   const panel = useMemo<PanelPerson | null>(() => {
     if (route.leadFormacao) return { kind: "lead", id: route.leadFormacao };

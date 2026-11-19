@@ -44,8 +44,20 @@ async function placementBlockers(
   { row, now }: { row: Placement; now: Date },
 ): Promise<string[]> {
   const input = eligibility(row);
+  const continuing = continuesOwnClass(row);
+  input.cohortAdvance = continuing;
+  const formation = await scheduledFormationBlockers(database, {
+    row,
+    now,
+    continuing,
+    entryOn: input.entryOn,
+  });
+  return [...semesterPlacementBlockers(input), ...formation, ...changeBlockers(row, input.entryOn)];
+}
+
+function continuesOwnClass(row: Placement): boolean {
   const target = row.enrollment?.class;
-  const continuing =
+  return (
     row.mode !== "ENTRY" &&
     followsOwnClass(
       row.sourceEnrollment?.classId ?? null,
@@ -56,8 +68,36 @@ async function placementBlockers(
             sourceClassId: row.plan.sourceClassId,
           }
         : null,
-    );
-  input.cohortAdvance = continuing;
+    )
+  );
+}
+
+function placementContractStatus(
+  row: Placement,
+  entryOn: string,
+): ReturnType<typeof formationContractStatus> {
+  const contractEnd = contractCoverageEnd(
+    row.student.contracts.map(({ startsOn, endsOn }) => ({
+      startsOn: startsOn && dateOnly(startsOn),
+      endsOn: endsOn && dateOnly(endsOn),
+    })),
+    entryOn,
+  );
+  return formationContractStatus(contractEnd, {
+    from: dateOnly(row.semester.startDate),
+    through: dateOnly(row.semester.endDate),
+  });
+}
+
+async function scheduledFormationBlockers(
+  database: TransactionClient,
+  {
+    row,
+    now,
+    continuing,
+    entryOn,
+  }: { row: Placement; now: Date; continuing: boolean; entryOn: string },
+): Promise<string[]> {
   const [academic, materials] = continuing
     ? await Promise.all([
         readFormationAcademics(database, {
@@ -68,31 +108,24 @@ async function placementBlockers(
       ])
     : [];
   const metrics = academic?.get(row.sourceProgressId ?? "");
-  const contractEnd = contractCoverageEnd(
-    row.student.contracts.map(({ startsOn, endsOn }) => ({
-      startsOn: startsOn && dateOnly(startsOn),
-      endsOn: endsOn && dateOnly(endsOn),
-    })),
-    input.entryOn,
-  );
-  return [
-    ...semesterPlacementBlockers(input),
-    ...formationPlacementBlockers({
-      continuing,
-      continuity: row.continuity,
-      contractStatus: formationContractStatus(contractEnd, {
-        from: dateOnly(row.semester.startDate),
-        through: dateOnly(row.semester.endDate),
-      }),
-      materialMissing: Boolean(row.stageId && !materials?.get(row.studentId)?.has(row.stageId)),
-      grades: metrics?.grades,
-      attendanceFlagged: metrics?.attendanceFlagged ?? false,
-      classClosurePending: row.classClosurePending,
-      exitRiskActive: row.exitRiskActive,
-      staffImpediment: Boolean(row.attentionNote?.trim()),
-    }),
-    ...changeBlockers(row, input.entryOn),
-  ];
+  return formationPlacementBlockers({
+    continuing,
+    continuity: row.continuity,
+    contractStatus: placementContractStatus(row, entryOn),
+    materialMissing: missingMaterial(row, materials),
+    grades: metrics?.grades,
+    attendanceFlagged: metrics?.attendanceFlagged ?? false,
+    classClosurePending: row.classClosurePending,
+    exitRiskActive: row.exitRiskActive,
+    staffImpediment: Boolean(row.attentionNote?.trim()),
+  });
+}
+
+function missingMaterial(
+  row: Placement,
+  materials: Awaited<ReturnType<typeof readAcquiredStages>> | undefined,
+): boolean {
+  return Boolean(row.stageId && !materials?.get(row.studentId)?.has(row.stageId));
 }
 
 function changeBlockers(row: Placement, entryOn: string): string[] {

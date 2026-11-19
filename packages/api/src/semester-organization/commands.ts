@@ -170,6 +170,21 @@ async function moveAcrossSemester(
     });
     return;
   }
+  await createPlacementInTarget(context, { input, source, semesterId });
+}
+
+async function createPlacementInTarget(
+  context: OrganizationContext,
+  {
+    input,
+    source,
+    semesterId,
+  }: {
+    input: z.infer<typeof moveSchema>;
+    source: Placement;
+    semesterId: string;
+  },
+): Promise<void> {
   const current = await currentSourceProgress(context, source);
   const sourceProgressId =
     current?.id ??

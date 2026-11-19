@@ -1,53 +1,27 @@
 # PR 305 lint progress
 
-Locked batch: formation lifecycle, class labels, and placement.
-Original count: 99 errors in this batch, 113 overall.
-Latest measured remaining: 99 in the locked files and 113 overall.
+Locked batch: contracts, enrollment, and assessment file polling.
+Original count: 14 errors in this batch, 14 overall.
+Latest measured remaining: 14 in the locked files and 14 overall.
 Snapshot: `pnpm lint --continue=dependencies-successful --output-logs=errors-only`,
-`/tmp/lazuli-pr305-lint-after-review.log` and `/tmp/lazuli-pr305-lint-after-review.json`.
-Next gate: zero errors in the locked files, check affected types and behavior, then compare a full lint run.
+`/tmp/lazuli-pr305-lint-after-formation.log` and `/tmp/lazuli-pr305-lint-after-formation.json`.
+Next gate: zero errors in the locked files, web typecheck and affected tests, then compare full lint.
 
-- `apps/web/src/features/class-organization/action-dialogs.tsx` — 1
-- `apps/web/src/features/class-organization/agenda.tsx` — 4
-- `apps/web/src/features/class-organization/case-form.tsx` — 3
-- `apps/web/src/features/class-organization/case-timeline.tsx` — 2
-- `apps/web/src/features/class-organization/composition-sections.tsx` — 2
-- `apps/web/src/features/class-organization/confirmation.ts` — 1
-- `apps/web/src/features/class-organization/continuity.tsx` — 1
-- `apps/web/src/features/class-organization/dialogs.tsx` — 2
-- `apps/web/src/features/class-organization/formation-detail-breadcrumb.tsx` — 2
-- `apps/web/src/features/class-organization/formation-panel.tsx` — 2
-- `apps/web/src/features/class-organization/formation-reason.tsx` — 1
-- `apps/web/src/features/class-organization/page-loading.tsx` — 1
-- `apps/web/src/features/class-organization/page-view.tsx` — 2
-- `apps/web/src/features/class-organization/placement-date-dialog.tsx` — 1
-- `apps/web/src/features/class-organization/placement-model.ts` — 4
-- `apps/web/src/features/class-organization/plan-roster.tsx` — 6
-- `apps/web/src/features/class-organization/reset-formation-dialog.tsx` — 2
-- `apps/web/src/features/class-organization/review-context.tsx` — 3
-- `apps/web/src/features/class-organization/review-detail.tsx` — 6
-- `apps/web/src/features/class-organization/review-model.ts` — 2
-- `apps/web/src/features/class-organization/review-navigation.ts` — 4
-- `apps/web/src/features/class-organization/review-publish.ts` — 2
-- `apps/web/src/features/class-organization/review-row.tsx` — 6
-- `apps/web/src/features/class-organization/review-view.tsx` — 1
-- `apps/web/src/features/class-organization/use-formation-navigation.ts` — 2
-- `apps/web/src/features/students/profile/student-formation-dialog.tsx` — 6
-- `apps/web/test/features/formation-review-case.unit.test.ts` — 4
-- `packages/api/src/classes/portal-name.ts` — 1
-- `packages/api/src/semester-organization/case-events.ts` — 3
-- `packages/api/src/semester-organization/case-history.ts` — 2
-- `packages/api/src/semester-organization/commands.ts` — 1
-- `packages/api/src/semester-organization/dissolve.ts` — 1
-- `packages/api/src/semester-organization/prepare.ts` — 2
-- `packages/api/src/semester-organization/queries.ts` — 1
-- `packages/api/src/semester-organization/write.ts` — 1
-- `packages/db/src/attendance-percent.ts` — 1
-- `packages/domain/src/class-portal-name.ts` — 2
-- `packages/domain/src/formation.ts` — 1
-- `packages/worker-handlers/src/enrollment/semester-placements.ts` — 1
-- `packages/worker-handlers/test/enrollment/semester-placements.integration.test.ts` — 1
-- `scripts/rename-class-labels.ts` — 8
+- `apps/web/src/features/assessment-files/queue-provider.tsx` — 2
+- `apps/web/src/features/contracts/contract-form-model.ts` — 1
+- `apps/web/src/features/contracts/contract-setup.tsx` — 1
+- `apps/web/src/features/contracts/new-contract-state.ts` — 3
+- `apps/web/src/features/contracts/semester-books.tsx` — 5
+- `apps/web/src/features/students/new-student/new-student-dialog.tsx` — 1
+- `apps/web/test/features/contract-payer-model.unit.test.ts` — 1
+
+## Closed batch: formation lifecycle, class labels, and placement
+
+Targeted lint closed all 99 locked errors. API, DB, domain, web, and worker-handler
+typechecks passed, along with 56 focused unit tests and 24 integration tests against
+an isolated database. The class renaming script ran without `--apply`. Orca verified
+the class sheet and its actions on desktop and mobile. Full lint confirmed 113 → 14,
+with zero added by file, rule, and message. Duplication passed.
 
 ## Closed batch: formation review search, filters, and class grouping
 

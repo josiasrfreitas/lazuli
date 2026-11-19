@@ -69,7 +69,12 @@ export function CaseTimeline({
           </Button>
         )}
       </div>
-      <TimelineEntries history={history} id={row.id} links={links} />
+      <TimelineEntries
+        history={history}
+        id={row.id}
+        links={links}
+        retry={() => void history.refetch()}
+      />
       {canRecord && open && (
         <CaseForm
           id={row.id}
@@ -94,18 +99,19 @@ function TimelineEntries({
   id,
   links,
   history,
+  retry,
 }: TimelineProps & {
+  retry: () => void;
   history: {
     data: Event[] | undefined;
     isPending: boolean;
     isError: boolean;
-    refetch: () => Promise<unknown>;
   };
 }): ReactElement {
   if (history.isPending) return <p role="status">Carregando acompanhamento…</p>;
   if (history.isError)
     return (
-      <Button size="sm" variant="link" onClick={() => void history.refetch()}>
+      <Button size="sm" variant="link" onClick={retry}>
         Tentar carregar acompanhamento
       </Button>
     );
@@ -159,6 +165,7 @@ function TimelineItem({ item, id, links }: TimelineProps & { item: Event }): Rea
 }
 
 function InterventionOutcome({ item }: { item: Event }): ReactElement {
+  const outcomeLabel = item.kind === "HANDOFF" ? "Combinado" : "Resultado";
   return (
     <>
       {item.nextOwner && (
@@ -168,14 +175,8 @@ function InterventionOutcome({ item }: { item: Event }): ReactElement {
       )}
       {item.outcome && (
         <p>
-          <strong>
-            {item.kind === "CHANGE_REQUEST"
-              ? "Motivo da troca"
-              : item.kind === "HANDOFF"
-                ? "Combinado"
-                : "Resultado"}
-          </strong>{" "}
-          · {item.outcome}
+          <strong>{item.kind === "CHANGE_REQUEST" ? "Motivo da troca" : outcomeLabel}</strong> ·{" "}
+          {item.outcome}
         </p>
       )}
     </>

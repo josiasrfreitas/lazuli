@@ -65,7 +65,7 @@ const placementIcons = new Map<string, LucideIcon>([
   ["Vigência fora do período letivo", CalendarClock],
 ]);
 
-export function FormationReason({ reason }: { reason: AttentionReason }) {
+export function FormationReason({ reason }: { reason: AttentionReason }): ReactElement {
   const risk =
     reason.risk && Object.hasOwn(riskIcons, reason.risk)
       ? (reason.risk as Risk)
@@ -78,3 +78,4 @@ export function FormationReason({ reason }: { reason: AttentionReason }) {
     </span>
   );
 }
+import type { ReactElement } from "react";

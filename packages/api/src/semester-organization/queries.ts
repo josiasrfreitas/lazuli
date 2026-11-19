@@ -431,27 +431,31 @@ function placementView(context: OrganizationContext, options: PlacementViewOptio
     row.declinedAt || (!row.classClosurePending && placementAlreadySettled(row))
       ? []
       : [...reviewReasons, ...placementViewBlockers(context, { row, semester, plan, continuing })];
-  const confirmation =
-    row.classClosurePending && !row.declinedAt
-      ? "BLOCKED"
-      : periodConfirmation({
-          continuity: z.enum(["CHANGE", "LEAVING", "STAY", "UNDECIDED"]).parse(row.continuity),
-          declined: Boolean(row.declinedAt),
-          enrolled: Boolean(
-            row.publishedAt && (row.entryStatus === "SCHEDULED" || placementAlreadySettled(row)),
-          ),
-          continuing,
-          ready: Boolean(row.planId) && blockers.length === 0,
-        });
   return {
     ...row,
     attention,
-    confirmation,
+    confirmation: viewConfirmation(row, { continuing, blockers }),
     ...contractCoverage(contracts, { row, semester, nextSemester, coverageDate }),
     sourceSchedule: sourceSchedule(sourceClass),
     sourceTeacher: sourceClass ? (usualTeacherOn(sourceClass, context.now)?.name ?? null) : null,
     blockers,
   };
+}
+
+function viewConfirmation(
+  row: PlacementRow,
+  { continuing, blockers }: { continuing: boolean; blockers: string[] },
+): PlacementView["confirmation"] {
+  if (row.classClosurePending && !row.declinedAt) return "BLOCKED";
+  return periodConfirmation({
+    continuity: z.enum(["CHANGE", "LEAVING", "STAY", "UNDECIDED"]).parse(row.continuity),
+    declined: Boolean(row.declinedAt),
+    enrolled: Boolean(
+      row.publishedAt && (row.entryStatus === "SCHEDULED" || placementAlreadySettled(row)),
+    ),
+    continuing,
+    ready: Boolean(row.planId) && blockers.length === 0,
+  });
 }
 
 function placementCoverageDate(

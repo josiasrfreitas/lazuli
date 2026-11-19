@@ -13,7 +13,11 @@ import {
 } from "./model";
 import { FormationPanel, type FormationRosterFilters } from "./formation-panel";
 import { formationPlanTitle } from "./formation-detail-breadcrumb";
-import { useFormationNavigation, type FormationNavigation } from "./use-formation-navigation";
+import {
+  useFormationNavigation,
+  type FormationNavigation,
+  type PanelPerson,
+} from "./use-formation-navigation";
 import {
   atRisk,
   matchesPlan,
@@ -72,34 +76,39 @@ function useAgendaNavigation({
   );
   return { ...navigation, ended, plan, student, plans };
 }
+function agendaPersonName(
+  board: OrganizationBoard,
+  person: PanelPerson | null | undefined,
+): string {
+  if (person?.kind === "student")
+    return (
+      board.placements.find((item) => item.id === person.id)?.studentName ?? "Formação de turmas"
+    );
+  return (
+    board.waitingLeads.find((item) => item.id === person?.id)?.fullName ?? "Formação de turmas"
+  );
+}
+
+function agendaParent(
+  board: OrganizationBoard,
+  { returnView, returnHref, returnToReview }: AgendaNavigation,
+): NonNullable<Parameters<typeof FormationPanel>[0]["returnParent"]> {
+  if (returnToReview)
+    return { label: "Revisão de vínculos", planId: null, href: returnHref, review: true };
+  const plan = board.plans.find((item) => item.id === returnView?.planId);
+  return {
+    label: plan ? formationPlanTitle(plan) : agendaPersonName(board, returnView?.person),
+    planId: plan?.id ?? null,
+    href: returnHref,
+    review: false,
+  };
+}
+
 export function OrganizationAgenda(props: Props): ReactElement {
-  const { board, selected, onAction, prepare, preparing, clearFilters } = props;
-  const {
-    panel,
-    returnView,
-    returnHref,
-    returnToReview,
-    workspace,
-    ended,
-    plan,
-    student,
-    plans,
-    showPlan,
-    selectPerson,
-    goBack,
-    reset,
-  } = useAgendaNavigation(props);
-  const parentPlan = board.plans.find((item) => item.id === returnView?.planId);
-  const parentPerson = returnView?.person;
-  const parentName =
-    parentPerson?.kind === "student"
-      ? board.placements.find((item) => item.id === parentPerson.id)?.studentName
-      : board.waitingLeads.find((item) => item.id === parentPerson?.id)?.fullName;
-  const parentLabel = returnToReview
-    ? "Revisão de vínculos"
-    : parentPlan
-      ? formationPlanTitle(parentPlan)
-      : (parentName ?? "Formação de turmas");
+  const { board, onAction } = props;
+  const navigation = useAgendaNavigation(props);
+  const { panel, returnToReview, workspace, ended, plan, showPlan, selectPerson, goBack } =
+    navigation;
   const showDetail = Boolean(plan || panel || returnToReview);
   return (
     <div
@@ -108,45 +117,10 @@ export function OrganizationAgenda(props: Props): ReactElement {
       data-formation-workspace=""
       ref={workspace}
     >
-      <section className={styles.schedule} aria-label="Grade semanal de turmas">
-        {student && (
-          <div className={styles.match}>
-            Encaixes para <strong>{student.studentName}</strong>
-            <Button size="sm" variant="ghost" onClick={reset}>
-              Limpar
-            </Button>
-          </div>
-        )}
-        {plans.length > 0 ? (
-          <WeekGrid
-            board={board}
-            plans={plans}
-            days={teachingWeek}
-            selected={selected}
-            onSelect={showPlan}
-          />
-        ) : (
-          <EmptySchedule
-            board={board}
-            ended={ended}
-            prepare={prepare}
-            preparing={preparing}
-            onAction={onAction}
-            clearFilters={() => {
-              clearFilters();
-              reset();
-            }}
-          />
-        )}
-      </section>
+      <AgendaSchedule props={props} navigation={navigation} />
       {showDetail && (
         <FormationPanel
-          returnParent={{
-            label: parentLabel,
-            planId: parentPlan?.id ?? null,
-            href: returnHref,
-            review: returnToReview,
-          }}
+          returnParent={agendaParent(board, navigation)}
           board={board}
           rosterFilters={props.rosterFilters}
           plan={plan}
@@ -159,6 +133,50 @@ export function OrganizationAgenda(props: Props): ReactElement {
         />
       )}
     </div>
+  );
+}
+
+function AgendaSchedule({
+  props,
+  navigation,
+}: {
+  props: Props;
+  navigation: AgendaNavigation;
+}): ReactElement {
+  const { board, selected, onAction, prepare, preparing, clearFilters } = props;
+  const { student, plans, showPlan, reset, ended } = navigation;
+  return (
+    <section className={styles.schedule} aria-label="Grade semanal de turmas">
+      {student && (
+        <div className={styles.match}>
+          Encaixes para <strong>{student.studentName}</strong>
+          <Button size="sm" variant="ghost" onClick={reset}>
+            Limpar
+          </Button>
+        </div>
+      )}
+      {plans.length > 0 ? (
+        <WeekGrid
+          board={board}
+          plans={plans}
+          days={teachingWeek}
+          selected={selected}
+          onSelect={showPlan}
+        />
+      ) : (
+        <EmptySchedule
+          board={board}
+          ended={ended}
+          prepare={prepare}
+          preparing={preparing}
+          onAction={onAction}
+          clearFilters={() => {
+            clearFilters();
+            reset();
+          }}
+        />
+      )}
+    </section>
   );
 }
 
@@ -269,17 +287,7 @@ function WeekGrid({
   );
   return (
     <>
-      <div className={styles.gridLegend} aria-label="Legenda da grade">
-        <span>
-          <UsersRound size={13} /> Pré-confirmados
-        </span>
-        <span>
-          <Check size={13} /> Confirmados na turma
-        </span>
-        <span>
-          <TriangleAlert size={13} /> Atenção
-        </span>
-      </div>
+      <WeekLegend />
       <DayPicker day={day} days={days} setDay={setDay} />
       <div className={styles.weekScroll} data-formation-week="">
         <table className={styles.week}>
@@ -322,6 +330,22 @@ function WeekGrid({
         <UnscheduledPlans plans={unscheduled} onSelect={onSelect} />
       </div>
     </>
+  );
+}
+
+function WeekLegend(): ReactElement {
+  return (
+    <div className={styles.gridLegend} aria-label="Legenda da grade">
+      <span>
+        <UsersRound size={13} /> Pré-confirmados
+      </span>
+      <span>
+        <Check size={13} /> Confirmados na turma
+      </span>
+      <span>
+        <TriangleAlert size={13} /> Atenção
+      </span>
+    </div>
   );
 }
 

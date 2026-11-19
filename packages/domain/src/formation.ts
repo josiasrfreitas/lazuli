@@ -70,7 +70,7 @@ export const formationBlocker = {
   change: "Escolha a nova turma para continuar.",
 } as const;
 
-export function formationPlacementBlockers(input: {
+type FormationBlockerInput = {
   continuing: boolean;
   continuity: string;
   contractStatus: FormationContractStatus;
@@ -80,7 +80,19 @@ export function formationPlacementBlockers(input: {
   staffImpediment: boolean;
   exitRiskActive?: boolean;
   classClosurePending?: boolean;
-}): string[] {
+};
+
+function continuationBlockers(input: FormationBlockerInput): string[] {
+  const reasons: string[] = [];
+  if (input.classClosurePending) reasons.push(formationBlocker.classClosed);
+  if (input.contractStatus === "EARLY_END") reasons.push(formationBlocker.earlyContractEnd);
+  if (input.materialMissing) reasons.push(formationBlocker.material);
+  if (input.grades === "NEEDS_SUPPORT") reasons.push(formationBlocker.lowGrade);
+  if (input.attendanceFlagged) reasons.push(formationBlocker.lowAttendance);
+  return reasons;
+}
+
+export function formationPlacementBlockers(input: FormationBlockerInput): string[] {
   const reasons: string[] = [];
   if (input.classClosurePending) reasons.push(formationBlocker.classClosed);
   if (input.contractStatus === "MISSING") reasons.push(formationBlocker.missingContract);
@@ -88,11 +100,6 @@ export function formationPlacementBlockers(input: {
   if (input.exitRiskActive || input.continuity === "LEAVING")
     reasons.push(formationBlocker.leaving);
   if (input.continuity === "CHANGE") reasons.push(formationBlocker.change);
-  if (!input.continuing) return reasons;
-  if (input.classClosurePending) reasons.push(formationBlocker.classClosed);
-  if (input.contractStatus === "EARLY_END") reasons.push(formationBlocker.earlyContractEnd);
-  if (input.materialMissing) reasons.push(formationBlocker.material);
-  if (input.grades === "NEEDS_SUPPORT") reasons.push(formationBlocker.lowGrade);
-  if (input.attendanceFlagged) reasons.push(formationBlocker.lowAttendance);
+  if (input.continuing) reasons.push(...continuationBlockers(input));
   return reasons;
 }

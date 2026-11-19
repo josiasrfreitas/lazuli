@@ -21,7 +21,7 @@ export function PlacementDateDialog({ row, board, onFeedback, onClose }: Props):
   const [error, setError] = useState("");
   const refresh = useOrganizationRefresh();
   const save = trpc.semesterOrganization.savePlacement.useMutation({
-    onSuccess: async (_, input) => {
+    onSuccess: async (_result, input) => {
       await refresh();
       onFeedback(
         `Vigência da proposta de ${row.studentName} alterada para ${formatDateOnlyBR(input.effectiveDate)}.`,

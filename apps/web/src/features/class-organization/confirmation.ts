@@ -30,7 +30,7 @@ export function isReadyForAllocation(row: Placement): boolean {
     !row.declinedAt &&
     row.continuity !== "CHANGE" &&
     row.continuity !== "LEAVING" &&
-    !row.blockers.length,
+    row.blockers.length === 0,
   );
 }
 export function planMetrics(

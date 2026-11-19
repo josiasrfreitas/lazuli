@@ -32,9 +32,15 @@ export function restoreReviewFormationLocation(params: URLSearchParams): void {
 
 export function reviewStudentHref(
   path: string,
-  current: Pick<URLSearchParams, "toString" | "get">,
-  rowId: string,
-  groupId: string,
+  {
+    current,
+    rowId,
+    groupId,
+  }: {
+    current: Pick<URLSearchParams, "toString" | "get">;
+    rowId: string;
+    groupId: string;
+  },
 ): string {
   const params = new URLSearchParams(current.toString());
   const origin = new URLSearchParams();
@@ -44,7 +50,7 @@ export function reviewStudentHref(
   params.delete("leadFormacao");
   params.set("alunoFormacao", rowId);
   params.set("retornoFormacao", "review");
-  if (origin.size) params.set("origemGradeFormacao", origin.toString());
+  if (origin.size > 0) params.set("origemGradeFormacao", origin.toString());
   else params.delete("origemGradeFormacao");
   params.set("grupoVinculo", groupId);
   params.set("vinculo", rowId);
@@ -57,10 +63,13 @@ export function useReviewStudentHref(
   const path = usePathname();
   const params = new URLSearchParams(useSearchParams());
   params.set("semestre", semesterId);
-  return (rowId, groupId) => reviewStudentHref(path, params, rowId, groupId);
+  return (rowId, groupId) => reviewStudentHref(path, { current: params, rowId, groupId });
 }
 
-export function useOpenReviewFormationDetail() {
+export function useOpenReviewFormationDetail(): {
+  openPlan: (id: string) => void;
+  openLead: (id: string) => void;
+} {
   const current = useSearchParams();
   const [, setRoute] = useQueryStates(formationDetailParsers, { history: "push" });
   function open(planId: string | null, leadId: string | null): void {
@@ -72,7 +81,7 @@ export function useOpenReviewFormationDetail() {
       alunoFormacao: null,
       leadFormacao: leadId,
       retornoFormacao: "review",
-      origemGradeFormacao: origin.size ? origin.toString() : null,
+      origemGradeFormacao: origin.size > 0 ? origin.toString() : null,
     });
   }
   return {

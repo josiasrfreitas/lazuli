@@ -69,7 +69,7 @@ export function usePlacementModel(props: PlacementProps): PlacementModel {
   const validation = useValidation();
   const refresh = useOrganizationRefresh();
   const mutation = trpc.semesterOrganization.savePlacement.useMutation({
-    onSuccess: async (_, input) => {
+    onSuccess: async (_result, input) => {
       await refresh();
       const destination = board.plans.find((plan) => plan.id === input.planId);
       const starts = formatDateOnlyBR(input.effectiveDate ?? dateOnly(board.semester.startDate));
@@ -155,16 +155,22 @@ function initialPlacement({
     row?.stageId || mode === storedMode
       ? initialStageId({ data, row, source })
       : nextStageId({ next: mode, progress: source, data });
-  const suggested = board.plans.find((plan) => plan.id === initialPlanId);
-  const allowed =
-    suggested?.active && (!row || row.continuity !== "CHANGE" || compatible(row, suggested));
-  const planId =
-    (allowed ? initialPlanId : undefined) ??
-    (row?.continuity === "CHANGE" ? null : row?.planId) ??
-    "pending";
+  const planId = initialDestination({ board, initialPlanId, row });
   const effectiveDate = initialEffectiveDate(row, board);
   const notes = row?.notes ?? "";
   return { sourceId, mode, stageId, planId, effectiveDate, notes };
+}
+
+function initialDestination({
+  board,
+  initialPlanId,
+  row,
+}: Pick<PlacementProps, "board" | "initialPlanId" | "row">): string {
+  const suggested = board.plans.find((plan) => plan.id === initialPlanId);
+  if (suggested?.active && (!row || row.continuity !== "CHANGE" || compatible(row, suggested)))
+    return suggested.id;
+  if (row?.continuity === "CHANGE") return "pending";
+  return row?.planId ?? "pending";
 }
 
 function isRegularRollover(source: Progress | undefined, board: OrganizationBoard): boolean {
@@ -258,11 +264,7 @@ function placementChanges({
     changeSource: (value) => {
       draft.setSourceId(value);
       const progress = data.progress.find((item) => item.id === value);
-      const next = !progress
-        ? "ENTRY"
-        : isRegularRollover(progress, board)
-          ? "ADVANCE"
-          : "CONTINUE";
+      const next = suggestedPlacementMode(progress, board);
       setMode(next, progress);
     },
     changeMode: (next) =>
@@ -289,6 +291,11 @@ function placementChanges({
       validation.clear("notes");
     },
   };
+}
+
+function suggestedPlacementMode(progress: Progress | undefined, board: OrganizationBoard): Mode {
+  if (progress === undefined) return "ENTRY";
+  return isRegularRollover(progress, board) ? "ADVANCE" : "CONTINUE";
 }
 
 function nextStageId({

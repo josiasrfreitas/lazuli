@@ -96,27 +96,39 @@ function CompositionMenuItems({
           <CalendarClock /> Adiar início
         </Button>
       )}
-      {plan.active && plan.classId ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={ended}
-          nativeButton={false}
-          render={<Link href={`/turmas/${plan.classId}?acao=desfazer`} />}
-        >
-          <Archive /> Desfazer turma
-        </Button>
-      ) : (
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={ended}
-          onClick={() => onAction({ kind: "planStatus", plan, open: !plan.active })}
-        >
-          {plan.active ? <Archive /> : <RotateCcw />}
-          {plan.active ? "Desfazer turma" : "Reabrir turma"}
-        </Button>
-      )}
+      <PlanStatusMenuItem plan={plan} ended={ended} onAction={onAction} />
     </div>
+  );
+}
+
+function PlanStatusMenuItem({
+  plan,
+  ended,
+  onAction,
+}: {
+  plan: ClassPlan;
+  ended: boolean;
+  onAction: ActionHandler;
+}): ReactJSX.Element {
+  return plan.active && plan.classId ? (
+    <Button
+      size="sm"
+      variant="ghost"
+      disabled={ended}
+      nativeButton={false}
+      render={<Link href={`/turmas/${plan.classId}?acao=desfazer`} />}
+    >
+      <Archive /> Desfazer turma
+    </Button>
+  ) : (
+    <Button
+      size="sm"
+      variant="ghost"
+      disabled={ended}
+      onClick={() => onAction({ kind: "planStatus", plan, open: !plan.active })}
+    >
+      {plan.active ? <Archive /> : <RotateCcw />}
+      {plan.active ? "Desfazer turma" : "Reabrir turma"}
+    </Button>
   );
 }

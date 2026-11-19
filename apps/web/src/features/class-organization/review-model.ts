@@ -38,6 +38,10 @@ export function reviewStatus(row: Placement, ended: boolean): ReviewStatus {
   if (row.exitRiskActive || row.continuity === "LEAVING")
     return { label: "Risco de saída", variant: "warning", impliedBlocker: "Risco de saída" };
   if (ended) return { label: "Sem alocação", variant: "neutral" };
+  return pendingReviewStatus(row);
+}
+
+function pendingReviewStatus(row: Placement): ReviewStatus {
   if (row.continuity === "CHANGE")
     return { label: "Aguarda outra turma", variant: "warning", impliedBlocker: destinationBlocker };
   if (!row.planId)
@@ -48,7 +52,7 @@ export function reviewStatus(row: Placement, ended: boolean): ReviewStatus {
     };
   if (row.confirmation === "PRECONFIRMED")
     return { label: confirmationLabels.PRECONFIRMED, variant: "info" };
-  if (row.blockers.length)
+  if (row.blockers.length > 0)
     return {
       label:
         row.confirmation === "BLOCKED" ? confirmationLabels.BLOCKED : "Vínculo com impedimento",

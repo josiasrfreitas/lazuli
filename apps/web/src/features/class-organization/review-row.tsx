@@ -39,47 +39,19 @@ export function ReviewRow({
 }: RowProps): ReactElement {
   const detailId = `review-case-${row.id}`;
   const checkboxId = `review-select-student-${row.id}`;
-  const publishedPlan =
-    row.publishedAt && row.planId && row.planId !== plan?.id
-      ? board.plans.find((candidate) => candidate.id === row.planId)
-      : undefined;
-  const age =
-    row.studentAge == null
-      ? "Idade não informada"
-      : `${row.studentAge} ${row.studentAge === 1 ? "ano" : "anos"}`;
-  const score = row.attention.healthScore;
-  const context = [
-    age,
-    score == null ? "Score indisponível" : `Score ${score}`,
-    studentContext(row, plan),
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  const description = [
-    context && `${detailId}-context`,
-    publishedPlan && `${detailId}-plan`,
-    `${detailId}-status`,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const { publishedPlan, context, description } = rowLinkDetails({ row, board, plan }, detailId);
   return (
     <li className={styles.student} data-selected={selected || undefined}>
       <div className={styles.studentBar}>
         <div className={styles.pick}>
           {eligible && (
-            <label htmlFor={checkboxId} className={styles.studentSelection}>
-              <Checkbox
-                id={checkboxId}
-                size="md"
-                aria-labelledby={`${checkboxId}-label`}
-                checked={selected}
-                disabled={working}
-                onCheckedChange={(value) => onSelection(row, Boolean(value))}
-              />
-              <span id={`${checkboxId}-label`} className="sr-only">
-                Selecionar {row.studentName} para alocação
-              </span>
-            </label>
+            <StudentSelection
+              row={row}
+              checkboxId={checkboxId}
+              selected={selected}
+              working={working}
+              onSelection={onSelection}
+            />
           )}
         </div>
         <Link
@@ -115,26 +87,96 @@ export function ReviewRow({
   );
 }
 
-function studentContext(row: Placement, plan: ClassPlan | undefined): string {
-  if (isReviewDeparture(row)) {
-    const origin = plan && row.sourceClassId !== plan.classId ? row.sourceClassName : null;
-    const stage = row.sourceStageName ?? row.sourceStageCode;
-    return [origin && `Origem · ${origin}`, stage && `Estágio de origem · ${stage}`]
-      .filter(Boolean)
-      .join(" · ");
-  }
+function StudentSelection({
+  row,
+  checkboxId,
+  selected,
+  working,
+  onSelection,
+}: Pick<RowProps, "row" | "selected" | "working" | "onSelection"> & {
+  checkboxId: string;
+}): ReactElement {
+  return (
+    <label htmlFor={checkboxId} className={styles.studentSelection}>
+      <Checkbox
+        id={checkboxId}
+        size="md"
+        aria-labelledby={`${checkboxId}-label`}
+        checked={selected}
+        disabled={working}
+        onCheckedChange={(value) => onSelection(row, Boolean(value))}
+      />
+      <span id={`${checkboxId}-label`} className="sr-only">
+        Selecionar {row.studentName} para alocação
+      </span>
+    </label>
+  );
+}
+
+function rowLinkDetails(
+  { row, plan, board }: Pick<RowProps, "row" | "plan" | "board">,
+  detailId: string,
+): { publishedPlan: ClassPlan | undefined; context: string; description: string } {
+  const publishedPlan =
+    row.publishedAt && row.planId && row.planId !== plan?.id
+      ? board.plans.find((candidate) => candidate.id === row.planId)
+      : undefined;
+  const score = row.attention.healthScore;
+  const context = [
+    ageLabel(row.studentAge),
+    typeof score === "number" ? `Score ${score}` : "Score indisponível",
+    studentContext(row, plan),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const description = [
+    context && `${detailId}-context`,
+    publishedPlan && `${detailId}-plan`,
+    `${detailId}-status`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return { publishedPlan, context, description };
+}
+
+function ageLabel(age: number | null | undefined): string {
+  if (typeof age !== "number") return "Idade não informada";
+  return `${age} ${age === 1 ? "ano" : "anos"}`;
+}
+
+function departureContext(row: Placement, plan: ClassPlan | undefined): string {
+  const origin = plan && row.sourceClassId !== plan.classId ? row.sourceClassName : null;
+  const stage = row.sourceStageName ?? row.sourceStageCode;
+  return [origin && `Origem · ${origin}`, stage && `Estágio de origem · ${stage}`]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function arrivalContext(row: Placement, plan: ClassPlan | undefined): string | null {
+  if (row.mode === "ENTRY") return "Nova entrada";
   const sameGroup = followsOwnClass(row.sourceClassId, plan ?? null);
-  const origin = row.sourceClassName ? `Origem · ${row.sourceClassName}` : null;
+  return !sameGroup && row.sourceClassName ? `Origem · ${row.sourceClassName}` : null;
+}
+
+function studentContext(row: Placement, plan: ClassPlan | undefined): string {
+  if (isReviewDeparture(row)) return departureContext(row, plan);
   const stage = row.stageName ?? row.stageCode ?? "A definir";
   const individualStage =
     !plan || plan.scheduleType === "PERSONALIZED" || plan.sharedStageId !== row.stageId;
   return [
-    row.mode === "ENTRY" ? "Nova entrada" : !sameGroup && origin,
+    arrivalContext(row, plan),
     individualStage && `Destino · ${stage}`,
     row.mode === "REPEAT" && "Repete o estágio",
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+function changedResponseLabel(row: Placement): string | null {
+  if (!row.publishedAt || row.declinedAt) return null;
+  return row.continuity === "CHANGE" || row.continuity === "LEAVING"
+    ? responseLabels[row.continuity]
+    : null;
 }
 
 function RowStatus({ row, ended }: Pick<RowProps, "row" | "ended">): ReactElement {
@@ -155,12 +197,7 @@ function RowStatus({ row, ended }: Pick<RowProps, "row" | "ended">): ReactElemen
           risk === "other"),
     ),
   ];
-  const changedResponse =
-    row.publishedAt &&
-    !row.declinedAt &&
-    (row.continuity === "CHANGE" || row.continuity === "LEAVING")
-      ? responseLabels[row.continuity]
-      : null;
+  const changedResponse = changedResponseLabel(row);
   return (
     <>
       {showBlocker ? (

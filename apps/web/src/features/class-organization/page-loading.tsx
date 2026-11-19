@@ -16,7 +16,7 @@ export function OrganizationLoading({ review = false }: { review?: boolean }): R
     return (
       <section className={styles.board} aria-label="Carregando vínculos" aria-busy="true">
         <FormationProgress label="Buscando os vínculos do semestre" />
-        {Array.from({ length: 5 }, (_, index) => (
+        {Array.from({ length: 5 }, (_unused, index) => (
           <div
             key={index}
             aria-hidden="true"

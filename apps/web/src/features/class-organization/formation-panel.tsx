@@ -1,5 +1,5 @@
 "use client";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { FormationDetailBreadcrumb, formationPlanTitle } from "./formation-detail-breadcrumb";
@@ -43,53 +43,87 @@ type Props = {
 };
 
 export function FormationPanel(props: Props): ReactElement {
-  const { board, selection, plan, onBack } = props;
+  const { board, selection, plan, returnParent } = props;
   const { student, lead } = selectedPerson(board, selection);
   const personName = student?.studentName ?? lead?.fullName;
-  const studentDetail = plan ? undefined : student;
   const title = plan ? formationPlanTitle(plan) : personName;
-  if (!title && (selection || props.returnParent?.review)) {
+  if (!title && (selection || returnParent?.review)) return <UnavailablePanel {...props} />;
+  if (plan) {
     return (
-      <aside id="formation-panel" className={styles.panel} aria-label="Painel de formação">
-        <FormationDetailBreadcrumb
-          name="Ficha indisponível"
-          onBack={onBack}
-          parent={props.returnParent}
-        />
-        <div className={styles.zero}>
-          <h2 id="formation-panel-heading" tabIndex={-1}>
-            Ficha indisponível neste período
-          </h2>
-          <Button size="compact-responsive" variant="secondary" onClick={onBack}>
-            <ArrowLeft /> {props.returnParent?.review ? "Voltar à revisão" : "Voltar à formação"}
-          </Button>
-        </div>
-      </aside>
+      <PanelFrame {...props} title={title} detail="plan">
+        <PlanDetail {...props} plan={plan} student={student} />
+      </PanelFrame>
     );
   }
+  return <PersonPanel {...props} title={title} student={student} lead={lead} />;
+}
+
+function PersonPanel({
+  title,
+  student,
+  lead,
+  ...props
+}: Props & {
+  title: string | undefined;
+  student: Placement | undefined;
+  lead: OrganizationBoard["waitingLeads"][number] | undefined;
+}): ReactElement {
+  const detail = student ? "student" : undefined;
+  return (
+    <PanelFrame {...props} title={title} detail={lead ? "lead" : detail}>
+      {title && (
+        <PanelHeading title={title} student={student} semester={props.board.semester.name} />
+      )}
+      <PersonDetail {...props} student={student} lead={lead} />
+    </PanelFrame>
+  );
+}
+
+function PanelFrame({
+  title,
+  detail,
+  returnParent,
+  onBack,
+  children,
+}: Pick<Props, "returnParent" | "onBack"> & {
+  title: string | undefined;
+  detail: "plan" | "student" | "lead" | undefined;
+  children: ReactNode;
+}): ReactElement {
   return (
     <aside
       id="formation-panel"
       className={styles.panel}
       aria-label="Painel de formação"
-      data-plan-detail={plan ? "" : undefined}
-      data-student-detail={studentDetail ? "" : undefined}
-      data-lead-detail={!plan && lead ? "" : undefined}
+      data-plan-detail={detail === "plan" ? "" : undefined}
+      data-student-detail={detail === "student" ? "" : undefined}
+      data-lead-detail={detail === "lead" ? "" : undefined}
     >
-      {title && (
-        <FormationDetailBreadcrumb name={title} onBack={onBack} parent={props.returnParent} />
-      )}
-      {!plan && title && (
-        <PanelHeading title={title} student={studentDetail} semester={board.semester.name} />
-      )}
-      {plan ? (
-        <PlanDetail {...props} plan={plan} student={student} />
-      ) : (
-        <PersonDetail {...props} student={student} lead={lead} />
-      )}
+      {title && <FormationDetailBreadcrumb name={title} onBack={onBack} parent={returnParent} />}
+      {children}
     </aside>
   );
 }
+
+function UnavailablePanel({
+  returnParent,
+  onBack,
+}: Pick<Props, "returnParent" | "onBack">): ReactElement {
+  return (
+    <aside id="formation-panel" className={styles.panel} aria-label="Painel de formação">
+      <FormationDetailBreadcrumb name="Ficha indisponível" onBack={onBack} parent={returnParent} />
+      <div className={styles.zero}>
+        <h2 id="formation-panel-heading" tabIndex={-1}>
+          Ficha indisponível neste período
+        </h2>
+        <Button size="compact-responsive" variant="secondary" onClick={onBack}>
+          <ArrowLeft /> {returnParent?.review ? "Voltar à revisão" : "Voltar à formação"}
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
 function PanelHeading({
   title,
   student,
@@ -182,6 +216,22 @@ function PersonDetail({
     );
   return null;
 }
+function planContext(
+  plan: ClassPlan,
+  { title, destination, semester }: { title: string; destination: string; semester: string },
+): string {
+  return [
+    title === destination ? "Turma seguinte" : null,
+    plan.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
+    semester,
+    !plan.active && "Desfeita",
+    plan.active && !plan.classId && "Planejada",
+    plan.name !== title && plan.name !== destination ? plan.name : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function PlanDetail({
   board,
   plan,
@@ -203,14 +253,7 @@ function PlanDetail({
   const reviewHref = useFormationReviewHref(board.semester.id, plan.id);
   const title = formationPlanTitle(plan);
   const destination = plan.className ?? plan.name;
-  const context = [
-    title === destination ? "Turma seguinte" : null,
-    plan.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
-    board.semester.name,
-    !plan.active && "Desfeita",
-    plan.active && !plan.classId && "Planejada",
-    plan.name !== title && plan.name !== destination ? plan.name : null,
-  ];
+  const context = planContext(plan, { title, destination, semester: board.semester.name });
   return (
     <div className={styles.panelScroll} data-formation-scroll="">
       <div className={sheet.content}>
@@ -220,7 +263,7 @@ function PlanDetail({
               <h1 id="formation-panel-heading" tabIndex={-1}>
                 {title}
               </h1>
-              <p>{context.filter(Boolean).join(" · ")}</p>
+              <p>{context}</p>
             </div>
             <div className={sheet.actions}>
               <ProposePlace student={student} plan={plan} ended={ended} onAction={onAction} />

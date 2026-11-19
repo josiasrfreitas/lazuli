@@ -27,7 +27,7 @@ export type ClassNameInput = {
 
 export function generatePortalClassName(input: ClassNameInput, sequence = 1): string {
   const { scheduleType, slots, stageInternalCode, teacherName } = input;
-  if (!slots.length) throw new Error("A class name requires at least one schedule slot.");
+  if (slots.length === 0) throw new Error("A class name requires at least one schedule slot.");
 
   const ranges = new Map<string, Set<string>>();
   for (const slot of slots.toSorted(compareSlots)) {
@@ -43,7 +43,7 @@ export function generatePortalClassName(input: ClassNameInput, sequence = 1): st
   const teacher = teacherName?.trim();
   if (teacher) {
     const fullName = `${base} ${teacher}${suffix}`;
-    if (Array.from(fullName).length <= MAX_LABEL_LENGTH_WITH_TEACHER) return fullName;
+    if ([...fullName].length <= MAX_LABEL_LENGTH_WITH_TEACHER) return fullName;
   }
   return base + suffix;
 }

@@ -1,5 +1,6 @@
 /** Backfill stored class labels using the same formatter as creation. Pass --apply to persist. */
 import { randomUUID } from "node:crypto";
+import { inspect } from "node:util";
 import { db, type TransactionClient } from "../packages/db/src/client.js";
 import { responsibilitySelect, usualTeacherOn } from "../packages/db/src/teacher-responsibility.js";
 import {
@@ -21,7 +22,14 @@ function availableName(details: ClassNameInput, occupied: Set<string>): string {
   return name;
 }
 
-async function collectLabels(tx: TransactionClient) {
+type LabelChange = { id: string; name: string };
+
+async function collectClassLabels(tx: TransactionClient): Promise<{
+  classNames: Map<string, string>;
+  changedClasses: LabelChange[];
+  classes: number;
+  unscheduledClasses: number;
+}> {
   const classes = await tx.class.findMany({
     select: {
       ...responsibilitySelect,
@@ -66,6 +74,18 @@ async function collectLabels(tx: TransactionClient) {
     classNames.set(row.id, name);
     if (row.portalClassName !== name) changedClasses.push({ id: row.id, name });
   }
+  return {
+    classNames,
+    changedClasses,
+    classes: classes.length,
+    unscheduledClasses: unscheduledClasses.length,
+  };
+}
+
+async function collectPlanLabels(
+  tx: TransactionClient,
+  classNames: Map<string, string>,
+): Promise<{ changedPlans: LabelChange[]; plans: number; unscheduledPlans: number }> {
   const plans = await tx.semesterClassPlan.findMany({
     select: {
       id: true,
@@ -81,9 +101,9 @@ async function collectLabels(tx: TransactionClient) {
   let unscheduledPlans = 0;
   for (const plan of plans) {
     const slots = readSlots(plan.slots);
-    if (!slots.length) unscheduledPlans++;
+    if (slots.length === 0) unscheduledPlans++;
     const className = plan.classId ? classNames.get(plan.classId) : undefined;
-    if (!className && !slots.length) continue;
+    if (!className && slots.length === 0) continue;
     const name =
       className ??
       generatePortalClassName({
@@ -94,14 +114,7 @@ async function collectLabels(tx: TransactionClient) {
       });
     if (plan.name !== name) changedPlans.push({ id: plan.id, name });
   }
-  return {
-    changedClasses,
-    changedPlans,
-    classes: classes.length,
-    plans: plans.length,
-    unscheduledClasses: unscheduledClasses.length,
-    unscheduledPlans,
-  };
+  return { changedPlans, plans: plans.length, unscheduledPlans };
 }
 
 try {
@@ -109,7 +122,9 @@ try {
     async (tx) => {
       if (apply)
         await tx.$executeRaw`LOCK TABLE "Class", "SemesterClassPlan" IN SHARE ROW EXCLUSIVE MODE`;
-      const { changedClasses, changedPlans, ...summary } = await collectLabels(tx);
+      const { classNames, changedClasses, classes, unscheduledClasses } =
+        await collectClassLabels(tx);
+      const { changedPlans, plans, unscheduledPlans } = await collectPlanLabels(tx, classNames);
       if (apply) {
         // Vacate old labels first so two classes can exchange unique names atomically.
         const prefix = randomUUID();
@@ -128,14 +143,17 @@ try {
       }
       return {
         apply,
-        ...summary,
+        classes,
+        plans,
+        unscheduledClasses,
+        unscheduledPlans,
         changedClasses: changedClasses.length,
         changedPlans: changedPlans.length,
       };
     },
     { isolationLevel: "Serializable", maxWait: 60_000, timeout: 60_000 },
   );
-  console.log(result);
+  process.stdout.write(inspect(result) + "\n");
 } finally {
   await db.$disconnect();
 }

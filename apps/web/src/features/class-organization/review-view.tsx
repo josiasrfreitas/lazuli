@@ -24,6 +24,7 @@ export function ReviewFooter({
 }: FooterProps): ReactElement {
   const who = selected === 1 ? "1 aluno" : `${selected} alunos`;
   const where = plans === 1 ? "1 turma" : `${plans} turmas`;
+  const confirmLabel = selected === 1 ? "Confirmar 1 vínculo" : `Confirmar ${selected} vínculos`;
   return (
     <footer id="review-batch" aria-label="Lote de vínculos" className={styles.footer} tabIndex={-1}>
       <div className={styles.batchSummary} role="status">
@@ -39,12 +40,7 @@ export function ReviewFooter({
           </Button>
         )}
         <Button size="sm" disabled={working || selected === 0} onClick={onConfirm}>
-          <CheckCheck />{" "}
-          {working
-            ? "Confirmando…"
-            : selected === 1
-              ? "Confirmar 1 vínculo"
-              : `Confirmar ${selected} vínculos`}
+          <CheckCheck /> {working ? "Confirmando…" : confirmLabel}
         </Button>
       </div>
     </footer>

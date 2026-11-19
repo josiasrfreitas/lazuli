@@ -48,9 +48,9 @@ export async function publishReviewBatch(
       count += result.count;
       appliedPlans.push(reviewPlanName(plan));
       appliedIds.push(...placements.map(({ id }) => id));
-    } catch (cause) {
+    } catch (error) {
       const reason =
-        cause instanceof Error ? cause.message : "Revise as propostas e tente novamente.";
+        error instanceof Error ? error.message : "Revise as propostas e tente novamente.";
       const failure = `Não foi possível concluir a confirmação em ${reviewPlanName(plan)}. ${reason}`;
       const remaining = selection.selected.length - appliedIds.length;
       const pending =
@@ -101,7 +101,7 @@ export function useReviewPublish({
         clearSelection();
         onFeedback(result.message);
       } else {
-        if (result.appliedIds.length) removeSelection(result.appliedIds);
+        if (result.appliedIds.length > 0) removeSelection(result.appliedIds);
         setError(result.message);
       }
     } finally {

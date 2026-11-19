@@ -50,19 +50,24 @@ function publicationLabel(row: Placement): string {
   return row.enrollmentId ? "Alocação confirmada" : "Alocação publicada";
 }
 
+function canWithdrawScheduledEntry(
+  row: Placement,
+  { board, today }: Pick<CasePeriod, "board" | "today">,
+): boolean {
+  return Boolean(
+    row.publishedAt &&
+    row.entryActionId &&
+    row.entryStatus === "SCHEDULED" &&
+    reviewEffectiveDate(row, board) > today,
+  );
+}
+
 export function studentReviewState(
   row: Placement,
   { board, historical, today }: CasePeriod,
 ): StudentReviewState {
-  const effectiveDate = reviewEffectiveDate(row, board);
   const editable = !historical && !row.declinedAt;
-  const canWithdraw = Boolean(
-    editable &&
-    row.publishedAt &&
-    row.entryActionId &&
-    row.entryStatus === "SCHEDULED" &&
-    effectiveDate > today,
-  );
+  const canWithdraw = editable && canWithdrawScheduledEntry(row, { board, today });
   const canMovePublished =
     row.entryStatus === "SCHEDULED"
       ? canWithdraw
@@ -187,23 +192,30 @@ function originHeading(row: Placement): Heading | null {
   );
 }
 
+function sharedClassHeading(origin: Heading | null, destination: Heading | undefined): boolean {
+  return Boolean(
+    origin &&
+    destination &&
+    origin.title === destination.title &&
+    origin.schedule === destination.schedule &&
+    origin.description === destination.description,
+  );
+}
+
+function destinationClassLabel(row: Placement, same: boolean): string {
+  const closed = row.entryStatus === "CANCELLED" || Boolean(row.declinedAt);
+  if (same) return closed ? "Turma de origem" : "Turma de origem e destino";
+  if (closed) return "Destino da publicação";
+  return row.publishedAt ? "Turma confirmada" : "Turma proposta";
+}
+
 function ReviewClasses({ row, state, planLink }: FactsProps): ReactElement {
   const { plan } = state;
   const origin = originHeading(row);
   const destination = plan && reviewClassHeading(plan, reviewPlanName(plan));
   const same =
-    origin &&
-    destination &&
-    followsOwnClass(row.sourceClassId, plan ?? null) &&
-    origin.title === destination.title &&
-    origin.schedule === destination.schedule &&
-    origin.description === destination.description;
-  const cancelled = row.entryStatus === "CANCELLED";
-  let destinationLabel = row.publishedAt ? "Turma confirmada" : "Turma proposta";
-  if (row.declinedAt || cancelled) destinationLabel = "Destino da publicação";
-  if (same)
-    destinationLabel =
-      cancelled || row.declinedAt ? "Turma de origem" : "Turma de origem e destino";
+    sharedClassHeading(origin, destination) && followsOwnClass(row.sourceClassId, plan ?? null);
+  const destinationLabel = destinationClassLabel(row, same);
   return (
     <>
       {origin && !same && <ClassFact label="Turma de origem" heading={origin} />}
@@ -270,40 +282,93 @@ function PreconfirmationFacts({ row }: { row: Placement }): ReactElement {
   );
 }
 
-function StudentContextFacts({ row }: { row: Placement }): ReactElement | null {
+function responseReasonLabel(continuity: Placement["continuity"]): string {
+  if (continuity === "CHANGE") return "Motivo da troca";
+  if (continuity === "LEAVING") return "Motivo da possível saída";
+  return "Observação da resposta";
+}
+
+type ContextFact = { label: string; value: string | null | undefined };
+
+function progressAndResponseFacts(row: Placement): ContextFact[] {
+  if (row.declinedAt)
+    return [{ label: "Motivo da não continuidade", value: row.declinedReason?.trim() }];
   const previousStage = row.sourceStageName ?? row.sourceStageCode;
   const nextStage = row.stageName ?? row.stageCode;
   const stages = [...new Set([previousStage, nextStage].filter(Boolean))].join(" → ");
-  const decision = academicDecision(row);
-  const decline = row.declinedReason?.trim();
-  const reason = row.continuityReason?.trim();
-  const note = row.notes?.trim();
-  const attention = row.attentionNote?.trim();
   const response =
     row.continuity === "CHANGE" || row.continuity === "LEAVING"
       ? responseLabels[row.continuity]
       : null;
-  const responseLabel =
-    row.continuity === "CHANGE"
-      ? "Motivo da troca"
-      : row.continuity === "LEAVING"
-        ? "Motivo da possível saída"
-        : "Observação da resposta";
-  if (row.declinedAt && !decline && !note && !attention) return null;
+  return [
+    { label: "Percurso", value: [modes[row.mode], stages].filter(Boolean).join(" · ") },
+    { label: "Decisão pedagógica", value: academicDecision(row) },
+    { label: "Continuidade", value: response },
+    { label: responseReasonLabel(row.continuity), value: row.continuityReason?.trim() },
+  ];
+}
+
+function teamContextFacts(row: Placement): ContextFact[] {
+  const decline = row.declinedReason?.trim();
+  const reason = row.continuityReason?.trim();
+  const note = row.notes?.trim();
+  const attention = row.attentionNote?.trim();
+  return [
+    { label: "Nota da proposta", value: note !== reason && note !== decline ? note : null },
+    {
+      label: "Impedimento sinalizado pela equipe",
+      value: attention !== reason && attention !== note && attention !== decline ? attention : null,
+    },
+  ];
+}
+
+function StudentContextFacts({ row }: { row: Placement }): ReactElement | null {
+  if (
+    row.declinedAt &&
+    !row.declinedReason?.trim() &&
+    !row.notes?.trim() &&
+    !row.attentionNote?.trim()
+  )
+    return null;
+  const facts = [...progressAndResponseFacts(row), ...teamContextFacts(row)];
   return (
     <dl className={styles.caseFacts} aria-label="Percurso e resposta do aluno">
-      {!row.declinedAt && (
-        <Fact label="Percurso">{[modes[row.mode], stages].filter(Boolean).join(" · ")}</Fact>
-      )}
-      {!row.declinedAt && decision && <Fact label="Decisão pedagógica">{decision}</Fact>}
-      {row.declinedAt && decline && <Fact label="Motivo da não continuidade">{decline}</Fact>}
-      {!row.declinedAt && response && <Fact label="Continuidade">{response}</Fact>}
-      {!row.declinedAt && reason && <Fact label={responseLabel}>{reason}</Fact>}
-      {note && note !== reason && note !== decline && <Fact label="Nota da proposta">{note}</Fact>}
-      {attention && attention !== reason && attention !== note && attention !== decline && (
-        <Fact label="Impedimento sinalizado pela equipe">{attention}</Fact>
+      {facts.map(({ label, value }) =>
+        value ? (
+          <Fact key={label} label={label}>
+            {value}
+          </Fact>
+        ) : null,
       )}
     </dl>
+  );
+}
+
+function MoveReviewAction({
+  row,
+  chooseDestination,
+  onAction,
+}: Pick<Props, "row" | "onAction"> & { chooseDestination: boolean }): ReactElement {
+  const chooseLabel = row.continuity === "CHANGE" ? "Escolher outra turma" : "Escolher turma";
+  return (
+    <Button
+      variant={chooseDestination ? "primary" : "secondary"}
+      onClick={() =>
+        onAction(
+          row.publishedAt
+            ? { kind: "move", rows: [row] }
+            : { kind: "placement", row, studentId: row.studentId },
+        )
+      }
+    >
+      <CalendarDays /> {chooseDestination ? chooseLabel : "Alterar turma"}
+    </Button>
+  );
+}
+
+function canSetReviewEntryDate(row: Placement, plan: ClassPlan | undefined): boolean {
+  return Boolean(
+    !row.publishedAt && row.stageId && isNewEntry(row) && (!row.planId || !plan?.closedAt),
   );
 }
 
@@ -321,28 +386,11 @@ function ReviewActions({
       reason.includes("Vigência") ||
       reason === "A entrada antecede o início da turma.",
   );
-  const canSetDate =
-    !row.publishedAt && row.stageId && isNewEntry(row) && (!row.planId || !state.plan?.closedAt);
+  const canSetDate = canSetReviewEntryDate(row, state.plan);
   return (
     <div className={styles.actions}>
       {state.canMove && (
-        <Button
-          variant={chooseDestination ? "primary" : "secondary"}
-          onClick={() =>
-            onAction(
-              row.publishedAt
-                ? { kind: "move", rows: [row] }
-                : { kind: "placement", row, studentId: row.studentId },
-            )
-          }
-        >
-          <CalendarDays />{" "}
-          {chooseDestination
-            ? row.continuity === "CHANGE"
-              ? "Escolher outra turma"
-              : "Escolher turma"
-            : "Alterar turma"}
-        </Button>
+        <MoveReviewAction row={row} chooseDestination={chooseDestination} onAction={onAction} />
       )}
       <Button variant="warning" onClick={() => onAction({ kind: "continuity", row })}>
         <TriangleAlert /> {row.attentionNote ? "Revisar sinalização" : "Sinalizar risco"}

@@ -47,11 +47,10 @@ export async function computeEnrollmentsPercentInWindow(input: {
         ];
   });
   if (windows.length === 0) return results;
-  const rows = await loadAttendanceRows(
-    input.database,
+  const rows = await loadAttendanceRows(input.database, {
     windows,
-    input.requireAttendanceRecord ?? false,
-  );
+    requireAttendanceRecord: input.requireAttendanceRecord ?? false,
+  });
   for (const row of rows)
     results.set(
       row.id,
@@ -75,10 +74,11 @@ type AttendanceAggregateRow = {
   compensatedMinutes: number;
 };
 
+type AttendanceWindows = { windows: RawBuilder<WindowRow>[]; requireAttendanceRecord: boolean };
+
 function loadAttendanceRows(
   database: AttendanceDatabase,
-  windows: RawBuilder<WindowRow>[],
-  requireAttendanceRecord: boolean,
+  { windows, requireAttendanceRecord }: AttendanceWindows,
 ): Promise<AttendanceAggregateRow[]> {
   return database.$kysely
     .with(

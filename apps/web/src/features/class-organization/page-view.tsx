@@ -74,7 +74,7 @@ export function OrganizationPageView({ model }: ModelProps): ReactElement {
         key={board?.semester.id}
         model={model}
         criteria={criteria}
-        changeCriteria={setCriteria}
+        changeCriteria={(next) => void setCriteria(next)}
         onPublishing={setPublishing}
         scope={scope}
         weekSearch={weekSearch}
@@ -138,18 +138,7 @@ function FormationHeader({
           }}
         />
       )}
-      <div className={styles.heading}>
-        <h1 id="formation-page-heading" tabIndex={-1}>
-          {review ? "Revisão de vínculos" : "Grade semanal"}
-        </h1>
-        {review && (
-          <p className={reviewStyles.description}>
-            {ended
-              ? "Consulte os alunos e as vigências de cada turma neste período encerrado."
-              : "Selecione os alunos para confirmar o vínculo na turma."}
-          </p>
-        )}
-      </div>
+      <FormationPageHeading review={review} ended={ended} />
       <PeriodSelect
         model={model}
         onChange={(id) => {
@@ -177,6 +166,29 @@ function FormationHeader({
     </header>
   );
 }
+function FormationPageHeading({
+  review,
+  ended,
+}: {
+  review: boolean;
+  ended: boolean;
+}): ReactElement {
+  return (
+    <div className={styles.heading}>
+      <h1 id="formation-page-heading" tabIndex={-1}>
+        {review ? "Revisão de vínculos" : "Grade semanal"}
+      </h1>
+      {review && (
+        <p className={reviewStyles.description}>
+          {ended
+            ? "Consulte os alunos e as vigências de cada turma neste período encerrado."
+            : "Selecione os alunos para confirmar o vínculo na turma."}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PeriodSelect({
   model,
   onChange,
