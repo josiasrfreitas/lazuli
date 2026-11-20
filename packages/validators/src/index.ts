@@ -222,6 +222,7 @@ export {
   type AssessmentSave,
   type AssessmentConfirm,
 } from "./assessment.js";
+export { leadSourceLabels, leadSourceSchema } from "./lead-source.js";
 export { leadCaptureSchema, leadInterestSchema, leadRegistrationSchema } from "./leads.js";
 export { MAX_UPLOAD_FILE_MB, MAX_UPLOAD_FILE_BYTES } from "./file-upload.js";
 export {

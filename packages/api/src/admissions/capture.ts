@@ -1,3 +1,4 @@
+import { checkLeadPhone } from "./phone.js";
 import type { Prisma } from "@lazuli/db";
 import type { leadCaptureSchema, z } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
@@ -9,7 +10,7 @@ type Context = { database: Database; recordedById: string; now: Date };
 type LeadValues = z.infer<typeof leadCaptureSchema>;
 type CaptureFields = Omit<
   LeadValues,
-  "id" | "birthDate" | "notes" | "stageId" | "phone" | "email" | "contactName" | "source"
+  "id" | "birthDate" | "notes" | "stageId" | "phone" | "email" | "contactName" | "sourceDetail"
 > & {
   birthDate: Date | null;
   notes?: string | null;
@@ -17,7 +18,7 @@ type CaptureFields = Omit<
   phone: string | null;
   email: string | null;
   contactName: string | null;
-  source: string | null;
+  sourceDetail: string | null;
 };
 export async function captureLead(
   input: Context & { values: z.infer<typeof leadCaptureSchema> },
@@ -62,6 +63,7 @@ async function captureFields(
   const today = saoPauloDateOnly(input.now);
   if (birthDate && birthDate > today) throw badRequest("O nascimento não pode estar no futuro.");
   if (englishExperience === "NONE") await assertInitialStage(input.database, stageId);
+  await checkLeadPhone(input.database, input.values.id, input.values.phone);
   return normalizedLeadFields(input.values, previous);
 }
 
@@ -76,7 +78,7 @@ function normalizedLeadFields(
     phone: fields.phone || null,
     email: fields.email || null,
     contactName: fields.contactName || null,
-    source: fields.source || null,
+    sourceDetail: fields.source === "OTHER" ? (fields.sourceDetail ?? null) : null,
     ...(notes === undefined ? {} : { notes: notes || null }),
     birthDate: birthDate ? new Date(birthDate) : null,
   };

@@ -254,6 +254,11 @@ An enrollment opportunity for a prospective learner or an existing student seeki
 The person contacted may be the learner or someone acting on their behalf.
 _Avoid_: Student (as a synonym), interested person, candidate (in product language)
 
+**Lead Source**:
+How the contact found the school. Staff select an optional, fixed category and describe the origin
+when they select “Outro”. Configurable options in Parâmetros remain outside this delivery.
+See [issue #309](https://github.com/josiasrfreitas/lazuli/issues/309).
+
 **Lead Contact**:
 The person with whom the school discusses an enrollment opportunity, such as the learner or a parent.
 A lead contact is not automatically the student's legal guardian or payer.

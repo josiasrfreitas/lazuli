@@ -1,3 +1,4 @@
+import { leadSourceLabels } from "@lazuli/validators";
 import type { RouterOutputs } from "@lazuli/api";
 export type Candidate = RouterOutputs["admissions"]["byId"];
 export type CandidateRow = RouterOutputs["admissions"]["list"]["rows"][number];
@@ -48,4 +49,12 @@ export function interestLabel(value: CandidateRow["scheduleType"]): string {
 export function formatLabel(value: CandidateRow["format"]): string {
   if (!value) return "Formato a definir";
   return value === "IN_PERSON" ? "Presencial" : "Online";
+}
+
+export function leadSourceLabel({
+  source,
+  sourceDetail,
+}: Pick<Candidate, "source" | "sourceDetail">): string {
+  if (!source) return "";
+  return source === "OTHER" && sourceDetail ? sourceDetail : leadSourceLabels[source];
 }

@@ -14,6 +14,7 @@ import {
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { maskPhoneBR } from "~/lib/masks";
+import { LeadSourceFields } from "./lead-source-fields";
 import { TextControl } from "~/features/classes/form-controls";
 import { StudentLink } from "./student-link";
 
@@ -102,7 +103,12 @@ export function CandidateIdentityFields({
           placeholder="(11) 99999-9999"
           inputMode="tel"
           value={draft.phone ?? ""}
-          onChange={(value) => change("phone", maskPhoneBR(value))}
+          onChange={(value) =>
+            change(
+              "phone",
+              value.trimStart().startsWith("+") ? value.trimStart() : maskPhoneBR(value),
+            )
+          }
           error={errors.phone}
         />
         <TextControl
@@ -117,7 +123,7 @@ export function CandidateIdentityFields({
     </FormSection>
   );
 }
-function ContactContextFields({ draft, change }: CandidateFieldsProps): ReactElement {
+function ContactContextFields({ draft, change, errors }: CandidateFieldsProps): ReactElement {
   return (
     <FormRow columns={2}>
       <TextControl
@@ -127,13 +133,7 @@ function ContactContextFields({ draft, change }: CandidateFieldsProps): ReactEle
         onChange={(value) => change("contactName", value)}
         placeholder="Se diferente do futuro aluno"
       />
-      <TextControl
-        name="source"
-        label="Como chegou à escola"
-        value={draft.source ?? ""}
-        onChange={(value) => change("source", value)}
-        placeholder="Ex.: indicação de uma família"
-      />
+      <LeadSourceFields draft={draft} change={change} errors={errors} />
     </FormRow>
   );
 }

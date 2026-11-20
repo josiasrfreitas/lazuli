@@ -4,7 +4,13 @@ import type { JSX as ReactJSX } from "react";
 import { Mail, Phone, UserRound } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { toWhatsAppUrl } from "~/lib/format";
-import { dateLabel, formatLabel, leadInterestLabels, type Candidate } from "./labels";
+import {
+  leadSourceLabel,
+  dateLabel,
+  formatLabel,
+  leadInterestLabels,
+  type Candidate,
+} from "./labels";
 import styles from "./lead-workspace.module.css";
 import { PendingAllocation } from "./pending-allocation";
 
@@ -160,7 +166,7 @@ function LeadContactMeta({ candidate }: { candidate: Candidate }): ReactJSX.Elem
       {candidate.source && (
         <div>
           <dt>Origem</dt>
-          <dd>{candidate.source}</dd>
+          <dd>{leadSourceLabel(candidate)}</dd>
         </div>
       )}
     </dl>

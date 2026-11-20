@@ -30,7 +30,7 @@ const PROSPECT_CONTACTS = new Map([
   ["prospect-7", "Fernanda Pinheiro Viana"],
   ["prospect-9", "Ricardo Chaves Neves"],
 ]);
-const LEAD_SOURCES = ["Instagram", "Indicação de aluno", "Site", "WhatsApp", "Visita à escola"];
+const LEAD_SOURCES = ["INSTAGRAM", "REFERRAL", "WEBSITE", "WHATSAPP", "SCHOOL_VISIT"] as const;
 const PROSPECT_PHONE_START = 1100;
 const PERSONALIZED_CYCLE = 3;
 const ARCHIVED_PROSPECT_START = 10;
@@ -71,7 +71,7 @@ type CommercialInput = CandidateInput & {
   createdOn: Date;
   status: "WAITING" | "ARCHIVED" | "ENROLLED";
 };
-type CommercialSeed = { contactName: string; source: string };
+type CommercialSeed = { contactName: string; source: (typeof LEAD_SOURCES)[number] };
 type PedagogySeed = {
   scheduleType: NonNullable<DevClassSeed["scheduleType"]> | null;
   format: "IN_PERSON" | null;

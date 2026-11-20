@@ -11,7 +11,7 @@ export type CandidateFieldsProps = {
 const emptyDraft: CandidateDraft = {
   fullName: "",
   contactName: "",
-  source: "",
+  source: null,
   phone: "",
   email: "",
   notes: "",
@@ -33,7 +33,8 @@ export function initialCandidateDraft(candidate?: Candidate): CandidateDraft {
 function candidateIdentity(candidate: Candidate): {
   fullName: string;
   contactName: string;
-  source: string;
+  source: Candidate["source"];
+  sourceDetail: string | null;
   phone: string;
   email: string;
   notes: string;
@@ -41,7 +42,8 @@ function candidateIdentity(candidate: Candidate): {
   return {
     fullName: candidate.fullName,
     contactName: candidate.contactName ?? "",
-    source: candidate.source ?? "",
+    source: candidate.source,
+    sourceDetail: candidate.sourceDetail,
     phone: candidate.phone ?? "",
     email: candidate.email ?? "",
     notes: candidate.notes ?? "",

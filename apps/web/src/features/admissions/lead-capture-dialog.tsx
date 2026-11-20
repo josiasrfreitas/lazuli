@@ -49,9 +49,12 @@ function contactDetails(
   };
 }
 
-function contactMetadata(candidate: Candidate | undefined): Pick<Draft, "source" | "notes"> {
+function contactMetadata(
+  candidate: Candidate | undefined,
+): Pick<Draft, "source" | "sourceDetail" | "notes"> {
   return {
-    source: candidate?.source ?? "",
+    source: candidate?.source ?? null,
+    sourceDetail: candidate?.sourceDetail ?? null,
     notes: candidate?.notes ?? "",
   };
 }

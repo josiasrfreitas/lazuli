@@ -227,7 +227,7 @@ async function seedWaitingLead(
       phone: `(82) 98411-12${String(index).padStart(2, "0")}`,
       englishExperience: "NONE",
       interest: "HIGH",
-      source: "Indicação de aluno",
+      source: "REFERRAL" as const,
       scheduleType: "REGULAR",
       format: "IN_PERSON",
       stageId: initialStageId,

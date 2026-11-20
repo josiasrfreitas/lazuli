@@ -334,7 +334,7 @@ async function seedLeads(
       format: "IN_PERSON",
       studentId: input.ana.id,
       recordedById: input.adminId,
-      source: "Indicação",
+      source: "REFERRAL" as const,
     },
   });
   await tx.admissionCandidate.create({
@@ -350,7 +350,7 @@ async function seedLeads(
       allocationPendingAt: new Date(`${days(today, -1)}T14:00:00.000Z`),
       allocationPendingReason: "Precisa de turma no período da manhã.",
       recordedById: input.adminId,
-      source: "Site",
+      source: "WEBSITE",
     },
   });
   return lead.id;

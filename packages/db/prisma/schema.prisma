@@ -1545,6 +1545,16 @@ enum EntryVisitStatus {
   CANCELLED
 }
 
+enum LeadSource {
+  REFERRAL
+  INSTAGRAM
+  WHATSAPP
+  WEBSITE
+  SCHOOL_VISIT
+  GOOGLE
+  OTHER
+}
+
 model AdmissionCandidate {
   allocationPendingAt DateTime? @map("allocation_pending_at") @db.Timestamptz
   allocationPendingReason String? @map("allocation_pending_reason")
@@ -1560,7 +1570,8 @@ model AdmissionCandidate {
   contactOwner String @default("STUDENT") @map("contact_owner")
   birthDate DateTime? @map("birth_date") @db.Date
   englishExperience String @default("UNKNOWN") @map("english_experience")
-  source String?
+  source LeadSource?
+  sourceDetail String? @map("source_detail")
   ownerId String? @map("owner_id") @db.Uuid @ignore
   nextAction String? @map("next_action") @ignore
   nextActionOn DateTime? @map("next_action_on") @db.Date @ignore

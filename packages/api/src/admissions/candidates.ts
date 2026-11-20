@@ -1,3 +1,4 @@
+import { checkLeadPhone } from "./phone.js";
 import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
@@ -62,11 +63,14 @@ export async function saveCandidate(input: {
   const { id, values } = input.input;
   await lockCandidate(database, id);
   await validateCandidateChanges({ database, id, values });
-  const { contactName, source, ...fields } = values;
+  await checkLeadPhone(database, id, values.phone);
+  const { contactName, source, sourceDetail, ...fields } = values;
   const data = {
     ...fields,
     ...(contactName === undefined ? {} : { contactName }),
-    ...(source === undefined ? {} : { source }),
+    ...(source === undefined
+      ? {}
+      : { source, sourceDetail: source === "OTHER" ? (sourceDetail ?? null) : null }),
     phone: values.phone || null,
     email: values.email || null,
     recordedById,
