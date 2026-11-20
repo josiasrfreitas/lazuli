@@ -16,7 +16,7 @@ import { trpc } from "~/lib/trpc";
 import { CatalogDialog, type CatalogDialogState } from "./catalog-dialog";
 import { CatalogTrack } from "./catalog-list";
 import type { Directory, Track } from "./types";
-import { StageLoading } from "./loading";
+import { TrackListLoading } from "./loading";
 import styles from "./catalog.module.css";
 import workspace from "./workspace.module.css";
 
@@ -226,7 +226,7 @@ function CatalogResults({
   term: string;
   children: React.ReactNode;
 }): React.ReactNode {
-  if (pending) return <StageLoading />;
+  if (pending) return <TrackListLoading />;
   if (error)
     return (
       <EmptyState

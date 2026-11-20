@@ -368,3 +368,25 @@
     column-gap: 0.75rem;
   }
 }
+
+.loadingTrack {
+  display: grid;
+  grid-template-columns: var(--marker-width) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--marker-gap);
+  min-height: 2.75rem;
+  padding: 0.5rem var(--track-gutter);
+}
+.loadingIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+}
+@container catalog (max-width:40rem) {
+  .loadingIdentity {
+    flex-direction: column;
+    align-items: start;
+    gap: 0.375rem;
+  }
+}
