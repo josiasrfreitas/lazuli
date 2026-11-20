@@ -22,27 +22,35 @@ export async function readActivityContexts(
       programId: { in: [...new Set(selected.map((activity) => activity.programId))] },
       deletedAt: null,
     },
-    include: { unit: true, lessons: { where: { deletedAt: null }, include: { lesson: true } } },
+    include: {
+      unit: true,
+      lessons: {
+        where: { deletedAt: null },
+        include: { lesson: true, bookPart: { select: { title: true } } },
+      },
+    },
     orderBy: { sequence: "asc" },
   });
   const result = new Map<string, ActivityContext>();
   for (const programId of new Set(activities.map((activity) => activity.programId))) {
     const source = activities.filter((activity) => activity.programId === programId);
     const labels = programActivityLabels(source);
-    for (const item of source)
+    for (const item of source) {
+      const lessonParts = new Map<string, ActivityContext["lessons"][number]>();
+      for (const link of item.lessons) {
+        const { id, sequence, title } = link.lesson;
+        const part = link.bookPart?.title ?? link.part;
+        lessonParts.set(id + ":" + part, { id, sequence, title, part });
+      }
       result.set(item.id, {
         title: labels.get(item.id) ?? item.title,
         bookTitle: item.title,
         sequence: item.sequence,
         durationMinutes: item.durationMinutes,
         unit: { id: item.unit.id, sequence: item.unit.sequence, title: item.unit.title },
-        lessons: item.lessons.map(({ lesson, part }) => ({
-          id: lesson.id,
-          sequence: lesson.sequence,
-          title: lesson.title,
-          part,
-        })),
+        lessons: [...lessonParts.values()],
       });
+    }
   }
   return result;
 }

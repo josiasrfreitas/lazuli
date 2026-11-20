@@ -28,6 +28,12 @@ the previous current program atomically and preserves its identifiers and record
 A changed book lesson catalog requires explicit edition reconciliation; imports cannot silently
 rewrite existing lesson references. Interactive edits use separate atomic commands. They preserve existing activity IDs, dated plan rows and recorded snapshots. The editor uses the stage import lock when editing lessons or programs. Optional page ranges belong to book activities and supply the pages for newly scheduled rows.
 
+Regular and PPT share the stage's book index. Each lesson owns numbered pages, and a page
+contains ordered activities. The hour editor accepts free text or a page range. A range resolves
+against the stage's book and links each matching exercise, or the page if it has no exercises.
+Imported titles and earlier part references remain readable. Activity edits and moves check
+the hour's last change. A move preserves identifiers, durations and the closing assessment.
+
 The development seed adapts the previously supplied 40h/50h PDF transcriptions for the seven
 English Main stages. It is not a connection to SGF or another live source. Unknown abbreviations
 are retained as provenance with `descriptionPending`, never expanded by guesswork. Other stages

@@ -6,6 +6,7 @@ import type { RouterInputs } from "@lazuli/api";
 import { FormSection } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { Choice, EditorForm, TextField, formText } from "./editor-form";
+import { stageContext } from "./labels";
 import type { StageDetail, ProgramUnit } from "./types";
 
 export type ProgramDialogState =
@@ -30,12 +31,20 @@ export function ProgramDialog({
     start: "Iniciar programação",
     unit: "Adicionar unidade",
     renameUnit: "Editar unidade",
-    hour: "Adicionar hora-aula",
+    hour: "Nova hora-aula",
   };
   return (
     <EditorForm
       title={headings[item.action]}
-      saveLabel={starting ? "Criar programação" : "Salvar"}
+      description={stageContext(
+        stage,
+        "programId" in item
+          ? stage.programs.find((program) => program.id === item.programId)
+          : undefined,
+      )}
+      saveLabel={
+        starting ? "Criar programação" : item.action === "hour" ? "Criar hora-aula" : "Salvar"
+      }
       onClose={onClose}
       onSave={async (data) => {
         const result = await mutation.mutateAsync(programInput({ stageId: stage.id, item }, data));
@@ -81,7 +90,7 @@ function programInput(
         action: "hour",
         stageId,
         programId: item.programId,
-        unitId: item.unit.id,
+        unitId: formText(data, "unitId") || item.unit.id,
         title: formText(data, "title"),
         lessonId: formText(data, "lesson") || null,
       };
@@ -129,18 +138,36 @@ export function ProgramFields({
   );
 }
 
-function HourFields({ unit, stage }: { unit: ProgramUnit; stage: StageDetail }): React.JSX.Element {
+function HourFields({
+  unit: initialUnit,
+  stage,
+}: {
+  unit: ProgramUnit;
+  stage: StageDetail;
+}): React.JSX.Element {
+  const units = stage.programs.find((program) =>
+    program.units.some((unit) => unit.id === initialUnit.id),
+  )?.units ?? [initialUnit];
+  const [unitId, setUnitId] = useState(initialUnit.id);
+  const unit = units.find((entry) => entry.id === unitId) ?? initialUnit;
   const [type, setType] = useState(stage.lessons.length > 0 ? "lesson" : "assessment");
   const [lesson, setLesson] = useState(stage.lessons[0]?.id ?? "");
   return (
     <>
       <Choice
-        label={unit.title}
+        name="unitId"
+        label="Unidade"
+        value={unitId}
+        onChange={setUnitId}
+        options={units.map((entry) => ({ value: entry.id, label: entry.title }))}
+      />
+      <Choice
+        label="Conteúdo da hora"
         value={type}
         onChange={setType}
         options={[
           ...(stage.lessons.length > 0 ? [{ value: "lesson", label: "Lição do livro" }] : []),
-          { value: "assessment", label: "Continuação da prova" },
+          { value: "assessment", label: "Prova" },
         ]}
       />
       {type === "lesson" && (
@@ -165,9 +192,10 @@ function HourFields({ unit, stage }: { unit: ProgramUnit; stage: StageDetail }):
         defaultValue={hourTitle({ stage, lesson, type, unit })}
       />
       <p className={styles.meta}>
+        A unidade passa de {unit.teachingHours.length} h para {unit.teachingHours.length + 1} h.{" "}
         {type === "lesson"
-          ? "A hora-aula será inserida antes da prova."
-          : "A nova hora-aula continua a mesma prova."}
+          ? "A nova hora entra antes da prova."
+          : "A nova hora será usada para a prova."}
       </p>
     </>
   );

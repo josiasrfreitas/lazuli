@@ -20,6 +20,7 @@ export type SegmentedControlProps = Omit<
   /** Marks the group invalid and exposes its state to assistive technologies. */
   invalid?: boolean;
   size?: SegmentedControlSize;
+  contrast?: "default" | "high";
   /** Wrap labelled choices in narrow forms. */
   wrap?: boolean;
 };
@@ -31,7 +32,16 @@ export type SegmentedControlProps = Omit<
  */
 export const SegmentedControl = forwardRef<HTMLDivElement, SegmentedControlProps>(
   (
-    { className, invalid = false, onValueChange, size = "md", value, wrap = false, ...props },
+    {
+      className,
+      contrast = "default",
+      invalid = false,
+      onValueChange,
+      size = "md",
+      value,
+      wrap = false,
+      ...props
+    },
     ref,
   ) => (
     <ToggleGroupPrimitive
@@ -48,6 +58,7 @@ export const SegmentedControl = forwardRef<HTMLDivElement, SegmentedControlProps
         ],
         className,
       )}
+      data-contrast={contrast}
       data-invalid={invalid || undefined}
       data-size={size}
       data-slot="segmented-control"
@@ -77,6 +88,7 @@ export const SegmentedControlItem = forwardRef<HTMLButtonElement, SegmentedContr
           "transition-[background-color,color,box-shadow] duration-fast ease-standard motion-reduce:transition-none",
           "hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           "data-pressed:bg-card data-pressed:text-card-foreground data-pressed:shadow-sm",
+          "group-data-[contrast=high]/segmented:text-foreground group-data-[contrast=high]/segmented:data-pressed:bg-foreground group-data-[contrast=high]/segmented:data-pressed:text-background",
           "data-disabled:pointer-events-none",
           "group-data-[size=sm]/segmented:min-h-6 group-data-[size=md]/segmented:min-h-8",
           "group-data-[size=md]/segmented:px-4",

@@ -1,5 +1,7 @@
 import type { RouterOutputs } from "@lazuli/api";
 export type StageDetail = NonNullable<RouterOutputs["teachingPrograms"]["detail"]>;
+export type BookLesson = StageDetail["lessons"][number];
+export type BookPage = BookLesson["pages"][number];
 export type TeachingProgram = StageDetail["programs"][number];
 export type ProgramUnit = TeachingProgram["units"][number];
 export type TeachingHour = ProgramUnit["teachingHours"][number];

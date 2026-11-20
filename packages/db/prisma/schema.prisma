@@ -2251,8 +2251,56 @@ model BookLesson {
   title String
   stage Stage @relation(fields: [stageId], references: [id], onDelete: Restrict)
   activityLessons ProgramActivityLesson[]
+  pages BookLessonPage[]
+  parts BookLessonPart[]
   @@unique([stageId, sourceKey])
   @@unique([stageId, sequence])
+}
+
+model BookLessonPart {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  lessonId String @map("lesson_id") @db.Uuid
+  sequence Int
+  title String
+  lesson BookLesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  pages BookLessonPage[]
+  references ProgramActivityLesson[]
+  @@unique([lessonId, sequence])
+  @@unique([lessonId, id])
+}
+
+model BookLessonPage {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  lessonId String @map("lesson_id") @db.Uuid
+  lesson BookLesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  partId String? @map("part_id") @db.Uuid
+  number Int
+  part BookLessonPart? @relation(fields: [partId], references: [id], onDelete: Restrict)
+  activities BookPageActivity[]
+  references ProgramActivityLesson[]
+  @@unique([partId, id])
+  @@unique([lessonId, id])
+  // The migration enforces one active page number per part.
+}
+
+model BookPageActivity {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  pageId String @map("page_id") @db.Uuid
+  sequence Int
+  title String
+  page BookLessonPage @relation(fields: [pageId], references: [id], onDelete: Restrict)
+  references ProgramActivityLesson[]
+  @@unique([pageId, sequence])
+  @@unique([pageId, id])
 }
 
 model TeachingProgram {
@@ -2368,9 +2416,16 @@ model ProgramActivityLesson {
   activityId String @map("activity_id") @db.Uuid
   lessonId String @map("lesson_id") @db.Uuid
   part String @default("")
+  partId String? @map("part_id") @db.Uuid
+  pageId String? @map("page_id") @db.Uuid
+  pageActivityId String? @map("page_activity_id") @db.Uuid
   activity ProgramActivity @relation(fields: [activityId], references: [id], onDelete: Restrict)
   lesson BookLesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
-  @@unique([activityId, lessonId, part])
+  bookPart BookLessonPart? @relation(fields: [lessonId, partId], references: [lessonId, id], onDelete: Restrict)
+  bookPage BookLessonPage? @relation(fields: [lessonId, pageId], references: [lessonId, id], onDelete: Restrict)
+  pageActivity BookPageActivity? @relation(fields: [pageId, pageActivityId], references: [pageId, id], onDelete: Restrict)
+  // NULLS NOT DISTINCT preserves uniqueness at each depth, including legacy free-text references.
+  @@unique([activityId, lessonId, part, partId, pageId, pageActivityId], map: "ProgramActivityLesson_reference_key")
   @@index([lessonId])
 }
 

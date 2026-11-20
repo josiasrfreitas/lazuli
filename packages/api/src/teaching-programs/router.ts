@@ -6,7 +6,7 @@ import { catalogCommand, catalogDirectory, editCatalog } from "./catalog-editor.
 import { programCommand, editProgram } from "./program-editor.js";
 
 export const teachingProgramsRouter = router({
-  directory: adminProcedure.query(({ ctx }) => catalogDirectory(ctx.db)),
+  directory: adminProcedure.query(({ ctx }) => catalogDirectory(ctx.db, ctx.now ?? new Date())),
   editCatalog: adminProcedure
     .input(catalogCommand)
     .mutation(({ ctx, input }) => editCatalog(ctx.db, input)),

@@ -1,5 +1,6 @@
 import { programActivityLabels } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
+import { bookLessonSelect } from "./book-content.js";
 
 type Database = Pick<Prisma.TransactionClient, "stage">;
 const programInclude = {
@@ -14,8 +15,19 @@ const programInclude = {
         include: {
           lessons: {
             where: { deletedAt: null },
-            orderBy: [{ lesson: { sequence: "asc" } }, { part: "asc" }],
-            include: { lesson: true },
+            orderBy: [
+              { lesson: { sequence: "asc" } },
+              { part: "asc" },
+              { bookPart: { sequence: "asc" } },
+              { bookPage: { number: "asc" } },
+              { pageActivity: { sequence: "asc" } },
+            ],
+            include: {
+              lesson: true,
+              bookPart: { select: { id: true, title: true } },
+              bookPage: { select: { id: true, number: true } },
+              pageActivity: { select: { id: true, title: true } },
+            },
           },
           assessment: true,
         },
@@ -35,7 +47,11 @@ const catalogSelect = {
 } satisfies Prisma.StageSelect;
 const stageProgramInclude = {
   track: { select: { id: true, name: true, ageGroup: true, status: true } },
-  bookLessons: { where: { deletedAt: null }, orderBy: { sequence: "asc" } },
+  bookLessons: {
+    where: { deletedAt: null },
+    orderBy: { sequence: "asc" },
+    select: bookLessonSelect,
+  },
   teachingPrograms: {
     where: { deletedAt: null, retiredAt: null },
     orderBy: [{ scheduleType: "asc" }, { modality: { weeklyMinutes: "asc" } }],
@@ -63,9 +79,10 @@ type ActivityView = Pick<
 > & {
   bookTitle: string;
   assessment: Pick<NonNullable<ActivityRow["assessment"]>, "id" | "sequence" | "title"> | null;
-  lessons: (Pick<LessonLink["lesson"], "id" | "sequence" | "title"> & {
-    part: string | null;
-  })[];
+  lessons: (Pick<LessonLink["lesson"], "id" | "sequence" | "title"> &
+    Pick<LessonLink, "bookPart" | "bookPage" | "pageActivity"> & {
+      part: string | null;
+    })[];
 };
 type TeachingHourView = Pick<HourRow, "id" | "sequence" | "durationMinutes"> & {
   lastChange: string;
@@ -91,7 +108,7 @@ type ProgramView = Pick<ProgramRow, "id" | "scheduleType"> & {
 };
 type StageProgramView = Pick<StageRow, "id" | "name" | "internalCode" | "track" | "status"> & {
   lessonCount: StageRow["bookLessonCount"];
-  lessons: Pick<StageRow["bookLessons"][number], "id" | "sequence" | "title">[];
+  lessons: StageRow["bookLessons"];
   programs: ProgramView[];
 };
 
@@ -122,11 +139,7 @@ function projectStageProgram(stage: StageRow): StageProgramView {
     status: stage.status,
     track: stage.track,
     lessonCount: stage.bookLessonCount,
-    lessons: stage.bookLessons.map((lesson) => ({
-      id: lesson.id,
-      sequence: lesson.sequence,
-      title: lesson.title,
-    })),
+    lessons: stage.bookLessons,
     programs: stage.teachingPrograms.map((program) => projectProgram(program)),
   };
 }
@@ -207,11 +220,14 @@ function projectActivity(activity: ActivityRow, labels: Map<string, string>): Ac
           title: activity.assessment.title,
         }
       : null,
-    lessons: activity.lessons.map(({ part, lesson }) => ({
+    lessons: activity.lessons.map(({ part, lesson, bookPart, bookPage, pageActivity }) => ({
       id: lesson.id,
       sequence: lesson.sequence,
       title: lesson.title,
       part: part || null,
+      bookPart,
+      bookPage,
+      pageActivity,
     })),
   };
 }

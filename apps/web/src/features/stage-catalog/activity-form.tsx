@@ -1,12 +1,12 @@
 "use client";
-import styles from "./workspace.module.css";
 import { useState } from "react";
-import { TEACHING_HOUR_MINUTES } from "@lazuli/domain";
-import { Button, FormRow, FormSection } from "@lazuli/ui";
-import { Plus, X } from "lucide-react";
+import { bookPageRange, TEACHING_HOUR_MINUTES } from "@lazuli/domain";
+import { FormSection } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { Choice, EditorForm, TextField, formText } from "./editor-form";
+import { Choice, EditorFormBody, TextField, formText } from "./editor-form";
+
 import type { ProgramActivity, StageDetail, TeachingHour } from "./types";
+import styles from "./workspace.module.css";
 
 export const activityLabels = {
   LESSON: "Lição",
@@ -16,33 +16,50 @@ export const activityLabels = {
   VIDEO: "Vídeo",
   ACTIVITY: "Atividade",
 };
-type LinkValue = { key: number; id: string; part: string };
+
 export function ActivityForm({
   stage,
   programId,
   hour,
   position,
   editing,
+  onSaved,
+  description,
   close,
+  form,
+  pending,
 }: {
   stage: StageDetail;
   programId: string;
   hour: TeachingHour;
   position: number;
   editing: boolean;
+  onSaved: (title: string) => void;
+  description: string;
   close: () => void;
+  form: React.RefObject<HTMLFormElement | null>;
+  pending: React.RefObject<boolean>;
 }): React.JSX.Element {
   const item = editing ? hour.activities.at(position) : undefined;
   const siblings = hour.activities.filter((activity) => activity.id !== item?.id);
+  const followsAssessment = position > 0 && hour.activities[position - 1]?.kind === "ASSESSMENT";
+  const [mode, setMode] = useState(item && item.pageStart === null ? "text" : "pages");
+  const [title, setTitle] = useState(item?.bookTitle ?? "");
+  const [start, setStart] = useState(String(item?.pageStart ?? ""));
+  const [end, setEnd] = useState(String(item?.pageEnd ?? ""));
+  const matches = bookPageRange(stage.lessons, Number(start), Number(end || start));
+  const pageTitle = start === end || !end ? "Página " + start : "Páginas " + start + "–" + end;
   const utils = trpc.useUtils();
   const mutation = trpc.teachingPrograms.editProgram.useMutation({
     onError: () => utils.teachingPrograms.detail.invalidate({ id: stage.id }),
   });
-  const [expectedChange] = useState(hour.lastChange);
   return (
-    <EditorForm
-      inline
+    <EditorFormBody
+      compact
       title={editing ? "Editar atividade" : "Inserir atividade"}
+      description={description}
+      form={form}
+      pending={pending}
       onClose={close}
       onSave={async (data) => {
         const minutes = Number(formText(data, "minutes"));
@@ -52,39 +69,105 @@ export function ActivityForm({
         }));
         if (minutes + others.reduce((sum, row) => sum + row.minutes, 0) !== TEACHING_HOUR_MINUTES)
           throw new Error("Distribua 60 minutos entre as atividades desta hora-aula.");
-        const pages = readPages(data);
-        const kind = formText(data, "kind") as ProgramActivity["kind"];
+        const pages = mode === "pages" ? readPages(data) : { pageStart: null, pageEnd: null };
+        const preserve =
+          !!item && item.pageStart === pages.pageStart && item.pageEnd === pages.pageEnd;
+        const kind = preserve
+          ? item.kind
+          : item?.kind === "ASSESSMENT" || (!item && followsAssessment)
+            ? "ASSESSMENT"
+            : "ACTIVITY";
+        const savedTitle =
+          mode === "pages" ? (preserve ? item.bookTitle : pageTitle) : title.trim();
         await mutation.mutateAsync({
           action: "activity",
           stageId: stage.id,
           programId,
           hourId: hour.id,
-          expectedChange,
+          expectedChange: hour.lastChange,
           position,
           activityId: item?.id ?? null,
           kind,
-          title: formText(data, "title"),
+          title: savedTitle,
           durationMinutes: minutes,
           ...pages,
-          lessons: readLessonReferences(data),
+          resolvePages: mode === "pages" && !preserve,
           others,
+          lessons:
+            preserve && kind === "LESSON"
+              ? item.lessons.map((link) => ({
+                  id: link.id,
+                  part: link.part ?? "",
+                  partId: link.bookPart?.id ?? null,
+                  pageId: link.bookPage?.id ?? null,
+                  pageActivityId: link.pageActivity?.id ?? null,
+                }))
+              : [],
         });
-        await utils.teachingPrograms.invalidate();
+        await utils.teachingPrograms.detail.invalidate({ id: stage.id });
+        onSaved(savedTitle);
       }}
     >
-      <TextField
-        autoFocus
-        name="title"
-        label="Atividade do livro"
-        placeholder="Título conforme o livro"
-        defaultValue={item?.bookTitle}
-        required
-        maxLength={180}
+      <Choice
+        label="Conteúdo da atividade"
+        options={[
+          { value: "pages", label: "Páginas do livro" },
+          { value: "text", label: "Texto livre" },
+        ]}
+        value={mode}
+        onChange={setMode}
       />
-      <ActivityTypeFields stage={stage} item={item} />
-      <BookPages item={item} />
+      {mode === "text" ? (
+        <TextField
+          name="title"
+          label="Texto da atividade"
+          placeholder="Ex.: Conversação em duplas"
+          required
+          maxLength={180}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+      ) : (
+        <>
+          <div className={styles.pages}>
+            <TextField
+              name="pageStart"
+              label="Página inicial"
+              type="number"
+              min={1}
+              required
+              placeholder="Ex.: 18"
+              value={start}
+              onChange={(event) => setStart(event.target.value)}
+            />
+            <TextField
+              name="pageEnd"
+              label="Até (opcional)"
+              type="number"
+              min={Number(start) || 1}
+              placeholder="Ex.: 21"
+              value={end}
+              onChange={(event) => setEnd(event.target.value)}
+            />
+          </div>
+          {start && (
+            <div aria-live="polite" className={styles.meta}>
+              {matches.length
+                ? matches.map(({ lessonTitle, page }) => (
+                    <p key={page.id}>
+                      {lessonTitle} · Pág. {page.number}
+                      {page.activities.length
+                        ? " · " + page.activities.map((a) => a.title).join(", ")
+                        : ""}
+                    </p>
+                  ))
+                : "Nenhuma página cadastrada nesse intervalo."}
+            </div>
+          )}
+        </>
+      )}
       <DurationFields siblings={siblings} item={item} />
-    </EditorForm>
+    </EditorFormBody>
   );
 }
 
@@ -94,88 +177,6 @@ function readPages(data: FormData): Pick<ProgramActivity, "pageStart" | "pageEnd
   if (end && (!start || Number(end) < Number(start)))
     throw new Error("Confira as páginas inicial e final.");
   return { pageStart: start ? Number(start) : null, pageEnd: end ? Number(end) : null };
-}
-function readLessonReferences(data: FormData): { id: string; part: string }[] {
-  const parts = data.getAll("lessonPart");
-  return data.getAll("lessonId").flatMap((id, index) => {
-    const part = parts.at(index);
-    return typeof id === "string"
-      ? [{ id, part: typeof part === "string" ? part.trim() : "" }]
-      : [];
-  });
-}
-function ActivityTypeFields({
-  stage,
-  item,
-}: {
-  stage: StageDetail;
-  item: ProgramActivity | undefined;
-}): React.JSX.Element {
-  const [kind, setKind] = useState<ProgramActivity["kind"]>(item?.kind ?? "ACTIVITY");
-  const [links, setLinks] = useState<LinkValue[]>(
-    () =>
-      item?.lessons.map((lesson, index) => ({
-        key: index,
-        id: lesson.id,
-        part: lesson.part ?? "",
-      })) ?? [],
-  );
-  const addReference = (): void =>
-    setLinks((current) => [
-      ...current,
-      {
-        key: Math.max(-1, ...current.map((lesson) => lesson.key)) + 1,
-        id:
-          stage.lessons.find((lesson) => !current.some((link) => link.id === lesson.id))?.id ??
-          stage.lessons[0]?.id ??
-          "",
-        part: "",
-      },
-    ]);
-  const updateLink = (key: number, patch: Partial<LinkValue>): void =>
-    setLinks((current) =>
-      current.map((lesson) => (lesson.key === key ? { ...lesson, ...patch } : lesson)),
-    );
-  return (
-    <>
-      <Choice
-        name="kind"
-        label="Tipo de atividade"
-        options={Object.entries(activityLabels)
-          .filter(([key]) => key !== "LESSON" || stage.lessons.length > 0)
-          .map(([value, label]) => ({ value, label }))}
-        value={kind}
-        onChange={(value) => {
-          setKind(value as typeof kind);
-          if (value === "LESSON" && links.length === 0) addReference();
-        }}
-      />
-      {kind === "LESSON" && (
-        <FormSection title="Referências ao livro">
-          {links.map((link) => (
-            <LessonReference
-              key={link.key}
-              link={link}
-              stage={stage}
-              updateLink={updateLink}
-              removable={links.length > 1}
-              remove={() => setLinks(links.filter((entry) => entry.key !== link.key))}
-            />
-          ))}
-          <Button
-            type="button"
-            size="sm"
-            variant="text"
-            className="justify-self-start"
-            onClick={addReference}
-          >
-            <Plus />
-            Associar outra lição
-          </Button>
-        </FormSection>
-      )}
-    </>
-  );
 }
 function DurationFields({
   siblings,
@@ -193,13 +194,18 @@ function DurationFields({
   return (
     <FormSection
       title="Distribuição da hora-aula"
+      description={
+        !item && siblings.length > 0
+          ? "Informe a duração da nova atividade e ajuste as demais para somar 60 minutos."
+          : undefined
+      }
       action={
-        <span aria-live="polite" className={styles.caption}>
-          {total} / 60 min
+        <span aria-live="polite" className={styles.durationTotal}>
+          {total} / {TEACHING_HOUR_MINUTES} min
         </span>
       }
     >
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className={styles.durationRows}>
         <TextField
           label="Esta atividade (min)"
           name="minutes"
@@ -229,76 +235,5 @@ function DurationFields({
         ))}
       </div>
     </FormSection>
-  );
-}
-
-function BookPages({ item }: { item: ProgramActivity | undefined }): React.JSX.Element {
-  return (
-    <FormRow columns={2} className="max-w-xs">
-      <TextField
-        label="Página inicial (opcional)"
-        name="pageStart"
-        type="number"
-        inputMode="numeric"
-        min={1}
-        placeholder="Ex.: 18"
-        defaultValue={item?.pageStart ?? ""}
-      />
-      <TextField
-        label="Página final (opcional)"
-        name="pageEnd"
-        type="number"
-        inputMode="numeric"
-        min={1}
-        placeholder="Ex.: 21"
-        defaultValue={item?.pageEnd ?? ""}
-      />
-    </FormRow>
-  );
-}
-
-function LessonReference({
-  link,
-  stage,
-  updateLink,
-  removable,
-  remove,
-}: {
-  link: LinkValue;
-  stage: StageDetail;
-  updateLink: (key: number, patch: Partial<LinkValue>) => void;
-  removable: boolean;
-  remove: () => void;
-}): React.JSX.Element {
-  return (
-    <div className="flex flex-wrap items-end gap-2">
-      <Choice
-        name="lessonId"
-        label="Lição"
-        value={link.id}
-        onChange={(id) => updateLink(link.key, { id })}
-        options={stage.lessons.map((lesson) => ({ value: lesson.id, label: lesson.title }))}
-      />
-      <TextField
-        label="Parte (opcional)"
-        className="max-w-24"
-        name="lessonPart"
-        placeholder="Ex.: A"
-        maxLength={80}
-        value={link.part}
-        onChange={(event) => updateLink(link.key, { part: event.target.value })}
-      />
-      {removable && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Retirar referência"
-          onClick={remove}
-        >
-          <X />
-        </Button>
-      )}
-    </div>
   );
 }

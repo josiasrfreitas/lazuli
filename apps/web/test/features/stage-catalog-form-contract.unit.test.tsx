@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { EditorForm } from "../../src/features/stage-catalog/editor-form.js";
+import type { ReactNode } from "react";
+import { Dialog } from "@lazuli/ui";
+import { EditorFormBody } from "../../src/features/stage-catalog/editor-form.js";
 import {
   CatalogFields,
   type CatalogDialogState,
@@ -21,7 +23,34 @@ const stage: StageDetail = {
   status: "ACTIVE",
   track: { id: "track", name: "Track", status: "ACTIVE", ageGroup: "ADULT" },
   lessonCount: 1,
-  lessons: [{ id: "lesson", sequence: 1, title: "Lição 1" }],
+  lessons: [
+    {
+      id: "lesson",
+      sequence: 1,
+      title: "Lição 1",
+      pages: [
+        {
+          id: "page",
+          number: 18,
+          activities: [{ id: "book-activity", sequence: 1, title: "Exercício 1" }],
+        },
+      ],
+      parts: [
+        {
+          id: "part",
+          sequence: 1,
+          title: "Parte A",
+          pages: [
+            {
+              id: "page",
+              number: 18,
+              activities: [{ id: "book-activity", sequence: 1, title: "Exercício 1" }],
+            },
+          ],
+        },
+      ],
+    },
+  ],
   programs: [],
 };
 const hour: TeachingHour = {
@@ -39,7 +68,17 @@ const hour: TeachingHour = {
       sourceCode: null,
       descriptionPending: false,
       durationMinutes: 60,
-      lessons: [{ ...stage.lessons[0]!, part: null }],
+      lessons: [
+        {
+          id: "lesson",
+          sequence: 1,
+          title: "Lição 1",
+          part: "Seção livre",
+          bookPart: null,
+          bookPage: null,
+          pageActivity: null,
+        },
+      ],
       pageStart: 18,
       pageEnd: 21,
       assessment: null,
@@ -60,6 +99,21 @@ function assertControls(html: string, names: string[]): void {
     assert.match(input, /autoComplete="off"/i);
   }
 }
+function renderFields(children: ReactNode): string {
+  return renderToStaticMarkup(
+    <Dialog open>
+      <EditorFormBody
+        title="Cadastro"
+        onClose={() => {}}
+        onSave={async () => {}}
+        form={{ current: null }}
+        pending={{ current: false }}
+      >
+        {children}
+      </EditorFormBody>
+    </Dialog>,
+  );
+}
 void it("labels and submits each catalog operation, including the Legacy confirmation", () => {
   const cases: [CatalogDialogState, string[]][] = [
     [{ action: "createTrack", lines: [{ id: "adult", name: "Adultos" }] }, ["line", "age", "name"]],
@@ -69,14 +123,26 @@ void it("labels and submits each catalog operation, including the Legacy confirm
       ["name", "code"],
     ],
     [{ action: "lesson", stageId: stage.id }, ["title"]],
+    [{ action: "part", stageId: stage.id, lessonId: "lesson", context: "Lição 1" }, ["title"]],
+    [
+      { action: "page", stageId: stage.id, lessonId: "lesson", partId: "part", context: "Parte A" },
+      ["number"],
+    ],
+    [
+      {
+        action: "pageActivity",
+        stageId: stage.id,
+        lessonId: "lesson",
+        partId: "part",
+        pageId: "page",
+        context: "Página 18",
+      },
+      ["title"],
+    ],
     [{ action: "legacy", target: "track", id: "track", name: "Track" }, []],
   ];
   for (const [item, names] of cases) {
-    const html = renderToStaticMarkup(
-      <EditorForm inline title="Catálogo" onClose={() => {}} onSave={async () => {}}>
-        <CatalogFields item={item} />
-      </EditorForm>,
-    );
+    const html = renderFields(<CatalogFields item={item} />);
     assertControls(html, names);
     if (item.action === "legacy") assert.match(html, /todos os estágios desta track/);
   }
@@ -89,37 +155,56 @@ void it("offers the required book fields for starting, extending, and naming a p
     [{ action: "hour", programId: "program", unit }, ["title", "lesson"]],
   ];
   for (const [item, names] of cases) {
-    assertControls(
-      renderToStaticMarkup(
-        <EditorForm inline title="Programação" onClose={() => {}} onSave={async () => {}}>
-          <ProgramFields item={item} stage={stage} />
-        </EditorForm>,
-      ),
-      names,
-    );
+    assertControls(renderFields(<ProgramFields item={item} stage={stage} />), names);
   }
 });
 void it("edits existing book pages or an insertion at the chosen position with all neighboring minutes visible", () => {
   for (const editing of [true, false]) {
     const html = renderWithQueries(
-      <ActivityForm
-        stage={stage}
-        programId="program"
-        hour={hour}
-        position={editing ? 0 : 1}
-        editing={editing}
-        close={() => {}}
-      />,
+      <Dialog open>
+        <ActivityForm
+          stage={stage}
+          programId="program"
+          hour={hour}
+          position={editing ? 0 : 1}
+          editing={editing}
+          onSaved={() => {}}
+          pending={{ current: false }}
+          form={{ current: null }}
+          description="Unidade 1 · Hora-aula 01"
+          close={() => {}}
+        />
+      </Dialog>,
     );
     assertControls(html, [
-      "title",
       "minutes",
       "pageStart",
       "pageEnd",
       ...(editing ? [] : ["minutes-activity"]),
     ]);
-    const page = html.match(/<input[^>]*name="pageStart"[^>]*>/)?.[0] ?? "";
-    assert.doesNotMatch(page, /required/);
-    if (editing) assert.match(page, /value="18"/);
+    assert.match(html, /Texto livre/);
+    assert.doesNotMatch(html, /Tipo de atividade|Trechos do livro/);
+    if (editing) assert.match(html, /Exercício 1/);
   }
+});
+void it("opens free-text activities without requiring a book page", () => {
+  const item = { ...hour.activities[0]!, pageStart: null, pageEnd: null };
+  const html = renderWithQueries(
+    <Dialog open>
+      <ActivityForm
+        stage={stage}
+        programId="program"
+        hour={{ ...hour, activities: [item] }}
+        position={0}
+        editing
+        onSaved={() => {}}
+        description="Hora"
+        form={{ current: null }}
+        pending={{ current: false }}
+        close={() => {}}
+      />
+    </Dialog>,
+  );
+  assertControls(html, ["title", "minutes"]);
+  assert.doesNotMatch(html, /name="pageStart"/);
 });

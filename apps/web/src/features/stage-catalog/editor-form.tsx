@@ -15,6 +15,7 @@ import {
   DialogBackdrop,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogPortal,
@@ -40,24 +41,59 @@ export const formText = (data: FormData, name: string): string => {
 const Validation = createContext({ name: "", message: "" });
 
 type FormProps = {
+  compact?: boolean;
   title: string;
   children: ReactNode;
   onClose: () => void;
   onSave: (data: FormData) => Promise<void>;
   saveLabel?: string;
-  inline?: boolean;
+  description?: string | undefined;
 };
-export function EditorForm({
+export function EditorForm(props: FormProps): React.JSX.Element {
+  const pending = useRef(false);
+  const form = useRef<HTMLFormElement>(null);
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !pending.current) props.onClose();
+      }}
+    >
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogContent motion="subtle" initialFocus={() => firstFormField(form.current) ?? true}>
+          <EditorFormBody {...props} form={form} pending={pending} />
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  );
+}
+
+export function firstFormField(form: HTMLFormElement | null): HTMLElement | undefined {
+  return (
+    form?.querySelector<HTMLElement>("input:not([type=hidden]),button:not([disabled])") ?? undefined
+  );
+}
+type SubmissionRefs = {
+  form: React.RefObject<HTMLFormElement | null>;
+  pending: React.RefObject<boolean>;
+};
+export function EditorFormBody({
   title,
+  description,
   children,
   onClose,
   onSave,
   saveLabel = "Salvar",
-  inline = false,
-}: FormProps): React.JSX.Element {
-  const { error, invalid, busy, pending, form, formId, submit, clearError } = useEditorSubmission({
+  compact = false,
+  form,
+  pending,
+}: FormProps & SubmissionRefs): React.JSX.Element {
+  const { error, invalid, busy, formId, submit, clearError } = useEditorSubmission({
     onSave,
     onClose,
+    form,
+    pending,
   });
   const fields = (
     <form
@@ -69,52 +105,35 @@ export function EditorForm({
       }}
       onChange={clearError}
       aria-label={title}
-      className="grid gap-4"
+      className="grid"
     >
-      <fieldset disabled={busy} className="grid min-w-0 gap-4">
+      <fieldset disabled={busy} className={compact ? "grid min-w-0 gap-2" : "grid min-w-0 gap-4"}>
         <Validation.Provider value={{ name: invalid, message: error }}>
           {children}
         </Validation.Provider>
       </fieldset>
+    </form>
+  );
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        {description && <DialogDescription>{description}</DialogDescription>}
+      </DialogHeader>
+      <DialogBody>
+        <div className={styles.formBody} data-compact={compact || undefined}>
+          {fields}
+        </div>
+      </DialogBody>
       {error && !invalid && (
         <p role="alert" className={styles.fieldAlert}>
           {error}
         </p>
       )}
-    </form>
-  );
-  const actions = (
-    <FormActions busy={busy} onClose={onClose} formId={formId} saveLabel={saveLabel} />
-  );
-  if (inline)
-    return (
-      <InlineEditor title={title} fields={fields} actions={actions} busy={busy} onClose={onClose} />
-    );
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !pending.current) onClose();
-      }}
-    >
-      <DialogPortal>
-        <DialogBackdrop />
-        <DialogContent
-          motion="subtle"
-          initialFocus={() =>
-            form.current?.querySelector<HTMLElement>("input:not([type=hidden]),button") ?? true
-          }
-        >
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <div className="pt-4">{fields}</div>
-          </DialogBody>
-          <DialogFooter>{actions}</DialogFooter>
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
+      <DialogFooter className="flex-row justify-end">
+        <FormActions busy={busy} onClose={onClose} formId={formId} saveLabel={saveLabel} />
+      </DialogFooter>
+    </>
   );
 }
 export function TextField({
@@ -141,11 +160,13 @@ type Option = { value: string; label: string };
 export function Choice({
   name,
   label,
+  hideLabel = false,
   options,
   value,
   onChange,
 }: {
   label: string;
+  hideLabel?: boolean;
   name?: string;
   options: Option[];
   value: string;
@@ -155,7 +176,7 @@ export function Choice({
   return (
     <div className="grid min-w-0 gap-1">
       {name && <input type="hidden" name={name} value={value} />}
-      <span id={labelId} className={styles.fieldLabel}>
+      <span id={labelId} className={hideLabel ? "sr-only" : styles.fieldLabel}>
         {label}
       </span>
       {options.length <= MAX_SEGMENTS ? (
@@ -211,10 +232,16 @@ function FormActions({
 }): React.JSX.Element {
   return (
     <>
-      <Button size="sm" variant="ghost" type="button" disabled={busy} onClick={onClose}>
+      <Button
+        size="compact-responsive"
+        variant="ghost"
+        type="button"
+        disabled={busy}
+        onClick={onClose}
+      >
         Cancelar
       </Button>
-      <Button size="sm" type="submit" form={formId} disabled={busy}>
+      <Button size="compact-responsive" type="submit" form={formId} disabled={busy}>
         {busy ? "Salvando…" : saveLabel}
       </Button>
     </>
@@ -223,6 +250,9 @@ function FormActions({
 function fieldForMessage(message: string): string {
   if (message.includes("código")) return "code";
   if (message.includes("com este nome")) return "name";
+  if (message.includes("60 minutos")) return "minutes";
+  if (message.includes("parte com esse título")) return "title";
+  if (message.includes("página já existe")) return "number";
   if (message.includes("páginas")) return "pageEnd";
   return "";
 }
@@ -230,8 +260,6 @@ type EditorSubmission = {
   error: string;
   invalid: string;
   busy: boolean;
-  pending: React.RefObject<boolean>;
-  form: React.RefObject<HTMLFormElement | null>;
   formId: string;
   submit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   clearError: () => void;
@@ -239,12 +267,12 @@ type EditorSubmission = {
 function useEditorSubmission({
   onSave,
   onClose,
-}: Pick<FormProps, "onSave" | "onClose">): EditorSubmission {
+  form,
+  pending,
+}: Pick<FormProps, "onSave" | "onClose"> & SubmissionRefs): EditorSubmission {
   const [error, setError] = useState("");
   const [invalid, setInvalid] = useState("");
   const [busy, setBusy] = useState(false);
-  const pending = useRef(false);
-  const form = useRef<HTMLFormElement>(null);
   const formId = useId();
   function reportError(message: string): void {
     const field = fieldForMessage(message);
@@ -287,8 +315,6 @@ function useEditorSubmission({
     error,
     invalid,
     busy,
-    pending,
-    form,
     formId,
     submit,
     clearError: () => {
@@ -296,32 +322,4 @@ function useEditorSubmission({
       setInvalid("");
     },
   };
-}
-
-function InlineEditor({
-  title,
-  fields,
-  actions,
-  busy,
-  onClose,
-}: {
-  title: string;
-  fields: ReactNode;
-  actions: ReactNode;
-  busy: boolean;
-  onClose: () => void;
-}): React.JSX.Element {
-  return (
-    <section
-      aria-label={title}
-      className="grid gap-3 rounded-md border border-border-strong bg-card p-4"
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && !busy) onClose();
-      }}
-    >
-      <h4 className={styles.controlTitle}>{title}</h4>
-      {fields}
-      <div className="flex justify-end gap-2">{actions}</div>
-    </section>
-  );
 }
