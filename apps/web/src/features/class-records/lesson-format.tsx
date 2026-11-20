@@ -3,11 +3,7 @@ import { MapPin, Video } from "lucide-react";
 import type { CalendarLesson } from "./calendar-model";
 import styles from "./lesson-format.module.css";
 
-export function lessonFormatLabel(lesson: CalendarLesson): string | null {
-  const format = lesson.experimental?.format ?? lesson.appointment?.format ?? lesson.format;
-  if (!format) return null;
-  return format === "ONLINE" ? "Online" : "Presencial";
-}
+import { lessonFormatLabel } from "./lesson-presentation";
 
 export function LessonFormat({ lesson }: { lesson: CalendarLesson }): ReactJSX.Element | null {
   const label = lessonFormatLabel(lesson);

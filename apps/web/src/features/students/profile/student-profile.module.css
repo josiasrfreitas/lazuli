@@ -49,14 +49,6 @@
   align-items: center;
   gap: 0.5rem;
 }
-.tabNavigation {
-  margin-inline-start: auto;
-  display: flex;
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  align-items: center;
-}
 .pedagogyContent {
   display: grid;
   min-width: 0;
@@ -165,95 +157,11 @@
 }
 
 .sections {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.sections > :global([data-slot="tabs"]) {
-  gap: 0;
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-}
-
-.sections > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  /* Overlay scrollbars need physical clearance inside the page's outer gutter. */
-  margin-inline-end: -1rem;
-  padding-inline-end: 1rem;
+  composes: person from "../../../components/record-tabs.module.css";
 }
 
 .stickyHeader {
   flex-shrink: 0;
-}
-
-/* The browser animates snapshots, never a second live financial panel. */
-.sections > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) {
-  --student-section-transition: student-section;
-  view-transition-name: var(--student-section-transition);
-}
-
-:global(html[data-student-carousel]::view-transition-group(student-section)) {
-  overflow: clip;
-  animation-duration: 420ms;
-}
-
-:global(html[data-student-carousel]::view-transition-old(root)),
-:global(html[data-student-carousel]::view-transition-new(root)) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-:global(html[data-student-carousel]::view-transition-old(student-section)),
-:global(html[data-student-carousel]::view-transition-new(student-section)) {
-  height: 100%;
-  object-fit: none;
-  object-position: top left;
-  mix-blend-mode: normal;
-  animation-duration: 420ms;
-  animation-timing-function: cubic-bezier(0.22, 0.68, 0, 1);
-  animation-fill-mode: both;
-}
-
-:global(html[data-student-carousel="forward"]::view-transition-old(student-section)) {
-  animation-name: carousel-exit-left;
-}
-:global(html[data-student-carousel="forward"]::view-transition-new(student-section)) {
-  animation-name: carousel-enter-right;
-}
-:global(html[data-student-carousel="backward"]::view-transition-old(student-section)) {
-  animation-name: carousel-exit-right;
-}
-:global(html[data-student-carousel="backward"]::view-transition-new(student-section)) {
-  animation-name: carousel-enter-left;
-}
-
-@keyframes carousel-exit-left {
-  to {
-    transform: translateX(-100%);
-  }
-}
-@keyframes carousel-enter-right {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes carousel-exit-right {
-  to {
-    transform: translateX(100%);
-  }
-}
-@keyframes carousel-enter-left {
-  from {
-    transform: translateX(-100%);
-  }
 }
 
 @media (min-width: 901px) and (min-height: 640px) {

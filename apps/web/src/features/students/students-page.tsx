@@ -4,20 +4,11 @@ import { TableExportButton } from "~/components/table-export-button";
 import { useEffect, useState, type ReactElement } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  BadgePercent,
-  Cake,
-  CircleCheck,
-  GraduationCap,
-  Plus,
-  Search,
-  UsersRound,
-} from "lucide-react";
+import { BadgePercent, Cake, CircleCheck, GraduationCap, Plus, UsersRound } from "lucide-react";
 
 import {
   Button,
   DataTablePage,
-  Input,
   TableFilters,
   type RemoteOptionsResult,
   type TableFilterField,
@@ -28,7 +19,7 @@ import {
   type StudentListOutput,
 } from "@lazuli/validators";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
-import { useSearchDraft } from "~/lib/use-search-draft";
+import { TableSearch } from "~/components/table-search";
 import { useAnimationPreviewDelay } from "~/lib/animation-preview";
 
 import {
@@ -187,24 +178,13 @@ export function studentFilterFields(props: StudentsFilterFieldsProps): TableFilt
 }
 
 function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
-  const [value, setValue] = useSearchDraft(filters.search, filters.setSearch);
   return (
-    <div className="relative w-full sm:w-80">
-      <Search
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
-      />
-      <Input
-        aria-label="Buscar aluno"
-        className="pl-8"
-        onChange={(event) => {
-          const nextValue = event.target.value;
-          setValue(nextValue);
-        }}
+    <div className="w-full sm:w-80">
+      <TableSearch
+        label="Buscar aluno"
         placeholder="Buscar por nome, turma ou docente"
-        size="sm"
-        type="search"
-        value={value}
+        value={filters.search}
+        onCommit={filters.setSearch}
       />
     </div>
   );

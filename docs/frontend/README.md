@@ -100,3 +100,13 @@ typecheck, tests, `git diff --check`, and inspect the final diff.
 
 Use the shared [ScheduleCalendar contract](schedule-calendar.md) for daily and weekly agendas,
 including event rendering, interval selection, availability boundaries, and Storybook examples.
+
+## Record pages
+
+The administrative student, class and teacher records use `DetailHeader`. Student and class
+records use `RecordTabs` and `RecordTabsList` for tab-strip overflow and panel transitions.
+Each owns the selected URL section, its allowed tabs and edit locks. The teacher record shows
+its sections on one page and supports anchor navigation and existing `?secao=` links.
+The compact record title and operational listing title use `--lz-text-h2`.
+Section headings using the 18px panel scale read `--lz-text-panel-title` in
+`packages/ui/src/styles/tokens/typography.css`.

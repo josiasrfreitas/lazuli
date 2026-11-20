@@ -1,6 +1,6 @@
 "use client";
 import { TableExportButton } from "~/components/table-export-button";
-import { useSearchDraft } from "~/lib/use-search-draft";
+import { TableSearch } from "~/components/table-search";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,6 @@ import {
   Button,
   DataTable,
   DataTablePage,
-  Input,
   TableFilters,
   type TableFilterField,
   type DataTableState,
@@ -129,18 +128,15 @@ function AdmissionControls({
   fields: TableFilterField[];
   onClear: () => void;
 }): ReactElement {
-  const [draft, setDraft] = useSearchDraft(search, onSearch);
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-full sm:w-56">
-        <Input
+        <TableSearch
           name="candidate-search"
-          aria-label="Buscar lead"
+          label="Buscar lead"
           placeholder="Nome, telefone ou e-mail"
-          autoComplete="off"
-          size="compact-responsive"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          value={search}
+          onCommit={onSearch}
         />
       </div>
       <TableFilters fields={fields} onClearAll={onClear} />

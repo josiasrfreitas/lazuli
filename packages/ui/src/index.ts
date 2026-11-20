@@ -189,6 +189,7 @@ export {
   TableBody,
   TableCaption,
   TableContainer,
+  TableActionRow,
   TableFooter,
   TableHeader,
   TableRow,

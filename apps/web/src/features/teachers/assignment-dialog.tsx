@@ -1,4 +1,5 @@
 "use client";
+import { FormDialogFooter } from "~/components/form-dialog-footer";
 import type { RouterInputs } from "@lazuli/api";
 import {
   type Dispatch,
@@ -12,13 +13,11 @@ import {
 } from "react";
 import {
   ToastAlert,
-  Button,
   Dialog,
   DialogBackdrop,
   DialogBody,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogPortal,
   DialogTitle,
@@ -81,29 +80,6 @@ export function AssignmentDialog(props: AssignmentDialogInput): ReactElement {
       today={today}
       selected={selected}
     />
-  );
-}
-
-function AssignmentFooter({ onClose, saveIsPending }: AssignmentFooterInput): ReactElement {
-  return (
-    <DialogFooter>
-      <Button
-        size="compact-responsive"
-        variant="secondary"
-        onClick={onClose}
-        disabled={saveIsPending}
-      >
-        Cancelar
-      </Button>
-      <Button
-        size="compact-responsive"
-        type="submit"
-        form="assignment-form"
-        disabled={saveIsPending}
-      >
-        {saveIsPending ? "Salvando…" : "Salvar atribuição"}
-      </Button>
-    </DialogFooter>
   );
 }
 
@@ -194,7 +170,12 @@ function AssignmentContent(props: AssignmentContentProps): ReactElement {
             </DialogDescription>
           </DialogHeader>
           <AssignmentForm {...props} />
-          <AssignmentFooter onClose={props.onClose} saveIsPending={props.saveIsPending} />
+          <FormDialogFooter
+            form="assignment-form"
+            pending={props.saveIsPending}
+            onCancel={props.onClose}
+            label="Salvar atribuição"
+          />
         </DialogContent>
       </DialogPortal>
     </Dialog>
@@ -265,10 +246,6 @@ type AssignmentDialogInput = {
   classId: string;
   classCode: string;
   onClose: () => void;
-};
-type AssignmentFooterInput = {
-  onClose: () => void;
-  saveIsPending: boolean;
 };
 type AssignmentFieldsInput = {
   first: RefObject<HTMLInputElement | null>;

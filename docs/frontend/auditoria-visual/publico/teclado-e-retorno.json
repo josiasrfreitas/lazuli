@@ -1,0 +1,110 @@
+[
+  {
+    "viewport": "d",
+    "login_foco": [
+      {
+        "label": "Email institucional",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "input",
+        "y": 374
+      },
+      {
+        "label": "Esqueci minha senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 422
+      },
+      {
+        "label": "Senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "input",
+        "y": 460
+      },
+      {
+        "label": "Mostrar senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 460
+      },
+      {
+        "label": "Entrar",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 508
+      },
+      {
+        "label": "Entrar por link no email",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 609
+      },
+      {
+        "label": "Cadastrar senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 665
+      },
+      {
+        "label": "Mais tempo para\no que transforma.\n\nUma gestão mais",
+        "style": "none",
+        "tag": "body",
+        "y": 0
+      }
+    ],
+    "403_voltar": "https://staging.lazuli.fisklagarto.com.br/login"
+  },
+  {
+    "viewport": "m",
+    "login_foco": [
+      {
+        "label": "Email institucional",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "input",
+        "y": 436
+      },
+      {
+        "label": "Esqueci minha senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 492
+      },
+      {
+        "label": "Senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "input",
+        "y": 530
+      },
+      {
+        "label": "Mostrar senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 530
+      },
+      {
+        "label": "Entrar",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 586
+      },
+      {
+        "label": "Entrar por link no email",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 704
+      },
+      {
+        "label": "Cadastrar senha",
+        "style": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, color(srgb 0.419608 0.568627 0.780392 / 0.48) 0px 0px 0px 3px",
+        "tag": "button",
+        "y": 760
+      },
+      {
+        "label": "Mais tempo para\no que transforma.\n\nUma gestão mais",
+        "style": "none",
+        "tag": "body",
+        "y": 0
+      }
+    ],
+    "403_voltar": "https://staging.lazuli.fisklagarto.com.br/login"
+  }
+]

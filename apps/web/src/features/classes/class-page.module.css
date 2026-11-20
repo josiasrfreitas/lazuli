@@ -5,40 +5,16 @@
   flex-direction: column;
 }
 .sections {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  flex-direction: column;
-}
-.sections > :global([data-slot="tabs"]) {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-  gap: 0;
+  composes: frame from "../../components/record-tabs.module.css";
 }
 .header {
   flex-shrink: 0;
 }
-.tabNavigation {
-  display: flex;
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  margin-inline-start: auto;
-}
 .sections > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
   padding-block: 0.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  --class-section-transition: class-section;
-  view-transition-name: var(--class-section-transition);
   animation: class-tab-reveal 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 /* Base UI retains exiting panels; their outgoing view is already captured. */
@@ -305,75 +281,12 @@
   }
 }
 
-:global(html[data-class-carousel])
+:global(html[data-record-carousel])
   .sections
   > :global([data-slot="tabs"])
   > :global([data-slot="tabs-panel"]) {
   animation: none;
 }
-:global(html[data-class-carousel]::view-transition-group(class-section)) {
-  overflow: clip;
-  animation-duration: 420ms;
-}
-
-:global(html[data-class-carousel]::view-transition-old(root)),
-:global(html[data-class-carousel]::view-transition-new(root)) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-:global(html[data-class-carousel]::view-transition-old(class-section)),
-:global(html[data-class-carousel]::view-transition-new(class-section)) {
-  height: 100%;
-  object-fit: none;
-  object-position: top left;
-  mix-blend-mode: normal;
-  animation-duration: 420ms;
-  animation-timing-function: cubic-bezier(0.22, 0.68, 0, 1);
-  animation-fill-mode: both;
-}
-
-:global(html[data-class-carousel="forward"]::view-transition-old(class-section)) {
-  animation-name: carousel-exit-left;
-}
-:global(html[data-class-carousel="forward"]::view-transition-new(class-section)) {
-  animation-name: carousel-enter-right;
-}
-:global(html[data-class-carousel="backward"]::view-transition-old(class-section)) {
-  animation-name: carousel-exit-right;
-}
-:global(html[data-class-carousel="backward"]::view-transition-new(class-section)) {
-  animation-name: carousel-enter-left;
-}
-
-@keyframes carousel-exit-left {
-  to {
-    transform: translateX(-100%);
-  }
-}
-@keyframes carousel-enter-right {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes carousel-exit-right {
-  to {
-    transform: translateX(100%);
-  }
-}
-@keyframes carousel-enter-left {
-  from {
-    transform: translateX(-100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :global(html[data-class-carousel]::view-transition-old(class-section)),
-  :global(html[data-class-carousel]::view-transition-new(class-section)) {
-    animation: none;
-  }
-}
-
 /* Overlay scrollbars on macOS do not reserve scrollbar-gutter space. */
 .sections[data-planning] > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) {
   padding-inline-end: 1rem;

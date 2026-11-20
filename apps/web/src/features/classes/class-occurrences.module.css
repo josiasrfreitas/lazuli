@@ -117,7 +117,7 @@
   flex-shrink: 0;
   color: var(--academic-panel-foreground);
   font-family: var(--font-display);
-  font-size: 1.125rem;
+  font-size: var(--lz-text-panel-title);
   font-weight: 500;
   line-height: 1.3;
   text-wrap: balance;

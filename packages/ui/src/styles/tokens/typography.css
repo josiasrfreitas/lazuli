@@ -9,10 +9,10 @@
    * cover speaks in a tight grotesk with monospaced labels. Keeping both as
    * system stacks preserves the no-webfont rule.
    */
-  --lz-font-grotesk: "Helvetica Neue", "Segoe UI Variable Display", "Segoe UI", system-ui, Arial,
-    sans-serif;
-  --lz-font-mono: ui-monospace, "SF Mono", Menlo, "Cascadia Mono", "Segoe UI Mono", Consolas,
-    monospace;
+  --lz-font-grotesk:
+    "Helvetica Neue", "Segoe UI Variable Display", "Segoe UI", system-ui, Arial, sans-serif;
+  --lz-font-mono:
+    ui-monospace, "SF Mono", Menlo, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
 
   /*
    * Marquee headline. Fluid so a 64px desktop title still fits a 375px phone.
@@ -35,6 +35,7 @@
   --lz-leading-h2: 1.25;
   --lz-text-h3: 1.1875rem;
   --lz-leading-h3: 1.3;
+  --lz-text-panel-title: 1.125rem;
   --lz-text-body: 1rem;
   --lz-leading-body: 1.5;
   --lz-text-control: 0.84375rem;

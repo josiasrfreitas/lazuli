@@ -1,5 +1,5 @@
 "use client";
-import { useSearchDraft } from "~/lib/use-search-draft";
+import { TableSearch } from "~/components/table-search";
 
 import { useEffect, useRef, type ReactElement, type RefObject } from "react";
 import {
@@ -11,12 +11,11 @@ import {
 import { activityListSchema, z } from "@lazuli/validators";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { RouterInputs, RouterOutputs } from "@lazuli/api";
-import { CalendarDays, History, Layers, RefreshCw, Search, UserRound } from "lucide-react";
+import { CalendarDays, History, Layers, RefreshCw, UserRound } from "lucide-react";
 import {
   Button,
   EmptyState,
   InlineSkeleton,
-  Input,
   PencilLoader,
   TimelineSkeleton,
   TableFilters,
@@ -171,28 +170,19 @@ function ActivityHeader({
 
 function ActivityFilters({ model }: { model: ActivityModel }): ReactElement {
   const { params, setParams } = model;
-  const [search, setSearch] = useSearchDraft(params.busca, (busca) => {
-    void setParams({ busca });
-  });
   const fields = activityFilterFields(model);
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full sm:w-80">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
-          />
-          <Input
-            className="pl-9"
+        <div className="w-full sm:w-80">
+          <TableSearch
             name="activity-search"
-            type="search"
-            aria-label="Buscar no log"
-            autoComplete="off"
+            label="Buscar no log"
             placeholder="Buscar ação, pessoa ou contexto"
-            size="compact-responsive"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            value={params.busca}
+            onCommit={(busca) => {
+              void setParams({ busca });
+            }}
           />
         </div>
         <TableFilters

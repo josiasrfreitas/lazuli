@@ -2,9 +2,8 @@
 import { useEffect, useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
 import { ArrowLeft, Check, FileText } from "lucide-react";
 import { Button, ToastAlert } from "@lazuli/ui";
-import { BrandSignature } from "~/components/app-shell/brand-signature";
+import { CapturePageFrame } from "~/features/mobile-upload/capture-page-frame";
 import { MobileFileEditor, type UploadCategory, type MobileFileInput } from "./file-editor";
-import styles from "./mobile-upload.module.css";
 export type MobileUploadReceipt = { id: string; label: string; fileName: string };
 type CaptureSession = { endpoint: string; token: string };
 const SESSION_GONE = 410;
@@ -54,15 +53,18 @@ export function MobileUploadPage({
   const model = useMobileUpload(endpoint);
   const { selected, error } = model;
   return (
-    <main className={styles.mobile}>
-      <BrandSignature expanded />
+    <CapturePageFrame>
       <header className="grid gap-2">
         <h1>{selected?.label ?? "Enviar documentos"}</h1>
-        <p>Os arquivos aparecem no cadastro aberto no computador.</p>
+        <p>
+          {model.token
+            ? "Os arquivos aparecem no cadastro aberto no computador."
+            : "Abra esta página pelo QR code do cadastro."}
+        </p>
       </header>
       {error && <ToastAlert variant="warning">{error}</ToastAlert>}
-      <MobileUploadContent model={model} categories={categories} />
-    </main>
+      {model.token && <MobileUploadContent model={model} categories={categories} />}
+    </CapturePageFrame>
   );
 }
 
@@ -134,7 +136,6 @@ function MobileUploadContent({
     setBusy,
     setReceived,
   } = model;
-  if (!token) return <p>Abra esta página pelo QR code do cadastro.</p>;
   if (!files)
     return (
       <p role="status">{error ? "Confira o link ou gere um novo QR code." : "Abrindo sessão…"}</p>

@@ -1,13 +1,9 @@
 import type { JSX as ReactJSX } from "react";
 import { MapPin, Video } from "lucide-react";
+import tone from "./event-tone.module.css";
 import styles from "./calendar.module.css";
 
-export const EVENT_TYPES = [
-  { id: "REGULAR", label: "Regular" },
-  { id: "PERSONALIZED", label: "PPT" },
-  { id: "EXPERIMENTAL", label: "Experimental" },
-  { id: "APPOINTMENT", label: "Atendimento" },
-];
+import { EVENT_LABELS } from "./lesson-presentation";
 
 type FilterProps = { values: string[]; onChange: (values: string[]) => void };
 function toggleFilter(value: string, values: string[]): string[] {
@@ -60,16 +56,17 @@ function FormatFilters({ values, onChange }: FilterProps): ReactJSX.Element {
 function TypeFilters({ values, onChange }: FilterProps): ReactJSX.Element {
   return (
     <div className={styles.legend} role="group" aria-label="Filtrar por tipo de evento">
-      {EVENT_TYPES.map((type) => (
+      {Object.entries(EVENT_LABELS).map(([id, label]) => (
         <button
-          key={type.id}
+          key={id}
           type="button"
-          data-modality={type.id}
-          aria-pressed={values.includes(type.id)}
-          aria-label={`Filtrar por ${type.label}`}
-          onClick={() => onChange(toggleFilter(type.id, values))}
+          className={tone.tone}
+          data-modality={id}
+          aria-pressed={values.includes(id)}
+          aria-label={`Filtrar por ${label}`}
+          onClick={() => onChange(toggleFilter(id, values))}
         >
-          {type.label}
+          {label}
         </button>
       ))}
     </div>

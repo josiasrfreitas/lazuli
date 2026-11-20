@@ -1,0 +1,80 @@
+{
+  "captured_utc": "2026-11-20T15:11:49.539151+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/presenca/projecao",
+  "snapshot": "- generic\n  - main\n    - heading \"Confirme sua presença\" [level=1, ref=e416]\n  - region \"Notificações\" [ref=e417]",
+  "metrics": {
+    "coarse": true,
+    "controls": [],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 28,
+        "line": "28px",
+        "role": null,
+        "size": "20px",
+        "tag": "p",
+        "text": "LAZULI",
+        "weight": "400",
+        "width": 342,
+        "x": 24,
+        "y": 276
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 36,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "O professor revisará a chamada. Se precisar de ajuda, fale com ele.",
+        "weight": "400",
+        "width": 342,
+        "x": 24,
+        "y": 532
+      }
+    ],
+    "docHeight": 844,
+    "docWidth": 390,
+    "fonts": [],
+    "frames": [],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 74,
+        "line": "36.8px",
+        "role": null,
+        "size": "32px",
+        "tag": "h1",
+        "text": "Confirme sua presença",
+        "weight": "600",
+        "width": 342,
+        "x": 24,
+        "y": 332
+      }
+    ],
+    "height": 844,
+    "labels": [],
+    "main": {
+      "background": "rgb(18, 21, 29)",
+      "color": "rgb(233, 237, 246)",
+      "font": "Cambria, Georgia, \"Times New Roman\", serif",
+      "height": 844,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 390,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Projeção de presença | Lazuli",
+    "width": 390
+  }
+}

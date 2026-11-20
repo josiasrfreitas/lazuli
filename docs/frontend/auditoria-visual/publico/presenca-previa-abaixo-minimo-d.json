@@ -1,0 +1,158 @@
+{
+  "captured_utc": "2026-11-20T15:13:28.141958+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/presenca/previa",
+  "snapshot": "- generic\n  - main\n    - sectionheader\n      - StaticText \"LAZULI\"\n    - generic\n      - heading \"Confirme sua presença\" [level=1, ref=e425]\n      - paragraph\n        - StaticText \"Essentials 1 · 10:00–11:00\"\n      - form\n        - LabelText\n        - textbox \"Seu nome\" [ref=e426]: An\n        - paragraph\n        - button \"Enviar minha presença\" [disabled, ref=e427]\n        - paragraph\n          - StaticText \"Prévia: nenhum registro real será enviado.\"\n  - region \"Notificações\" [ref=e424]",
+  "metrics": {
+    "coarse": false,
+    "controls": [
+      {
+        "background": "rgb(23, 28, 36)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 32,
+        "line": "16.875px",
+        "role": null,
+        "size": "13.5px",
+        "tag": "input",
+        "text": "",
+        "weight": "400",
+        "width": 448,
+        "x": 496,
+        "y": 449
+      },
+      {
+        "background": "rgb(48, 89, 133)",
+        "color": "rgb(255, 255, 255)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 40,
+        "line": "16.875px",
+        "role": null,
+        "size": "13.5px",
+        "tag": "button",
+        "text": "Enviar minha presença",
+        "weight": "600",
+        "width": 448,
+        "x": 496,
+        "y": 525
+      }
+    ],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 18,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "Essentials 1 · 10:00–11:00",
+        "weight": "400",
+        "width": 448,
+        "x": 496,
+        "y": 389
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 18,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "Digite pelo menos três letras. A busca é automática.",
+        "weight": "400",
+        "width": 448,
+        "x": 496,
+        "y": 487
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 18,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "Prévia: nenhum registro real será enviado.",
+        "weight": "400",
+        "width": 448,
+        "x": 496,
+        "y": 585
+      }
+    ],
+    "docHeight": 900,
+    "docWidth": 1440,
+    "fonts": [],
+    "frames": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 176,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "form",
+        "text": "Seu nome Digite pelo menos três letras. A busca é automática. Enviar minha presença Prévia: nenhum registro real será enviado.",
+        "weight": "400",
+        "width": 448,
+        "x": 496,
+        "y": 427
+      }
+    ],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 30,
+        "line": "30px",
+        "role": null,
+        "size": "24px",
+        "tag": "h1",
+        "text": "Confirme sua presença",
+        "weight": "600",
+        "width": 448,
+        "x": 496,
+        "y": 353
+      }
+    ],
+    "height": 900,
+    "labels": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 16,
+        "line": "16px",
+        "role": null,
+        "size": "13px",
+        "tag": "label",
+        "text": "Seu nome",
+        "weight": "500",
+        "width": 448,
+        "x": 496,
+        "y": 427
+      }
+    ],
+    "main": {
+      "background": "rgb(18, 21, 29)",
+      "color": "rgb(233, 237, 246)",
+      "font": "Cambria, Georgia, \"Times New Roman\", serif",
+      "height": 900,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Prévia · Presença do aluno | Lazuli",
+    "width": 1440
+  }
+}

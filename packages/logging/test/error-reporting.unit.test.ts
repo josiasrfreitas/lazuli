@@ -58,3 +58,20 @@ void it("does not report expected rejections logged below the error level", () =
   logger.warn({ ...safeError(new Error("Access denied")) }, "Operation rejected");
   assert.deepEqual(received, []);
 });
+
+void it("shares the reporter and deduplication across separately loaded server bundles", async () => {
+  const routeModule = (await import(
+    new URL("../src/error-reporting.ts?bundle=api-route", import.meta.url).href
+  )) as typeof import("../src/error-reporting.js");
+
+  const failure = new Error("API request failed");
+  const received: Array<{ error: Error; tags: Record<string, string> }> = [];
+  setErrorReporter((error, tags) => {
+    received.push({ error, tags });
+  });
+
+  routeModule.reportError(failure, { procedure: "health" });
+  reportError(failure, { service: "web" });
+
+  assert.deepEqual(received, [{ error: failure, tags: { procedure: "health" } }]);
+});

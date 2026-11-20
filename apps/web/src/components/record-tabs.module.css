@@ -1,0 +1,96 @@
+.frame {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.frame > :global([data-record-tabs]) {
+  gap: 0;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.frame > :global([data-record-tabs]) > :global([data-slot="tabs-panel"]) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  --record-section-transition: record-section;
+  view-transition-name: var(--record-section-transition);
+}
+
+.person {
+  composes: frame;
+}
+.person > :global([data-record-tabs]) > :global([data-slot="tabs-panel"]) {
+  /* Overlay scrollbars need physical clearance inside the page's outer gutter. */
+  margin-inline-end: -1rem;
+  padding-inline-end: 1rem;
+}
+
+:global(html[data-record-carousel]::view-transition-group(record-section)) {
+  overflow: clip;
+  animation-duration: 420ms;
+}
+
+:global(html[data-record-carousel]::view-transition-old(root)),
+:global(html[data-record-carousel]::view-transition-new(root)) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:global(html[data-record-carousel]::view-transition-old(record-section)),
+:global(html[data-record-carousel]::view-transition-new(record-section)) {
+  height: 100%;
+  object-fit: none;
+  object-position: top left;
+  mix-blend-mode: normal;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 0.68, 0, 1);
+  animation-fill-mode: both;
+}
+
+:global(html[data-record-carousel="forward"]::view-transition-old(record-section)) {
+  animation-name: carousel-exit-left;
+}
+:global(html[data-record-carousel="forward"]::view-transition-new(record-section)) {
+  animation-name: carousel-enter-right;
+}
+:global(html[data-record-carousel="backward"]::view-transition-old(record-section)) {
+  animation-name: carousel-exit-right;
+}
+:global(html[data-record-carousel="backward"]::view-transition-new(record-section)) {
+  animation-name: carousel-enter-left;
+}
+
+@keyframes carousel-exit-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes carousel-enter-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes carousel-exit-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes carousel-enter-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html[data-record-carousel]::view-transition-old(record-section)),
+  :global(html[data-record-carousel]::view-transition-new(record-section)) {
+    animation: none;
+  }
+}

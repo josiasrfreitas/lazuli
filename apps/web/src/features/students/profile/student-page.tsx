@@ -1,19 +1,12 @@
 "use client";
+import { RecordTabs, RecordTabsList } from "~/components/record-tabs";
 
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { BookOpen, CalendarDays, LayoutDashboard, UserRound, Wallet } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import type { RouterOutputs } from "@lazuli/api";
-import {
-  Button,
-  DetailHeader,
-  InlineSkeleton,
-  Tabs,
-  TabsList,
-  TabsPanel,
-  TabsTab,
-} from "@lazuli/ui";
+import { Button, DetailHeader, InlineSkeleton, TabsPanel, TabsTab } from "@lazuli/ui";
 import { firstTwoNames } from "~/lib/format";
 import { useAnimationPreviewDelay } from "~/lib/animation-preview";
 import { StudentPhoto } from "~/features/student-documents/student-photo";
@@ -35,7 +28,7 @@ import { StudentOverview, StudentOverviewLoading } from "./student-overview";
 import { StudentAgendaAction } from "./student-agenda-action";
 
 import { PedagogyLoading, EnrollmentLoading } from "./student-loading";
-import { useSectionCarousel } from "./use-section-carousel";
+import { useSectionCarousel } from "~/lib/use-section-carousel";
 import styles from "./student-profile.module.css";
 
 // Only the active section participates in the initial client graph.
@@ -183,10 +176,8 @@ function StudentSectionsView({
       data-ready={Boolean(profile) || undefined}
       data-entering={profile && !entranceComplete ? true : undefined}
     >
-      <Tabs
+      <RecordTabs
         value={activeTab}
-        variant="underline"
-        size="md"
         onValueChange={(value) => {
           const next = SECTIONS.find((item) => item === value);
           if (next) navigate(next);
@@ -203,7 +194,7 @@ function StudentSectionsView({
         <TabsPanel key={activeSection} value={activeTab}>
           <SectionContent {...content} />
         </TabsPanel>
-      </Tabs>
+      </RecordTabs>
     </div>
   );
 }
@@ -260,7 +251,7 @@ function useStudentSectionNavigation({
   activeTab: StudentSection;
   navigate: (next: StudentSection) => void;
 } {
-  const switchSection = useSectionCarousel();
+  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "recordCarousel" });
   const activeSection = resolveSection(section, { pedagogyReady, hasPpt });
   const activeTab = activeSection;
   const navigate = (next: StudentSection): void => {
@@ -481,26 +472,24 @@ function StudentTabsNavigation({
   showPlanning: boolean;
 }): ReactElement {
   return (
-    <div className={styles.tabNavigation}>
-      <TabsList aria-label="Seções do aluno" className="min-w-full">
-        <TabsTab value={OVERVIEW_SECTION} disabled={disabled}>
-          <LayoutDashboard aria-hidden="true" /> Visão geral
+    <RecordTabsList label="Seções do aluno">
+      <TabsTab value={OVERVIEW_SECTION} disabled={disabled}>
+        <LayoutDashboard aria-hidden="true" /> Visão geral
+      </TabsTab>
+      <TabsTab value="cadastro">
+        <UserRound aria-hidden="true" /> Cadastro
+      </TabsTab>
+      <TabsTab value={PEDAGOGY_SECTION} disabled={disabled}>
+        <BookOpen aria-hidden="true" /> Pedagógico
+      </TabsTab>
+      {showPlanning && (
+        <TabsTab value={PLANNING_SECTION} disabled={disabled}>
+          <CalendarDays aria-hidden="true" /> Planejamento
         </TabsTab>
-        <TabsTab value="cadastro">
-          <UserRound aria-hidden="true" /> Cadastro
-        </TabsTab>
-        <TabsTab value={PEDAGOGY_SECTION} disabled={disabled}>
-          <BookOpen aria-hidden="true" /> Pedagógico
-        </TabsTab>
-        {showPlanning && (
-          <TabsTab value={PLANNING_SECTION} disabled={disabled}>
-            <CalendarDays aria-hidden="true" /> Planejamento
-          </TabsTab>
-        )}
-        <TabsTab value="financeiro" disabled={disabled}>
-          <Wallet aria-hidden="true" /> Financeiro
-        </TabsTab>
-      </TabsList>
-    </div>
+      )}
+      <TabsTab value="financeiro" disabled={disabled}>
+        <Wallet aria-hidden="true" /> Financeiro
+      </TabsTab>
+    </RecordTabsList>
   );
 }

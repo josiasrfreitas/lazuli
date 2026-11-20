@@ -33,7 +33,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && rm -rf /var/lib/apt/lists/* \
     && npm install --global pnpm@11.6.0
 COPY --from=build --chown=node:node /app /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false
+# The Next.js server uses the same public DSN and release as the browser bundle.
+ARG SENTRY_WEB_DSN
+ARG SENTRY_RELEASE
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false \
+    SENTRY_WEB_DSN=$SENTRY_WEB_DSN \
+    SENTRY_RELEASE=$SENTRY_RELEASE
 USER node
 EXPOSE 3000
 CMD ["pnpm", "start:remote"]

@@ -1,0 +1,95 @@
+{
+  "captured_utc": "2026-11-20T15:11:38.088403+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/documentos/professor",
+  "snapshot": "- generic\n  - main\n    - image \"Lazuli\"\n    - sectionheader\n      - heading \"Enviar documentos\" [level=1, ref=e145]\n  - region \"Notificações\" [ref=e144]",
+  "metrics": {
+    "coarse": false,
+    "controls": [],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 32,
+        "line": "24px",
+        "role": "img",
+        "size": "16px",
+        "tag": "p",
+        "text": "Lazuli",
+        "weight": "400",
+        "width": 528,
+        "x": 456,
+        "y": 24
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 24,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "p",
+        "text": "Os arquivos aparecem no cadastro aberto no computador.",
+        "weight": "400",
+        "width": 528,
+        "x": 456,
+        "y": 124
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 24,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "p",
+        "text": "Abra esta página pelo QR code do cadastro.",
+        "weight": "400",
+        "width": 528,
+        "x": 456,
+        "y": 172
+      }
+    ],
+    "docHeight": 900,
+    "docWidth": 1440,
+    "fonts": [],
+    "frames": [],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 36,
+        "line": "36px",
+        "role": null,
+        "size": "24px",
+        "tag": "h1",
+        "text": "Enviar documentos",
+        "weight": "600",
+        "width": 528,
+        "x": 456,
+        "y": 80
+      }
+    ],
+    "height": 900,
+    "labels": [],
+    "main": {
+      "background": "rgba(0, 0, 0, 0)",
+      "color": "rgb(233, 237, 246)",
+      "font": "Cambria, Georgia, \"Times New Roman\", serif",
+      "height": 220,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 576,
+      "x": 432,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Enviar documentos do professor | Lazuli",
+    "width": 1440
+  }
+}

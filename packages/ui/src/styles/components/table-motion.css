@@ -172,3 +172,20 @@
     animation: none;
   }
 }
+
+/* Base UI tracks both edges as columns and viewport size change. */
+@media (max-width: 40rem) {
+  [data-slot="table-scroll-area"][data-overflow-x-end]::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 0.875rem;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+      to left,
+      color-mix(in srgb, var(--border-strong) 75%, transparent),
+      transparent
+    );
+  }
+}

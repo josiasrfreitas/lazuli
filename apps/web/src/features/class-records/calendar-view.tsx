@@ -1,3 +1,4 @@
+import type { CalendarSelection } from "./use-calendar-selection";
 import type { ReactElement, ReactNode } from "react";
 import { CalendarPlus, ListFilter } from "lucide-react";
 import {
@@ -11,7 +12,8 @@ import {
 } from "@lazuli/ui";
 import { StudentAppointmentDialog } from "~/features/appointments/student-appointment-dialog";
 import type { CalendarLesson } from "./calendar-model";
-import { lessonCalendarEvents, WeeklyLessonCard } from "./weekly-calendar";
+import { lessonCalendarEvents } from "./calendar-model";
+import { WeeklyLessonCard } from "./weekly-lesson-card";
 import { CalendarTeacherFilter } from "./calendar-teacher-filter";
 import { CalendarLessonButton } from "./calendar-lesson";
 import { CalendarLinkedLesson } from "./calendar-linked-lesson";
@@ -121,21 +123,15 @@ export function RestrictedNotice({
   );
 }
 
-type ScheduleProps = {
+type ScheduleProps = CalendarSelection & {
   date: string;
   view: AgendaView;
   teacherView: boolean;
   lessons: CalendarLesson[];
   filtered: CalendarLesson[];
   restricted: boolean;
-  lessonId: string | null;
-  appointmentId: string | null;
-  experimentId: string | null;
   onSelectDay: (date: string) => void;
   onViewChange: (view: AgendaView) => void;
-  openLesson: (lesson: CalendarLesson) => void;
-  setAppointmentId: (id: string | null) => void;
-  setExperimentId: (id: string | null) => void;
   calendarState: Pick<ScheduleCalendarProps, "status" | "errorMessage" | "onRetry">;
 };
 export function LessonCalendarSchedule(props: ScheduleProps): ReactElement {
@@ -146,9 +142,7 @@ export function LessonCalendarSchedule(props: ScheduleProps): ReactElement {
     filtered,
     restricted,
     lessons,
-    lessonId,
-    appointmentId,
-    experimentId,
+    target,
     onSelectDay,
     onViewChange,
     openLesson,
@@ -166,9 +160,13 @@ export function LessonCalendarSchedule(props: ScheduleProps): ReactElement {
       density={teacherView && view === "semana" ? "compact" : "comfortable"}
       widthBehavior={teacherView ? "fit" : "scroll"}
       expandedEventWidth={teacherView ? EXPANDED_TEACHER_EVENT_WIDTH : undefined}
-      keepExpanded={Boolean(lessonId || appointmentId || experimentId)}
+      keepExpanded={Boolean(target)}
       expandedEventId={
-        lessons.find((lesson) => lesson.appointments?.some((item) => item.id === appointmentId))?.id
+        lessons.find((lesson) =>
+          lesson.appointments?.some(
+            (item) => target?.kind === "appointment" && item.id === target.id,
+          ),
+        )?.id
       }
       onEventActivate={(event) => openLesson(event.lesson)}
       emptyMessage={
@@ -201,74 +199,78 @@ function renderLessonEvent(
         onOpen={context.activate}
       />
     );
+  return (
+    <CalendarDayLesson
+      lesson={lesson}
+      context={context}
+      selection={props}
+      personal={props.teacherView}
+      expanded={props.target?.kind === "appointment" && lesson.appointment?.id === props.target.id}
+    />
+  );
+}
+
+export function CalendarDayLesson({
+  lesson,
+  context,
+  selection,
+  personal = false,
+  expanded,
+}: {
+  lesson: CalendarLesson;
+  context: CalendarEventRenderContext;
+  selection: CalendarSelection;
+  personal?: boolean;
+  expanded: boolean;
+}): ReactElement {
   if (lesson.appointments?.length || lesson.leadGuests?.length)
     return (
       <CalendarLinkedLesson
         lesson={lesson}
         expanded={context.expanded}
-        appointmentId={props.appointmentId}
+        appointmentId={selection.target?.kind === "appointment" ? selection.target.id : null}
         onToggle={context.toggleExpanded}
-        onOpen={props.openLesson}
-        onOpenAppointment={props.setAppointmentId}
-        onOpenExperimental={props.setExperimentId}
-        personal={props.teacherView}
+        onOpen={selection.openLesson}
+        onOpenAppointment={(id) => selection.setTarget({ kind: "appointment", id })}
+        onOpenExperimental={(id) => selection.setTarget({ kind: "experimental", id })}
+        personal={personal}
       />
     );
   return (
     <CalendarLessonButton
       lesson={lesson}
-      expanded={lesson.appointment?.id === props.appointmentId}
-      onOpen={props.openLesson}
-      personal={props.teacherView}
+      expanded={expanded}
+      onOpen={selection.openLesson}
+      personal={personal}
     />
   );
 }
 
-type DialogsProps = {
-  lessons: CalendarLesson[];
-  lessonId: string | null;
-  appointmentId: string | null;
-  experimentId: string | null;
-  admin: boolean;
-  setLessonId: (id: string | null) => void;
-  setAppointmentId: (id: string | null) => void;
-  setExperimentId: (id: string | null) => void;
-};
+type DialogsProps = Pick<ScheduleProps, "lessons" | "target" | "setTarget"> & { admin: boolean };
 export function CalendarDialogs({
   lessons,
-  lessonId,
-  appointmentId,
-  experimentId,
+  target,
   admin,
-  setLessonId,
-  setAppointmentId,
-  setExperimentId,
-}: DialogsProps): ReactElement {
-  const experiment = lessons
+  setTarget,
+}: DialogsProps): ReactElement | null {
+  if (!target) return null;
+  const close = (): void => setTarget(null);
+  if (target.kind === "lesson") return <ClassRecordDialog id={target.id} onClose={close} />;
+  if (target.kind === "appointment")
+    return (
+      <StudentAppointmentDialog
+        key={target.id}
+        id={target.id}
+        admin={admin}
+        onSelect={(id) => setTarget({ kind: "appointment", id })}
+        onClose={close}
+      />
+    );
+  const visit = lessons
     .flatMap((lesson) => [
       ...(lesson.experimental ? [lesson.experimental] : []),
       ...(lesson.leadGuests ?? []),
     ])
-    .find((visit) => visit.id === experimentId);
-  return (
-    <>
-      {lessonId && <ClassRecordDialog id={lessonId} onClose={() => setLessonId(null)} />}
-      {experiment && (
-        <CalendarExperimentalDialog
-          visit={experiment}
-          admin={admin}
-          onClose={() => setExperimentId(null)}
-        />
-      )}
-      {appointmentId && (
-        <StudentAppointmentDialog
-          key={appointmentId}
-          id={appointmentId}
-          admin={admin}
-          onSelect={setAppointmentId}
-          onClose={() => setAppointmentId(null)}
-        />
-      )}
-    </>
-  );
+    .find((item) => item.id === target.id);
+  return visit ? <CalendarExperimentalDialog visit={visit} admin={admin} onClose={close} /> : null;
 }

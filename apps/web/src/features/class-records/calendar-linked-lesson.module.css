@@ -1,4 +1,5 @@
 .frame {
+  composes: tone from "./event-tone.module.css";
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 2.2fr) minmax(0, 0fr);
@@ -8,12 +9,6 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--lesson-regular-surface);
-  color: var(--lesson-regular-foreground);
-}
-.frame[data-modality="PERSONALIZED"] {
-  background: var(--lesson-personalized-surface);
-  color: var(--lesson-personalized-foreground);
 }
 .frame[data-expanded="true"] {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
