@@ -58,7 +58,9 @@ data and actions; the shared component owns the frame, density, states and pagin
 - Keep source code, technical documentation, and Storybook examples in English unless a work item
   explicitly identifies user-facing content that must be localized.
 
-See [semantic colors](semantic-colors.md) for status meanings, attention hierarchy, and badge usage.
+See [semantic colors](semantic-colors.md) for the school palettes, status meanings and badge usage.
+The [theme review](auditoria-visual/revisao-cores.html) tracks contrast measurements and the
+remaining desktop and mobile comparisons for the school.
 
 Use the shared [file attachment components](file-attachments.md) for file selection and
 event-bound uploads, including placement and academic assessment proofs.

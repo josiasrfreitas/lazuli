@@ -7,7 +7,7 @@ import styles from "./home-audience.module.css";
 
 type AgeGroups = HomeData["studentAges"];
 const COLORS: Record<string, string> = {
-  children: "var(--brand)",
+  children: "var(--chart-gold)",
   teens: "var(--lesson-personalized-foreground)",
   adults: "var(--interactive)",
   unknown: "var(--muted-foreground)",

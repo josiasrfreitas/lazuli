@@ -74,7 +74,7 @@
   height: 2.25rem;
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--brand) 18%, var(--pending-row));
-  color: var(--brand);
+  color: var(--brand-link);
 }
 .icon svg {
   width: 1.125rem;

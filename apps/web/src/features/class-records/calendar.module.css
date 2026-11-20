@@ -83,6 +83,7 @@
   padding-inline: 0.25rem;
 }
 .day[aria-pressed="true"] {
+  --ring: var(--primary-foreground);
   background: var(--primary);
   color: var(--primary-foreground);
 }

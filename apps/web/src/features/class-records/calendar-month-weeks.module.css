@@ -29,6 +29,7 @@
   cursor: pointer;
 }
 .week[aria-pressed="true"] {
+  --ring: var(--primary-foreground);
   background: var(--primary);
   color: var(--primary-foreground);
 }

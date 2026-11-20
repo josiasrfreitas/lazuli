@@ -1,0 +1,93 @@
+tema,contexto,papel_frente_depois,papel_fundo_depois,minimo,frente_antes,fundo_antes,razao_antes,frente_depois,fundo_depois,razao_depois
+Claro,Texto da ficha,foreground,background,4.5,#27313F,#F5F6F7,12.15,#0F1B33,#E8EEF5,14.678
+Claro,Metadado da ficha,muted-foreground,card,4.5,#606C7C,#FFFFFF,5.339,#4F6074,#F6F8FA,6.055
+Claro,Cabeçalho da tabela,table-heading-foreground,table-heading,4.5,#0F1E3D,#EAF0F8,14.385,#0F1B33,#DFE7EF,13.727
+Claro,Linha selecionada,muted-foreground,accent,4.5,#606C7C,#EAF0F8,4.657,#4F6074,#DAE5F3,5.06
+Claro,Metadado na seleção em hover,muted-foreground,accent-hover,4.5,#606C7C,#DAE5F3,4.19,#4F6074,#D4E1F0,4.858
+Claro,Atraso na seleção em hover,destructive,accent-hover,4.5,#AD354B,#DAE5F3,4.866,#AD354B,#D4E1F0,4.672
+Claro,Divisa da seleção,interactive,accent,3,#C3CAD3,#EAF0F8,1.441,#305985,#DAE5F3,5.697
+Claro,Navegação ativa,navigation-foreground,navigation-active,4.5,#0F1E3D,#EAF0F8,14.385,#0F1B33,#C4D5EB,11.482
+Claro,Texto do diálogo,popover-foreground,popover,4.5,#27313F,#FFFFFF,13.147,#0F1B33,#FFFFFF,17.144
+Claro,Campo no diálogo,input,popover,3,#C3CAD3,#FFFFFF,1.652,#66788B,#FFFFFF,4.541
+Claro,Borda sobre o campo,input,field,3,#C3CAD3,#FFFFFF,1.652,#66788B,#F0F4F8,4.109
+Claro,Placeholder,muted-foreground,field,4.5,#606C7C,#FFFFFF,5.339,#4F6074,#F0F4F8,5.832
+Claro,Borda de erro,destructive,field,3,#AD354B,#FFFFFF,6.199,#AD354B,#F0F4F8,5.609
+Claro,Botão em repouso,primary-foreground,primary,4.5,#FFFFFF,#0F1E3D,16.491,#FFFFFF,#0F1B33,17.144
+Claro,Botão em hover,primary-foreground,primary-hover,4.5,#FFFFFF,#234266,10.281,#FFFFFF,#234266,10.281
+Claro,Botão em pressionado,primary-foreground,primary-active,4.5,#FFFFFF,#213149,13.123,#FFFFFF,#213149,13.123
+Claro,Confirmação em hover (90%),success-muted,success,4.5,#E9F3ED,#3E7656,4.709,#E9F3ED,#366447,6.027
+Claro,Confirmação pressionada (80%),success-muted,success,4.5,#E9F3ED,#548569,3.75,#E9F3ED,#4D755C,4.61
+Claro,Indicador do filtro,interactive,muted,3,#FFFFFF,#EDF0F3,1.144,#305985,#E2E8EF,5.883
+Claro,Anel de foco sobre background,ring,background,3,#ABBDD2,#F5F6F7,1.774,#456F9F,#E8EEF5,4.464
+Claro,Anel de foco sobre card,ring,card,3,#B1C3D7,#FFFFFF,1.802,#456F9F,#F6F8FA,4.898
+Claro,Anel de foco sobre popover,ring,popover,3,#B1C3D7,#FFFFFF,1.802,#456F9F,#FFFFFF,5.214
+Claro,Anel de foco sobre field,ring,field,3,#B1C3D7,#FFFFFF,1.802,#456F9F,#F0F4F8,4.718
+Claro,Anel de foco sobre accent,ring,accent,3,#A5BAD3,#EAF0F8,1.734,#456F9F,#DAE5F3,4.093
+Claro,Estado success,success,success-muted,4.5,#296743,#E9F3ED,5.941,#205333,#E9F3ED,7.887
+Claro,Estado warning,warning,warning-muted,4.5,#805D16,#FAF1DB,5.342,#805D16,#FAF1DB,5.342
+Claro,Estado info,info,info-muted,4.5,#305985,#EAF0F8,6.331,#305985,#EAF0F8,6.331
+Claro,Estado destructive,destructive,destructive-muted,4.5,#AD354B,#FAECEF,5.405,#AD354B,#FAECEF,5.405
+Claro,Estado over-capacity,over-capacity,over-capacity-muted,4.5,#763C98,#F3EBF8,6.289,#763C98,#F3EBF8,6.289
+Claro,Agenda · Regular,lesson-regular-foreground,lesson-regular-surface,4.5,#234266,#EAF0F8,8.968,#234266,#DAE5F3,8.07
+Claro,Agenda · PPT,lesson-personalized-foreground,lesson-personalized-surface,4.5,#763C98,#F3EBF8,6.289,#763C98,#F3EBF8,6.289
+Claro,Agenda · Atendimento,appointment-foreground,appointment-surface,4.5,#824C34,#F6ECE6,5.955,#824C34,#F6ECE6,5.955
+Claro,Agenda · Experimental,experimental-foreground,experimental-surface,4.5,#24665C,#E3F2EE,5.815,#24665C,#E3F2EE,5.815
+Claro,Painel acadêmico · foreground,academic-panel-foreground,academic-panel-surface,4.5,#FFFFFF,#12151D,18.249,#F1F5F9,#0A1120,17.208
+Claro,Painel acadêmico · muted,academic-panel-muted,academic-panel-surface,4.5,#C3CAD3,#12151D,11.045,#C3CAD3,#0A1120,11.409
+Claro,Painel acadêmico · accent,academic-panel-accent,academic-panel-surface,4.5,#D8AD4A,#12151D,8.687,#D4A349,#0A1120,8.2
+Claro,Entrada institucional,marquee-muted,marquee,4.5,#A8B7CE,#0F1E3D,8.112,#A8B7CE,#0F1B33,8.433
+Claro,Gráfico · barra a 65%,info,card,3,#7893B0,#FFFFFF,3.182,#7591AE,#F6F8FA,3.074
+Claro,Gráfico · série info,info,card,3,#305985,#FFFFFF,7.258,#305985,#F6F8FA,6.818
+Claro,Gráfico · série success,success,card,3,#296743,#FFFFFF,6.741,#205333,#F6F8FA,8.406
+Claro,Gráfico · série warning,warning,card,3,#805D16,#FFFFFF,6.008,#805D16,#F6F8FA,5.644
+Claro,Gráfico · série muted-foreground,muted-foreground,card,3,#606C7C,#FFFFFF,5.339,#4F6074,#F6F8FA,6.055
+Claro,Gráfico · legenda de contratos,chart-gold,card,4.5,#D8AD4A,#FFFFFF,2.101,#846321,#F6F8FA,5.208
+Claro,Gráfico · barra do mês em andamento,muted-foreground,card,3,#ACBDCE,#FFFFFF,1.922,#4F6074,#F6F8FA,6.055
+Claro,Login · borda de campo,input,navigation-active,3,#2B3F5E,#243958,1.097,#8191A5,#25354A,3.869
+Claro,QR · módulos e margem,QRCodeSVG fgColor,QRCodeSVG bgColor,3,#000000,#FFFFFF,21,#000000,#FFFFFF,21
+Escuro,Texto da ficha,foreground,background,4.5,#E9EDF6,#12151D,15.563,#F1F5F9,#0A1120,17.208
+Escuro,Metadado da ficha,muted-foreground,card,4.5,#A9B3C1,#12151D,8.608,#94A3B8,#141D2A,6.611
+Escuro,Cabeçalho da tabela,table-heading-foreground,table-heading,4.5,#A9B3C1,#1E2C3E,6.67,#94A3B8,#1A2432,6.101
+Escuro,Linha selecionada,muted-foreground,accent,4.5,#A9B3C1,#213149,6.19,#94A3B8,#25354A,4.856
+Escuro,Metadado na seleção em hover,muted-foreground,accent-hover,4.5,#A9B3C1,#2A3E59,5.128,#94A3B8,#28384B,4.66
+Escuro,Atraso na seleção em hover,destructive,accent-hover,4.5,#EE9AAB,#2A3E59,5.097,#EE9AAB,#28384B,5.602
+Escuro,Divisa da seleção,interactive,accent,3,#465364,#213149,1.676,#ADC5E5,#25354A,7.052
+Escuro,Navegação ativa,navigation-foreground,navigation-active,4.5,#E9EDF6,#243958,9.943,#F1F5F9,#25354A,11.364
+Escuro,Texto do diálogo,popover-foreground,popover,4.5,#E9EDF6,#12151D,15.563,#F1F5F9,#202B39,13.075
+Escuro,Campo no diálogo,input,popover,3,#465364,#12151D,2.33,#8191A5,#202B39,4.452
+Escuro,Borda sobre o campo,input,field,3,#465364,#192638,1.949,#8191A5,#101926,5.489
+Escuro,Placeholder,muted-foreground,field,4.5,#A9B3C1,#192638,7.2,#94A3B8,#101926,6.888
+Escuro,Borda de erro,destructive,field,3,#EE9AAB,#171C24,8.018,#EE9AAB,#101926,8.28
+Escuro,Botão em repouso,primary-foreground,primary,4.5,#FFFFFF,#305985,7.258,#0F1B33,#D4A349,7.457
+Escuro,Botão em hover,primary-foreground,primary-hover,4.5,#FFFFFF,#456F9F,5.214,#0F1B33,#E0B563,8.947
+Escuro,Botão em pressionado,primary-foreground,primary-active,4.5,#FFFFFF,#234266,10.281,#0F1B33,#BF903E,5.939
+Escuro,Confirmação em hover (90%),success-muted,success,4.5,#20352B,#82BC99,5.981,#20352B,#81BC99,5.971
+Escuro,Confirmação pressionada (80%),success-muted,success,4.5,#20352B,#77AC8E,5.03,#20352B,#76AC8F,5.025
+Escuro,Indicador do filtro,interactive,muted,3,#305985,#182230,2.208,#ADC5E5,#202B39,8.114
+Escuro,Anel de foco sobre background,ring,background,3,#3D516F,#12151D,2.264,#6B91C7,#0A1120,5.835
+Escuro,Anel de foco sobre card,ring,card,3,#3D516F,#12151D,2.264,#6B91C7,#141D2A,5.247
+Escuro,Anel de foco sobre popover,ring,popover,3,#475C7B,#252B35,2.091,#6B91C7,#202B39,4.434
+Escuro,Anel de foco sobre field,ring,field,3,#3F5472,#171C24,2.217,#6B91C7,#101926,5.466
+Escuro,Anel de foco sobre accent,ring,accent,3,#455F85,#213149,2.018,#6B91C7,#25354A,3.853
+Escuro,Estado success,success,success-muted,4.5,#8CCCA4,#20352B,7.031,#8CCCA4,#20352B,7.031
+Escuro,Estado warning,warning,warning-muted,4.5,#DFBC6C,#3A3120,7.041,#DFBC6C,#3A3120,7.041
+Escuro,Estado info,info,info-muted,4.5,#ADC5E5,#192638,8.646,#ADC5E5,#192638,8.646
+Escuro,Estado destructive,destructive,destructive-muted,4.5,#EE9AAB,#3E252F,6.518,#EE9AAB,#3E252F,6.518
+Escuro,Estado over-capacity,over-capacity,over-capacity-muted,4.5,#CDABE3,#34283F,6.922,#CDABE3,#34283F,6.922
+Escuro,Agenda · Regular,lesson-regular-foreground,lesson-regular-surface,4.5,#D2E1F5,#213149,9.892,#D2E1F5,#1C2C40,10.669
+Escuro,Agenda · PPT,lesson-personalized-foreground,lesson-personalized-surface,4.5,#CDABE3,#34283F,6.922,#CDABE3,#2C2535,7.399
+Escuro,Agenda · Atendimento,appointment-foreground,appointment-surface,4.5,#E6B39A,#3E2D26,7.014,#E6B39A,#302824,7.754
+Escuro,Agenda · Experimental,experimental-foreground,experimental-surface,4.5,#92D0C2,#203B36,6.909,#92D0C2,#1C302D,7.962
+Escuro,Painel acadêmico · foreground,academic-panel-foreground,academic-panel-surface,4.5,#FFFFFF,#12151D,18.249,#F1F5F9,#0A1120,17.208
+Escuro,Painel acadêmico · muted,academic-panel-muted,academic-panel-surface,4.5,#C3CAD3,#12151D,11.045,#C3CAD3,#0A1120,11.409
+Escuro,Painel acadêmico · accent,academic-panel-accent,academic-panel-surface,4.5,#D8AD4A,#12151D,8.687,#D4A349,#0A1120,8.2
+Escuro,Entrada institucional,marquee-muted,marquee,4.5,#A8B7CE,#0F1E3D,8.112,#A8B7CE,#0F1B33,8.433
+Escuro,Gráfico · barra a 65%,info,card,3,#77879F,#12151D,4.997,#778AA4,#141D2A,4.807
+Escuro,Gráfico · série info,info,card,3,#ADC5E5,#12151D,10.337,#ADC5E5,#141D2A,9.601
+Escuro,Gráfico · série success,success,card,3,#8CCCA4,#12151D,9.81,#8CCCA4,#141D2A,9.111
+Escuro,Gráfico · série warning,warning,card,3,#DFBC6C,#12151D,10.035,#DFBC6C,#141D2A,9.321
+Escuro,Gráfico · série muted-foreground,muted-foreground,card,3,#A9B3C1,#12151D,8.608,#94A3B8,#141D2A,6.611
+Escuro,Gráfico · legenda de contratos,chart-gold,card,4.5,#D8AD4A,#12151D,8.687,#D4A349,#141D2A,7.373
+Escuro,Gráfico · barra do mês em andamento,muted-foreground,card,3,#505B6D,#12151D,2.658,#94A3B8,#141D2A,6.611
+Escuro,Login · borda de campo,input,navigation-active,3,#2B3F5E,#243958,1.097,#8191A5,#25354A,3.869
+Escuro,QR · módulos e margem,QRCodeSVG fgColor,QRCodeSVG bgColor,3,#000000,#FFFFFF,21,#000000,#FFFFFF,21
