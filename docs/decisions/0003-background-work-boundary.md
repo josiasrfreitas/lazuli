@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
-Legacy sources: [D-0004](../legacy/2026-07-27/MVP/decisions.md#d-0004-hatchet-for-background-work) (Accepted)
 Implementation evidence: [`packages/job-contracts/`](../../packages/job-contracts/), [`packages/worker-handlers/`](../../packages/worker-handlers/)
 
 ## Context

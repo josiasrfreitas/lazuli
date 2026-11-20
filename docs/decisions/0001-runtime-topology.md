@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
-Legacy sources: [D-0001](../legacy/2026-07-27/MVP/decisions.md#d-0001-monolith-first) (Accepted)
 Implementation evidence: [`apps/`](../../apps/), [`packages/`](../../packages/)
 
 ## Context

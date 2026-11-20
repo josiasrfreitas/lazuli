@@ -4,8 +4,8 @@ Regras de produto acordadas em 19/11/2026 para orientar o refactor da Formação
 
 ## Entradas para implementação na mesma branch
 
-- [Agente 1 · Continuidade na turma e bloqueios automáticos](../../.design/class-planning/continuidade/TASKS.md). Unifica o vocabulário e a regra no domínio, na revisão coletiva e na confirmação do vínculo. A lista agrupada por turma já oferece a estrutura necessária.
-- [Agente 2 · Acompanhamento na ficha do aluno](../../.design/class-planning/acompanhamento/TASKS.md). Conduz a mudança de interface na coluna esquerda, do relato inicial à passagem do caso, à negociação referenciada e ao desfecho.
+- Agente 1 · Continuidade na turma e bloqueios automáticos. Unifica o vocabulário e a regra no domínio, na revisão coletiva e na confirmação do vínculo. A lista agrupada por turma já oferece a estrutura necessária.
+- Agente 2 · Acompanhamento na ficha do aluno. Conduz a mudança de interface na coluna esquerda, do relato inicial à passagem do caso, à negociação referenciada e ao desfecho.
 
 As duas frentes partem da branch `workspace/ec2-lazuli` e das alterações já presentes nela. O ponto de encontro é a situação exibida para o mesmo aluno. A primeira frente fornece os status de continuidade. A segunda apresenta esses status e registra o trabalho humano que explica a evolução do caso.
 

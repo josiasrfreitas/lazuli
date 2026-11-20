@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
-Legacy sources: [D-0008](../legacy/2026-07-27/MVP/decisions.md#d-0008-rolling-enrollment-and-contract-periods), [D-0011](../legacy/2026-07-27/MVP/decisions.md#d-0011-installment-defaults) (Accepted)
 Implementation evidence: [`packages/db/prisma/schema.prisma`](../../packages/db/prisma/schema.prisma), [`packages/domain/src/installment-generation.ts`](../../packages/domain/src/installment-generation.ts)
 
 ## Context

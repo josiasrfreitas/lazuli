@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
-Legacy sources: [D-0002](../legacy/2026-07-27/MVP/decisions.md#d-0002-t3-turbo-and-trpc-bff) (Accepted)
 Implementation evidence: [`packages/api/`](../../packages/api/), [`tooling/eslint/boundaries.js`](../../tooling/eslint/boundaries.js)
 
 ## Context

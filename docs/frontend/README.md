@@ -1,7 +1,6 @@
 # Frontend guide
 
-This is the starting point for current Lazuli frontend work. Historical frontend plans under
-`docs/legacy/` are provenance only and do not define current requirements.
+This is the starting point for current Lazuli frontend work.
 
 ## Mandatory interface and workshop standards
 
@@ -80,8 +79,7 @@ the normal Turbo and CI path.
 
 Consumers may control layout around shared components. Internal spacing, shape, typography,
 color, and state styling belong to the primitive and should use its existing size or variant.
-The active contract and diagnostic guidance live in `apps/web/eslint.config.js`; the measured
-findings and promotion criteria live in `.design/shadcn-lint/BASELINE.md`.
+The active contract and diagnostic guidance live in `apps/web/eslint.config.js`.
 
 Warnings are a bounded migration inventory, not blanket permission for new violations. For a
 justified exception, first check whether an existing variant, semantic token, or parent layout

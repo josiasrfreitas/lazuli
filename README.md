@@ -22,7 +22,6 @@ Use the assigned work item for current scope, completion checks, dependencies, a
 - `packages/` — API, auth, database, domain, job contracts, integrations, worker handlers, UI, and validators.
 - `infra/` — infrastructure placeholders and local support.
 - [`docs/decisions/`](docs/decisions/README.md) — accepted durable engineering constraints.
-- [`docs/legacy/`](docs/legacy/README.md) — frozen historical material; not current guidance.
 
 ## Setup
 

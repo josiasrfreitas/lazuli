@@ -216,7 +216,7 @@ Final desktop confirmation: the default material dialog's body measured 512px vi
 (no internal overflow); focus opened on `material-name`, and Escape dismissed the dialog. The
 picker moved above the dialog and returned below after closing. Keyboard selection and URL
 persistence were observed (`2` selected Matriz; `?v=2` survived reload). Empty catalog search produced
-the shared no-results state. Final captures are in `.impeccable/review/materials-workshop/`.
+the shared no-results state.
 
 Independent finish review: **ship for presentation as disposable desktop alternatives**; no
 blocking finding remained and no user direction was selected. The original Guiado screenshot had
@@ -254,7 +254,7 @@ Observed in Orca on `/materiais`, at 1280×800 and 1440×900:
 - Source/whitespace review completed without whitespace errors. No lint, typecheck, build,
   automated detector or test suite ran, following the inherited browser-only instruction.
 
-New captures: `.impeccable/review/materials-catalog/`. The sample was reset after validation;
+The sample was reset after validation;
 entered test prices and edited source references are not defaults. Finish remains subject to owner
 review; the actual material catalog, charge linkage, calendar application, structured teacher
 record and pace comparison still require production implementation.
@@ -331,7 +331,7 @@ Observed in Orca on actual class/student URLs, at 1280×800 and 1440×900:
   current attempt. Selecting the historical Essentials 1 changed the URL progress ID and showed
   eight activities, the Historical marker and Versions, with no edit/add/revise controls.
 - Legacy regular and PPT URLs redirected to their corresponding class/student planning tabs.
-- Captures are in `.impeccable/review/planning-context/`. The first class inspection caught the
+- The first class inspection caught the
   oversized overview; its compact planning-only replacement is the final captured version.
 
 Source/diff inspection and whitespace verification completed. No lint, typecheck, build, detector

@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: D-0022's durable structural portion
 Superseded by: None
-Legacy sources: [D-0022](../legacy/2026-07-27/MVP/decisions.md#d-0022-class--enrollment--bones-now-brain-later), [D-0031](../legacy/2026-07-27/MVP/decisions.md#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress) (Accepted)
 Implementation evidence: [`packages/db/prisma/schema.prisma`](../../packages/db/prisma/schema.prisma), [`packages/api/src/enrollment/advance.ts`](../../packages/api/src/enrollment/advance.ts)
 
 ## Context

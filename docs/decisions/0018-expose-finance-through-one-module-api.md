@@ -4,7 +4,6 @@ Status: Accepted
 Decision date: 2026-09-07
 Supersedes: [0012](0012-expose-receivables-through-one-module-api.md)
 Superseded by: None
-Legacy sources: None
 Implementation evidence: [`CONTEXT.md`](../../CONTEXT.md), [`packages/api/src/finance/index.ts`](../../packages/api/src/finance/index.ts), [`tooling/eslint/boundaries.js`](../../tooling/eslint/boundaries.js)
 
 ## Context

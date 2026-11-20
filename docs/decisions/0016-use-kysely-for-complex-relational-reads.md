@@ -4,7 +4,6 @@ Status: Accepted
 Decision date: 2026-08-26
 Supersedes: None
 Superseded by: None
-Legacy sources: None
 Implementation evidence: None
 
 ## Context

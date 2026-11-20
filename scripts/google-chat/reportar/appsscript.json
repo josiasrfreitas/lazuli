@@ -1,0 +1,13 @@
+{
+  "timeZone": "America/Sao_Paulo",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [],
+  "addOns": {
+    "common": {
+      "name": "Lazuli",
+      "logoUrl": "https://www.gstatic.com/dynamite/images/quickstart-app-avatar.png"
+    },
+    "chat": {}
+  }
+}
