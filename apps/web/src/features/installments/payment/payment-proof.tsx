@@ -8,7 +8,14 @@ import {
   type PaymentProofUpload,
 } from "@lazuli/validators";
 
-export type PaymentProofDraft = { id: string; file: File | undefined; error: string };
+import type { ReceiptFields } from "./receipt-fields";
+
+export type PaymentProofDraft = {
+  id: string;
+  file: File | undefined;
+  error: string;
+  fields?: ReceiptFields;
+};
 export type PaymentProofDrafts = Record<string, PaymentProofDraft | undefined>;
 
 export function PaymentProofPicker({

@@ -23,6 +23,7 @@
     "@lazuli/validators": "workspace:*",
     "@sentry/nextjs": "11.14.0",
     "@tanstack/react-query": "catalog:",
+    "@tesseract.js-data/por": "^1.0.0",
     "@trpc/client": "catalog:",
     "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
@@ -39,7 +40,9 @@
     "recharts": "3.10.1",
     "scanic": "1.7.1",
     "superjson": "catalog:",
-    "temporal-polyfill": "^1.0.5"
+    "temporal-polyfill": "^1.0.5",
+    "tesseract.js": "^6.0.1",
+    "tesseract.js-core": "^6.1.2"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

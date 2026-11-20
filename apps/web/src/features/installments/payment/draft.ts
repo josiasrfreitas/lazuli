@@ -13,6 +13,7 @@ export type DraftItem = {
 };
 export type PaymentDraft = {
   date: string;
+  dateEdited?: boolean;
   method: PaymentOperationInput["method"];
   items: DraftItem[];
   totals: Record<string, number | null>;
@@ -42,7 +43,7 @@ function updateDraft(
 ): PaymentDraft {
   switch (action.type) {
     case "date": {
-      return { ...state, date: action.value };
+      return { ...state, date: action.value, dateEdited: true };
     }
     case "method": {
       return {

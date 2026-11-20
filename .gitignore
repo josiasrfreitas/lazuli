@@ -66,3 +66,5 @@ docs/discovery
 
 # Test reports
 reports/
+
+/apps/web/public/receipt-ocr/

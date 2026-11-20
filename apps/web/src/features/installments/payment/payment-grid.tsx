@@ -111,8 +111,21 @@ function ReceiptAttachment({
         onChange={(file) => state.setProof(receiptId, file)}
         onError={(message) => state.setProofError(receiptId, message)}
       />
+      {state.proofs[receiptId]?.file && (
+        <p role="status" className="px-3 text-caption text-muted-foreground">
+          {receiptReadingLabel(state.proofs[receiptId]?.fields)}
+        </p>
+      )}
     </>
   );
+}
+
+function receiptReadingLabel(fields: import("./receipt-fields").ReceiptFields | undefined): string {
+  if (!fields) return "Lendo comprovante…";
+  const values = [fields.date, fields.cents && money(fields.cents)].filter(Boolean);
+  return values.length
+    ? `Confira os dados do comprovante: ${values.join(" · ")}.`
+    : "Leitura inconclusiva. Confira os campos manualmente.";
 }
 
 function ThirdPartyNameField({
