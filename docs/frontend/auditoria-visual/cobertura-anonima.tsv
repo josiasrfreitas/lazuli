@@ -1,0 +1,55 @@
+rota_solicitada	destino_observado	título	utc	notas
+/acompanhamento/intervencoes/[id]/				depende de ID observado em sessão autenticada
+/acompanhamento/ocorrencias/[id]/				depende de ID observado em sessão autenticada
+/acompanhamento/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:15.343275+00:00	—
+/ajustes/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:19.167961+00:00	—
+/alunos/[id]/				depende de ID observado em sessão autenticada
+/alunos/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:28.289494+00:00	—
+/atendimentos/[id]/				depende de ID observado em sessão autenticada
+/atendimentos/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:30.832711+00:00	—
+/atividades/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:33.598993+00:00	—
+/aulas/[id]/				depende de ID observado em sessão autenticada
+/aulas/calendario-workshop/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:38.576054+00:00	—
+/aulas/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:44.479902+00:00	—
+/avaliacoes/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:47.488127+00:00	—
+/configuracoes/presenca/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:49.342799+00:00	—
+/contratos/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:51.408068+00:00	—
+/estagios/[id]/				depende de ID observado em sessão autenticada
+/estagios/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:53.983332+00:00	—
+/financeiro/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:56.368538+00:00	—
+/interessados/[id]/				depende de ID observado em sessão autenticada
+/interessados/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:09:58.698544+00:00	—
+/materiais/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:01.215627+00:00	—
+/organizacao/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:03.369940+00:00	—
+/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:07.217794+00:00	—
+/planejamento/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:09.196893+00:00	—
+/professor/acompanhamento/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:11.765876+00:00	—
+/professor/agenda/[id]/chamada/				depende de ID observado em sessão autenticada
+/professor/agenda/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:14.965672+00:00	—
+/professor/alunos/[id]/				depende de ID observado em sessão autenticada
+/professor/alunos/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:17.370397+00:00	—
+/professor/atendimentos/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:19.677693+00:00	—
+/professor/chamada/previa/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:21.303583+00:00	—
+/professor/experimentais/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:23.260257+00:00	—
+/professor/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:24.947241+00:00	—
+/professor/turmas/[id]/				depende de ID observado em sessão autenticada
+/professor/turmas/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:27.508904+00:00	—
+/professores/[id]/				depende de ID observado em sessão autenticada
+/professores/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:29.955995+00:00	—
+/proximo-semestre/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:31.721768+00:00	—
+/recebiveis/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:34.074326+00:00	—
+/turmas/[id]/				depende de ID observado em sessão autenticada
+/turmas/formacao/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:35.977727+00:00	—
+/turmas/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:38.808903+00:00	—
+/workshop/acompanhamento/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:41.145565+00:00	—
+/workshop/materiais/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:10:43.737386+00:00	—
+/documentos/	https://staging.lazuli.fisklagarto.com.br/documentos	Documentos do cadastro | Lazuli	2026-11-20T15:10:46.207231+00:00	—
+/documentos/professor/	https://staging.lazuli.fisklagarto.com.br/documentos/professor	Enviar documentos do professor | Lazuli	2026-11-20T15:10:48.268065+00:00	—
+/presenca/	https://staging.lazuli.fisklagarto.com.br/presenca	Presença | Lazuli	2026-11-20T15:10:51.241842+00:00	—
+/presenca/previa/	https://staging.lazuli.fisklagarto.com.br/presenca/previa	Prévia · Presença do aluno | Lazuli	2026-11-20T15:10:53.129762+00:00	—
+/presenca/previa/projecao/	https://staging.lazuli.fisklagarto.com.br/presenca/previa/projecao	Prévia · Projeção do QR | Lazuli	2026-11-20T15:10:54.579873+00:00	—
+/presenca/projecao/	https://staging.lazuli.fisklagarto.com.br/presenca/projecao	Projeção de presença | Lazuli	2026-11-20T15:10:56.712514+00:00	—
+/403/	https://staging.lazuli.fisklagarto.com.br/403	Acesso restrito | Lazuli	2026-11-20T15:10:59.619724+00:00	—
+/cadastrar-senha/	https://staging.lazuli.fisklagarto.com.br/cadastrar-senha	Cadastrar senha | Lazuli	2026-11-20T15:11:01.620470+00:00	—
+/login/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:11:03.298102+00:00	—
+/perfil/	https://staging.lazuli.fisklagarto.com.br/login	Entrar | Lazuli	2026-11-20T15:11:05.079640+00:00	—

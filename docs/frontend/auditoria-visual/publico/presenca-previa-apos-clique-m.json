@@ -1,0 +1,188 @@
+{
+  "captured_utc": "2026-11-20T15:14:37.244034+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/presenca/previa",
+  "snapshot": "- generic\n  - main\n    - sectionheader\n      - StaticText \"LAZULI\"\n    - generic\n      - heading \"Confirme sua presença\" [level=1, ref=e431]\n      - paragraph\n        - StaticText \"Essentials 1 · 10:00–11:00\"\n      - form\n        - LabelText\n        - textbox \"Seu nome\" [ref=e432]: Ana\n        - paragraph\n        - region \"Escolha seu cadastro\" [ref=e434]\n          - button \"Ana Beatriz Martins\" [ref=e435]\n        - button \"Enviar minha presença\" [disabled, ref=e433]\n        - paragraph\n          - StaticText \"Prévia: nenhum registro real será enviado.\"\n  - region \"Notificações\" [ref=e430]",
+  "metrics": {
+    "coarse": true,
+    "controls": [
+      {
+        "background": "rgb(23, 28, 36)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 44,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "input",
+        "text": "",
+        "weight": "400",
+        "width": 358,
+        "x": 16,
+        "y": 176
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 44,
+        "line": "16.875px",
+        "role": null,
+        "size": "13.5px",
+        "tag": "button",
+        "text": "Ana Beatriz Martins",
+        "weight": "600",
+        "width": 358,
+        "x": 16,
+        "y": 296
+      },
+      {
+        "background": "rgb(48, 89, 133)",
+        "color": "rgb(255, 255, 255)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 40,
+        "line": "16.875px",
+        "role": null,
+        "size": "13.5px",
+        "tag": "button",
+        "text": "Enviar minha presença",
+        "weight": "600",
+        "width": 358,
+        "x": 16,
+        "y": 360
+      }
+    ],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 18,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "Essentials 1 · 10:00–11:00",
+        "weight": "400",
+        "width": 358,
+        "x": 16,
+        "y": 116
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 18,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "Digite pelo menos três letras. A busca é automática.",
+        "weight": "400",
+        "width": 358,
+        "x": 16,
+        "y": 226
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 20,
+        "line": "20px",
+        "role": null,
+        "size": "14px",
+        "tag": "p",
+        "text": "Qual destes é você?",
+        "weight": "500",
+        "width": 358,
+        "x": 16,
+        "y": 264
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 18,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "Prévia: nenhum registro real será enviado.",
+        "weight": "400",
+        "width": 358,
+        "x": 16,
+        "y": 420
+      }
+    ],
+    "docHeight": 844,
+    "docWidth": 390,
+    "fonts": [],
+    "frames": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 284,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "form",
+        "text": "Seu nome Digite pelo menos três letras. A busca é automática. Qual destes é você? Ana Beatriz Martins Enviar minha presença Prévia: nenhum r",
+        "weight": "400",
+        "width": 358,
+        "x": 16,
+        "y": 154
+      }
+    ],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 30,
+        "line": "30px",
+        "role": null,
+        "size": "24px",
+        "tag": "h1",
+        "text": "Confirme sua presença",
+        "weight": "600",
+        "width": 358,
+        "x": 16,
+        "y": 80
+      }
+    ],
+    "height": 844,
+    "labels": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 16,
+        "line": "16px",
+        "role": null,
+        "size": "13px",
+        "tag": "label",
+        "text": "Seu nome",
+        "weight": "500",
+        "width": 358,
+        "x": 16,
+        "y": 154
+      }
+    ],
+    "main": {
+      "background": "rgb(18, 21, 29)",
+      "color": "rgb(233, 237, 246)",
+      "font": "Cambria, Georgia, \"Times New Roman\", serif",
+      "height": 844,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 390,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Prévia · Presença do aluno | Lazuli",
+    "width": 390
+  }
+}

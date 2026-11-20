@@ -1,0 +1,188 @@
+{
+  "captured_utc": "2026-11-20T15:15:09.107610+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/login",
+  "snapshot": "- generic\n  - main\n    - sectionheader\n      - image \"Lazuli\"\n    - generic\n      - heading \"Mais tempo para o que transforma.\" [level=1, ref=e159]\n      - paragraph\n    - region \"Recupere seu acesso.\" [ref=e158]\n      - heading \"Recupere seu acesso.\" [level=2, ref=e168]\n      - paragraph\n      - form\n        - textbox \"Email institucional\" [required, ref=e169]\n        - button \"Receber link de recuperação\" [ref=e170]\n        - button \"Voltar para o login\" [ref=e171]\n  - region \"Notificações\" [ref=e157]",
+  "metrics": {
+    "coarse": true,
+    "controls": [
+      {
+        "background": "rgb(36, 57, 88)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 44,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "input",
+        "text": "",
+        "weight": "400",
+        "width": 318,
+        "x": 36,
+        "y": 652
+      },
+      {
+        "background": "rgb(48, 89, 133)",
+        "color": "rgb(255, 255, 255)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 48,
+        "line": "16.875px",
+        "role": null,
+        "size": "13.5px",
+        "tag": "button",
+        "text": "Receber link de recuperação",
+        "weight": "600",
+        "width": 318,
+        "x": 36,
+        "y": 708
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(168, 183, 206)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 40,
+        "line": "16.875px",
+        "role": null,
+        "size": "13.5px",
+        "tag": "button",
+        "text": "Voltar para o login",
+        "weight": "600",
+        "width": 318,
+        "x": 36,
+        "y": 768
+      }
+    ],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 55,
+        "line": "24px",
+        "role": "img",
+        "size": "16px",
+        "tag": "p",
+        "text": "Lazuli",
+        "weight": "400",
+        "width": 220,
+        "x": 16,
+        "y": 11
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 51,
+        "line": "25.6px",
+        "role": null,
+        "size": "16px",
+        "tag": "p",
+        "text": "Uma gestão mais clara para quem faz a aprendizagem acontecer todos os dias.",
+        "weight": "400",
+        "width": 350,
+        "x": 20,
+        "y": 437
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(168, 183, 206)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 50,
+        "line": "24.8px",
+        "role": null,
+        "size": "16px",
+        "tag": "p",
+        "text": "Enviaremos um link no seu email para você escolher uma nova senha.",
+        "weight": "400",
+        "width": 318,
+        "x": 36,
+        "y": 556
+      }
+    ],
+    "docHeight": 844,
+    "docWidth": 390,
+    "fonts": [],
+    "frames": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 186,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "form",
+        "text": "Email institucional Receber link de recuperação Voltar para o login",
+        "weight": "400",
+        "width": 318,
+        "x": 36,
+        "y": 622
+      }
+    ],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 74,
+        "line": "33.2592px",
+        "role": null,
+        "size": "31.98px",
+        "tag": "h1",
+        "text": "Mais tempo para o que transforma.",
+        "weight": "400",
+        "width": 350,
+        "x": 20,
+        "y": 353
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 29,
+        "line": "28.56px",
+        "role": null,
+        "size": "28px",
+        "tag": "h2",
+        "text": "Recupere seu acesso.",
+        "weight": "400",
+        "width": 318,
+        "x": 36,
+        "y": 520
+      }
+    ],
+    "height": 844,
+    "labels": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 24,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "label",
+        "text": "Email institucional",
+        "weight": "500",
+        "width": 318,
+        "x": 36,
+        "y": 622
+      }
+    ],
+    "main": {
+      "background": "rgb(15, 30, 61)",
+      "color": "rgb(233, 237, 246)",
+      "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+      "height": 844,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 390,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Entrar | Lazuli",
+    "width": 390
+  }
+}
