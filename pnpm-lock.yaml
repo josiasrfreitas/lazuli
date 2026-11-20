@@ -190,6 +190,9 @@ catalogs:
       specifier: ^3.24.1
       version: 3.25.76
 
+overrides:
+  '@sentry/bundler-plugins>sentry': 0.50.0
+
 importers:
 
   .:
@@ -9099,8 +9102,8 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  sentry@0.49.0:
-    resolution: {integrity: sha512-9tjS0jTx5FQzhwAGhpcnwvqE0MlQiwJtunsIUNqGkw6E9CBOMbijlamIDUqvZTDtJAveVwa9L5ziP44bOJUzcQ==}
+  sentry@0.50.0:
+    resolution: {integrity: sha512-2BCdoK4xO3mN4c0QTXaMtJBJ9rjL5v1VawaV7Wd605hVWVrpZTipLbjGHEFavS8IliI0W68TGi8CuScbHALPjA==}
     engines: {node: '>=20.0'}
     hasBin: true
 
@@ -12973,7 +12976,7 @@ snapshots:
       glob: 14.0.6
       magic-string: 0.30.21
       oxc-parser: 0.152.0
-      sentry: 0.49.0
+      sentry: 0.50.0
     optionalDependencies:
       rollup: 4.68.4
       webpack: 5.109.2(esbuild@0.28.2)(postcss@8.5.25)
@@ -12985,7 +12988,7 @@ snapshots:
       glob: 14.0.6
       magic-string: 0.30.21
       oxc-parser: 0.152.0
-      sentry: 0.49.0
+      sentry: 0.50.0
     optionalDependencies:
       rollup: 4.68.4
       webpack: 5.109.2(postcss@8.5.25)
@@ -18239,7 +18242,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  sentry@0.49.0: {}
+  sentry@0.50.0: {}
 
   seq-queue@0.0.5: {}
 

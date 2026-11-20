@@ -15,6 +15,10 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
+overrides:
+  # Toolkit 0.49 adds a line to Turbopack chunks without adjusting indexed maps.
+  "@sentry/bundler-plugins>sentry": 0.50.0
+
 # Single source of truth for shared dependency versions (pnpm catalog).
 # Packages reference these via `catalog:`.
 catalog:
