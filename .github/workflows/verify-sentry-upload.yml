@@ -1,0 +1,55 @@
+name: Sentry source map upload verification
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Upload de source maps do Sentry
+    if: >-
+      github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'ci/sentry-upload-verification-20261120-015205' &&
+      github.event.pull_request.user.login == 'josiasrfreitas'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    environment:
+      name: sentry-upload-verification-${{ github.event.pull_request.number }}
+      deployment: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 35b4a0883d1f0242390eada4e91fa9baf34bbdaa
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Compilar imagem e confirmar upload
+        shell: bash
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_WEB_DSN: ${{ vars.SENTRY_WEB_DSN }}
+        run: |
+          set -euo pipefail
+          test -n "$SENTRY_AUTH_TOKEN"
+          test -n "$SENTRY_WEB_DSN"
+
+          release="lazuli-ci-verification-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          image="lazuli-sentry-upload-verification:$GITHUB_RUN_ID"
+          build_log="$RUNNER_TEMP/sentry-verification-build.log"
+
+          docker buildx build --no-cache --progress=plain --platform linux/arm64 --load \
+            --tag "$image" --file infra/deploy/Dockerfile \
+            --build-arg LAZULI_BUILD_ENV=prod \
+            --build-arg "SENTRY_WEB_DSN=$SENTRY_WEB_DSN" \
+            --build-arg "SENTRY_RELEASE=$release" \
+            --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN . 2>&1 | tee "$build_log"
+
+          grep -Fq 'Successfully uploaded source maps to Sentry' "$build_log"
+          docker run --rm --entrypoint sh "$image" -ec \
+            'test "$(pnpm config get verify-deps-before-run)" = false && test -z "$(find /app/apps/web/.next/static -type f -name "*.js.map" -print -quit)"'
+
+          printf 'Upload confirmado para o release `%s`. A imagem local está sem mapas públicos de JavaScript.\n' "$release" >> "$GITHUB_STEP_SUMMARY"
