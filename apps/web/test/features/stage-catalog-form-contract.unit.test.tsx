@@ -208,3 +208,39 @@ void it("opens free-text activities without requiring a book page", () => {
   assertControls(html, ["title", "minutes"]);
   assert.doesNotMatch(html, /name="pageStart"/);
 });
+
+void it("groups consecutive pages under one lesson and reopens the activity title", () => {
+  const lesson = stage.lessons[0]!;
+  const pages = Array.from({ length: 5 }, (_, i) => ({
+    ...lesson.pages[0]!,
+    id: "p" + i,
+    number: i + 1,
+    activities: i === 0 ? lesson.pages[0]!.activities : [],
+  }));
+  const html = renderWithQueries(
+    <Dialog open>
+      <ActivityForm
+        stage={{ ...stage, lessons: [{ ...lesson, pages }] }}
+        programId="program"
+        hour={{
+          ...hour,
+          activities: [
+            { ...hour.activities[0]!, pageStart: 1, pageEnd: 5, bookTitle: "Prática oral" },
+          ],
+        }}
+        position={0}
+        editing
+        onSaved={() => {}}
+        description="Hora"
+        form={{ current: null }}
+        pending={{ current: false }}
+        close={() => {}}
+      />
+    </Dialog>,
+  );
+  const text = html.replace(/<[^>]*>/g, "");
+  assert.match(text, /Lição 1 · Págs. 1–5/);
+  assert.match(text, /Pág. 1 · Exercício 1/);
+  assert.doesNotMatch(text, /Pág. 2/);
+  assert.match(html, /value="Prática oral"/);
+});

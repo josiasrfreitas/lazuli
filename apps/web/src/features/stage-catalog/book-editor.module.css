@@ -208,3 +208,16 @@
   flex-basis: 100%;
   font-size: var(--lz-text-caption);
 }
+
+.activityEntry {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 0.375rem;
+}
+.activityEntry input {
+  flex: 1 1 9rem;
+  min-width: 0;
+}

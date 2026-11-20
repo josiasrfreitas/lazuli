@@ -154,22 +154,24 @@ function HourFields({
   const [lesson, setLesson] = useState(stage.lessons[0]?.id ?? "");
   return (
     <>
-      <Choice
-        name="unitId"
-        label="Unidade"
-        value={unitId}
-        onChange={setUnitId}
-        options={units.map((entry) => ({ value: entry.id, label: entry.title }))}
-      />
-      <Choice
-        label="Conteúdo da hora"
-        value={type}
-        onChange={setType}
-        options={[
-          ...(stage.lessons.length > 0 ? [{ value: "lesson", label: "Lição do livro" }] : []),
-          { value: "assessment", label: "Prova" },
-        ]}
-      />
+      <div className="grid grid-cols-2 items-start gap-3">
+        <Choice
+          name="unitId"
+          label="Unidade"
+          value={unitId}
+          onChange={setUnitId}
+          options={units.map((entry) => ({ value: entry.id, label: entry.title }))}
+        />
+        <Choice
+          label="Conteúdo da hora"
+          value={type}
+          onChange={setType}
+          options={[
+            ...(stage.lessons.length > 0 ? [{ value: "lesson", label: "Lição do livro" }] : []),
+            { value: "assessment", label: "Prova" },
+          ]}
+        />
+      </div>
       {type === "lesson" && (
         <Choice
           name="lesson"

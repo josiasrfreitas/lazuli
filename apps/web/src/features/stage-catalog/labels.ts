@@ -15,3 +15,16 @@ export function programLabel(program: TeachingProgram, programs: TeachingProgram
   );
   return needsLoad ? label + " · " + formatWeeklyHours(program) + " h/sem." : label;
 }
+
+export function compactPages(pages: number[]): string {
+  const runs: { start: number; end: number }[] = [];
+  for (const n of pages) {
+    const last = runs.at(-1);
+    if (last && last.end + 1 === n) last.end = n;
+    else runs.push({ start: n, end: n });
+  }
+  return pages.length
+    ? (pages.length === 1 ? "Pág. " : "Págs. ") +
+        runs.map(({ start, end }) => (start === end ? String(start) : start + "–" + end)).join(", ")
+    : "";
+}

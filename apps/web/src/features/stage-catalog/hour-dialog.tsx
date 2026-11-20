@@ -15,7 +15,7 @@ import {
 import { trpc } from "~/lib/trpc";
 import { ActivityForm, activityLabels } from "./activity-form";
 import { firstFormField } from "./editor-form";
-import { stageContext } from "./labels";
+import { compactPages, stageContext } from "./labels";
 import type { ProgramActivity, StageDetail, TeachingHour, TeachingProgram } from "./types";
 import styles from "./workspace.module.css";
 
@@ -236,36 +236,7 @@ export function HourDialog({
                       <div className={styles.activityContent}>
                         <strong>{activity.bookTitle}</strong>
                         {activityMeta(activity) && <p>{activityMeta(activity)}</p>}
-                        {activity.lessons
-                          .filter(
-                            (ref) =>
-                              ref.bookPage ||
-                              ref.pageActivity ||
-                              !(
-                                activity.bookTitle === ref.title ||
-                                activity.bookTitle.startsWith(ref.title + " ·")
-                              ),
-                          )
-                          .map((reference) => (
-                            <p
-                              key={JSON.stringify([
-                                reference.id,
-                                reference.part,
-                                reference.bookPart?.id,
-                                reference.bookPage?.id,
-                                reference.pageActivity?.id,
-                              ])}
-                            >
-                              {[
-                                reference.title,
-
-                                reference.bookPage && "Pág. " + reference.bookPage.number,
-                                reference.pageActivity?.title,
-                              ]
-                                .filter(Boolean)
-                                .join(" › ")}
-                            </p>
-                          ))}
+                        <BookPassages activity={activity} />
                       </div>
                       <span className={styles.activityMinutes}>{activity.durationMinutes} min</span>
 
@@ -304,19 +275,79 @@ export function HourDialog({
 function pagesLabel({ pageStart, pageEnd }: ProgramActivity): string | null {
   if (pageStart === null) return null;
   if (pageEnd === null || pageEnd === pageStart) return "Pág. " + pageStart;
-  return "Págs. " + pageStart + "–" + pageEnd + " · " + (pageEnd - pageStart + 1) + " páginas";
+  return "Págs. " + pageStart + "–" + pageEnd;
 }
 
 function activityMeta(activity: ProgramActivity): string {
   const kind = activityLabels[activity.kind];
   return [
+    (activity.kind === "LESSON" && activity.lessons.length > 0) ||
     activity.bookTitle.toLocaleLowerCase("pt-BR").startsWith(kind.toLocaleLowerCase("pt-BR"))
       ? null
       : kind,
-    pagesLabel(activity),
+    /^Páginas? \d+(?:–\d+)?$/.test(activity.bookTitle) ? null : pagesLabel(activity),
     activity.descriptionPending &&
       [activity.sourceCode, "Descrição pendente"].filter(Boolean).join(" · "),
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+function BookPassages({ activity }: { activity: ProgramActivity }): React.JSX.Element {
+  const groups = new Map<
+    string,
+    { title: string; pages: Map<number, string[]>; parts: Set<string> }
+  >();
+  for (const ref of activity.lessons) {
+    let group = groups.get(ref.id);
+    if (!group) {
+      group = { title: ref.title, pages: new Map(), parts: new Set() };
+      groups.set(ref.id, group);
+    }
+    if (ref.bookPage) {
+      const n = ref.bookPage.number;
+      const exercises = group.pages.get(n) ?? [];
+      if (ref.pageActivity) exercises.push(ref.pageActivity.title);
+      group.pages.set(n, exercises);
+    } else if (
+      ref.part &&
+      !activity.bookTitle
+        .toLocaleLowerCase("pt-BR")
+        .includes(("parte " + ref.part).toLocaleLowerCase("pt-BR"))
+    )
+      group.parts.add(ref.part);
+  }
+  return (
+    <>
+      {Array.from(groups, ([id, group]) => {
+        const showTitle =
+          activity.bookTitle !== group.title && !activity.bookTitle.startsWith(group.title + " ·");
+        const nums = [...group.pages.keys()].sort((a, b) => a - b);
+        const showPages =
+          groups.size > 1 ||
+          nums.some(
+            (n) =>
+              activity.pageStart === null ||
+              n < activity.pageStart ||
+              n > (activity.pageEnd ?? activity.pageStart),
+          );
+        const summary = [showTitle && group.title, ...group.parts, showPages && compactPages(nums)]
+          .filter(Boolean)
+          .join(" · ");
+        return (
+          <div key={id}>
+            {summary && <p>{summary}</p>}
+            {nums.map((n) => {
+              const titles = group.pages.get(n)!;
+              return titles.length ? (
+                <p key={n}>
+                  Pág. {n} · {titles.join(", ")}
+                </p>
+              ) : null;
+            })}
+          </div>
+        );
+      })}
+    </>
+  );
 }

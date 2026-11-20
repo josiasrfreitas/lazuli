@@ -17,7 +17,6 @@ import { stageContext } from "./labels";
 import type { BookLesson, BookPage, StageDetail } from "./types";
 import styles from "./book-editor.module.css";
 
-type Open = (dialog: BookDialogState) => void;
 const count = (value: number, singular: string, plural: string): string =>
   value + " " + (value === 1 ? singular : plural);
 
@@ -134,7 +133,6 @@ export function BookEditor({
               stageId={stage.id}
               pageId={pageId}
               setPage={setPage}
-              open={openDialog}
             />
           </section>
         </div>
@@ -166,19 +164,12 @@ function LessonPages({
   stageId,
   pageId,
   setPage,
-  open,
 }: {
   lesson: BookLesson;
   stageId: string;
   pageId: string | null;
   setPage: (id: string | null) => void;
-  open: Open;
 }): React.JSX.Element {
-  const parent = {
-    stageId,
-    lessonId: lesson.id,
-    context: lesson.title,
-  };
   const pages = lesson.pages;
   const [renaming, setRenaming] = useState<string | null>(null);
   return (
@@ -191,12 +182,6 @@ function LessonPages({
       {pages.map((page) => {
         const expanded = page.id === pageId;
         const label = "Página " + page.number;
-        const pageParent = {
-          ...parent,
-
-          pageId: page.id,
-          context: parent.context + " · " + label,
-        };
         return (
           <div className={styles.page} key={page.id}>
             <div className={styles.pageHead}>
@@ -237,16 +222,7 @@ function LessonPages({
               />
             )}
             <div id={"page-" + page.id} hidden={!expanded} className={styles.pageBody}>
-              <PageActivities
-                page={page}
-                edit={(activity) => open({ action: "pageActivity", ...pageParent, activity })}
-              />
-              <Button
-                size="compact-responsive"
-                onClick={() => open({ action: "pageActivity", ...pageParent })}
-              >
-                <Plus /> Adicionar atividade à página
-              </Button>
+              <PageActivities page={page} stageId={stageId} lessonId={lesson.id} />
             </div>
           </div>
         );
@@ -256,31 +232,129 @@ function LessonPages({
 }
 function PageActivities({
   page,
-  edit,
+  stageId,
+  lessonId,
 }: {
   page: BookPage;
-  edit: (activity: BookPage["activities"][number]) => void;
+  stageId: string;
+  lessonId: string;
 }): React.JSX.Element {
-  if (!page.activities.length)
-    return <p className={styles.empty}>Nenhuma atividade nesta página.</p>;
-  return (
-    <ol className={styles.activityList}>
-      {page.activities.map((activity) => (
-        <li key={activity.id}>
-          <span className={styles.ordinal}>{String(activity.sequence).padStart(2, "0")}</span>
-          <span>{activity.title}</span>
-          <Button
-            size="icon-compact-responsive"
-            variant="ghost"
-            aria-label={"Editar " + activity.title}
-            title="Editar atividade"
-            onClick={() => edit(activity)}
-          >
-            <Pencil />
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const lock = useRef(false);
+  const utils = trpc.useUtils();
+  const mutation = trpc.teachingPrograms.editCatalog.useMutation();
+  const input = useRef<HTMLInputElement>(null);
+  const trigger = useRef<string | null>(null);
+  function finish() {
+    setEditing(null);
+    requestAnimationFrame(() => {
+      if (trigger.current) document.getElementById(trigger.current)?.focus();
+    });
+  }
+  function entry(edit: boolean) {
+    const value = edit ? draft : newTitle;
+    return (
+      <form
+        className={styles.activityEntry}
+        aria-label={edit ? "Editar atividade" : "Adicionar atividade à página"}
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!value.trim() || lock.current) return;
+          lock.current = true;
+          setFeedback("");
+          try {
+            await mutation.mutateAsync({
+              action: "pageActivity",
+              stageId,
+              lessonId,
+              pageId: page.id,
+              ...(edit && editing ? { pageActivityId: editing } : {}),
+              title: value.trim(),
+            });
+            await utils.teachingPrograms.detail.invalidate({ id: stageId });
+            if (edit) finish();
+            else {
+              setNewTitle("");
+              input.current?.focus();
+            }
+            setFeedback(edit ? "Atividade atualizada." : "Atividade adicionada.");
+          } catch (error) {
+            setFeedback(
+              error instanceof Error ? error.message : "Não foi possível salvar a atividade.",
+            );
+          } finally {
+            lock.current = false;
+          }
+        }}
+      >
+        <Input
+          size="sm"
+          ref={edit ? undefined : input}
+          autoFocus={edit}
+          name="title"
+          aria-label="Título da atividade"
+          placeholder="Título da atividade"
+          autoComplete="off"
+          maxLength={180}
+          required
+          value={value}
+          onChange={(event) => (edit ? setDraft : setNewTitle)(event.target.value)}
+          onKeyDown={(event) => {
+            if (edit && event.key === "Escape") {
+              event.preventDefault();
+              finish();
+            }
+          }}
+        />
+        <Button size="sm" type="submit" disabled={mutation.isPending || !value.trim()}>
+          {edit ? "Salvar" : "Adicionar"}
+        </Button>
+        {edit && (
+          <Button size="sm" variant="ghost" onClick={finish}>
+            Cancelar
           </Button>
-        </li>
-      ))}
-    </ol>
+        )}
+      </form>
+    );
+  }
+  return (
+    <>
+      <ol className={styles.activityList}>
+        {page.activities.map((activity) => (
+          <li key={activity.id}>
+            <span className={styles.ordinal}>{String(activity.sequence).padStart(2, "0")}</span>
+            {editing === activity.id ? (
+              entry(true)
+            ) : (
+              <>
+                <span>{activity.title}</span>
+                <Button
+                  size="icon-compact-responsive"
+                  variant="ghost"
+                  id={activity.id + "-book-edit"}
+                  aria-label={"Editar " + activity.title}
+                  onClick={(event) => {
+                    trigger.current = event.currentTarget.id;
+                    setDraft(activity.title);
+                    setEditing(activity.id);
+                    setFeedback("");
+                  }}
+                >
+                  <Pencil />
+                </Button>
+              </>
+            )}
+          </li>
+        ))}
+      </ol>
+      {entry(false)}
+      <span role="status" className={styles.facts}>
+        {feedback}
+      </span>
+    </>
   );
 }
 

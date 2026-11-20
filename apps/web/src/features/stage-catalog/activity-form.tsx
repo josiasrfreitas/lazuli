@@ -3,6 +3,7 @@ import { useState } from "react";
 import { bookPageRange, TEACHING_HOUR_MINUTES } from "@lazuli/domain";
 import { FormSection } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { compactPages } from "./labels";
 import { Choice, EditorFormBody, TextField, formText } from "./editor-form";
 
 import type { ProgramActivity, StageDetail, TeachingHour } from "./types";
@@ -44,11 +45,15 @@ export function ActivityForm({
   const siblings = hour.activities.filter((activity) => activity.id !== item?.id);
   const followsAssessment = position > 0 && hour.activities[position - 1]?.kind === "ASSESSMENT";
   const [mode, setMode] = useState(item && item.pageStart === null ? "text" : "pages");
-  const [title, setTitle] = useState(item?.bookTitle ?? "");
+  const existingDefault =
+    item?.pageStart != null ? rangeTitle(String(item.pageStart), String(item.pageEnd ?? "")) : null;
+  const [title, setTitle] = useState(
+    item?.bookTitle === existingDefault ? "" : (item?.bookTitle ?? ""),
+  );
   const [start, setStart] = useState(String(item?.pageStart ?? ""));
   const [end, setEnd] = useState(String(item?.pageEnd ?? ""));
   const matches = bookPageRange(stage.lessons, Number(start), Number(end || start));
-  const pageTitle = start === end || !end ? "Página " + start : "Páginas " + start + "–" + end;
+  const pageTitle = rangeTitle(start, end);
   const utils = trpc.useUtils();
   const mutation = trpc.teachingPrograms.editProgram.useMutation({
     onError: () => utils.teachingPrograms.detail.invalidate({ id: stage.id }),
@@ -77,8 +82,8 @@ export function ActivityForm({
           : item?.kind === "ASSESSMENT" || (!item && followsAssessment)
             ? "ASSESSMENT"
             : "ACTIVITY";
-        const savedTitle =
-          mode === "pages" ? (preserve ? item.bookTitle : pageTitle) : title.trim();
+        const savedTitle = title.trim() || (mode === "pages" ? pageTitle : "");
+        if (!savedTitle) throw new Error("Informe o título da atividade.");
         await mutation.mutateAsync({
           action: "activity",
           stageId: stage.id,
@@ -117,17 +122,16 @@ export function ActivityForm({
         value={mode}
         onChange={setMode}
       />
-      {mode === "text" ? (
-        <TextField
-          name="title"
-          label="Texto da atividade"
-          placeholder="Ex.: Conversação em duplas"
-          required
-          maxLength={180}
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-      ) : (
+      <TextField
+        name="title"
+        label={mode === "pages" ? "Título da atividade (opcional)" : "Título da atividade"}
+        placeholder={mode === "pages" && start ? pageTitle : "Ex.: Conversação em duplas"}
+        required={mode === "text"}
+        maxLength={180}
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+      />
+      {mode === "pages" && (
         <>
           <div className={styles.pages}>
             <TextField
@@ -152,16 +156,11 @@ export function ActivityForm({
           </div>
           {start && (
             <div aria-live="polite" className={styles.meta}>
-              {matches.length
-                ? matches.map(({ lessonTitle, page }) => (
-                    <p key={page.id}>
-                      {lessonTitle} · Pág. {page.number}
-                      {page.activities.length
-                        ? " · " + page.activities.map((a) => a.title).join(", ")
-                        : ""}
-                    </p>
-                  ))
-                : "Nenhuma página cadastrada nesse intervalo."}
+              {matches.length ? (
+                <RangePreview matches={matches} />
+              ) : (
+                "Nenhuma página cadastrada nesse intervalo."
+              )}
             </div>
           )}
         </>
@@ -171,6 +170,37 @@ export function ActivityForm({
   );
 }
 
+function rangeTitle(start: string, end: string): string {
+  return !end || start === end ? "Página " + start : "Páginas " + start + "–" + end;
+}
+function RangePreview({
+  matches,
+}: {
+  matches: ReturnType<typeof bookPageRange>;
+}): React.JSX.Element {
+  const groups = Map.groupBy(matches, (match) => match.lessonId);
+  return (
+    <>
+      {Array.from(groups, ([id, rows]) => {
+        const numbers = [...new Set(rows.map((row) => row.page.number))];
+        return (
+          <div key={id}>
+            <p>
+              {rows[0]!.lessonTitle} · {compactPages(numbers)}
+            </p>
+            {rows
+              .filter((row) => row.page.activities.length)
+              .map(({ page }) => (
+                <p key={page.id}>
+                  Pág. {page.number} · {page.activities.map((a) => a.title).join(", ")}
+                </p>
+              ))}
+          </div>
+        );
+      })}
+    </>
+  );
+}
 function readPages(data: FormData): Pick<ProgramActivity, "pageStart" | "pageEnd"> {
   const start = formText(data, "pageStart"),
     end = formText(data, "pageEnd");
