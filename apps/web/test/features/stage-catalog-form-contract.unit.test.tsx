@@ -67,6 +67,7 @@ const hour: TeachingHour = {
       bookTitle: "Leitura",
       sourceCode: null,
       descriptionPending: false,
+      instructions: null,
       durationMinutes: 60,
       lessons: [
         {

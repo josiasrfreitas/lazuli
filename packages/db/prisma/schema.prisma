@@ -2379,6 +2379,7 @@ model ProgramAssessment {
 }
 
 model ProgramActivity {
+  instructions String?
   pageStart Int? @map("page_start")
   pageEnd Int? @map("page_end")
   id String @id @default(uuid()) @db.Uuid

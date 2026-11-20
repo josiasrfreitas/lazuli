@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { bookPageRange, TEACHING_HOUR_MINUTES } from "@lazuli/domain";
-import { FormSection } from "@lazuli/ui";
+import { Button, Field, FormSection, Textarea, Label } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { compactPages } from "./labels";
 import { Choice, EditorFormBody, TextField, formText } from "./editor-form";
@@ -35,13 +35,14 @@ export function ActivityForm({
   hour: TeachingHour;
   position: number;
   editing: boolean;
-  onSaved: (title: string) => void;
+  onSaved: (title: string, deleted?: boolean) => void;
   description: string;
   close: () => void;
   form: React.RefObject<HTMLFormElement | null>;
   pending: React.RefObject<boolean>;
 }): React.JSX.Element {
   const item = editing ? hour.activities.at(position) : undefined;
+  const [deleting, setDeleting] = useState(false);
   const siblings = hour.activities.filter((activity) => activity.id !== item?.id);
   const followsAssessment = position > 0 && hour.activities[position - 1]?.kind === "ASSESSMENT";
   const [mode, setMode] = useState(item && item.pageStart === null ? "text" : "pages");
@@ -61,7 +62,9 @@ export function ActivityForm({
   return (
     <EditorFormBody
       compact
-      title={editing ? "Editar atividade" : "Inserir atividade"}
+      destructive={deleting}
+      saveLabel={deleting ? "Confirmar exclusão" : "Salvar"}
+      title={deleting ? "Excluir atividade" : editing ? "Editar atividade" : "Inserir atividade"}
       description={description}
       form={form}
       pending={pending}
@@ -72,6 +75,20 @@ export function ActivityForm({
           id: activity.id,
           minutes: Number(formText(data, "minutes-" + activity.id)),
         }));
+        if (deleting && item) {
+          await mutation.mutateAsync({
+            action: "deleteActivity",
+            stageId: stage.id,
+            programId,
+            hourId: hour.id,
+            expectedChange: hour.lastChange,
+            activityId: item.id,
+            others,
+          });
+          await utils.teachingPrograms.detail.invalidate({ id: stage.id });
+          onSaved(item.bookTitle, true);
+          return;
+        }
         if (minutes + others.reduce((sum, row) => sum + row.minutes, 0) !== TEACHING_HOUR_MINUTES)
           throw new Error("Distribua 60 minutos entre as atividades desta hora-aula.");
         const pages = mode === "pages" ? readPages(data) : { pageStart: null, pageEnd: null };
@@ -94,6 +111,7 @@ export function ActivityForm({
           activityId: item?.id ?? null,
           kind,
           title: savedTitle,
+          instructions: formText(data, "instructions") || null,
           durationMinutes: minutes,
           ...pages,
           resolvePages: mode === "pages" && !preserve,
@@ -113,59 +131,109 @@ export function ActivityForm({
         onSaved(savedTitle);
       }}
     >
-      <Choice
-        label="Conteúdo da atividade"
-        options={[
-          { value: "pages", label: "Páginas do livro" },
-          { value: "text", label: "Texto livre" },
-        ]}
-        value={mode}
-        onChange={setMode}
-      />
-      <TextField
-        name="title"
-        label={mode === "pages" ? "Título da atividade (opcional)" : "Título da atividade"}
-        placeholder={mode === "pages" && start ? pageTitle : "Ex.: Conversação em duplas"}
-        required={mode === "text"}
-        maxLength={180}
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-      />
-      {mode === "pages" && (
+      {deleting && item ? (
         <>
-          <div className={styles.pages}>
-            <TextField
-              name="pageStart"
-              label="Página inicial"
-              type="number"
-              min={1}
-              required
-              placeholder="Ex.: 18"
-              value={start}
-              onChange={(event) => setStart(event.target.value)}
+          <p>
+            Excluir “{item.bookTitle}” desta hora-aula? Distribua os {item.durationMinutes} minutos
+            entre as atividades restantes.
+          </p>
+          <DurationFields deleting siblings={siblings} item={item} />
+        </>
+      ) : (
+        <div className={styles.activityColumns}>
+          <div className={styles.activityFields}>
+            <Choice
+              label="Conteúdo da atividade"
+              options={[
+                { value: "pages", label: "Páginas do livro" },
+                { value: "text", label: "Texto livre" },
+              ]}
+              value={mode}
+              onChange={setMode}
             />
             <TextField
-              name="pageEnd"
-              label="Até (opcional)"
-              type="number"
-              min={Number(start) || 1}
-              placeholder="Ex.: 21"
-              value={end}
-              onChange={(event) => setEnd(event.target.value)}
+              name="title"
+              label={mode === "pages" ? "Título da atividade (opcional)" : "Título da atividade"}
+              placeholder={mode === "pages" && start ? pageTitle : "Ex.: Conversação em duplas"}
+              required={mode === "text"}
+              maxLength={180}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
             />
+            {mode === "pages" && (
+              <>
+                <div className={styles.pages}>
+                  <TextField
+                    name="pageStart"
+                    label="Página inicial"
+                    type="number"
+                    min={1}
+                    required
+                    placeholder="Ex.: 18"
+                    value={start}
+                    onChange={(event) => setStart(event.target.value)}
+                  />
+                  <TextField
+                    name="pageEnd"
+                    label="Até (opcional)"
+                    type="number"
+                    min={Number(start) || 1}
+                    placeholder="Ex.: 21"
+                    value={end}
+                    onChange={(event) => setEnd(event.target.value)}
+                  />
+                </div>
+                {start && (
+                  <div aria-live="polite" className={styles.meta}>
+                    {matches.length ? (
+                      <RangePreview matches={matches} />
+                    ) : (
+                      "Nenhuma página cadastrada nesse intervalo."
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            <Field>
+              <Label htmlFor="scheduled-instructions">Instruções (opcional)</Label>
+              <Textarea
+                id="scheduled-instructions"
+                name="instructions"
+                rows={4}
+                maxLength={5000}
+                defaultValue={item?.instructions ?? ""}
+                placeholder="O que o professor deve orientar durante a atividade?"
+              />
+            </Field>
           </div>
-          {start && (
-            <div aria-live="polite" className={styles.meta}>
-              {matches.length ? (
-                <RangePreview matches={matches} />
+          <aside className={styles.timePanel}>
+            <DurationFields siblings={siblings} item={item} />
+          </aside>
+          {item && (
+            <div>
+              {siblings.length ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive-ghost"
+                  onClick={() => {
+                    setDeleting(true);
+                    requestAnimationFrame(() =>
+                      form.current?.querySelector<HTMLInputElement>("input")?.focus(),
+                    );
+                  }}
+                >
+                  Excluir atividade
+                </Button>
               ) : (
-                "Nenhuma página cadastrada nesse intervalo."
+                <p className={styles.meta}>
+                  Para excluir esta atividade, adicione outra à hora-aula.
+                </p>
               )}
             </div>
           )}
-        </>
+        </div>
       )}
-      <DurationFields siblings={siblings} item={item} />
     </EditorFormBody>
   );
 }
@@ -209,15 +277,22 @@ function readPages(data: FormData): Pick<ProgramActivity, "pageStart" | "pageEnd
   return { pageStart: start ? Number(start) : null, pageEnd: end ? Number(end) : null };
 }
 function DurationFields({
+  deleting = false,
   siblings,
   item,
 }: {
+  deleting?: boolean;
   siblings: ProgramActivity[];
   item: ProgramActivity | undefined;
 }): React.JSX.Element {
-  const [minutes, setMinutes] = useState(String(item?.durationMinutes ?? ""));
+  const [minutes, setMinutes] = useState(String(deleting ? 0 : (item?.durationMinutes ?? "")));
   const [others, setOthers] = useState(() =>
-    Object.fromEntries(siblings.map((activity) => [activity.id, String(activity.durationMinutes)])),
+    Object.fromEntries(
+      siblings.map((activity) => [
+        activity.id,
+        String(deleting && siblings.length === 1 ? 60 : activity.durationMinutes),
+      ]),
+    ),
   );
   const total =
     Number(minutes) + Object.values(others).reduce((sum, value) => sum + Number(value), 0);
@@ -236,18 +311,20 @@ function DurationFields({
       }
     >
       <div className={styles.durationRows}>
-        <TextField
-          label="Esta atividade (min)"
-          name="minutes"
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={60}
-          value={minutes}
-          onChange={(event) => setMinutes(event.target.value)}
-          placeholder="Ex.: 10"
-          required
-        />
+        {!deleting && (
+          <TextField
+            label="Esta atividade (min)"
+            name="minutes"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={60}
+            value={minutes}
+            onChange={(event) => setMinutes(event.target.value)}
+            placeholder="Ex.: 10"
+            required
+          />
+        )}
         {siblings.map((activity) => (
           <TextField
             key={activity.id}

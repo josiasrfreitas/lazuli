@@ -38,6 +38,15 @@ export const programCommand = z.discriminatedUnion("action", [
     title,
   }),
   z.object({
+    action: z.literal("deleteActivity"),
+    stageId: id,
+    programId: id,
+    hourId: id,
+    activityId: id,
+    expectedChange: z.string(),
+    others: z.array(z.object({ id, minutes: minute })).max(60),
+  }),
+  z.object({
     action: z.literal("moveActivity"),
     stageId: id,
     programId: id,
@@ -49,6 +58,7 @@ export const programCommand = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("activity"),
     resolvePages: z.boolean().optional(),
+    instructions: z.string().trim().max(5000).nullable().optional(),
     stageId: id,
     programId: id,
     hourId: id,
@@ -88,6 +98,7 @@ export function editProgram(db: DatabaseClient, input: Command): Promise<{ id: s
         });
       if (input.action === "unit") await addUnit(tx, { ...input, programId: program.id });
       if (input.action === "hour") await addHour(tx, input);
+      if (input.action === "deleteActivity") await deleteActivity(tx, input);
       if (input.action === "moveActivity") await moveActivity(tx, input);
       if (input.action === "activity") await saveActivity(tx, input);
       return { id: program.id };
@@ -282,7 +293,7 @@ function activitySlot(rows: HourActivity[], input: ActivityCommand): ActivitySlo
 
 function durationChanges(
   rows: HourActivity[],
-  input: ActivityCommand,
+  input: Pick<ActivityCommand, "activityId" | "others" | "durationMinutes">,
 ): { id: string; minutes: number }[] {
   const siblings = rows.filter((row) => row.id !== input.activityId);
   const changes = new Map(input.others.map((row) => [row.id, row.minutes]));
@@ -335,6 +346,7 @@ async function writeActivity(
       : null;
   const data = {
     title: input.title,
+    ...(input.instructions !== undefined ? { instructions: input.instructions || null } : {}),
     kind,
     durationMinutes: input.durationMinutes,
     pageStart,
@@ -362,6 +374,39 @@ async function writeActivity(
   return added.id;
 }
 
+async function deleteActivity(
+  tx: Tx,
+  input: Extract<Command, { action: "deleteActivity" }>,
+): Promise<void> {
+  const hour = await tx.teachingHour.findFirst({
+    where: { id: input.hourId, programId: input.programId },
+    include: { activities: { where: { deletedAt: null } } },
+  });
+  if (!hour || hour.updatedAt.toISOString() !== input.expectedChange)
+    throw badRequest("Esta hora-aula mudou. Reabra a edição.");
+  const item = hour.activities.find((row) => row.id === input.activityId);
+  if (!item) throw notFound("Atividade indisponível.");
+  if (hour.activities.length === 1)
+    throw badRequest("Adicione outra atividade antes de excluir a única atividade da hora.");
+  if (
+    item.kind === "ASSESSMENT" &&
+    !(await tx.programActivity.count({
+      where: { unitId: item.unitId, kind: "ASSESSMENT", id: { not: item.id } },
+    }))
+  )
+    throw badRequest("A unidade precisa manter sua prova de encerramento.");
+  const changes = durationChanges(hour.activities, { ...input, durationMinutes: 0 });
+  for (const change of changes)
+    await tx.programActivity.update({
+      where: { id: change.id },
+      data: { durationMinutes: change.minutes },
+    });
+  await tx.programActivity.update({ where: { id: item.id }, data: { deletedAt: new Date() } });
+  await tx.teachingHour.update({
+    where: { id: hour.id },
+    data: { updatedAt: new Date(Math.max(Date.now(), hour.updatedAt.getTime() + 1)) },
+  });
+}
 async function moveActivity(
   tx: Tx,
   input: Extract<Command, { action: "moveActivity" }>,

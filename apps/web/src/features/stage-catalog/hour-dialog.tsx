@@ -176,7 +176,7 @@ export function HourDialog({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className={edit ? "md:max-w-md" : "md:max-w-xl"}
+          className={edit ? "md:max-w-3xl" : "md:max-w-xl"}
           motion="subtle"
           initialFocus={() => title.current ?? true}
           finalFocus={() => origin}
@@ -191,9 +191,11 @@ export function HourDialog({
               description={context + " · " + hourLabel(hour) + " · Posição " + (edit.position + 1)}
               form={form}
               pending={pending}
-              onSaved={(savedTitle) =>
+              onSaved={(savedTitle, deleted) =>
                 requestAnimationFrame(() =>
-                  setNotice("A atividade “" + savedTitle + "” foi salva."),
+                  setNotice(
+                    "A atividade “" + savedTitle + (deleted ? "” foi excluída." : "” foi salva."),
+                  ),
                 )
               }
               close={() => setEdit(null)}
@@ -237,6 +239,9 @@ export function HourDialog({
                         <strong>{activity.bookTitle}</strong>
                         {activityMeta(activity) && <p>{activityMeta(activity)}</p>}
                         <BookPassages activity={activity} />
+                        {activity.instructions && (
+                          <p className="whitespace-pre-line">{activity.instructions}</p>
+                        )}
                       </div>
                       <span className={styles.activityMinutes}>{activity.durationMinutes} min</span>
 
@@ -323,15 +328,7 @@ function BookPassages({ activity }: { activity: ProgramActivity }): React.JSX.El
         const showTitle =
           activity.bookTitle !== group.title && !activity.bookTitle.startsWith(group.title + " ·");
         const nums = [...group.pages.keys()].sort((a, b) => a - b);
-        const showPages =
-          groups.size > 1 ||
-          nums.some(
-            (n) =>
-              activity.pageStart === null ||
-              n < activity.pageStart ||
-              n > (activity.pageEnd ?? activity.pageStart),
-          );
-        const summary = [showTitle && group.title, ...group.parts, showPages && compactPages(nums)]
+        const summary = [showTitle && group.title, ...group.parts, compactPages(nums)]
           .filter(Boolean)
           .join(" · ");
         return (

@@ -73,6 +73,7 @@ type ActivityView = Pick<
   | "title"
   | "durationMinutes"
   | "sourceCode"
+  | "instructions"
   | "descriptionPending"
   | "pageStart"
   | "pageEnd"
@@ -212,6 +213,7 @@ function projectActivity(activity: ActivityRow, labels: Map<string, string>): Ac
     pageEnd: activity.pageEnd,
     durationMinutes: activity.durationMinutes,
     sourceCode: activity.sourceCode,
+    instructions: activity.instructions,
     descriptionPending: activity.descriptionPending,
     assessment: activity.assessment
       ? {

@@ -47,6 +47,7 @@ type FormProps = {
   onClose: () => void;
   onSave: (data: FormData) => Promise<void>;
   saveLabel?: string;
+  destructive?: boolean;
   description?: string | undefined;
 };
 export function EditorForm(props: FormProps): React.JSX.Element {
@@ -85,6 +86,7 @@ export function EditorFormBody({
   onClose,
   onSave,
   saveLabel = "Salvar",
+  destructive = false,
   compact = false,
   form,
   pending,
@@ -131,7 +133,13 @@ export function EditorFormBody({
         </p>
       )}
       <DialogFooter className="flex-row justify-end">
-        <FormActions busy={busy} onClose={onClose} formId={formId} saveLabel={saveLabel} />
+        <FormActions
+          destructive={destructive}
+          busy={busy}
+          onClose={onClose}
+          formId={formId}
+          saveLabel={saveLabel}
+        />
       </DialogFooter>
     </>
   );
@@ -220,6 +228,7 @@ export function Choice({
 }
 
 function FormActions({
+  destructive,
   busy,
   onClose,
   formId,
@@ -229,6 +238,7 @@ function FormActions({
   onClose: () => void;
   formId: string;
   saveLabel: string;
+  destructive: boolean;
 }): React.JSX.Element {
   return (
     <>
@@ -241,7 +251,13 @@ function FormActions({
       >
         Cancelar
       </Button>
-      <Button size="compact-responsive" type="submit" form={formId} disabled={busy}>
+      <Button
+        variant={destructive ? "destructive" : "primary"}
+        size="compact-responsive"
+        type="submit"
+        form={formId}
+        disabled={busy}
+      >
         {busy ? "Salvando…" : saveLabel}
       </Button>
     </>

@@ -491,10 +491,45 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     ...insert,
     activityId: saved.id,
     title: "Leitura revisada",
+    instructions: "Trabalhar em duplas.",
     pageStart: 24,
     pageEnd: null,
     expectedChange: hour.lastChange,
   });
+  hour = (await load()).units[0]!.teachingHours[0]!;
+  assert.equal(
+    hour.activities.find((row) => row.id === saved.id)?.instructions,
+    "Trabalhar em duplas.",
+  );
+  const remove = {
+    action: "deleteActivity" as const,
+    stageId,
+    programId: program.id,
+    hourId: hour.id,
+    activityId: saved.id,
+    expectedChange: hour.lastChange,
+    others: [
+      { id: first.id, minutes: 35 },
+      { id: last.id, minutes: 25 },
+    ],
+  };
+  await assert.rejects(
+    catalog.editProgram({
+      ...remove,
+      others: remove.others.map((row) => ({ ...row, minutes: 10 })),
+    }),
+    /60 minutos/,
+  );
+  await catalog.editProgram(remove);
+  await assert.rejects(catalog.editProgram(remove), /mudou/);
+  hour = (await load()).units[0]!.teachingHours[0]!;
+  assert.deepEqual(
+    hour.activities.map((row) => [row.id, row.durationMinutes]),
+    [
+      [last.id, 25],
+      [first.id, 35],
+    ],
+  );
   const savedPlan = await admin.planning.detail({ classId: group.id });
   assert.equal(savedPlan.plan?.items[0]?.title, "Leitura em dupla");
   assert.deepEqual(
