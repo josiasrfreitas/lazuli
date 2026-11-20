@@ -380,9 +380,14 @@
   .teacherIdentity {
     max-width: none;
   }
+  .teacherIdentity h1 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+  }
   .teacherHeader > .navigation {
     grid-column: 1 / -1;
-    justify-self: end;
+    justify-self: start;
   }
 }
 .access {
