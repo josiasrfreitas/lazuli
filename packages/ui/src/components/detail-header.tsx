@@ -1,7 +1,7 @@
-import type { ReactElement, ReactNode } from "react";
+import type { AriaAttributes, ReactElement, ReactNode } from "react";
 import { cn } from "../lib/utils";
 
-type DetailHeaderProps = {
+type DetailHeaderProps = Pick<AriaAttributes, "aria-label" | "aria-busy"> & {
   title: ReactNode;
   leading?: ReactNode;
   metadata?: ReactNode;
@@ -22,9 +22,11 @@ export function DetailHeader({
   variant = "plain",
   size = "md",
   metadataPlacement = "inline",
+  ...aria
 }: DetailHeaderProps): ReactElement {
   return (
     <header
+      {...aria}
       data-slot="detail-header"
       className={cn(
         "grid min-w-0",
@@ -41,7 +43,7 @@ export function DetailHeader({
           {leading}
           <h1
             className={cn(
-              "break-words font-display text-2xl font-medium tracking-tight text-heading",
+              "break-words font-display text-h2 font-medium tracking-tight text-heading",
               size === "md" && "sm:text-3xl",
             )}
           >

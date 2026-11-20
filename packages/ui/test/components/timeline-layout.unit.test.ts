@@ -1,27 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  timelineGroups,
-  timelineOverflow,
-} from "../../src/features/class-records/timeline-layout.js";
-import type { CalendarLesson } from "../../src/features/class-records/calendar-model.js";
+import { timelineGroups } from "../../src/components/schedule-calendar/timeline-layout.js";
+import type { CalendarEvent } from "../../src/components/schedule-calendar/types.js";
 
-function lesson(id: string, [startTime, endTime]: [string, string]): CalendarLesson {
-  return {
-    id,
-    classId: id,
-    className: id,
-    teacherId: id,
-    teacher: id,
-    date: "2026-10-13",
-    startTime,
-    endTime,
-    scheduleType: "REGULAR",
-    stageName: "Stage 1",
-    state: "UPCOMING",
-    attendanceOnly: false,
-    guestCount: 0,
-  };
+function lesson(id: string, [startTime, endTime]: [string, string]): CalendarEvent {
+  return { id, title: id, date: "2026-10-13", startTime, endTime };
 }
 
 void test("successive teachers reuse space rather than allocating a column per teacher", () => {
@@ -80,18 +63,4 @@ void test("different dates and empty schedules do not create false overlaps", ()
     [["a"], ["b"]],
   );
   assert.deepEqual(timelineGroups([]), []);
-});
-
-void test("overflow counts follow actual concurrent lessons instead of counting the entire day", () => {
-  const rows = [
-    lesson("a", ["08:00", "10:00"]),
-    lesson("b", ["08:00", "10:00"]),
-    lesson("c", ["08:00", "10:00"]),
-    lesson("d", ["08:00", "10:00"]),
-    lesson("e", ["08:00", "09:00"]),
-  ];
-  assert.deepEqual(timelineOverflow(timelineGroups(rows)[0]!), [
-    { start: 480, end: 540, count: 2 },
-    { start: 540, end: 600, count: 1 },
-  ]);
 });

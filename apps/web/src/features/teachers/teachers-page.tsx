@@ -1,12 +1,12 @@
 "use client";
-import { useSearchDraft } from "~/lib/use-search-draft";
-import { Plus, Search } from "lucide-react";
+import { TableSearch } from "~/components/table-search";
+import { Plus } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { type UrlPagination, useUrlPagination } from "~/lib/pagination";
 import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import { Button, DataTablePage, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
+import { Button, DataTablePage, TableFilters, type TableFilterField } from "@lazuli/ui";
 import { studentPaginationPolicy } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { TeacherDialog } from "./teacher-dialog";
@@ -74,26 +74,18 @@ type TeacherListControlsProps = {
   setCreating: Dispatch<SetStateAction<boolean>>;
 };
 function TeacherListControls(props: TeacherListControlsProps): ReactElement {
-  const [search, setSearch] = useSearchDraft(props.params.busca, (busca) => {
-    void props.setParams({ busca });
-    props.pagination.setPage(1);
-  });
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative w-full sm:w-56">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
-        />
-        <Input
-          className="pl-9"
+      <div className="w-full sm:w-56">
+        <TableSearch
           name="teacher-search"
-          aria-label="Buscar professor"
+          label="Buscar professor"
           placeholder="Buscar por nome"
-          autoComplete="off"
-          size="compact-responsive"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          value={props.params.busca}
+          onCommit={(busca) => {
+            void props.setParams({ busca });
+            props.pagination.setPage(1);
+          }}
         />
       </div>
       <TableFilters

@@ -163,7 +163,7 @@
 .accessDescription {
   max-width: 29ch;
   margin-top: 18px;
-  font-size: 16px;
+  font-size: var(--lz-text-body);
   line-height: 1.55;
   color: var(--marquee-muted);
 }
@@ -358,7 +358,8 @@
 @media (max-width: 980px) {
   .entrance {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 44px minmax(0, 1fr) auto;
+    grid-template-rows: 44px auto auto;
+    align-content: start;
     gap: 12px;
     padding: 16px;
   }
@@ -382,6 +383,7 @@
 
   .hero {
     padding: 0 4px;
+    margin-block-start: clamp(0.5rem, 8dvh, 4.25rem);
   }
 
   .headline {
@@ -391,7 +393,7 @@
   .description {
     margin-top: 12px;
     max-width: none;
-    font-size: 16px;
+    font-size: var(--lz-text-body);
   }
 
   .access {
@@ -492,7 +494,7 @@
   }
 
   .accessTitle {
-    font-size: 24px;
+    font-size: var(--lz-text-h2);
   }
 
   .accessDescription {

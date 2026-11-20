@@ -3,14 +3,13 @@ import { flushSync } from "react-dom";
 
 type CarouselOptions = {
   order: readonly string[];
-  scope: "studentCarousel" | "classCarousel" | "formationPanel";
+  scope: "recordCarousel" | "formationPanel";
 };
 
 /** Snapshot the departing panel so only the selected section stays mounted. */
 export function useSectionCarousel({ order, scope }: CarouselOptions) {
   const attribute = {
-    studentCarousel: "data-student-carousel",
-    classCarousel: "data-class-carousel",
+    recordCarousel: "data-record-carousel",
     formationPanel: "data-formation-panel",
   }[scope];
   const transitionRef = useRef<ViewTransition | null>(null);

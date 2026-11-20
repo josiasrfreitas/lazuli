@@ -1,4 +1,5 @@
 "use client";
+import { FormDialogFooter } from "~/components/form-dialog-footer";
 import {
   useEffect,
   useRef,
@@ -18,7 +19,6 @@ import {
   DialogBody,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogPortal,
   DialogTitle,
@@ -96,47 +96,15 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
               </div>
             )}
           </div>
-          <TeacherFormFooter
+          <FormDialogFooter
+            form="teacher-form"
             pending={pending || documents.busy}
-            onClose={onClose}
-            teacher={teacher}
+            onCancel={onClose}
+            label={teacher ? "Salvar alterações" : "Cadastrar professor"}
           />
         </DialogContent>
       </DialogPortal>
     </Dialog>
-  );
-}
-
-type TeacherFormFooterProps = {
-  pending: boolean;
-  onClose: () => void;
-  teacher:
-    | {
-        today: string;
-        studentCount: number;
-        teacherProfile: { cpf: string | null; departureDate: Date | null } | null;
-        id: string;
-        email: string;
-        name: string;
-        isEnabled: boolean;
-      }
-    | undefined;
-};
-function TeacherFormFooter(props: TeacherFormFooterProps): ReactElement {
-  return (
-    <DialogFooter>
-      <Button
-        size="compact-responsive"
-        variant="secondary"
-        disabled={props.pending}
-        onClick={props.onClose}
-      >
-        Cancelar
-      </Button>
-      <Button size="compact-responsive" type="submit" form="teacher-form" disabled={props.pending}>
-        {teacherSaveLabel(props)}
-      </Button>
-    </DialogFooter>
   );
 }
 
@@ -277,11 +245,6 @@ type TeacherDialogInput = {
   teacher?: Teacher;
   onClose: () => void;
 };
-
-function teacherSaveLabel(props: TeacherFormFooterProps): string {
-  if (props.pending) return "Salvando…";
-  return props.teacher ? "Salvar alterações" : "Cadastrar professor";
-}
 
 function useAttachmentPresence(attachments: boolean): boolean {
   const [panelPresent, setPanelPresent] = useState(false);

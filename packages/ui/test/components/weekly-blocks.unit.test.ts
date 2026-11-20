@@ -1,32 +1,21 @@
+import { calendarDateKey, zonedNow } from "../../src/components/schedule-calendar/model.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { weeklyLaneGeometry } from "../../src/features/class-records/weekly-layout.js";
+import { weeklyLaneGeometry } from "../../src/components/schedule-calendar/weekly-layout.js";
 import {
   revealWeeklyBlocks,
   weeklyBlocks,
-} from "../../src/features/class-records/weekly-blocks.js";
-import type { CalendarLesson } from "../../src/features/class-records/calendar-model.js";
+} from "../../src/components/schedule-calendar/weekly-blocks.js";
+import type { CalendarEvent } from "../../src/components/schedule-calendar/types.js";
 
-function lesson(id: string, [startTime, endTime] = ["14:00", "15:00"]): CalendarLesson {
-  return {
-    id,
-    classId: id,
-    className: `Turma ${id}`,
-    teacherId: id,
-    teacher: id,
-    date: "2026-10-13",
-    startTime,
-    endTime,
-    scheduleType: "REGULAR",
-    stageName: "Stage 1",
-    state: "UPCOMING",
-    attendanceOnly: false,
-    guestCount: 0,
-  };
+function lesson(id: string, [startTime, endTime] = ["14:00", "15:00"]): CalendarEvent {
+  return { id, title: id, date: "2026-10-13", startTime, endTime };
 }
 
 void test("four simultaneous lessons occupy separate horizontal lanes at their real start and end times", () => {
-  const events = weeklyBlocks([lesson("a"), lesson("b"), lesson("c"), lesson("d")], "2026-10-13");
+  const events = weeklyBlocks([lesson("a"), lesson("b"), lesson("c"), lesson("d")], {
+    date: "2026-10-13",
+  });
   assert.deepEqual(
     events.map((event) => [
       event.kind,
@@ -57,7 +46,7 @@ void test("four simultaneous lessons occupy separate horizontal lanes at their r
 void test("the fifth horizontal lane counts only the simultaneous lessons beyond the four visible cards", () => {
   const events = weeklyBlocks(
     [lesson("f"), lesson("b"), lesson("d"), lesson("a"), lesson("e"), lesson("c")],
-    "2026-10-13",
+    { date: "2026-10-13" },
   );
   assert.deepEqual(
     events.filter((event) => event.kind === "lesson").map((event) => event.lessons[0]!.id),
@@ -85,7 +74,7 @@ void test("transitive overlaps do not count sequential lessons as simultaneous o
       lesson("touching", ["17:00", "18:00"]),
       { ...lesson("tomorrow"), date: "2026-10-14" },
     ],
-    "2026-10-13",
+    { date: "2026-10-13" },
   );
   assert.deepEqual(
     events.map((event) => [event.kind, event.lessons[0]!.id, event.startTime, event.endTime]),
@@ -111,7 +100,7 @@ void test("overflow updates at each actual collision boundary and a remaining le
       lesson("e", ["14:15", "15:30"]),
       lesson("f", ["14:30", "14:45"]),
     ],
-    "2026-10-13",
+    { date: "2026-10-13" },
   );
   assert.deepEqual(
     events
@@ -139,7 +128,7 @@ void test("short appointments remain individual cards instead of being hidden be
       lesson("b", ["10:00", "10:15"]),
       lesson("c", ["10:00", "10:15"]),
     ],
-    "2026-10-13",
+    { date: "2026-10-13" },
   );
   assert.deepEqual(
     events.map((event) => [event.kind, event.lane, event.startTime, event.endTime]),
@@ -149,11 +138,13 @@ void test("short appointments remain individual cards instead of being hidden be
       ["lesson", 2, "10:00", "10:15"],
     ],
   );
-  assert.deepEqual(weeklyBlocks([lesson("outside")], "2026-10-19"), []);
+  assert.deepEqual(weeklyBlocks([lesson("outside")], { date: "2026-10-19" }), []);
 });
 
 void test("horizontal expansion redistributes space without covering a neighboring lane", () => {
-  const events = weeklyBlocks([lesson("a"), lesson("b"), lesson("c"), lesson("d")], "2026-10-13");
+  const events = weeklyBlocks([lesson("a"), lesson("b"), lesson("c"), lesson("d")], {
+    date: "2026-10-13",
+  });
   const selected = events[1]!;
   const boxes = events.map((event) => weeklyLaneGeometry(event, selected));
   assert.equal(boxes[0]!.left, 0);
@@ -175,7 +166,7 @@ void test("opening overflow reveals every simultaneous lesson in equal horizonta
       lesson("e", ["14:15", "15:30"]),
       lesson("f", ["14:30", "14:45"]),
     ],
-    "2026-10-13",
+    { date: "2026-10-13" },
   );
   const overflow = events.find((event) => event.kind === "overflow")!;
   const revealed = revealWeeklyBlocks(events, overflow.groupId);
@@ -201,4 +192,39 @@ void test("opening overflow reveals every simultaneous lesson in equal horizonta
     [16.6667, 16.6667, 16.6667, 16.6667, 16.6667, 16.6667],
   );
   assert.deepEqual(revealWeeklyBlocks(events, null), events);
+});
+
+void test("weekly adapter retains concurrent lessons, Sunday and exact school wall times across the year boundary", () => {
+  const events = weeklyBlocks(
+    [
+      { ...lesson("before", ["08:15", "09:45"]), date: "2026-12-27" },
+      { ...lesson("first", ["08:15", "09:45"]), date: "2026-12-28" },
+      { ...lesson("second", ["08:15", "09:45"]), date: "2026-12-28" },
+      { ...lesson("sunday", ["08:15", "09:45"]), date: "2027-01-03" },
+      { ...lesson("after", ["08:15", "09:45"]), date: "2027-01-04" },
+    ],
+    { date: "2027-01-01" },
+  );
+  assert.deepEqual(
+    events.map((event) => [
+      event.lessons[0]!.id,
+      calendarDateKey(event.start),
+      event.start.getHours(),
+      event.start.getMinutes(),
+      event.end.getHours(),
+      event.end.getMinutes(),
+    ]),
+    [
+      ["first", "2026-12-28", 8, 15, 9, 45],
+      ["second", "2026-12-28", 8, 15, 9, 45],
+      ["sunday", "2027-01-03", 8, 15, 9, 45],
+    ],
+  );
+});
+
+void test("school today marker uses São Paulo even when the instant is already tomorrow in UTC", () => {
+  const now = zonedNow("America/Sao_Paulo", new Date("2026-10-17T01:30:00Z"));
+  assert.equal(calendarDateKey(now), "2026-10-16");
+  assert.equal(now.getHours(), 22);
+  assert.equal(now.getMinutes(), 30);
 });

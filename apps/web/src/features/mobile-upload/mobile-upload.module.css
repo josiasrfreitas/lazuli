@@ -37,7 +37,13 @@
   display: grid;
   gap: 1.5rem;
 }
+.mobile header {
+  display: grid;
+  gap: 0.5rem;
+}
 .mobile h1 {
+  font-family: var(--lz-font-display);
+  line-height: var(--lz-leading-h2);
   font-size: var(--lz-text-h2);
   font-weight: 600;
 }

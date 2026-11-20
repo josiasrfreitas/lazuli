@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { ArrowLeft, ArrowRight, Check, FileText, LoaderCircle } from "lucide-react";
 import { ToastAlert, Button } from "@lazuli/ui";
-import { BrandSignature } from "~/components/app-shell/brand-signature";
+import { CapturePageFrame } from "~/features/mobile-upload/capture-page-frame";
 import {
   ENROLLMENT_DOCUMENTS,
   captureRequest,
@@ -33,9 +33,10 @@ export function DocumentMobilePage(): ReactElement {
     setEditing(!state.session?.documents[document.id]);
   }
   return (
-    <main className={styles.mobile}>
-      <div className={styles.actions}>
-        {selected && state.error !== "closed" && (
+    <CapturePageFrame
+      back={
+        selected &&
+        state.error !== "closed" && (
           <Button
             type="button"
             variant="ghost"
@@ -47,9 +48,9 @@ export function DocumentMobilePage(): ReactElement {
           >
             <ArrowLeft aria-hidden="true" />
           </Button>
-        )}
-        <BrandSignature expanded />
-      </div>
+        )
+      }
+    >
       <MobilePageContent
         token={token}
         state={state}
@@ -62,7 +63,7 @@ export function DocumentMobilePage(): ReactElement {
         setEditing={setEditing}
         setBusy={setBusy}
       />
-    </main>
+    </CapturePageFrame>
   );
 }
 type MobilePageProps = {
@@ -239,10 +240,12 @@ function MobileDocumentList({
       <header>
         <h1>Documentos do cadastro</h1>
         <p>
-          Envie fotos ou PDFs por aqui. Os arquivos aparecerão no cadastro aberto no computador.
+          {token
+            ? "Envie fotos ou PDFs por aqui. Os arquivos aparecerão no cadastro aberto no computador."
+            : "Abra esta página pelo QR code do cadastro."}
         </p>
       </header>
-      {session ? (
+      {session && (
         <div>
           {ENROLLMENT_DOCUMENTS.map((document) => (
             <MobileDocumentAction
@@ -253,16 +256,17 @@ function MobileDocumentList({
             />
           ))}
         </div>
-      ) : (
-        <p role="status">
-          {token ? "Abrindo sessão…" : "Abra esta página pelo QR code do cadastro."}
-        </p>
       )}
-      <p>
-        JPG, PNG ou PDF. PDFs de até 5 MB são enviados inteiros; confira os dados manualmente. Fotos
-        de identidades (RG ou CIN) passam pela leitura automática.
-      </p>
-      <DocumentReviewNotice />
+      {token && !session && <p role="status">Abrindo sessão…</p>}
+      {token && (
+        <>
+          <p>
+            JPG, PNG ou PDF. PDFs de até 5 MB são enviados inteiros; confira os dados manualmente.
+            Fotos de identidades (RG ou CIN) passam pela leitura automática.
+          </p>
+          <DocumentReviewNotice />
+        </>
+      )}
     </>
   );
 }

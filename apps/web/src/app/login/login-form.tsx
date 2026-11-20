@@ -5,8 +5,6 @@ import { useState, type FormEvent, type ReactNode } from "react";
 
 import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
 
-import { showLoginError } from "./login-error-toast";
-
 export type LoginMode =
   | "password"
   | "magic-link"
@@ -49,7 +47,6 @@ function handleLoginFormSubmit({
   setErrors(invalid);
   const first = firstInvalidField(invalid);
   if (first) {
-    showLoginError([invalid.email, invalid.password].filter(Boolean).join(" "));
     event.currentTarget.querySelector<HTMLInputElement>(`input[name="${first}"]`)?.focus();
     return;
   }
@@ -154,7 +151,7 @@ function EmailField({
         }}
       />
       {error && (
-        <FieldError id="login-email-error" className="sr-only" match>
+        <FieldError id="login-email-error" className="text-marquee-foreground" match>
           {error}
         </FieldError>
       )}
@@ -243,7 +240,7 @@ function PasswordField({
       </div>
       <PasswordControl {...{ creating, disabled, error, onChange, visible, setVisible }} />
       {error && (
-        <FieldError id="login-password-error" className="sr-only" match>
+        <FieldError id="login-password-error" className="text-marquee-foreground" match>
           {error}
         </FieldError>
       )}

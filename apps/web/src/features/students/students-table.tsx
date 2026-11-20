@@ -13,6 +13,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableActionRow,
   TableEmpty,
   TableHead,
   TableHeader,
@@ -138,14 +139,7 @@ export function StudentsTableRow({
   onContinue?: ((id: string) => void) | undefined;
 }): ReactElement {
   return (
-    <TableRow
-      className="cursor-pointer focus-visible:outline-none focus-visible:shadow-focus"
-      onClick={() => onOpen(row.id)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" && event.target === event.currentTarget) onOpen(row.id);
-      }}
-      tabIndex={0}
-    >
+    <TableActionRow onActivate={() => onOpen(row.id)}>
       <TableCell>
         <div className="flex flex-wrap items-center gap-3">
           <StudentAvatar colorKey={row.id} name={row.fullName} size="sm" />
@@ -162,7 +156,7 @@ export function StudentsTableRow({
       <FactCell vm={attendanceCellVm(row.attendance)} />
       <FactCell vm={financeCellVm(row.finance)} />
       <StudentActions row={row} onContinue={onContinue} />
-    </TableRow>
+    </TableActionRow>
   );
 }
 

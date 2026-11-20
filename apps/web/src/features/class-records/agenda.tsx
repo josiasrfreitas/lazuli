@@ -9,10 +9,9 @@ import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { GenerationState, useSessionGeneration } from "./generation-notice";
 import { LessonCalendar } from "./calendar";
-import { agendaEvents, monday, schoolToday, shiftDate } from "./calendar-model";
+import { agendaDate, agendaEvents, monday, schoolToday, shiftDate } from "./calendar-model";
 import { AgendaHeader } from "./agenda-header";
 import { AgendaStudentChip } from "./agenda-student-chip";
-import { agendaDate } from "./weekly-calendar-model";
 import styles from "./calendar.module.css";
 
 const LAST_WEEKDAY = 6;

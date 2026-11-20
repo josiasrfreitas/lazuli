@@ -1,17 +1,18 @@
 "use client";
+import { RecordTabs, RecordTabsList } from "~/components/record-tabs";
 import { useEffect, useState, type ReactElement } from "react";
 import dynamic from "next/dynamic";
 import type { RouterOutputs } from "@lazuli/api";
 import { BookOpen, LayoutDashboard, UserRound, Users } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { Tabs, TabsList, TabsPanel, TabsTab } from "@lazuli/ui";
+import { TabsPanel, TabsTab } from "@lazuli/ui";
 import { useSectionCarousel } from "~/lib/use-section-carousel";
 import { TeacherHeaderLoading } from "./teacher-loading";
 import { TeacherHeader } from "./teacher-header";
 import { TeacherStudentsLoading } from "./teacher-students-loading";
 import { TeacherMetrics } from "./teacher-metrics";
 import { TeacherRegistrationLoading, TeacherClassesPanelLoading } from "./teacher-section-loading";
-import profile from "../students/profile/student-profile.module.css";
+import record from "~/components/record-tabs.module.css";
 import styles from "./teacher-overview.module.css";
 
 const TeacherRegistration = dynamic(
@@ -50,14 +51,12 @@ export function TeacherSections({
   useEffect(() => {
     setActiveTab(section);
   }, [section]);
-  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "studentCarousel" });
+  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "recordCarousel" });
   const navigation = <TeacherNavigation disabled={busy || !teacher} />;
   return (
-    <div className={profile.sections}>
-      <Tabs
+    <div className={record.person}>
+      <RecordTabs
         value={activeTab}
-        variant="underline"
-        size="sm"
         onValueChange={(value) => {
           const next = SECTIONS.find((item) => item === value);
           if (next && !busy) {
@@ -91,14 +90,14 @@ export function TeacherSections({
             )}
           </div>
         </TabsPanel>
-      </Tabs>
+      </RecordTabs>
     </div>
   );
 }
 
 function TeacherNavigation({ disabled }: { disabled: boolean }): ReactElement {
   return (
-    <TabsList aria-label="Seções do professor">
+    <RecordTabsList label="Seções do professor">
       <TabsTab disabled={disabled} value={OVERVIEW_SECTION}>
         <LayoutDashboard aria-hidden="true" />
         Visão geral
@@ -115,7 +114,7 @@ function TeacherNavigation({ disabled }: { disabled: boolean }): ReactElement {
         <UserRound aria-hidden="true" />
         Cadastro
       </TabsTab>
-    </TabsList>
+    </RecordTabsList>
   );
 }
 

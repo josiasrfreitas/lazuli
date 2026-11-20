@@ -10,6 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableContainer,
+  TableActionRow,
   TableRow,
   Tooltip,
   TooltipContent,
@@ -40,15 +41,6 @@ import { installmentColumnMode, type InstallmentSituation } from "./column-polic
 import { PaymentSelectionCheckbox, PaymentSelectionHeaderCheckbox } from "./payment/selection";
 
 type PayerGroup = FinanceOverduePayerGroup | FinancePayerGroup;
-
-function isRowControl(target: EventTarget): boolean {
-  return (
-    target instanceof Element &&
-    Boolean(
-      target.closest("a, button, input, select, textarea, [role='button'], [role='checkbox']"),
-    )
-  );
-}
 
 function InstallmentAmount({
   row,
@@ -383,33 +375,7 @@ function PayerGroupRow({
 }): ReactElement {
   const displayRow = { ...row, id: row.installmentId };
   return (
-    <TableRow
-      interactive={Boolean(onRowClick)}
-      className={
-        onRowClick
-          ? "cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-          : undefined
-      }
-      tabIndex={onRowClick ? 0 : undefined}
-      onClick={
-        onRowClick
-          ? (event) => {
-              if (event.defaultPrevented || isRowControl(event.target)) return;
-              onRowClick(row);
-            }
-          : undefined
-      }
-      onKeyDown={
-        onRowClick
-          ? (event) => {
-              if (event.key === "Enter" && !isRowControl(event.target)) {
-                event.preventDefault();
-                onRowClick(row);
-              }
-            }
-          : undefined
-      }
-    >
+    <TableActionRow onActivate={onRowClick && (() => onRowClick(row))}>
       {columns.map((column) => (
         <TableCell
           key={column.id}
@@ -419,7 +385,7 @@ function PayerGroupRow({
           {column.cell(displayRow)}
         </TableCell>
       ))}
-    </TableRow>
+    </TableActionRow>
   );
 }
 

@@ -1,0 +1,16 @@
+.tone[data-modality="REGULAR"] {
+  background: var(--lesson-regular-surface);
+  color: var(--lesson-regular-foreground);
+}
+.tone[data-modality="PERSONALIZED"] {
+  background: var(--lesson-personalized-surface);
+  color: var(--lesson-personalized-foreground);
+}
+.tone[data-modality="APPOINTMENT"] {
+  background: var(--appointment-surface);
+  color: var(--appointment-foreground);
+}
+.tone[data-modality="EXPERIMENTAL"] {
+  background: var(--experimental-surface);
+  color: var(--experimental-foreground);
+}

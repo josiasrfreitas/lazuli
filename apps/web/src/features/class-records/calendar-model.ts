@@ -1,10 +1,9 @@
+import type { CalendarEvent } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 
 const DATE_LENGTH = 10;
 const LAST_WEEKDAY = 6;
 const DAYS_PER_WEEK = 7;
-const DEFAULT_START_HOUR = 8;
-const DEFAULT_END_HOUR = 20;
 const STAGE_SEPARATOR = " - ";
 
 export type CalendarAppointment = RouterOutputs["appointments"]["list"][number];
@@ -142,73 +141,25 @@ export function stageIdentity(lesson: CalendarLesson): { series: string; stage: 
     : { series: name.slice(0, separator), stage: name.slice(separator + STAGE_SEPARATOR.length) };
 }
 
-export type TeacherColumn = { id: string | null; name: string };
-
-/** Week-wide identity and ordering keep columns in place while navigating days. */
-export function calendarTeachers(lessons: CalendarLesson[]): TeacherColumn[] {
-  const teachers = new Map<string | null, TeacherColumn>();
-  for (const lesson of lessons) {
-    teachers.set(lesson.teacherId, {
-      id: lesson.teacherId,
-      name: lesson.teacher ?? "Professor a definir",
-    });
-  }
-  return [...teachers.values()].toSorted((left, right) => {
-    if (left.id === null) return 1;
-    if (right.id === null) return -1;
-    return left.name.localeCompare(right.name, "pt-BR") || left.id.localeCompare(right.id);
-  });
+export function agendaDate(
+  today: string,
+  { day, week }: { day: string | null; week: string },
+): string {
+  if (day && validDate(day)) return day;
+  if (!validDate(week) || monday(week) === monday(today)) return today;
+  return monday(week);
 }
 
-/** Overlapping lessons belonging to one teacher remain separately selectable. */
-export function teacherDayLessons(
+export function lessonCalendarEvents(
   lessons: CalendarLesson[],
-  options: {
-    teacherId: string | null;
-    date: string;
-  },
-): { placed: { lesson: CalendarLesson; lane: number }[]; lanes: number } {
-  const { teacherId, date } = options;
-
-  const ends: string[] = [];
-  const placed = lessons
-    .filter((lesson) => lesson.date === date && lesson.teacherId === teacherId)
-    .toSorted(
-      (left, right) =>
-        left.startTime.localeCompare(right.startTime) || left.id.localeCompare(right.id),
-    )
-    .map((lesson) => {
-      const free = ends.findIndex((end) => end <= lesson.startTime);
-      const lane = free === -1 ? ends.length : free;
-      ends[lane] = lesson.endTime;
-      return { lesson, lane };
-    });
-  return { placed, lanes: Math.max(1, ends.length) };
-}
-
-export const CALENDAR_SLOT_HEIGHT = 72;
-const SLOT_MINUTES = 60;
-
-export function calendarTimeBounds(lessons: CalendarLesson[]): { start: string; end: string } {
-  const first =
-    lessons.length > 0
-      ? Math.min(...lessons.map((row) => Number(row.startTime.slice(0, 2))))
-      : DEFAULT_START_HOUR;
-  const last =
-    lessons.length > 0
-      ? Math.max(
-          ...lessons.map(
-            (row) => Number(row.endTime.slice(0, 2)) + (row.endTime.endsWith(":00") ? 0 : 1),
-          ),
-        )
-      : DEFAULT_END_HOUR;
-  return {
-    start: `${String(first).padStart(2, "0")}:00:00`,
-    end: `${String(Math.max(last, first + 1)).padStart(2, "0")}:00:00`,
-  };
-}
-
-export function timeMinutes(time: string): number {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours! * SLOT_MINUTES + minutes!;
+): (CalendarEvent & { lesson: CalendarLesson })[] {
+  return lessons.map((lesson) => ({
+    id: lesson.id,
+    date: lesson.date,
+    startTime: lesson.startTime,
+    endTime: lesson.endTime,
+    title: lesson.className,
+    subtitle: lesson.teacher ?? "Professor a definir",
+    lesson,
+  }));
 }

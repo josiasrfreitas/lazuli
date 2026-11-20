@@ -102,3 +102,12 @@ typecheck, tests, `git diff --check`, and inspect the final diff.
 
 Use the shared [ScheduleCalendar contract](schedule-calendar.md) for daily and weekly agendas,
 including event rendering, interval selection, availability boundaries, and Storybook examples.
+
+## Record pages
+
+The administrative student, class and teacher records use `DetailHeader` and the web app's
+`RecordTabs` and `RecordTabsList`. They share the title scale, tab-strip overflow and panel
+transition. Each record owns the selected URL section, its allowed tabs and edit locks.
+The compact record title and operational listing title use `--lz-text-h2`.
+Section headings using the 18px panel scale read `--lz-text-panel-title` in
+`packages/ui/src/styles/tokens/typography.css`.

@@ -233,3 +233,9 @@ Import the normal `@lazuli/ui/styles.css` stylesheet. Consumers never import rea
 or use its event/slot types; that dependency and its geometry remain implementation details.
 
 Personal read-only agendas can set `scrollChaining` to let vertical gestures continue into the page at the grid limits. The default retains containment for dialogs. Set `emptyDisplay="message"` to retain navigation but omit an empty time grid (ignored with range selection). Use `hours` based on the visible events to trim unused hours at either edge of the day.
+
+The operational Agenda and the academic day view share `useCalendarSelection` and
+`CalendarDayLesson` in the web app. They keep one open target across lessons, appointments
+and visits. The annual calendar owns academic-event editing and suspension overlays.
+`lesson-presentation.ts` owns event identity, labels and status. `event-tone.module.css`
+maps the same semantic color roles onto day cards, week cards, linked lessons and filters.
