@@ -59,7 +59,7 @@ function RecordHeader({ data }: { data: ClassRecord }): ReactElement {
       </div>
       <p>
         {dateLabel(data.session.date)} · {data.session.startTime}–{data.session.endTime} ·{" "}
-        {data.session.teacher ?? "Sem professor"}
+        {data.session.teacher ?? "Sem docente"}
       </p>
       {data.recordedAt && (
         <p className="text-caption text-muted-foreground">

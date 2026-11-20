@@ -37,7 +37,7 @@ export function TeacherStudents({ id }: { id: string }): ReactElement {
   const data = query.data;
   const groups = groupStudents(data, { search, highestFirst });
   return (
-    <section className={styles.directory} aria-label="Alunos do professor">
+    <section className={styles.directory} aria-label="Alunos do docente">
       <StudentsHeader
         search={search}
         highestFirst={highestFirst}

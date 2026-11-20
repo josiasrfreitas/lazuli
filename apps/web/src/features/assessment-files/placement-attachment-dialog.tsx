@@ -27,7 +27,7 @@ const attachmentCopy = {
   },
   CORRECTED: {
     title: "Anexar prova corrigida",
-    description: "Envie a versão com as correções do professor. Este anexo é opcional.",
+    description: "Envie a versão com as correções do docente. Este anexo é opcional.",
     successTitle: "Prova corrigida anexada",
     successDescription:
       "A versão corrigida está disponível junto à prova aplicada neste atendimento.",

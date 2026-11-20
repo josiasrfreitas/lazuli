@@ -173,6 +173,7 @@ export {
   type PaymentOperationInput,
 } from "./payment-operation.js";
 export {
+  employeeFields,
   teacherCreateInputSchema,
   teacherFileUploadSchema,
   teacherUpdateInputSchema,

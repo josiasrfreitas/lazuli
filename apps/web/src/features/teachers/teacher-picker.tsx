@@ -15,12 +15,12 @@ export function TeacherPicker({
   const query = trpc.teachers.options.useQuery({ date, search });
   return (
     <Field>
-      <Label>Professor</Label>
+      <Label>Docente</Label>
       <SearchSelect
         showSearchIcon={showSearchIcon}
         size="compact-responsive"
         name="teacherId"
-        placeholder="Buscar professor por nome"
+        placeholder="Buscar docente por nome"
         query={search}
         value={value}
         options={(query.data ?? []).map((teacher) => ({ id: teacher.id, label: teacher.name }))}

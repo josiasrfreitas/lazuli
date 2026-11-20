@@ -12,13 +12,12 @@ import {
 import { MobileUploadLink } from "~/features/mobile-upload/session-link";
 import { type UploadCategory } from "~/features/mobile-upload/file-editor";
 import type { TeacherDocuments } from "./use-teacher-documents";
-import { TEACHER_UPLOAD_CATEGORIES } from "./upload-categories";
 import { TeacherAttachmentsLoading } from "./teacher-section-loading";
 
 export function TeacherDocumentPanel({
   documents,
   onClose,
-  showGuidance = false,
+  showGuidance,
   hidePhoto = false,
 }: {
   documents: TeacherDocuments;
@@ -31,18 +30,13 @@ export function TeacherDocumentPanel({
   const [removing, setRemoving] = useState<string | null>(null);
   const visibleError = error || documents.error;
   if (documents.loading) return <TeacherAttachmentsLoading />;
+  if (documents.loadError) return <AttachmentLoadError documents={documents} />;
   return (
     <AttachmentPanel
-      title={qr ? "Enviar pelo celular" : "Anexos do professor"}
+      title={qr ? "Enviar pelo celular" : "Anexos"}
       busy={documents.busy}
       onClose={onClose}
-      onBack={
-        qr
-          ? () => {
-              setQr(false);
-            }
-          : undefined
-      }
+      onBack={qr ? () => setQr(false) : undefined}
       onMobile={() => void openQr()}
     >
       {qr ? (
@@ -55,7 +49,7 @@ export function TeacherDocumentPanel({
         />
       ) : (
         <>
-          <AttachmentGuidance show={showGuidance} />
+          <AttachmentGuidance show={Boolean(showGuidance)} />
           <TeacherAttachmentList
             hidePhoto={hidePhoto}
             extras={extras}
@@ -83,6 +77,17 @@ export function TeacherDocumentPanel({
   );
 }
 
+function AttachmentLoadError({ documents }: { documents: TeacherDocuments }): ReactElement {
+  return (
+    <ToastAlert variant="destructive">
+      Não foi possível carregar os anexos.{" "}
+      <Button variant="secondary" onClick={() => void documents.refresh()}>
+        Tentar novamente
+      </Button>
+    </ToastAlert>
+  );
+}
+
 function TeacherAttachmentList({
   hidePhoto,
   documents,
@@ -97,9 +102,6 @@ function TeacherAttachmentList({
   onRemove: (id: string) => void;
 }): ReactElement {
   const { error, send } = useAttachmentSend(documents);
-  const categories = TEACHER_UPLOAD_CATEGORIES.filter(
-    (category) => category.id !== "OTHER" && (!hidePhoto || category.id !== "PHOTO"),
-  );
   const row = (category: UploadCategory, key: string): ReactElement => (
     <AttachmentUploadRow
       key={key}
@@ -109,31 +111,18 @@ function TeacherAttachmentList({
       accept={category.photo ? "image/jpeg,image/png" : "image/jpeg,image/png,application/pdf"}
       acceptLabel={category.photo ? "JPG ou PNG" : "JPG, PNG ou PDF"}
       maxSize={5_242_880}
-      onFile={(file) => void send(category, file)}
+      onFile={(file) =>
+        void send(category, file).then((saved) => {
+          if (saved) setExtras((previous) => previous.filter((item) => item !== category));
+        })
+      }
     />
   );
   return (
     <>
       <ul>
-        {categories.map((category) =>
-          row(
-            {
-              ...category,
-              subtitle: categorySubtitle(category),
-            },
-            category.id,
-          ),
-        )}
         <SavedAttachments documents={documents} hidePhoto={hidePhoto} onRemove={onRemove} />
-        {extras
-          .filter(
-            (item) =>
-              !documents.files.some(
-                (file) =>
-                  file.label === item.label && (file.subtitle ?? "") === (item.subtitle ?? ""),
-              ),
-          )
-          .map((item, index) => row(item, `extra-${index}`))}
+        {extras.map((item, index) => row(item, `extra-${index}`))}
       </ul>
       <AttachmentAdd
         disabled={documents.busy}
@@ -244,10 +233,10 @@ function CaptureLink({ documents, preparing, error, onRetry }: CaptureProps): Re
 
 function useAttachmentSend(documents: TeacherDocuments): {
   error: string;
-  send: (category: UploadCategory, file: File) => Promise<void>;
+  send: (category: UploadCategory, file: File) => Promise<boolean>;
 } {
   const [error, setError] = useState("");
-  async function send(category: UploadCategory, file: File): Promise<void> {
+  async function send(category: UploadCategory, file: File): Promise<boolean> {
     documents.setBusy(true);
     setError("");
     try {
@@ -257,8 +246,10 @@ function useAttachmentSend(documents: TeacherDocuments): {
         ...(category.subtitle ? { subtitle: category.subtitle } : {}),
         file,
       });
+      return true;
     } catch (error_) {
       setError(error_ instanceof Error ? error_.message : "Não foi possível enviar.");
+      return false;
     } finally {
       documents.setBusy(false);
     }
@@ -276,7 +267,6 @@ function SavedAttachments({
 }): ReactElement {
   return (
     <>
-      {" "}
       {documents.files
         .filter((file) => !hidePhoto || file.kind !== "PHOTO")
         .map((file) => (
@@ -330,17 +320,11 @@ function useCapturePreparation(documents: TeacherDocuments): {
   return { qr, setQr, error, setError, preparing, openQr };
 }
 
-function categorySubtitle(category: UploadCategory): string {
-  if (category.photo) return "Uma foto de rosto, nítida e bem iluminada";
-  return category.id === "ID" ? "RG ou CIN · frente e verso" : "Documento do vínculo com a escola";
-}
-
 function AttachmentGuidance({ show }: { show: boolean }): ReactElement | null {
   if (!show) return null;
   return (
     <p className="text-caption text-muted-foreground">
-      Envie os arquivos abaixo ou use o QR code para enviar pelo celular. Para outros documentos,
-      escolha “Adicionar anexo”.
+      Adicione um documento ou envie pelo celular usando o QR code.
     </p>
   );
 }

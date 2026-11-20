@@ -57,7 +57,7 @@ async function resolveVisit(input: ScheduleInput): Promise<ResolvedVisit> {
       }),
   );
   if (!match || match.cancelled || !responsibleTeacherId(match))
-    throw badRequest("Encontro cancelado, inexistente ou sem professor. Escolha outro encontro.");
+    throw badRequest("Encontro cancelado, inexistente ou sem docente. Escolha outro encontro.");
   return {
     kind: meeting.kind,
     teacherId: responsibleTeacherId(match),
@@ -247,7 +247,7 @@ async function outcomeMeeting({
   );
   if (!current || current.cancelled || !responsibleTeacherId(current))
     throw badRequest(
-      "O encontro da turma foi cancelado ou está sem professor. Cancele ou remarque a aula experimental.",
+      "O encontro da turma foi cancelado ou está sem docente. Cancele ou remarque a aula experimental.",
     );
   return current;
 }

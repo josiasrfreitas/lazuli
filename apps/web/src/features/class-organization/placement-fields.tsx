@@ -166,7 +166,7 @@ function PlacementDestinationControls({
                 id: plan.id,
                 name: plan.name,
                 stageName: plan.stageName ?? plan.name,
-                teacherName: plan.teacherName ?? "Professor a definir",
+                teacherName: plan.teacherName ?? "Docente a definir",
                 scheduleType: plan.scheduleType,
                 format: plan.format,
                 slots: plan.slots,

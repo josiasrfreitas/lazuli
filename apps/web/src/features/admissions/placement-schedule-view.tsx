@@ -236,7 +236,7 @@ function CorrectionTeacher({
     <fieldset disabled={actions.pending} className={styles.correction}>
       <SelectControl
         name="placement-teacher"
-        label="Professor responsável pela correção"
+        label="Docente responsável pela correção"
         value={state.draft.teacherId}
         onChange={(id) => actions.change("teacherId", id)}
         choices={(teachers.data ?? []).map((teacher) => ({
@@ -250,12 +250,12 @@ function CorrectionTeacher({
       </p>
       {teachers.isPending && (
         <p role="status" className="text-caption">
-          Carregando professores…
+          Carregando docentes…
         </p>
       )}
       {teachers.isError && (
         <Button variant="ghost" size="sm" onClick={() => void teachers.refetch()}>
-          Tentar carregar professores novamente
+          Tentar carregar docentes novamente
         </Button>
       )}
     </fieldset>

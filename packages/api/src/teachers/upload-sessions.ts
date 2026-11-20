@@ -7,7 +7,7 @@ import { z, teacherFileUploadSchema } from "@lazuli/validators";
 import { adminProcedure, router } from "../trpc/init.js";
 import type { Context } from "../trpc/context.js";
 import { proofBytes } from "../finance/payment-proof-transport.js";
-import { readTeacher } from "./read.js";
+import { readEmployee, requireEmployeeEditor } from "../employees/read.js";
 
 const SESSION_MS = 3_600_000;
 const TOKEN_BYTES = 32;
@@ -46,7 +46,10 @@ export const teacherUploadsRouter = router({
       });
       if (!current)
         throw new TRPCError({ code: "BAD_REQUEST", message: "Esta sessão já foi encerrada." });
-      if (current.teacherId) await readTeacher(tx, current.teacherId);
+      if (current.teacherId) {
+        const target = await readEmployee(tx, current.teacherId);
+        requireEmployeeEditor(target.role, ctx.staffUser.role);
+      }
       return tx.teacherUploadSession.update({
         where: { id: current.id },
         data: { tokenHash: hash(token), expiresAt: new Date(Date.now() + SESSION_MS) },
@@ -59,12 +62,8 @@ export const teacherUploadsRouter = router({
     .input(z.object({ teacherId: z.string().uuid().optional() }).strict())
     .mutation(async ({ ctx, input }) => {
       if (input.teacherId) {
-        await readTeacher(ctx.db, input.teacherId);
-        await ctx.db.teacherProfile.upsert({
-          where: { userId: input.teacherId },
-          create: { userId: input.teacherId },
-          update: {},
-        });
+        const target = await readEmployee(ctx.db, input.teacherId);
+        requireEmployeeEditor(target.role, ctx.staffUser.role);
       }
       const token = randomBytes(TOKEN_BYTES).toString("base64url");
       const session = await ctx.db.teacherUploadSession.create({
@@ -144,7 +143,7 @@ export async function teacherMobileCapture(ctx: Context, request: Request): Prom
     });
     if (!session || session.closedAt || session.deletedAt || session.expiresAt <= new Date())
       return expired();
-    if (session.teacherId) await readTeacher(ctx.db, session.teacherId);
+    if (session.teacherId) await readEmployee(ctx.db, session.teacherId);
     return await captureRequest(ctx, { request, session });
   } catch (error) {
     return captureFailure(error);
@@ -224,7 +223,7 @@ async function uploadCapture(
       await lockSession(tx, session.id);
       const active = await requireOpen(tx, session.id);
       if (active.teacherId) {
-        await readTeacher(tx, active.teacherId);
+        await readEmployee(tx, active.teacherId);
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${active.teacherId}, 234))`;
       }
       if (input.kind === "PHOTO")

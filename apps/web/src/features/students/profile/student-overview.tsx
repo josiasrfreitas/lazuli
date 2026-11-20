@@ -199,7 +199,7 @@ function EnrollmentFacts({ row, back }: { row: StudentEnrollment; back: string }
     <dl className={styles.enrollmentFacts}>
       <div>
         <dt>
-          <GraduationCap aria-hidden="true" /> Professor
+          <GraduationCap aria-hidden="true" /> Docente
         </dt>
         <dd>
           {row.class.teacher ? (
@@ -256,7 +256,7 @@ function EnrollmentSummaryLoading(): ReactElement {
       <dl className={styles.enrollmentFacts}>
         <div>
           <dt>
-            <GraduationCap aria-hidden="true" /> Professor
+            <GraduationCap aria-hidden="true" /> Docente
           </dt>
           <dd>
             <InlineSkeleton className="h-3 w-32 max-w-full" />

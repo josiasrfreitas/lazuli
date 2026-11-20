@@ -202,7 +202,7 @@ export function ActivityForm({
                 rows={4}
                 maxLength={5000}
                 defaultValue={item?.instructions ?? ""}
-                placeholder="O que o professor deve orientar durante a atividade?"
+                placeholder="O que o docente deve orientar durante a atividade?"
               />
             </Field>
           </div>

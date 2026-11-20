@@ -56,7 +56,7 @@ function entry(input: {
     title:
       kind === "overflow"
         ? `Mais ${lessons.length}`
-        : `${first.teacher ?? "Professor a definir"} · ${first.className} · ${first.startTime}–${first.endTime}`,
+        : `${first.teacher ?? "Docente a definir"} · ${first.className} · ${first.startTime}–${first.endTime}`,
     start: calendarWallDate(first.date, startTime),
     end: calendarWallDate(first.date, endTime),
     startTime,

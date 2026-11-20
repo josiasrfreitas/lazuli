@@ -67,7 +67,7 @@ export const classScheduleSlotsInputSchema = z
 
 export const classCreateInputSchema = z
   .object({
-    teacherId: requiredText.uuid("Identificador de professor invalido."),
+    teacherId: requiredText.uuid("Identificador de docente invalido."),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),

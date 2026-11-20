@@ -37,7 +37,7 @@ void it("offers teacher search and two masked schedule rows without a manual yea
   const inputs = markup.match(/<input\b[^>]*>/gu) ?? [];
   const teacher = inputs.find((tag) => tag.includes('name="teacherId"'));
   assert.match(teacher ?? "", /role="combobox"/u);
-  assert.match(teacher ?? "", /placeholder="Buscar professor"/u);
+  assert.match(teacher ?? "", /placeholder="Buscar docente"/u);
   assert.doesNotMatch(markup, /name="year"|name="portalClassName"/u);
   assert.match(markup, /name="semesterId"/u);
   assert.match(markup, /name="sharedStageId"/u);

@@ -114,9 +114,17 @@ async function lookupTeachers(
 ): Promise<LookupResult["teachers"]> {
   return database.$kysely
     .selectFrom("User")
-    .select(["id", "name"])
-    .where("deleted_at", "is", null)
-    .where("role", "=", "TEACHER")
+    .leftJoin("TeacherProfile as profile", "profile.user_id", "User.id")
+    .leftJoin("EmployeeProfile as employee", "employee.user_id", "User.id")
+    .select(["User.id", "User.name"])
+    .where("User.deleted_at", "is", null)
+    .where("profile.deleted_at", "is", null)
+    .where((eb) =>
+      eb.or([
+        eb("profile.user_id", "is not", null),
+        eb.and([eb("employee.user_id", "is", null), eb("User.role", "=", "TEACHER")]),
+      ]),
+    )
     .where(searchMatchKysely(sql.ref("name"), query))
     .orderBy(relevance(sql.ref("name"), query), "desc")
     .orderBy("name")

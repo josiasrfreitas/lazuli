@@ -25,7 +25,7 @@ export function ActivateExperience({
       role="status"
     >
       <Icon className="size-5" aria-hidden="true" />
-      <p>{role === "TEACHER" ? "Abrindo área do professor…" : "Abrindo administração…"}</p>
+      <p>{role === "TEACHER" ? "Abrindo área do docente…" : "Abrindo administração…"}</p>
     </main>
   );
 }

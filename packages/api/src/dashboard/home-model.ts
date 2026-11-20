@@ -67,8 +67,8 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: true,
   },
   coverage: {
-    title: "Turmas sem professor",
-    description: "Professores com saída marcada e turmas que precisam de sucessor.",
+    title: "Turmas sem docente",
+    description: "Docentes com saída marcada e turmas que precisam de sucessor.",
     area: "school",
     attention: true,
   },

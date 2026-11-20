@@ -16,7 +16,7 @@ export function TeacherPage({ id }: TeacherPageInput): ReactElement {
   const detail = teacher.data;
   const back = `/professores/${id}?${params.toString()}`;
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-5 p-4 sm:p-6">
+    <div className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-col gap-5 p-4 sm:p-6">
       {teacher.isError && !detail && (
         <TeacherLoadError
           teacherError={teacher.error}

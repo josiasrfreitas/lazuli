@@ -49,7 +49,10 @@ export async function getStaffIdentity(input: { headers: Headers }): Promise<Sta
   return resolveStaffIdentity(
     await db.user.findUnique({
       where: { email: session.user.email },
-      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+      include: {
+        employeeProfile: { select: { userId: true } },
+        teacherProfile: { select: { departureDate: true, deletedAt: true } },
+      },
     }),
     { now: new Date(), requestedRole: staffRoleFromHeaders(input.headers) },
   );

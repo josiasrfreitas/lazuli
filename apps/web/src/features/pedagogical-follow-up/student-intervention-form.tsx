@@ -197,7 +197,7 @@ function InterventionTreatment({ model }: { model: Model }): ReactElement {
         staffLoading={options.isPending}
         responsibleHint={
           values.responsibleId === null && suggestion
-            ? `Professor de ${suggestion.classNames.join(", ")}. Você pode alterar.`
+            ? `Docente de ${suggestion.classNames.join(", ")}. Você pode alterar.`
             : undefined
         }
         change={(name, value) => {

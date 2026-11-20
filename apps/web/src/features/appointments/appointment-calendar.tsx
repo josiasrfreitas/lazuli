@@ -91,7 +91,7 @@ export function AppointmentCalendar<Event extends CalendarEvent>({
   if (classes.length === 0) {
     return (
       <div className={styles.emptyCalendar} role="status">
-        Nenhuma aula deste professor neste período. Escolha outro dia ou professor.
+        Nenhuma aula deste docente neste período. Escolha outro dia ou docente.
       </div>
     );
   }

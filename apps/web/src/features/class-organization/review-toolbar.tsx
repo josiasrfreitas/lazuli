@@ -197,7 +197,7 @@ function filterFields({ board, ...controls }: ToolbarProps): TableFilterField[] 
       searchOptions: (query: string) => findReviewClasses(origins, query),
     },
     {
-      ...singleChoice({ key: "professorVinculo", label: "Professor", options: teachers }, controls),
+      ...singleChoice({ key: "professorVinculo", label: "Docente", options: teachers }, controls),
       searchOptions: (query) =>
         teachers.filter((teacher) =>
           normalizeSearch(teacher.label).includes(normalizeSearch(query)),

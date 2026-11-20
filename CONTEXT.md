@@ -6,6 +6,10 @@ clusters and name the first-level folders under `packages/api/src` and `packages
 
 ## Areas
 
+**Employees and teachers**
+
+A **Colaborador** holds the shared registration, contact, employment and private documents for a staff member. A **Docente** is a collaborator with a teaching profile. Area and job title describe the employment relationship. The account role controls access independently. Use _docente_ in Portuguese product copy.
+
 **Students**:
 People who study at the school, with their guardians, contacts and addresses.
 

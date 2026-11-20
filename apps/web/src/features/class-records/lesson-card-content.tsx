@@ -42,7 +42,7 @@ export function LessonCardContent({
         </span>
       </strong>
       <span className={styles.teacher} data-calendar-detail>
-        {lesson.teacher ?? "Professor a definir"}
+        {lesson.teacher ?? "Docente a definir"}
       </span>
       <span className={styles.context} data-calendar-detail>
         {context}

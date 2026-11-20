@@ -307,7 +307,7 @@ async function withCurrentTeachers(input: {
         class: {
           portalClassName: enrollment.class.portalClassName,
           scheduleSlots: enrollment.class.scheduleSlots,
-          teacherName: id === null ? "Sem professor" : (byId.get(id)?.name ?? "Sem professor"),
+          teacherName: id === null ? "Sem docente" : (byId.get(id)?.name ?? "Sem docente"),
         },
       };
     }),

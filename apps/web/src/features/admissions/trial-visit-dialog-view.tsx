@@ -79,8 +79,8 @@ function VisitForm(props: VisitViewProps): JSX.Element {
       <VisitFilters {...props} />
       <p className="text-caption text-muted-foreground">
         {state.kind === "TRIAL"
-          ? "Selecione uma aula no calendário. O formato e o professor são os da turma."
-          : "Escolha o professor e clique ou arraste em um horário livre. O formato vale apenas para esta aula."}
+          ? "Selecione uma aula no calendário. O formato e o docente são os da turma."
+          : "Escolha o docente e clique ou arraste em um horário livre. O formato vale apenas para esta aula."}
       </p>
       <VisitCalendarSection {...props} />
       <VisitFooter {...props} />
@@ -178,7 +178,7 @@ function emptyMessage({ state }: VisitViewProps): string {
     return "Nenhuma aula futura neste período. Escolha outra data ou turma.";
   return state.teacher
     ? "Escolha um horário livre para a experimental."
-    : "Selecione o professor para consultar a agenda.";
+    : "Selecione o docente para consultar a agenda.";
 }
 
 function VisitCalendarSection(props: VisitViewProps): JSX.Element {

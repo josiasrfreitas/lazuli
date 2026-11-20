@@ -53,6 +53,7 @@ void describe("role-aware navigation", () => {
         CLASSES_PATH,
         CLASS_RECORDS_PATH,
         MATERIALS_PATH,
+        "/colaboradores",
         LEADS_PATH,
         ANALYTICS_PATH,
         CONTRACTS_PATH,
@@ -72,9 +73,9 @@ void describe("role-aware navigation", () => {
       { label: null, items: ["Início"] },
       {
         label: PEDAGOGICAL_LABEL,
-        items: [STUDENTS_LABEL, "Professores", "Turmas", "Agenda", "Estágios"],
+        items: [STUDENTS_LABEL, "Docentes", "Turmas", "Agenda", "Estágios"],
       },
-      { label: "Comercial", items: ["Leads"] },
+      { label: "Comercial e Pessoas", items: ["Colaboradores", "Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
       { label: "Sistema", items: ["Log de atividades", "Ajustes"] },
     ]);
@@ -139,6 +140,7 @@ void it("keeps school location under Ajustes for administrators without a separa
       CLASSES_PATH,
       CLASS_RECORDS_PATH,
       MATERIALS_PATH,
+      "/colaboradores",
       LEADS_PATH,
       ANALYTICS_PATH,
       CONTRACTS_PATH,
@@ -183,7 +185,7 @@ void it("returns child pages to their authorized source and ignores foreign dest
       role: "ADMIN",
       back: "/professores/a-teacher?secao=turmas",
     }),
-    { href: "/professores/a-teacher?secao=turmas", label: "Professor" },
+    { href: "/professores/a-teacher?secao=turmas", label: "Docente" },
   );
   assert.deepEqual(
     navReturnFor({

@@ -30,8 +30,8 @@ export function ClassPlanFields({
       />
       {group && <GroupPeople group={group} model={model} />}
       <p className="text-caption text-muted-foreground">
-        Novos horários: até 2 horas por semana. Horários herdados podem ser mantidos. O professor
-        pode ser definido antes da confirmação.
+        Novos horários: até 2 horas por semana. Horários herdados podem ser mantidos. O docente pode
+        ser definido antes da confirmação.
       </p>
     </form>
   );
@@ -69,7 +69,7 @@ function PlanTeacherStage({
     <div className="grid gap-3 sm:grid-cols-2">
       <SelectControl
         name="plan-teacher"
-        label="Professor"
+        label="Docente"
         value={model.teacher}
         onChange={model.changeTeacher}
         choices={[

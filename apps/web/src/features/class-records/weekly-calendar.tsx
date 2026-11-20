@@ -73,7 +73,7 @@ export function lessonCalendarEvents(lessons: CalendarLesson[]): LessonCalendarE
     startTime: lesson.startTime,
     endTime: lesson.endTime,
     title: lesson.className,
-    subtitle: lesson.teacher ?? "Professor a definir",
+    subtitle: lesson.teacher ?? "Docente a definir",
     lesson,
   }));
 }

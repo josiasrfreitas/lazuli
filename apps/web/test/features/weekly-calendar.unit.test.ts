@@ -75,6 +75,6 @@ void test("unassigned teachers and empty weeks remain explicit", () => {
     [{ ...lesson("unassigned"), teacherId: null, teacher: null }],
     "2026-12-28",
   );
-  assert.equal(events[0]!.title, "Professor a definir · Turma unassigned · 08:15–09:45");
+  assert.equal(events[0]!.title, "Docente a definir · Turma unassigned · 08:15–09:45");
   assert.deepEqual(weeklyCalendarEvents([lesson("outside")], "2026-10-12"), []);
 });

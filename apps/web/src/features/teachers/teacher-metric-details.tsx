@@ -35,10 +35,8 @@ const TITLES = {
   attendance: "Frequência",
   followup: "Acompanhamento",
 };
-export const metricNumber = (value: number | null | undefined): string =>
-  value === null || value === undefined
-    ? "—"
-    : value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+import { metricNumber } from "./format";
+export { metricNumber } from "./format";
 const DESCRIPTIONS: Record<MetricDetail, string> = {
   health:
     "Média dos scores dos alunos atuais. Cada aluno conta uma vez; dados ausentes não viram zero. O score individual inclui frequência (35), notas (30), ocorrências (20) e acompanhamento (15), redistribuindo pesos quando faltam dados.",
@@ -47,7 +45,7 @@ const DESCRIPTIONS: Record<MetricDetail, string> = {
   attendance:
     "Percentuais calculados pelos minutos das aulas com chamada confirmada, sem descontar reposições. Aulas futuras e canceladas não entram.",
   followup:
-    "Ocorrências dos alunos atuais neste semestre. Uma intervenção vinculada não significa que a ocorrência foi encerrada nem que o professor foi seu autor.",
+    "Ocorrências dos alunos atuais neste semestre. Uma intervenção vinculada não significa que a ocorrência foi encerrada nem que o docente foi seu autor.",
 };
 const PAGE_SIZE = 10;
 export function TeacherMetricDetails({

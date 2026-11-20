@@ -18,7 +18,7 @@ export const windowToken = (projectionToken: string, windowId: string): string =
 export function openingRestriction(session: RecordSession, now: Date): string | null {
   if (session.status === "CANCELLED") return "Aula cancelada: o link está indisponível.";
   if (session.attendanceConfirmedAt || session.classRecord)
-    return "A chamada já foi confirmada pelo professor.";
+    return "A chamada já foi confirmada pelo docente.";
   const start = sessionEndInstant({ date: session.date, endTime: session.startTime });
   if (
     dateOnly(session.date) !== saoPauloDateOnly(now) ||
@@ -26,7 +26,7 @@ export function openingRestriction(session: RecordSession, now: Date): string | 
   )
     return "O link abre no dia da aula, a partir de 30 minutos antes do início.";
   if (now >= sessionEndInstant(session))
-    return "O prazo de envio terminou com a aula. A presença pode ser registrada pelo professor.";
+    return "O prazo de envio terminou com a aula. A presença pode ser registrada pelo docente.";
   return null;
 }
 export function assertFreshLocation(location: AttendanceLocation, now: Date): void {

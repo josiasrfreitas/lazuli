@@ -44,7 +44,7 @@ type StudentEvent = CalendarEvent & {
   cancelled: boolean;
   lesson?: Agenda["lessons"][number];
 };
-const TEACHER_UNASSIGNED = "Professor a definir";
+const TEACHER_UNASSIGNED = "Docente a definir";
 
 type AgendaController = {
   appointmentId: string | null;

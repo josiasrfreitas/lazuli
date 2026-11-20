@@ -23,10 +23,10 @@ export function AttendanceProjectionPage(): ReactElement {
       {attendanceTokenSchema.safeParse({ token }).success ? (
         <ProjectionContent key={token} token={token} />
       ) : (
-        <Alert>Abra o acesso de projeção compartilhado pelo professor.</Alert>
+        <Alert>Abra o acesso de projeção compartilhado pelo docente.</Alert>
       )}
       <p className="text-caption text-muted-foreground">
-        O professor revisará a chamada. Se precisar de ajuda, fale com ele.
+        O docente revisará a chamada. Se precisar de ajuda, fale com ele.
       </p>
     </main>
   );
@@ -44,7 +44,7 @@ function ProjectionContent({ token }: { token: string }): ReactElement {
   if (!query.data?.token || !query.data.expiresAt)
     return (
       <p role="status" className="text-lg">
-        Aguardando o professor abrir um novo QR…
+        Aguardando o docente abrir um novo QR…
       </p>
     );
   const link = `${globalThis.location.origin}/presenca#${query.data.token}`;

@@ -13,7 +13,7 @@ const ROLE_LABELS: Record<StaffRole, string> = {
   SYSTEM_ADMIN: "Administração do sistema",
   ADMIN: "Administração",
   SECRETARY: "Secretaria",
-  TEACHER: "Professor",
+  TEACHER: "Docente",
   FINANCE: "Financeiro",
 };
 

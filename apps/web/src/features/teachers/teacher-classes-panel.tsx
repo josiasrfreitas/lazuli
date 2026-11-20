@@ -194,7 +194,7 @@ function ClassViewSwitch({
   return (
     <SegmentedControl
       size="sm"
-      aria-label="Visualização das turmas do professor"
+      aria-label="Visualização das turmas do docente"
       value={view}
       onValueChange={(value) => {
         const next = VIEWS.find((item) => item === value);

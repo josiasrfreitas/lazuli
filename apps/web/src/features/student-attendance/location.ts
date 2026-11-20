@@ -4,7 +4,7 @@ export function currentAttendanceLocation(): Promise<AttendanceLocation> {
     if (!navigator.geolocation) {
       reject(
         new Error(
-          "Este navegador não disponibiliza localização. Peça ao professor para registrar sua presença.",
+          "Este navegador não disponibiliza localização. Peça ao docente para registrar sua presença.",
         ),
       );
       return;
@@ -20,7 +20,7 @@ export function currentAttendanceLocation(): Promise<AttendanceLocation> {
       () =>
         reject(
           new Error(
-            "Não conseguimos obter sua localização. Permita o acesso e tente novamente, ou peça o registro manual ao professor.",
+            "Não conseguimos obter sua localização. Permita o acesso e tente novamente, ou peça o registro manual ao docente.",
           ),
         ),
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },

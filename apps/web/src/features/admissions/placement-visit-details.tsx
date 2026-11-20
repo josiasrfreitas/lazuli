@@ -308,8 +308,8 @@ function PlacementProof({ visit, model }: VisitViewProps): ReactJSX.Element {
 
 function emptyProofDescription(inactive: boolean, started: boolean): string {
   if (inactive) return "Este atendimento está encerrado para alterações.";
-  if (started) return "Envie uma foto ou PDF. Depois, registre o estágio indicado pelo professor.";
-  return "O envio fica disponível a partir do início do atendimento. Você pode definir o professor agora.";
+  if (started) return "Envie uma foto ou PDF. Depois, registre o estágio indicado pelo docente.";
+  return "O envio fica disponível a partir do início do atendimento. Você pode definir o docente agora.";
 }
 
 function PlacementResult({ visit, model }: VisitViewProps): ReactJSX.Element | null {
@@ -376,7 +376,7 @@ function PlacementTeacher({ visit, model }: VisitViewProps): ReactJSX.Element | 
     <section className={styles.secondary}>
       <SelectControl
         name={`placement-teacher-${visit.id}`}
-        label="Professor responsável pela correção"
+        label="Docente responsável pela correção"
         labelIcon={<UserRound aria-hidden="true" className="size-4 text-icon" />}
         value={visit.teacherId ?? ""}
         onChange={(value) => {
@@ -388,7 +388,7 @@ function PlacementTeacher({ visit, model }: VisitViewProps): ReactJSX.Element | 
             ? [
                 {
                   value: visit.teacherId,
-                  label: visit.teacherName ?? "Professor atribuído",
+                  label: visit.teacherName ?? "Docente atribuído",
                 },
               ]
             : []),
@@ -528,7 +528,7 @@ function PlacementCorrectedProof({ visit, model }: VisitViewProps): ReactJSX.Ele
         <>
           <p>
             {canEdit
-              ? "Você pode anexar a versão com as correções do professor."
+              ? "Você pode anexar a versão com as correções do docente."
               : "Nenhuma versão corrigida anexada."}
           </p>
           {canEdit && (

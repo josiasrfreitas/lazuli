@@ -1,3 +1,4 @@
+import { currentTeacherClassesWhere, currentEnrollmentWhere } from "./read.js";
 import type { Prisma } from "@lazuli/db";
 import { responsibilitySelect } from "./responsibility.js";
 import type { MetricGroup, MetricOccurrence } from "./metrics-types.js";
@@ -14,15 +15,7 @@ export async function readMetricGroups(
 ): Promise<MetricGroup[]> {
   const { today } = input;
   return database.class.findMany({
-    where: {
-      deletedAt: null,
-      status: "ACTIVE",
-      semester: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
-      OR: [
-        { teacherId: input.teacherId },
-        { teacherAssignments: { some: { teacherId: input.teacherId, supersededAt: null } } },
-      ],
-    },
+    where: currentTeacherClassesWhere([input.teacherId], today),
     select: {
       ...responsibilitySelect,
       id: true,
@@ -36,19 +29,7 @@ export async function readMetricGroups(
       },
       semester: { select: { startDate: true, endDate: true, name: true } },
       enrollments: {
-        where: {
-          deletedAt: null,
-          entryDate: { lte: today },
-          OR: [{ exitDate: null }, { exitDate: { gt: today } }],
-          student: { deletedAt: null },
-          actions: {
-            none: {
-              status: "SCHEDULED",
-              kind: { in: ["PAUSE", "EXIT"] },
-              effectiveDate: { lte: today },
-            },
-          },
-        },
+        where: { ...currentEnrollmentWhere(today), student: { deletedAt: null } },
         select: {
           id: true,
           classId: true,

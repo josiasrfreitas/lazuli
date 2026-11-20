@@ -87,13 +87,13 @@ void it("does not fall back to the original teacher when the effective teacher h
     data: { userId: replacement.id, departureDate: new Date("2044-04-15") },
   });
   await assertTeacher(new Date("2044-04-15T02:59:59.999Z"), TEACHER_B_NAME);
-  await assertTeacher(NOW, "Sem professor");
+  await assertTeacher(NOW, "Sem docente");
   await db.teacherProfile.update({
     where: { userId: replacement.id },
     data: { departureDate: null },
   });
   await db.user.update({ where: { id: replacement.id }, data: { deletedAt: NOW } });
-  await assertTeacher(NOW, "Sem professor");
+  await assertTeacher(NOW, "Sem docente");
 });
 
 void it("ignores deleted and superseded assignments while preserving the current teacher", async () => {

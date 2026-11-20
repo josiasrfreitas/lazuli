@@ -29,7 +29,7 @@ export function ClassFilters({
           aria-label="Buscar turmas"
           autoComplete="off"
           name="busca"
-          placeholder="Turma ou professor"
+          placeholder="Turma ou docente"
           size="sm"
           value={search}
           onChange={(event) => setSearch(event.target.value)}

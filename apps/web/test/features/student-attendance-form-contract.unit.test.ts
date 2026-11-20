@@ -40,7 +40,7 @@ void it("keeps indistinguishable homonyms disabled with a manual recording expla
   );
   assert.match(markup, /disabled=""/u);
   assert.match(markup, /Há cadastros iguais/u);
-  assert.match(markup, /professor para identificar/u);
+  assert.match(markup, /docente para identificar/u);
   assert.doesNotMatch(markup, /aria-pressed="true"/u);
 });
 

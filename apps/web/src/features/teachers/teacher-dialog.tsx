@@ -8,10 +8,11 @@ import {
   type RefObject,
   type ReactElement,
 } from "react";
-import type { RouterOutputs } from "@lazuli/api";
+import { SelectControl } from "../classes/form-controls";
+import { ROLE_LABELS } from "./employee-labels";
+import type { Employee } from "./teacher-form";
 import {
   ToastAlert,
-  Alert,
   Button,
   Dialog,
   DialogBackdrop,
@@ -41,21 +42,23 @@ import { TeacherDocumentPanel } from "./teacher-document-panel";
 import styles from "./teacher-form.module.css";
 const PANEL_EXIT_DELAY_MS = 160;
 type TeacherDocuments = ReturnType<typeof useTeacherDocuments>;
-type Teacher = RouterOutputs["teachers"]["byId"];
+type Teacher = Employee;
 export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactElement {
   const documents = useTeacherDocuments(teacher?.id);
   const { photoInput, photoError, changePhoto } = useTeacherPhotoInput(documents);
-  const [attachments, setAttachments] = useState(false);
-  const panelVisible = useAttachmentPresence(attachments);
-
-  const { departed, draft, errors, failure, body, first, pending, change, submit } = useTeacherForm(
-    { teacher, onClose, documentSessionId: documents.session?.id },
-  );
+  const { attachments, panel, trigger, closeAttachments, toggleAttachments, panelVisible } =
+    useAttachmentPanel();
+  const { draft, errors, failure, body, first, pending, change, submit } = useTeacherForm({
+    teacher,
+    onClose,
+    documentSessionId: documents.session?.id,
+  });
+  const busy = pending || documents.busy;
   return (
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open && !pending && !documents.busy) onClose();
+        if (!open && !busy) onClose();
       }}
     >
       <DialogPortal>
@@ -69,10 +72,12 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
           <TeacherDialogHeader
             teacher={teacher}
             documents={documents}
-            pending={pending || documents.busy}
+            pending={busy}
             photoInput={photoInput}
             onPhotoChange={changePhoto}
-            onToggleAttachments={() => setAttachments(!attachments)}
+            expanded={attachments}
+            trigger={trigger}
+            onToggleAttachments={toggleAttachments}
           />
           {photoError && <ToastAlert variant="destructive">{photoError}</ToastAlert>}
           <div className={styles.layout} data-documents={panelVisible}>
@@ -86,41 +91,65 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
               draft={draft}
               errors={errors}
               change={change}
-              departed={departed}
-              pending={pending || documents.busy}
+              existingTeacher={Boolean(
+                teacher?.teacherProfile && !teacher.teacherProfile.deletedAt,
+              )}
+              pending={busy}
               failure={failure}
             />
             {panelVisible && (
-              <div className={`${styles.panelMotion}`} data-open={attachments} inert={!attachments}>
-                <TeacherDocumentPanel documents={documents} onClose={() => setAttachments(false)} />
+              <div
+                id="registration-attachments"
+                ref={panel}
+                role="region"
+                aria-label="Anexos"
+                tabIndex={-1}
+                className={styles.panelMotion}
+                data-open={attachments}
+                inert={!attachments}
+              >
+                <TeacherDocumentPanel documents={documents} onClose={closeAttachments} />
               </div>
             )}
           </div>
-          <TeacherFormFooter
-            pending={pending || documents.busy}
-            onClose={onClose}
-            teacher={teacher}
-          />
+          <TeacherFormFooter pending={busy} onClose={onClose} teacher={teacher} />
         </DialogContent>
       </DialogPortal>
     </Dialog>
   );
 }
 
+function useAttachmentPanel(): {
+  attachments: boolean;
+  panel: RefObject<HTMLDivElement | null>;
+  trigger: RefObject<HTMLButtonElement | null>;
+  closeAttachments: () => void;
+  toggleAttachments: () => void;
+  panelVisible: boolean;
+} {
+  const [attachments, setAttachments] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (attachments) panel.current?.focus();
+  }, [attachments]);
+  function closeAttachments(): void {
+    setAttachments(false);
+    trigger.current?.focus();
+  }
+  const panelVisible = useAttachmentPresence(attachments);
+
+  function toggleAttachments(): void {
+    if (attachments) closeAttachments();
+    else setAttachments(true);
+  }
+  return { attachments, panel, trigger, closeAttachments, toggleAttachments, panelVisible };
+}
+
 type TeacherFormFooterProps = {
   pending: boolean;
   onClose: () => void;
-  teacher:
-    | {
-        today: string;
-        studentCount: number;
-        teacherProfile: { cpf: string | null; departureDate: Date | null } | null;
-        id: string;
-        email: string;
-        name: string;
-        isEnabled: boolean;
-      }
-    | undefined;
+  teacher: Teacher | undefined;
 };
 function TeacherFormFooter(props: TeacherFormFooterProps): ReactElement {
   return (
@@ -198,7 +227,7 @@ function TeacherIdentityFields(props: TeacherIdentityFieldsProps): ReactElement 
             ref={props.first}
             id="teacher-name"
             name="name"
-            placeholder="Nome completo do professor"
+            placeholder="Nome e sobrenome"
             autoComplete="off"
             size="compact-responsive"
             value={props.draft.name}
@@ -229,7 +258,7 @@ type TeacherFormBodyProps = {
   draft: TeacherDraft;
   errors: Record<string, string>;
   change: <Key extends keyof TeacherDraft>(key: Key, value: TeacherDraft[Key]) => void;
-  departed: boolean;
+  existingTeacher: boolean;
   pending: boolean;
   failure: string | null;
 };
@@ -243,7 +272,12 @@ function TeacherFormBody(props: TeacherFormBodyProps): ReactElement {
           errors={props.errors}
           change={props.change}
         />
-        <TeacherEmploymentFields draft={props.draft} errors={props.errors} change={props.change} />
+        <TeacherEmploymentFields
+          existingTeacher={props.existingTeacher}
+          draft={props.draft}
+          errors={props.errors}
+          change={props.change}
+        />
         <FormSection
           title={
             <span className="flex items-center gap-2">
@@ -251,22 +285,36 @@ function TeacherFormBody(props: TeacherFormBodyProps): ReactElement {
               Acesso ao sistema
             </span>
           }
-          description="O professor pode receber turmas e substituições mesmo sem acesso."
         >
+          {props.draft.role === "SYSTEM_ADMIN" ? (
+            <p>{ROLE_LABELS.SYSTEM_ADMIN}</p>
+          ) : (
+            <SelectControl
+              name="role"
+              label="Papel de acesso"
+              value={props.draft.role}
+              choices={Object.entries(ROLE_LABELS)
+                .filter(([role]) => role !== "SYSTEM_ADMIN")
+                .map(([value, label]) => ({ value, label }))}
+              onChange={(value) => props.change("role", value as TeacherDraft["role"])}
+            />
+          )}
           <Field className="flex items-center gap-3">
             <Switch
               id="teacher-access"
               name="isEnabled"
-              disabled={props.departed || props.pending}
-              checked={!props.departed && props.draft.isEnabled}
+              disabled={props.pending}
+              checked={props.draft.isEnabled}
               onCheckedChange={(value) => props.change("isEnabled", value)}
             />
             <Label htmlFor="teacher-access">Habilitar acesso ao sistema</Label>
           </Field>
         </FormSection>
-        {props.departed && (
-          <Alert variant="neutral">O encerramento da atuação bloqueia o acesso ao sistema.</Alert>
-        )}
+        {props.draft.isEnabled &&
+          !props.draft.teaches &&
+          ["SECRETARY", "FINANCE", "TEACHER"].includes(props.draft.role) && (
+            <p className="text-caption">Este papel ainda não oferece acesso sem atuação docente.</p>
+          )}
         {props.failure && <ToastAlert variant="destructive">{props.failure}</ToastAlert>}
       </form>
     </DialogBody>
@@ -280,7 +328,7 @@ type TeacherDialogInput = {
 
 function teacherSaveLabel(props: TeacherFormFooterProps): string {
   if (props.pending) return "Salvando…";
-  return props.teacher ? "Salvar alterações" : "Cadastrar professor";
+  return props.teacher ? "Salvar alterações" : "Cadastrar colaborador";
 }
 
 function useAttachmentPresence(attachments: boolean): boolean {
@@ -308,7 +356,7 @@ function useTeacherPhotoInput(documents: TeacherDocuments): {
     documents.setBusy(true);
     setPhotoError("");
     void documents
-      .send({ kind: "PHOTO", label: "Foto do professor", file })
+      .send({ kind: "PHOTO", label: "Foto do cadastro", file })
       .catch((error: Error) => {
         setPhotoError(error instanceof Error ? error.message : "Não foi possível enviar a foto.");
       })
@@ -326,6 +374,8 @@ type TeacherDialogHeaderProps = {
   photoInput: RefObject<HTMLInputElement | null>;
   onPhotoChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onToggleAttachments: () => void;
+  expanded: boolean;
+  trigger: RefObject<HTMLButtonElement | null>;
 };
 function TeacherDialogHeader({
   teacher,
@@ -333,6 +383,8 @@ function TeacherDialogHeader({
   pending,
   photoInput,
   onPhotoChange,
+  expanded,
+  trigger,
   onToggleAttachments,
 }: TeacherDialogHeaderProps): ReactElement {
   return (
@@ -344,12 +396,22 @@ function TeacherDialogHeader({
         onPhotoChange={onPhotoChange}
       />
       <DialogHeader className="min-w-0 flex-1">
-        <DialogTitle>{teacher ? "Editar professor" : "Novo professor"}</DialogTitle>
+        <DialogTitle>{teacher ? "Editar cadastro" : "Novo colaborador"}</DialogTitle>
         <DialogDescription>
-          Cadastre a pessoa para organizar suas turmas e horários.
+          {teacher
+            ? teacher.name
+            : "Para vincular uma conta existente, use o e-mail dela. O papel e o acesso atuais serão preservados."}
         </DialogDescription>
       </DialogHeader>
-      <Button variant="ghost" size="sm" disabled={pending} onClick={onToggleAttachments}>
+      <Button
+        ref={trigger}
+        aria-expanded={expanded}
+        aria-controls={expanded ? "registration-attachments" : undefined}
+        variant="ghost"
+        size="sm"
+        disabled={pending}
+        onClick={onToggleAttachments}
+      >
         <Paperclip /> Anexos{documents.files.length > 0 ? ` (${documents.files.length})` : ""}
       </Button>
     </div>
@@ -371,7 +433,7 @@ function TeacherPhotoControl({
         variant="secondary"
         size="icon-sm"
         className="size-14 shrink-0 rounded-full"
-        aria-label="Enviar foto do professor"
+        aria-label="Enviar foto do cadastro"
         disabled={pending}
         onClick={() => photoInput.current?.click()}
       >
@@ -379,7 +441,7 @@ function TeacherPhotoControl({
           <img
             className={styles.photo}
             src={`/api/teacher-files/${photo.id}`}
-            alt="Foto do professor"
+            alt="Foto do cadastro"
           />
         ) : (
           <Camera />

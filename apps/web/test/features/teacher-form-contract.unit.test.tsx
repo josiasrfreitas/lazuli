@@ -9,34 +9,23 @@ const draft = {
   phone: "",
   isEnabled: false,
   employmentType: "CLT" as const,
-  weeklyHours: "",
+  area: "SECRETARIAT" as const,
+  jobTitle: "Auxiliar",
+  role: "SECRETARY" as const,
+  teaches: true,
   notes: "",
-  vacationStart: "",
-  vacationEnd: "",
 };
-void test("employment fields expose vacation dates and notes while workload is derived from classes", () => {
+void test("employment fields collect role-independent employment information and omit legacy dates", () => {
   const html = renderToStaticMarkup(
-    <TeacherEmploymentFields
-      draft={draft}
-      errors={{ vacationEnd: "Informe o fim das férias." }}
-      change={() => {}}
-    />,
+    <TeacherEmploymentFields draft={draft} errors={{}} change={() => {}} />,
   );
-  for (const name of ["vacationStart", "vacationEnd", "notes"])
+  for (const name of ["area", "jobTitle", "teaches", "notes"])
     assert.match(html, new RegExp(`name="${name}"`));
-  assert.equal((html.match(/autoComplete="off"/gi) ?? []).length, 3);
-  assert.equal((html.match(/placeholder="[^"]+"/g) ?? []).length, 3);
-  assert.doesNotMatch(html, /type="date"|role="combobox"/);
-  assert.match(html, /Informe o fim das férias/);
-  assert.doesNotMatch(html, /name="weeklyHours"/);
+  assert.doesNotMatch(html, /vacationStart|vacationEnd|weeklyHours/);
 });
-void test("non CLT registration omits vacation controls", () => {
+void test("non-teaching employees do not receive teaching notes", () => {
   const html = renderToStaticMarkup(
-    <TeacherEmploymentFields
-      draft={{ ...draft, employmentType: "PJ" }}
-      errors={{}}
-      change={() => {}}
-    />,
+    <TeacherEmploymentFields draft={{ ...draft, teaches: false }} errors={{}} change={() => {}} />,
   );
-  assert.doesNotMatch(html, /name="vacationStart"|name="vacationEnd"/);
+  assert.doesNotMatch(html, /name="notes"/);
 });

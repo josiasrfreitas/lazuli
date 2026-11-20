@@ -192,7 +192,7 @@ function ClassDirectoryRows({
   return (
     <EmptyState
       title="Nenhuma turma atual"
-      description="As estatísticas aparecem quando houver uma turma sob responsabilidade deste professor no semestre atual. Vínculos anteriores e programados continuam disponíveis abaixo."
+      description="As estatísticas aparecem quando houver uma turma sob responsabilidade deste docente no semestre atual. Vínculos anteriores e programados continuam disponíveis abaixo."
     />
   );
 }
@@ -293,7 +293,7 @@ function ClassDirectoryHeading({
           <span aria-live="polite"> {filtered ? `${count} de ${data.classes.length}` : count}</span>
         )}
       </h2>
-      <p>Notas e faltas no período de atuação do professor.</p>
+      <p>Notas e faltas no período de atuação do docente.</p>
     </header>
   );
 }

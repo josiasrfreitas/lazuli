@@ -8,7 +8,7 @@ const SKELETON_ROW_COUNT = 4;
 
 export function TeacherHeaderLoading({ navigation }: { navigation?: ReactNode }): ReactElement {
   return (
-    <header className={styles.teacherHeader} aria-label="Carregando professor" aria-busy="true">
+    <header className={styles.teacherHeader} aria-label="Carregando docente" aria-busy="true">
       <div className={styles.teacherIdentity}>
         <InlineSkeleton className="size-10 shrink-0" />
         <InlineSkeleton shape="block" className="h-6 w-48 max-w-full" />
@@ -18,7 +18,7 @@ export function TeacherHeaderLoading({ navigation }: { navigation?: ReactNode })
         <Button variant="ghost" size="icon-sm" aria-label="Editar cadastro" disabled>
           <Pencil />
         </Button>
-        <Button variant="ghost" size="icon-sm" aria-label="Mais ações do professor" disabled>
+        <Button variant="ghost" size="icon-sm" aria-label="Mais ações do docente" disabled>
           <MoreHorizontal />
         </Button>
       </div>

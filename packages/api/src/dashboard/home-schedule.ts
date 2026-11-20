@@ -91,7 +91,7 @@ function meetingEvent(row: TeacherMeeting): HomeEvent {
   return {
     id: meetingKey(row),
     title: row.className,
-    detail: row.substituteTeacherName ?? row.usualTeacherName ?? "Professor a definir",
+    detail: row.substituteTeacherName ?? row.usualTeacherName ?? "Docente a definir",
     date: row.date,
     time: row.startTime,
     endTime: row.endTime,

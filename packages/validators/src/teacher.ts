@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
 import { detectPersonDocument } from "./person-document.js";
-const MAX_WEEKLY_HOURS = 168;
+const MAX_JOB_TITLE_LENGTH = 120;
 const MAX_NOTES_LENGTH = 5000;
 const MAX_SUBTITLE_LENGTH = 240;
 const MAX_LABEL_LENGTH = 100;
@@ -40,43 +40,18 @@ const teacherFields = z
       .refine((value) => !value || /^\d{10,11}$/.test(value), "Informe o telefone com DDD.")
       .nullish(),
     employmentType: z.enum(["CLT", "PJ", "AUTONOMOUS", "OTHER"]).nullish(),
-    weeklyHours: z
-      .number()
-      .finite()
-      .positive("Informe uma carga maior que zero.")
-      .max(MAX_WEEKLY_HOURS)
-      .nullish(),
     notes: z.string().trim().max(MAX_NOTES_LENGTH).nullish(),
-    vacationStart: date.nullish(),
-    vacationEnd: date.nullish(),
   })
   .strict();
 
-function validateVacation(value: z.infer<typeof teacherFields>, context: z.RefinementCtx): void {
-  if (!value.vacationStart && !value.vacationEnd) return;
-  if (value.employmentType !== "CLT") {
-    context.addIssue({
-      code: "custom",
-      path: ["employmentType"],
-      message: "Previsão de férias disponível para vínculo CLT.",
-    });
-  }
-  if (!value.vacationStart)
-    context.addIssue({
-      code: "custom",
-      path: ["vacationStart"],
-      message: "Informe o início das férias.",
-    });
-  if (!value.vacationEnd || (value.vacationStart && value.vacationEnd < value.vacationStart)) {
-    context.addIssue({
-      code: "custom",
-      path: ["vacationEnd"],
-      message: "Informe o fim das férias, a partir da data inicial.",
-    });
-  }
-}
-export const teacherCreateInputSchema = teacherFields.superRefine(validateVacation);
-export const teacherUpdateInputSchema = teacherFields.extend({ id }).superRefine(validateVacation);
+export const teacherCreateInputSchema = teacherFields;
+export const teacherUpdateInputSchema = teacherFields.extend({ id });
+export const employeeFields = teacherFields.extend({
+  area: z.enum(["SECRETARIAT", "MANAGEMENT", "PEDAGOGY", "COMMERCIAL"]),
+  jobTitle: z.string().trim().min(1, "Informe o cargo.").max(MAX_JOB_TITLE_LENGTH),
+  role: z.enum(["SYSTEM_ADMIN", "ADMIN", "SECRETARY", "TEACHER", "FINANCE"]),
+  teaches: z.boolean(),
+});
 export const teacherFileUploadSchema = z
   .object({
     teacherId: id,

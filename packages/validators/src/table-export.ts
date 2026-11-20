@@ -9,6 +9,7 @@ import { financeInstallmentsInputSchema, contractClosingsInputSchema } from "./f
 export const exportListingSchema = z.discriminatedUnion("listing", [
   z.object({ listing: z.literal("Alunos"), filters: studentListInputSchema }),
   z.object({ listing: z.literal("Turmas"), filters: classListInputSchema }),
+  z.object({ listing: z.literal("Docentes"), filters: teacherListInputSchema }),
   z.object({ listing: z.literal("Professores"), filters: teacherListInputSchema }),
   z.object({ listing: z.literal("Leads"), filters: admissionListSchema }),
   z.object({ listing: z.literal("Contratos"), filters: listContractsInputSchema }),

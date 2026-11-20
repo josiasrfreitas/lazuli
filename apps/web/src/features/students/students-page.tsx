@@ -95,7 +95,7 @@ function remoteFilterFields({
     },
     {
       id: "teachers",
-      label: "Professor",
+      label: "Docente",
       kind: "remote-options",
       icon: GraduationCap,
       selected: filters.teacherIds,
@@ -201,7 +201,7 @@ function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
           const nextValue = event.target.value;
           setValue(nextValue);
         }}
-        placeholder="Buscar por nome, turma ou professor"
+        placeholder="Buscar por nome, turma ou docente"
         size="sm"
         type="search"
         value={value}

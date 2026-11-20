@@ -58,7 +58,7 @@ function TeacherActions(props: TeacherActionsProps): ReactElement {
   return (
     <Popover>
       <PopoverTrigger
-        render={<Button variant="ghost" size="icon-sm" aria-label="Mais ações do professor" />}
+        render={<Button variant="ghost" size="icon-sm" aria-label="Mais ações do docente" />}
       >
         <MoreHorizontal />
       </PopoverTrigger>
@@ -81,7 +81,9 @@ type TeacherHeaderInput = {
 function teacherHasAccess(teacher: TeacherHeaderInput["teacher"]): boolean {
   return (
     teacher.isEnabled &&
-    (!teacher.teacherProfile?.departureDate ||
+    (teacher.role === "ADMIN" ||
+      teacher.role === "SYSTEM_ADMIN" ||
+      !teacher.teacherProfile?.departureDate ||
       teacher.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > teacher.today)
   );
 }

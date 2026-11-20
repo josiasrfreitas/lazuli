@@ -27,7 +27,7 @@ export function DeclarationForm({ token, info }: { token: string; info: LinkInfo
         <CircleAlert className="size-4 shrink-0" aria-hidden />
         <p>
           Confirme somente seu próprio nome. Este navegador só pode enviar uma pessoa nesta aula;
-          confirmar outro nome impede a sua própria confirmação. O professor revisará a chamada.
+          confirmar outro nome impede a sua própria confirmação. O docente revisará a chamada.
         </p>
       </aside>
     </form>

@@ -1,16 +1,15 @@
 "use client";
 import { TableExportButton } from "~/components/table-export-button";
 import { useSearchDraft } from "~/lib/use-search-draft";
-import { Plus, Search } from "lucide-react";
-import type { RouterOutputs } from "@lazuli/api";
+import { Search } from "lucide-react";
+import type { RouterInputs, RouterOutputs } from "@lazuli/api";
 import { type UrlPagination, useUrlPagination } from "~/lib/pagination";
-import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
+import { type ReactElement } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import { Button, DataTablePage, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
+import { DataTablePage, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
 import { studentPaginationPolicy } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
-import { TeacherDialog } from "./teacher-dialog";
 import { TeacherTable } from "./teacher-table";
 import { TeacherCoverage } from "./teacher-coverage";
 
@@ -21,7 +20,6 @@ export function TeachersPage(): ReactElement {
   const { params, setParams, pagination, fields, filtered } = filters;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [creating, setCreating] = useState(false);
   const query = useTeacherListQuery(filters);
   const href = (id: string): string =>
     `/professores/${id}?voltar=${encodeURIComponent(`/professores?${searchParams.toString()}`)}`;
@@ -29,15 +27,14 @@ export function TeachersPage(): ReactElement {
   return (
     <>
       <DataTablePage
-        title="Professores"
-        summary={query.data ? `${query.data.total} professores` : undefined}
+        title="Docentes"
+        summary={query.data ? `${query.data.total} docentes` : undefined}
         controls={
           <TeacherListControls
             params={params}
             setParams={setParams}
             pagination={pagination}
             fields={fields}
-            setCreating={setCreating}
           />
         }
       >
@@ -52,7 +49,6 @@ export function TeachersPage(): ReactElement {
           queryRefetch={() => void query.refetch()}
         />
       </DataTablePage>
-      {creating && <TeacherDialog onClose={() => setCreating(false)} />}
     </>
   );
 }
@@ -72,7 +68,6 @@ type TeacherListControlsProps = {
   ) => Promise<URLSearchParams>;
   pagination: UrlPagination;
   fields: TableFilterField[];
-  setCreating: Dispatch<SetStateAction<boolean>>;
 };
 function TeacherListControls(props: TeacherListControlsProps): ReactElement {
   const [search, setSearch] = useSearchDraft(props.params.busca, (busca) => {
@@ -89,7 +84,7 @@ function TeacherListControls(props: TeacherListControlsProps): ReactElement {
         <Input
           className="pl-9"
           name="teacher-search"
-          aria-label="Buscar professor"
+          aria-label="Buscar docente"
           placeholder="Buscar por nome"
           autoComplete="off"
           size="compact-responsive"
@@ -105,15 +100,11 @@ function TeacherListControls(props: TeacherListControlsProps): ReactElement {
         }}
       />
       <TableExportButton
-        source={{ listing: "Professores", filters: teacherInput(props) }}
+        source={{ listing: "Docentes", filters: teacherInput(props) }}
         fields={props.fields}
         search={props.params.busca}
       />
       <TeacherCoverage back="/professores" />
-      <Button size="compact-responsive" onClick={() => props.setCreating(true)}>
-        <Plus aria-hidden="true" />
-        Novo professor
-      </Button>
     </div>
   );
 }
@@ -214,7 +205,10 @@ function useTeacherFilters(): TeacherFilters {
   const filtered = Boolean(params.busca || params.atuacao !== "all" || params.acesso !== "all");
   return { params, setParams, pagination, fields, filtered };
 }
-function teacherInput({ params, pagination }: Pick<TeacherFilters, "params" | "pagination">) {
+function teacherInput({
+  params,
+  pagination,
+}: Pick<TeacherFilters, "params" | "pagination">): RouterInputs["teachers"]["list"] {
   return {
     search: params.busca,
     active: params.atuacao,

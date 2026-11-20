@@ -491,7 +491,7 @@ function MeetingCalendar(model: MeetingModel): ReactElement {
         onEventActivate={(event) => selectMeetingEvent(event, props)}
         emptyMessage={
           props.kind === "CLASS"
-            ? "Nenhuma aula deste professor neste período."
+            ? "Nenhuma aula deste docente neste período."
             : "Período livre. Escolha um horário na agenda."
         }
         rangeSelection={rangeSelection}
@@ -523,7 +523,7 @@ function MeetingContent(model: MeetingModel): ReactElement {
       />
       {!props.teacher && (
         <p role="status" className="text-sm text-muted-foreground">
-          Selecione um professor para consultar a agenda.
+          Selecione um docente para consultar a agenda.
         </p>
       )}
       <MeetingCalendar {...model} />
@@ -565,7 +565,7 @@ function MeetingWithSidebar({
           onDateChange={clock.navigate}
           onViewChange={clock.setView}
         />
-        {!props.teacher && <p role="status">Selecione um professor para consultar a agenda.</p>}
+        {!props.teacher && <p role="status">Selecione um docente para consultar a agenda.</p>}
         <MeetingCalendar {...model} />
       </div>
       {renderSidebar(

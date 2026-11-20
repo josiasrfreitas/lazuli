@@ -203,7 +203,7 @@ function EmptySchedule({
     <div className={styles.zero}>
       <UsersRound size={26} />
       <h2>Preparar as turmas de {board.semester.name}</h2>
-      <p>Traga os horários, professores e alunos do período de origem.</p>
+      <p>Traga os horários, docentes e alunos do período de origem.</p>
       {!ended && (
         <>
           <Button size="sm" disabled={preparing} onClick={prepare}>
@@ -252,8 +252,8 @@ export function WeekControls({
       <Input
         size="sm"
         leadingIcon={<Search />}
-        aria-label="Buscar turma ou professor"
-        placeholder="Turma ou professor"
+        aria-label="Buscar turma ou docente"
+        placeholder="Turma ou docente"
         value={query}
         onChange={(event) => onQuery(event.target.value)}
       />
@@ -433,7 +433,7 @@ function TeachingSlot({
   const { start, endTime, day } = clock;
   const risk = plan.active && confirmed + preconfirmed < limit;
   const title = gridStageLabel(plan, "Regular · estágio a definir");
-  const professor = plan.teacherName ?? "Professor a definir";
+  const professor = plan.teacherName ?? "Docente a definir";
   const interval = `${start}–${endTime}`;
   return (
     <button

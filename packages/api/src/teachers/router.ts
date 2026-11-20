@@ -1,3 +1,5 @@
+import { requireEmployeeEditor } from "../employees/read.js";
+import { teacherListScores } from "./list-scores.js";
 import { teacherMetrics } from "./metrics.js";
 import { teacherUploadsRouter } from "./upload-sessions.js";
 import { listTeacherFiles } from "./files.js";
@@ -74,6 +76,11 @@ async function command<T>(
 }
 
 export const teachersRouter = router({
+  listScores: adminProcedure
+    .input(z.object({ ids: z.array(z.string().uuid()).max(MAX_PAGE_SIZE) }))
+    .query(({ ctx, input }) =>
+      teacherListScores(ctx.db, { ids: input.ids, now: ctx.now ?? new Date() }),
+    ),
   metrics: adminProcedure
     .input(teacherIdInputSchema)
     .query(({ ctx, input }) =>
@@ -189,15 +196,18 @@ export const teachersRouter = router({
     .mutation(({ ctx, input }) =>
       command(ctx, {
         action: "teachers.depart",
-        work: (database) =>
-          scheduleDeparture({
+        work: async (database) => {
+          const target = await readTeacher(database, input.id);
+          requireEmployeeEditor(target.role, ctx.staffUser.role);
+          return scheduleDeparture({
             database,
             teacherId: input.id,
             effectiveDate: input.effectiveDate,
             token: input.token,
             recordedById: ctx.staffUser.id,
             now: ctx.now ?? new Date(),
-          }),
+          });
+        },
         describe: async (_result, database) => ({
           subject: await teacherSubject(database, input.id),
           description: `Saída em ${input.effectiveDate.split("-").toReversed().join("/")}.`,

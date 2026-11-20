@@ -69,12 +69,12 @@ export const teacherSelect = {
   name: true,
   email: true,
   isEnabled: true,
+  role: true,
+  employeeProfile: true,
   teacherProfile: {
     select: {
-      cpf: true,
+      deletedAt: true,
       departureDate: true,
-      employmentType: true,
-      phone: true,
       weeklyHours: true,
       notes: true,
       vacationStart: true,
@@ -88,7 +88,7 @@ export async function readTeacher(database: Database, id: string): Promise<ReadT
     where: { id, AND: [teacherIdentityWhere], deletedAt: null },
     select: teacherSelect,
   });
-  if (!teacher) throw notFound("Professor não encontrado.");
+  if (!teacher) throw notFound("Docente não encontrado.");
   return teacher;
 }
 
@@ -146,15 +146,7 @@ async function currentClassCounts({
   const counts = new Map<string, number>();
   if (teacherIds.length === 0) return counts;
   const classes = await database.class.findMany({
-    where: {
-      deletedAt: null,
-      status: "ACTIVE",
-      semester: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
-      OR: [
-        { teacherId: { in: teacherIds } },
-        { teacherAssignments: { some: { teacherId: { in: teacherIds }, supersededAt: null } } },
-      ],
-    },
+    where: currentTeacherClassesWhere(teacherIds, today),
     select: responsibilitySelect,
   });
   for (const row of classes) {
@@ -279,12 +271,7 @@ export async function teacherStudentCount({
 }: TeacherStudentCountInput): Promise<number> {
   const today = new Date(saoPauloDateOnly(now));
   const classes = await database.class.findMany({
-    where: {
-      deletedAt: null,
-      status: "ACTIVE",
-      semester: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
-      OR: [{ teacherId }, { teacherAssignments: { some: { teacherId, supersededAt: null } } }],
-    },
+    where: currentTeacherClassesWhere([teacherId], today),
     select: { id: true, ...responsibilitySelect },
   });
   const classIds = classes
@@ -310,6 +297,10 @@ function teacherListWhere(
       { teacherProfile: { departureDate: { gt: today } } },
     ],
   };
+  const enabled: Prisma.UserWhereInput = {
+    isEnabled: true,
+    OR: [{ role: { in: ["ADMIN", "SYSTEM_ADMIN"] } }, eligible],
+  };
   const where: Prisma.UserWhereInput = {
     deletedAt: null,
     AND: [
@@ -321,10 +312,8 @@ function teacherListWhere(
       ...(input.active === "scheduled"
         ? [{ teacherProfile: { departureDate: { gt: today } } }]
         : []),
-      ...(input.access === "enabled" ? [{ isEnabled: true }, eligible] : []),
-      ...(input.access === "disabled"
-        ? [{ OR: [{ isEnabled: false }, { teacherProfile: { departureDate: { lte: today } } }] }]
-        : []),
+      ...(input.access === "enabled" ? [enabled] : []),
+      ...(input.access === "disabled" ? [{ NOT: enabled }] : []),
     ],
   };
   return where;
@@ -345,7 +334,7 @@ const teacherClassSelect = {
   },
 } satisfies Prisma.ClassSelect;
 
-function currentEnrollmentWhere(today: Date): Prisma.EnrollmentWhereInput {
+export function currentEnrollmentWhere(today: Date): Prisma.EnrollmentWhereInput {
   return {
     deletedAt: null,
     entryDate: { lte: today },
@@ -386,3 +375,18 @@ type TeacherStudentCountInput = {
   teacherId: string;
   now: Date;
 };
+
+export function currentTeacherClassesWhere(
+  teacherIds: string[],
+  today: Date,
+): Prisma.ClassWhereInput {
+  return {
+    deletedAt: null,
+    status: "ACTIVE",
+    semester: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
+    OR: [
+      { teacherId: { in: teacherIds } },
+      { teacherAssignments: { some: { teacherId: { in: teacherIds }, supersededAt: null } } },
+    ],
+  };
+}

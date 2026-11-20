@@ -103,7 +103,7 @@ function TeacherClassResults({
     return (
       <EmptyState
         title="Nenhuma turma vinculada"
-        description="Atribua este professor na criação ou manutenção de uma turma."
+        description="Atribua este docente na criação ou manutenção de uma turma."
       />
     );
   return (

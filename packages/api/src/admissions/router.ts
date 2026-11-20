@@ -74,7 +74,7 @@ export const admissionsRouter = router({
         },
         describe: async (_result, database) => ({
           subject: await visitSubject(database, input.id),
-          description: "Atualizou o professor responsável pelo nivelamento.",
+          description: "Atualizou o docente responsável pelo nivelamento.",
         }),
       }),
     ),

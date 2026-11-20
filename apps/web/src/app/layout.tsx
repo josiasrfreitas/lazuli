@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     default: "Lazuli | Gestão escolar",
     template: "%s | Lazuli",
   },
-  description: "A rotina da escola em um só lugar: alunos, turmas, professores e financeiro.",
+  description: "A rotina da escola em um só lugar: alunos, turmas, docentes e financeiro.",
   icons: {
     icon: [
       {

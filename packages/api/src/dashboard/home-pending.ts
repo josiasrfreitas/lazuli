@@ -438,7 +438,7 @@ async function lessonPage(
     items: rows.map((row) => ({
       id: row.id,
       title: row.class.portalClassName,
-      detail: `${timeOnly(row.startTime)} · ${responsibleTeacher(row)?.name ?? "Professor não atribuído"}`,
+      detail: `${timeOnly(row.startTime)} · ${responsibleTeacher(row)?.name ?? "Docente não atribuído"}`,
       date: dateOnly(row.date),
       timing: { kind: "record", date: dateOnly(row.date), endTime: timeOnly(row.endTime) },
       action: { kind: "lesson", id: row.id },

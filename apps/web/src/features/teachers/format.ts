@@ -35,3 +35,8 @@ export function todayInSchool(): string {
   const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
+
+export const metricNumber = (value: number | null | undefined): string =>
+  value === null || value === undefined
+    ? "—"
+    : value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });

@@ -1,6 +1,6 @@
 export const CLASS_NOT_FOUND_MESSAGE = "Turma nao encontrada.";
 export const CLASS_NOT_ACTIVE_MESSAGE = "Somente turmas ativas podem ser clonadas.";
-export const TEACHER_INVALID_MESSAGE = "Professor invalido ou inativo.";
+export const TEACHER_INVALID_MESSAGE = "Docente invalido ou inativo.";
 export const LEGACY_TRACK_MESSAGE = "Nao e possivel criar turma em trilha legada.";
 export const END_OF_TRACK_MESSAGE = "Fim da trilha: nao ha proxima etapa.";
 export const PORTAL_NAME_COLLISION_MESSAGE =

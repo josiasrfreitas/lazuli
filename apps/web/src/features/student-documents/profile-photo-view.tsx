@@ -16,7 +16,7 @@ import { RegistrationDocumentLoading } from "~/features/students/profile/registr
 import styles from "./documents.module.css";
 
 export type ProfilePhotoViewProps = {
-  subjectLabel: "aluno" | "professor";
+  subjectLabel: "aluno" | "docente";
   maxSize: number;
   onPhotoError?: () => void;
   name: string;

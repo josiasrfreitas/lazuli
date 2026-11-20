@@ -58,7 +58,7 @@ export function weeklyCalendarEvents(
     .filter((lesson) => lesson.date >= from && lesson.date <= through)
     .map((lesson) => ({
       id: lesson.id,
-      title: `${lesson.teacher ?? "Professor a definir"} · ${lesson.appointment ? "Atendimento" : lesson.className} · ${lesson.startTime}–${lesson.endTime}`,
+      title: `${lesson.teacher ?? "Docente a definir"} · ${lesson.appointment ? "Atendimento" : lesson.className} · ${lesson.startTime}–${lesson.endTime}`,
       start: calendarWallDate(lesson.date, lesson.startTime),
       end: calendarWallDate(lesson.date, lesson.endTime),
       lesson,

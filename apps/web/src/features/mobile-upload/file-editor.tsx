@@ -57,7 +57,7 @@ export function MobileFileEditor(props: EditorProps): ReactElement {
           id="upload-label"
           name="label"
           autoComplete="off"
-          placeholder={category.photo ? "Foto do professor" : "Ex.: Diploma de licenciatura"}
+          placeholder={category.photo ? "Foto do cadastro" : "Ex.: Diploma de licenciatura"}
           size="sm"
           maxLength={100}
           value={label}

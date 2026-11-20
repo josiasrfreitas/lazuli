@@ -26,7 +26,7 @@ export function reviewClassHeading(
   name: string,
 ): { title: string; schedule?: string; description: string } {
   const schedule = compactSchedule(plan.slots, "long") || "Horário a definir";
-  const teacher = plan.teacherName ?? "Professor a definir";
+  const teacher = plan.teacherName ?? "Docente a definir";
   const stage = plan.stageName ?? plan.stageCode ?? "Estágio a definir";
   const ppt = plan.scheduleType === "PERSONALIZED";
   const sequence = generatedSequence(plan, name);

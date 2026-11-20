@@ -113,7 +113,7 @@ async function assertTeacherAccess(
   if (!assignment)
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Planejamento disponível apenas para os professores atribuídos à turma.",
+      message: "Planejamento disponível apenas para os docentes atribuídos à turma.",
     });
   return true;
 }

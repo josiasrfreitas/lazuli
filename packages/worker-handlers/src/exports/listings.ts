@@ -2,6 +2,7 @@ import {
   listStudents,
   listClasses,
   listTeachers,
+  teacherListScores,
   listCandidates,
   finance,
   catalogDirectory,
@@ -53,7 +54,7 @@ export async function readExport(
           "Bolsa",
           "Turma",
           "Horário",
-          "Professor",
+          "Docente",
           "Score",
           "Frequência",
           "Financeiro",
@@ -119,7 +120,7 @@ export async function readExport(
           "Turma",
           "Modalidade",
           "Formato",
-          "Professor",
+          "Docente",
           "Estágio",
           "Horários",
           "Ocupação",
@@ -137,7 +138,7 @@ export async function readExport(
               r.portalClassName,
               r.scheduleType === "REGULAR" ? "Regular" : "PPT",
               r.format === "ONLINE" ? "Online" : "Presencial",
-              r.currentTeacher?.name ?? "Sem professor",
+              r.currentTeacher?.name ?? "Sem docente",
               r.sharedStage?.name ?? "Individual",
               r.scheduleSlots
                 .map(
@@ -160,12 +161,14 @@ export async function readExport(
           };
         },
       );
+    case "Docentes":
     case "Professores":
       return pages(
         [
-          "Professor",
+          "Docente",
           "E-mail",
           "Turmas",
+          "Score médio dos alunos",
           "Horas realizadas",
           "Horas planejadas",
           "Atendimento realizado (h)",
@@ -179,6 +182,10 @@ export async function readExport(
             input: { ...source.filters, page },
             now,
           });
+          const scores = await teacherListScores(db, {
+            ids: result.rows.map((row) => row.id),
+            now,
+          });
           return {
             ...result,
             rows: result.rows.map((r) => {
@@ -188,6 +195,7 @@ export async function readExport(
                 r.name,
                 r.email,
                 r.classCount,
+                scores[r.id] ?? "Sem dados",
                 r.monthlyHours.completedMinutes / 60,
                 r.monthlyHours.plannedMinutes / 60,
                 r.appointmentHours.completedMinutes / 60,
@@ -197,7 +205,9 @@ export async function readExport(
                   : departure
                     ? text("Saída programada", "warning")
                     : text("Ativa", "success"),
-                r.isEnabled && !departed ? "Habilitado" : "Não habilitado",
+                r.isEnabled && (!departed || r.role === "ADMIN" || r.role === "SYSTEM_ADMIN")
+                  ? "Habilitado"
+                  : "Não habilitado",
               ];
             }),
           };

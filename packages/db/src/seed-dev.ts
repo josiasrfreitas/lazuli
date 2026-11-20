@@ -83,9 +83,15 @@ async function createStaff(database: DatabaseClient): Promise<Map<string, string
   const teachers = new Map<string, string>();
   for (const { key, name, email } of DEV_TEACHERS) {
     const teacher = await database.user.create({
-      data: { name, email, role: "TEACHER", emailVerified: true },
+      data: {
+        name,
+        email,
+        role: "TEACHER",
+        employeeProfile: { create: {} },
+        teacherProfile: { create: {} },
+        emailVerified: true,
+      },
     });
-    await database.teacherProfile.create({ data: { userId: teacher.id } });
     teachers.set(key, teacher.id);
   }
   return teachers;

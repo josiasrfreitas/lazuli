@@ -6,7 +6,7 @@ import { getStorage } from "@lazuli/storage";
 import { teacherFileUploadSchema, z } from "@lazuli/validators";
 import type { Context } from "../trpc/context.js";
 import { proofBytes, requireSameOrigin } from "../finance/payment-proof-transport.js";
-import { readTeacher } from "./read.js";
+import { readEmployee, requireEmployeeEditor } from "../employees/read.js";
 
 const NOT_FOUND_MESSAGE = "Arquivo não encontrado.";
 const BAD_REQUEST_STATUS = 400;
@@ -30,7 +30,7 @@ export async function listTeacherFiles(
   teacherId: string,
 ): Promise<Prisma.TeacherFileGetPayload<{ select: typeof fileSelect }>[]> {
   requireAdmin(ctx);
-  await readTeacher(ctx.db, teacherId);
+  await readEmployee(ctx.db, teacherId);
   return ctx.db.teacherFile.findMany({
     where: { teacherId, deletedAt: null },
     select: fileSelect,
@@ -46,7 +46,8 @@ export async function receiveTeacherFile(ctx: Context, request: Request): Promis
     );
     if (request.headers.get("content-type") !== input.contentType)
       throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de arquivo inválido." });
-    await readTeacher(ctx.db, input.teacherId);
+    const target = await readEmployee(ctx.db, input.teacherId);
+    requireEmployeeEditor(target.role, ctx.staffUser?.role);
     const bytes = await proofBytes(request, input);
     const storage = getStorage();
     const reference = await storage.put({
@@ -57,12 +58,8 @@ export async function receiveTeacherFile(ctx: Context, request: Request): Promis
     try {
       const file = await ctx.db.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.teacherId}, 234))`;
-        await readTeacher(tx, input.teacherId);
-        await tx.teacherProfile.upsert({
-          where: { userId: input.teacherId },
-          create: { userId: input.teacherId },
-          update: {},
-        });
+        const target = await readEmployee(tx, input.teacherId);
+        requireEmployeeEditor(target.role, ctx.staffUser?.role);
         if (input.kind === "PHOTO")
           await tx.teacherFile.updateMany({
             where: { teacherId: input.teacherId, kind: "PHOTO", deletedAt: null },
@@ -95,6 +92,10 @@ export async function teacherFileResource(
     await requireFileAccess(ctx, file);
     if (request.method === "DELETE") {
       requireSameOrigin(request);
+      if (file.teacherId) {
+        const target = await readEmployee(ctx.db, file.teacherId);
+        requireEmployeeEditor(target.role, ctx.staffUser?.role);
+      }
       await ctx.db.teacherFile.update({ where: { id }, data: { deletedAt: new Date() } });
       return Response.json({ deleted: true }, { headers: HEADERS });
     }
@@ -140,7 +141,7 @@ async function requireFileAccess(
   ctx: Context,
   file: { teacherId: string | null; uploadSessionId: string | null },
 ): Promise<void> {
-  if (file.teacherId) await readTeacher(ctx.db, file.teacherId);
+  if (file.teacherId) await readEmployee(ctx.db, file.teacherId);
   else {
     const session = await ctx.db.teacherUploadSession.findFirst({
       where: {

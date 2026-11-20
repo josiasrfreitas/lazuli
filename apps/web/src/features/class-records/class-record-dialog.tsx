@@ -345,7 +345,7 @@ function LessonContext({ data }: { data: ClassRecord }): ReactElement {
   return (
     <dl className={styles.context}>
       <div>
-        <dt>{substitute ? "Professores" : "Professor"}</dt>
+        <dt>{substitute ? "Docentes" : "Docente"}</dt>
         <dd>{session.teacher ?? "A definir"}</dd>
         {substitute && <dd className={styles.supporting}>Titular: {session.usualTeacher}</dd>}
       </div>

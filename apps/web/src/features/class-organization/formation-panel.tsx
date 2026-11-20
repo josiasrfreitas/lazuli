@@ -324,7 +324,7 @@ function PlanFacts({
           <dd>{compactSchedule(plan.slots) || "A definir"}</dd>
         </div>
         <div>
-          <dt>Professor</dt>
+          <dt>Docente</dt>
           <dd>{plan.teacherName ?? "A definir"}</dd>
         </div>
         <div>

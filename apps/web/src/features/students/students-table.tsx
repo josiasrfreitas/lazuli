@@ -38,7 +38,7 @@ import {
 const COLUMNS = [
   { label: "Aluno", numeric: false },
   { label: "Turma", numeric: false },
-  { label: "Professor", numeric: false },
+  { label: "Docente", numeric: false },
   { label: "Score", numeric: true },
   { label: "Frequência", numeric: true },
   { label: "Financeiro", numeric: true },
@@ -227,7 +227,7 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
     case "Turma": {
       return <TableHead className="w-1/5">{column.label}</TableHead>;
     }
-    case "Professor": {
+    case "Docente": {
       return <TableHead className="w-[17%]">{column.label}</TableHead>;
     }
     case "Score": {

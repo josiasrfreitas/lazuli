@@ -79,8 +79,8 @@ export function CalendarLessonButton({
       data-modality={modality}
       aria-haspopup="dialog"
       aria-expanded={lesson.appointment ? expanded : undefined}
-      aria-label={`${kind}, ${title}, ${context}${format ? `, ${format}` : ""}, ${lesson.teacher ?? "Professor a definir"}, ${lesson.startTime} às ${lesson.endTime}, ${status}${lesson.guestCount > 0 ? `, com convidados: ${lesson.guestCount}` : ""}`}
-      title={`${lesson.startTime}–${lesson.endTime} · ${kind} · ${title} · ${context}${format ? ` · ${format}` : ""} · ${lesson.teacher ?? "Professor a definir"} · ${status}`}
+      aria-label={`${kind}, ${title}, ${context}${format ? `, ${format}` : ""}, ${lesson.teacher ?? "Docente a definir"}, ${lesson.startTime} às ${lesson.endTime}, ${status}${lesson.guestCount > 0 ? `, com convidados: ${lesson.guestCount}` : ""}`}
+      title={`${lesson.startTime}–${lesson.endTime} · ${kind} · ${title} · ${context}${format ? ` · ${format}` : ""} · ${lesson.teacher ?? "Docente a definir"} · ${status}`}
       data-start={lesson.startTime}
       onKeyDown={navigateLessons}
       onClick={() => onOpen(lesson)}

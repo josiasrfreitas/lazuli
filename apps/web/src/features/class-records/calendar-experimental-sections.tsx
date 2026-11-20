@@ -108,7 +108,7 @@ function VisitTeacherFact({
     <div>
       <dt>
         <UserRound aria-hidden="true" />
-        Professor
+        Docente
       </dt>
       <dd>{record?.teacherName ?? visit.teacher?.name ?? "A definir"}</dd>
     </div>
@@ -204,7 +204,7 @@ export function ExperimentalBodyContent({
       <ExperimentalFacts visit={visit} record={record} />
       {record?.needsReschedule && (
         <ToastAlert variant="warning">
-          O encontro mudou ou está sem professor. Abra o lead para remarcar a experimental.
+          O encontro mudou ou está sem docente. Abra o lead para remarcar a experimental.
         </ToastAlert>
       )}
       <div className={styles.body}>

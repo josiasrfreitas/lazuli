@@ -64,7 +64,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/professores",
-        label: "Professores",
+        label: "Docentes",
         icon: GraduationCap,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
@@ -90,8 +90,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: "comercial",
-    label: "Comercial",
+    label: "Comercial e Pessoas",
     items: [
+      {
+        href: "/colaboradores",
+        label: "Colaboradores",
+        icon: Users,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       {
         href: "/interessados",
         label: "Leads",
@@ -254,7 +260,7 @@ function returnDestination({
   if (!item) return null;
   const detailLabel: Record<string, string> = {
     "/alunos": "Aluno",
-    "/professores": "Professor",
+    "/professores": "Docente",
     "/turmas": "Turma",
   };
   return {

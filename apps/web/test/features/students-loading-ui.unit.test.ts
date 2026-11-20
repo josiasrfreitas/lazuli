@@ -148,7 +148,7 @@ void test("first load keeps header and filter controls", () => {
   assert.match(controlsMarkup, />Turma</u);
   assert.match(controlsMarkup, />Situação</u);
   assert.match(controlsMarkup, /Mais filtros/u);
-  assert.doesNotMatch(controlsMarkup, />Professor</u);
+  assert.doesNotMatch(controlsMarkup, />Docente</u);
   assert.doesNotMatch(controlsMarkup, /data-slot="inline-skeleton"/u);
 });
 

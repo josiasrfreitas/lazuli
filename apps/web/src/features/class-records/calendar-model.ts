@@ -71,7 +71,7 @@ function experimentalLesson(item: CalendarExperimental): CalendarLesson {
     startTime: item.startTime,
     endTime: item.endTime,
     teacherId: item.teacher?.id ?? null,
-    teacher: item.teacher?.name ?? (item.kind === "PLACEMENT" ? "Aplicação sem professor" : null),
+    teacher: item.teacher?.name ?? (item.kind === "PLACEMENT" ? "Aplicação sem docente" : null),
     state: guestLessonState(item),
     attendanceOnly: false,
     guestCount: 0,
@@ -150,7 +150,7 @@ export function calendarTeachers(lessons: CalendarLesson[]): TeacherColumn[] {
   for (const lesson of lessons) {
     teachers.set(lesson.teacherId, {
       id: lesson.teacherId,
-      name: lesson.teacher ?? "Professor a definir",
+      name: lesson.teacher ?? "Docente a definir",
     });
   }
   return [...teachers.values()].toSorted((left, right) => {

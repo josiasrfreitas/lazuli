@@ -126,7 +126,7 @@ function TeacherDocumentChoices({
   onSelect: (id: string) => void;
 }): ReactElement {
   return (
-    <div className={styles.strip} role="group" aria-label="Selecionar documento do professor">
+    <div className={styles.strip} role="group" aria-label="Selecionar documento do docente">
       {slots.map((slot) => {
         const SlotIcon = ICONS[slot.kind] ?? FileText;
         return (

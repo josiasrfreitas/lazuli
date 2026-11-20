@@ -236,7 +236,7 @@ function useExtraClasses(data: Planning, onSaved: AdjustmentFormProps["onSaved"]
   function submit(): void {
     if (pending) return;
     if (!validExtraDraft(input)) {
-      setError("Informe as datas, o professor, os dias da semana e o motivo.");
+      setError("Informe as datas, o docente, os dias da semana e o motivo.");
       return;
     }
     setError(undefined);
@@ -443,14 +443,14 @@ function ExtraTeacherField({
     <>
       <SelectControl
         name="teacherId"
-        label="Professor"
+        label="Docente"
         value={teacherId}
         onChange={setTeacherId}
         choices={(teachers.data ?? []).map((row) => ({ value: row.id, label: row.name }))}
       />
       {teachers.error && (
         <p role="alert">
-          Não foi possível carregar os professores.{" "}
+          Não foi possível carregar os docentes.{" "}
           <Button size="sm" variant="ghost" onClick={() => void teachers.refetch()}>
             Tentar novamente
           </Button>

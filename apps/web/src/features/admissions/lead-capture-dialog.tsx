@@ -497,7 +497,7 @@ function ExperienceFields({ props, state, actions }: CaptureViewProps): ReactJSX
           {props.candidate
             ? "O nivelamento define o estágio."
             : "Na próxima etapa, agende a prova presencial ou online."}{" "}
-          O agendamento não exige professor.
+          O agendamento não exige docente.
         </p>
       )}
     </>

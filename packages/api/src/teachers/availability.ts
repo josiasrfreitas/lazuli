@@ -31,6 +31,7 @@ export async function assertTeacherEligible(
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
     select: {
+      employeeProfile: { select: { userId: true } },
       role: true,
       deletedAt: true,
       teacherProfile: { select: { departureDate: true, deletedAt: true } },
@@ -43,7 +44,7 @@ export async function assertTeacherEligible(
     (teacher.teacherProfile?.departureDate &&
       dateOnly(teacher.teacherProfile.departureDate) <= input.date)
   ) {
-    throw badRequest("Professor não está em atuação na data escolhida.");
+    throw badRequest("Docente não está em atuação na data escolhida.");
   }
   return teacher.teacherProfile?.departureDate ?? null;
 }

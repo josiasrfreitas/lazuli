@@ -1,3 +1,4 @@
+import { assertUniqueIdentity } from "../employees/identity.js";
 import { attachTeacherUploads } from "./upload-sessions.js";
 import type { teacherCreateInputSchema, z } from "@lazuli/validators";
 import type { Prisma } from "@lazuli/db";
@@ -33,7 +34,12 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
       exceptId: existing.id,
     });
     await input.database.teacherProfile.create({
-      data: { userId: existing.id, ...profileData(input.values) },
+      data: { userId: existing.id, notes: input.values.notes ?? null },
+    });
+    await input.database.employeeProfile.upsert({
+      where: { userId: existing.id },
+      create: { userId: existing.id, ...profileData(input.values) },
+      update: profileData(input.values),
     });
     await attachTeacherUploads(input.database, {
       sessionId: input.values.documentSessionId,
@@ -49,7 +55,8 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
       email: input.values.email,
       role: "TEACHER",
       isEnabled: input.values.isEnabled,
-      teacherProfile: { create: { ...profileData(input.values) } },
+      employeeProfile: { create: profileData(input.values) },
+      teacherProfile: { create: { notes: input.values.notes ?? null } },
     },
     select: { id: true },
   });
@@ -65,13 +72,14 @@ export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: st
   const current = await input.database.user.findUnique({
     where: { id: input.values.id },
     select: {
+      employeeProfile: { select: { userId: true } },
       role: true,
       deletedAt: true,
       teacherProfile: { select: { userId: true, deletedAt: true } },
     },
   });
   if (!current || !hasTeacherIdentity(current) || current.deletedAt)
-    throw notFound("Professor não encontrado.");
+    throw notFound("Docente não encontrado.");
   if (current.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN")
     throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
   await assertUniqueIdentity({
@@ -85,10 +93,13 @@ export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: st
       name: input.values.name,
       email: input.values.email,
       isEnabled: input.values.isEnabled,
+      employeeProfile: {
+        upsert: { create: profileData(input.values), update: profileData(input.values) },
+      },
       teacherProfile: {
         upsert: {
-          create: { ...profileData(input.values) },
-          update: { ...profileData(input.values) },
+          create: { notes: input.values.notes ?? null },
+          update: input.values.notes === undefined ? {} : { notes: input.values.notes },
         },
       },
     },
@@ -100,25 +111,6 @@ export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: st
     ownerId: input.actorId,
   });
   return updated;
-}
-
-async function assertUniqueIdentity({
-  database,
-  values,
-  exceptId,
-}: AssertUniqueIdentityInput): Promise<void> {
-  const [emailOwner, cpfOwner] = await Promise.all([
-    database.user.findFirst({
-      where: {
-        email: { equals: values.email, mode: "insensitive" },
-        ...(exceptId ? { id: { not: exceptId } } : {}),
-      },
-      select: { id: true },
-    }),
-    database.teacherProfile.findUnique({ where: { cpf: values.cpf }, select: { userId: true } }),
-  ]);
-  if (emailOwner || (cpfOwner && cpfOwner.userId !== exceptId))
-    throw badRequest("CPF ou e-mail já cadastrado. Localize a identidade existente.");
 }
 
 export async function assignClassTeacher(input: AssignClassTeacherInput): Promise<void> {
@@ -200,11 +192,6 @@ type UpdateTeacherInput = {
   actorId?: string;
   database: Database;
   values: z.infer<typeof teacherCreateInputSchema> & { id: string };
-};
-type AssertUniqueIdentityInput = {
-  database: Database;
-  values: { cpf: string; email: string };
-  exceptId?: string;
 };
 type AssignClassTeacherInput = {
   database: Database;
@@ -341,34 +328,16 @@ async function substitutionMeeting(input: SubstituteMeetingInput): Promise<Teach
     meeting.substituteTeacherId ||
     (meeting.usualTeacherId === input.teacherId && !meeting.requiresCoverage)
   )
-    throw badRequest("Encontro já atribuído a este professor ou a um substituto.");
+    throw badRequest("Encontro já atribuído a este docente ou a um substituto.");
   return meeting;
 }
 
-type ProfileData = Pick<
-  Prisma.TeacherProfileUncheckedCreateInput,
-  "phone" | "cpf" | "employmentType" | "weeklyHours" | "notes" | "vacationStart" | "vacationEnd"
->;
-function profileData(values: z.infer<typeof teacherCreateInputSchema>): ProfileData {
-  const data: ProfileData = { cpf: values.cpf };
-  if (values.phone !== undefined) data.phone = values.phone || null;
-  if (values.employmentType !== undefined) data.employmentType = values.employmentType;
-  if (values.weeklyHours !== undefined) data.weeklyHours = values.weeklyHours;
-  if (values.notes !== undefined) data.notes = values.notes;
-  setVacationDates(data, values);
-  if (values.employmentType !== undefined && values.employmentType !== "CLT") {
-    data.vacationStart = null;
-    data.vacationEnd = null;
-  }
-  return data;
-}
-
-function setVacationDates(
-  data: ProfileData,
+function profileData(
   values: z.infer<typeof teacherCreateInputSchema>,
-): void {
-  if (values.vacationStart !== undefined)
-    data.vacationStart = values.vacationStart ? utcDate(values.vacationStart) : null;
-  if (values.vacationEnd !== undefined)
-    data.vacationEnd = values.vacationEnd ? utcDate(values.vacationEnd) : null;
+): Pick<Prisma.EmployeeProfileCreateWithoutUserInput, "cpf" | "phone" | "employmentType"> {
+  return {
+    cpf: values.cpf,
+    ...(values.phone === undefined ? {} : { phone: values.phone || null }),
+    ...(values.employmentType === undefined ? {} : { employmentType: values.employmentType }),
+  };
 }

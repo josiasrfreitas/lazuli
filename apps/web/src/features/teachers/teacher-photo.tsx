@@ -32,7 +32,7 @@ export function TeacherPhoto({ id, name }: { id: string; name: string }): ReactE
             JSON.stringify({
               teacherId: id,
               kind: "PHOTO",
-              label: "Foto do professor",
+              label: "Foto do docente",
               fileName: file.name,
               contentType: file.type,
               byteLength: file.size,
@@ -61,7 +61,7 @@ export function TeacherPhoto({ id, name }: { id: string; name: string }): ReactE
 
   return (
     <ProfilePhotoView
-      subjectLabel="professor"
+      subjectLabel="docente"
       maxSize={MAX_PHOTO_BYTES}
       name={name}
       photoUrl={visiblePhoto ? `/api/teacher-files/${visiblePhoto.id}` : undefined}

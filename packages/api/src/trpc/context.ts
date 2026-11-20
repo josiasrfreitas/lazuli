@@ -122,7 +122,10 @@ async function resolveStaffUser(input: {
   return resolveStaffIdentity(
     await input.db.user.findUnique({
       where: { email: input.email },
-      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+      include: {
+        employeeProfile: { select: { userId: true } },
+        teacherProfile: { select: { departureDate: true, deletedAt: true } },
+      },
     }),
     { now: input.now, requestedRole: input.role },
   );

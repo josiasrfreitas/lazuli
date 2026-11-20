@@ -16,7 +16,7 @@ export function TeacherNavigation(): ReactJSX.Element {
   ];
   return (
     <nav
-      aria-label="Navegação do professor"
+      aria-label="Navegação do docente"
       className={`${styles.navigation} grid shrink-0 grid-cols-5 border-t border-border bg-card sm:hidden`}
     >
       {links.map(({ href, label, icon: Icon }) => {

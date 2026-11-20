@@ -66,7 +66,7 @@ function ClassLessonsContent({ classId, personalized }: Props): ReactElement {
         <p className="text-caption text-muted-foreground">
           {personalized
             ? "Os percursos desta turma são individuais. Abra a aula para consultar o conteúdo de cada aluno."
-            : "Páginas trabalhadas em cada aula, conforme o registro do professor."}
+            : "Páginas trabalhadas em cada aula, conforme o registro do docente."}
           {data && ` Aulas até ${formatDateOnlyBR(data.today)}, mais recentes primeiro.`}
         </p>
         <DataTable

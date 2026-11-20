@@ -17,11 +17,11 @@ function PublicContent({ link }: { link: PublicLink }): ReactElement | null {
   if (link.receipt) return <StudentReceipt receipt={link.receipt} />;
   if (!link.loaded || link.pending) return <p role="status">Abrindo sua aula…</p>;
   if (!link.token)
-    return <Alert>Abra o QR ou o link de presença compartilhado pelo professor.</Alert>;
+    return <Alert>Abra o QR ou o link de presença compartilhado pelo docente.</Alert>;
   if (link.invalid)
     return (
       <ToastAlert variant="destructive">
-        Este link está incompleto ou é inválido. Peça ao professor um novo acesso.
+        Este link está incompleto ou é inválido. Peça ao docente um novo acesso.
       </ToastAlert>
     );
   if (link.error)

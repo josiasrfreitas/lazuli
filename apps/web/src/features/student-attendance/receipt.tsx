@@ -9,7 +9,7 @@ export function StudentReceipt({ receipt }: { receipt: Receipt }): ReactElement 
       <h2 className="font-semibold">Presença enviada</h2>
       <p>{receipt.name}</p>
       <p className="text-sm text-muted-foreground">
-        Recebida às {attendanceTime(receipt.submittedAt)}. O professor revisará a chamada. Para
+        Recebida às {attendanceTime(receipt.submittedAt)}. O docente revisará a chamada. Para
         qualquer ajuste, fale com ele.
       </p>
     </div>

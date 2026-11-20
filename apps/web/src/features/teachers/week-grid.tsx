@@ -55,7 +55,7 @@ function DesktopGrid({
     <div className="hidden overflow-hidden rounded-md border border-border bg-card xl:block">
       <table
         className="w-full table-fixed border-collapse text-left"
-        aria-label="Agenda do professor"
+        aria-label="Agenda do docente"
       >
         <DesktopHeader days={days} />
         <tbody>
@@ -149,7 +149,7 @@ function MobileGrid({
     <div className="grid gap-4 xl:hidden">
       {loading ? (
         <div className="flex min-h-64 items-center justify-center rounded-md border border-border bg-card">
-          <PencilLoader label="Carregando agenda do professor" />
+          <PencilLoader label="Carregando agenda do docente" />
         </div>
       ) : (
         days.map((day) => <MobileDay key={day.weekday} day={day} back={back} />)
@@ -178,7 +178,7 @@ function MobileDay({ day, back }: { day: Day; back: string }): ReactElement {
 function LoadingWeek(): ReactElement {
   return (
     <div className="flex min-h-64 items-center justify-center">
-      <PencilLoader label="Carregando agenda do professor" />
+      <PencilLoader label="Carregando agenda do docente" />
     </div>
   );
 }

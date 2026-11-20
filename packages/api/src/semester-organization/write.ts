@@ -74,7 +74,7 @@ async function validatePlanInput(
   assertVersion(previous?.version ?? 0, input.version);
   if (previous?.classId)
     throw badRequest(
-      "Esta turma já foi publicada. Use a operação da turma para alterar o professor.",
+      "Esta turma já foi publicada. Use a operação da turma para alterar o docente.",
     );
   assertPlanSchedule(input, previous);
   return previous;

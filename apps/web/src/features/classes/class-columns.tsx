@@ -46,9 +46,9 @@ export function classColumns(
     { id: "format", header: "Formato", cell: (row: ClassRow) => formatFormat(row.format) },
     {
       id: "teacher",
-      header: "Professor",
+      header: "Docente",
       width: COLUMN_WIDTHS.teacher,
-      cell: (row: ClassRow) => row.currentTeacher?.name ?? "Sem professor",
+      cell: (row: ClassRow) => row.currentTeacher?.name ?? "Sem docente",
     },
     {
       id: "stage",

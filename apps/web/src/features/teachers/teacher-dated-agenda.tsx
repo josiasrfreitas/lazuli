@@ -30,9 +30,9 @@ export function TeacherDatedAgenda({ id, back }: { id: string; back: string }): 
   const visible = events.filter((event) => event.date >= range.from && event.date <= range.through);
   const hours = occupiedHours(visible);
   return (
-    <section className={styles.agenda} aria-label="Agenda do professor">
+    <section className={styles.agenda} aria-label="Agenda do docente">
       <div>
-        <h2>Agenda do professor</h2>
+        <h2>Agenda do docente</h2>
         <p className="text-caption text-muted-foreground">
           Aulas, atendimentos e experimentais · horário de São Paulo
         </p>
@@ -56,7 +56,7 @@ export function TeacherDatedAgenda({ id, back }: { id: string; back: string }): 
         onEventActivate={(event) =>
           event.meeting ? setMeeting(event.meeting) : router.push(event.href)
         }
-        label="Aulas e atendimentos do professor"
+        label="Aulas e atendimentos do docente"
         emptyMessage="Nenhuma aula ou atendimento neste período."
       />
       {meeting && <MeetingDialog meeting={meeting} back={back} onClose={() => setMeeting(null)} />}
@@ -74,7 +74,7 @@ function agendaEvents(data: Week, teacherId: string): Event[] {
         endTime: row.endTime,
         title: row.className,
         subtitle: row.substituteTeacherId
-          ? `Substituição · ${row.substituteTeacherName ?? "Professor"}`
+          ? `Substituição · ${row.substituteTeacherName ?? "Docente"}`
           : (row.stageName ?? "Aula"),
         tone:
           row.substituteTeacherId && row.substituteTeacherId !== teacherId
@@ -90,7 +90,7 @@ function agendaEvents(data: Week, teacherId: string): Event[] {
             }
           : {
               disabledReason:
-                "Esta aula já começou ou possui registros. Não é possível alterar o professor.",
+                "Esta aula já começou ou possui registros. Não é possível alterar o docente.",
             }),
         href: `/turmas/${row.classId}`,
       })),

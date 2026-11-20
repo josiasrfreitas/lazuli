@@ -150,7 +150,7 @@ function CandidateVisitItem({
       <EventMain visit={visit} candidate={candidate} onAction={onAction} />
       {visit.needsReschedule && (
         <ToastAlert variant="warning">
-          O encontro mudou ou ficou sem professor. Remarque esta experimental.
+          O encontro mudou ou ficou sem docente. Remarque esta experimental.
         </ToastAlert>
       )}
       {visit.notes && <p className={styles.eventNotes}>{visit.notes}</p>}
@@ -221,7 +221,7 @@ function EventContent({
       </div>
       <p className={styles.teacher}>
         <UserRound aria-hidden="true" />
-        {visit.teacherName ?? "Professor a definir"}
+        {visit.teacherName ?? "Docente a definir"}
       </p>
       {!isPlacement && (
         <p className={styles.eventDetail}>

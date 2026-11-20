@@ -12,7 +12,7 @@ export function TeacherRegistrationLoading(): ReactElement {
     <div
       className={registration.layout}
       aria-busy="true"
-      aria-label="Carregando cadastro do professor"
+      aria-label="Carregando cadastro do docente"
     >
       <div className={`${layout.registrationFacts} ${loading.surface}`}>
         {[
@@ -57,7 +57,7 @@ export function TeacherRegistrationLoading(): ReactElement {
 export function TeacherAttachmentsLoading(): ReactElement {
   return (
     <div className={`${loading.surface} rounded-lg`}>
-      <AttachmentPanel title="Anexos do professor" busy>
+      <AttachmentPanel title="Anexos" busy>
         <div aria-busy="true" aria-label="Carregando anexos" className="grid gap-5">
           <InlineSkeleton className="w-4/5" />
           {[0, 1].map((row) => (

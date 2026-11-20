@@ -208,7 +208,7 @@ async function assignCloneTeacher(
   const teacher = usualTeacherOn(responsibility, targetSemester.startDate);
   if (!teacher)
     throw badRequest(
-      "A turma está sem professor no próximo período. Atribua um docente antes de clonar.",
+      "A turma está sem docente no próximo período. Atribua um docente antes de clonar.",
     );
   source.teacherId = teacher.id;
   await assertClassTeacherAvailable({

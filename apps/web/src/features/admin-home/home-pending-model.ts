@@ -41,7 +41,7 @@ const GROUPS: Record<
     href: "/alunos",
     destination: "Acompanhamento",
   },
-  coverage: { title: "Turmas sem professor", score: 7, href: "/turmas", destination: "Turmas" },
+  coverage: { title: "Turmas sem docente", score: 7, href: "/turmas", destination: "Turmas" },
   planning: {
     title: "Turmas com planejamento a revisar",
     score: 4,

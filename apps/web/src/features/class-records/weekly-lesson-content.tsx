@@ -39,7 +39,7 @@ export function weeklyLessonLabel(lesson: CalendarLesson): string {
     title,
     context,
     lessonFormatLabel(lesson),
-    lesson.teacher ?? "Professor a definir",
+    lesson.teacher ?? "Docente a definir",
     `${lesson.startTime}–${lesson.endTime}`,
     lessonStatus(lesson),
     !lesson.appointment && !lesson.experimental ? lessonPresenceLabel(lesson) : null,
@@ -77,7 +77,7 @@ export function WeeklyLessonContent({ lesson }: { lesson: CalendarLesson }): Rea
         </span>
       </span>
       <span className={styles.teacher} data-calendar-detail>
-        {lesson.teacher ?? "Professor a definir"}
+        {lesson.teacher ?? "Docente a definir"}
       </span>
       <span className={styles.context} data-calendar-detail>
         {context}

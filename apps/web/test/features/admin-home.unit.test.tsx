@@ -102,7 +102,7 @@ void it("offers another coverage page when five teachers have affected classes",
   const html = renderToStaticMarkup(
     <CoveragePagination total={5} page={1} busy={false} onPageChange={() => {}} />,
   );
-  assert.match(html, /5 professores com turmas sem professor/);
+  assert.match(html, /5 docentes com turmas sem docente/);
   assert.match(html, /Página 1 de 2/);
   const nextButton = html.match(/<button[^>]*><span[^>]*>Próxima<\/span><\/button>/u)?.[0];
   assert.ok(nextButton);
@@ -156,7 +156,7 @@ void it("prioritizes a teacher departure before intake volume and finance", () =
     ...data.groups.filter((group) => group.kind === "lessons"),
     {
       kind: "coverage",
-      title: "Turmas sem professor",
+      title: "Turmas sem docente",
       description: "Cobertura.",
       area: "school",
       attention: true,
@@ -166,7 +166,7 @@ void it("prioritizes a teacher departure before intake volume and finance", () =
           id: "teacher-today",
           title: "Professora de hoje",
           date: data.today,
-          detail: "2 turmas precisam de professor",
+          detail: "2 turmas precisam de docente",
           action: { kind: "link", href: "/turmas?professor=teacher-today" },
           timing: { kind: "departure", date: data.today },
         },
@@ -181,13 +181,13 @@ void it("prioritizes a teacher departure before intake volume and finance", () =
       open={() => {}}
     />,
   );
-  assert.match(html, /Professores com turmas a reatribuir/);
+  assert.match(html, /Docentes com turmas a reatribuir/);
   assert.match(html, /Ver turmas/);
   assert.ok(html.indexOf("Ver turmas") < html.indexOf("Alunos sem turma"));
   assert.match(html, /Conduzir as aulas/);
   assert.match(html, /Preparar a entrada em turma/);
   assert.doesNotMatch(html, /Primeiros contratos|>300</);
-  assert.match(html, /id="home-priority-title">Turma sem professor/);
+  assert.match(html, /id="home-priority-title">Turma sem docente/);
 });
 
 function queue(
@@ -262,7 +262,7 @@ void it("changes a teacher departure from upcoming to today to elapsed", () => {
     />,
   );
   assert.match(html, /Há 5 dias/);
-  assert.match(html, /Defina outro professor para cada turma afetada pela saída/);
+  assert.match(html, /Defina outro docente para cada turma afetada pela saída/);
 });
 void it("treats a past entry date as a publication issue, without alarming future planning", () => {
   const passed = workPriority(queue("semester", { kind: "entry", date: "2026-10-22" }), data);
@@ -315,7 +315,7 @@ void it("keeps recent pedagogical work actionable and historical volume separate
     />,
   );
   assert.match(html, /Conferir registros de aula/);
-  assert.match(html, /professores responsáveis/);
+  assert.match(html, /docentes responsáveis/);
   assert.match(html, /Alunos sem turma/);
   assert.match(html, /Definir turmas/);
   assert.match(html, /Registros anteriores aos últimos 7 dias/);

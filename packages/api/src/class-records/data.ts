@@ -67,7 +67,7 @@ export async function loadRecordSession(
   if (!canRead(context, session))
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Esta aula está disponível apenas ao professor responsável pelo encontro.",
+      message: "Esta aula está disponível apenas ao docente responsável pelo encontro.",
     });
   return session;
 }

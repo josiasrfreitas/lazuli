@@ -61,7 +61,7 @@ function CoverageDialog({ back, onClose }: CoverageDialogProps): ReactElement {
             <DialogTitle>Pendências de docente</DialogTitle>
             <DialogDescription>
               Aulas e atendimentos sem responsável. Abra uma aula para registrar cobertura ou
-              reagende o atendimento com um professor disponível.
+              reagende o atendimento com um docente disponível.
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="my-5">
