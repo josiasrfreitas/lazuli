@@ -1,0 +1,748 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  background: var(--background);
+  color: var(--foreground);
+  overflow: hidden;
+}
+.header,
+.headerActions,
+.panelTitle,
+.planCounts,
+.match,
+.planHeading,
+.weekControls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.header {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.heading h1 {
+  margin: 0;
+  color: var(--heading);
+  font-weight: 600;
+  font-size: var(--lz-text-h3);
+  line-height: 1.2;
+}
+.header > [data-slot="field"] {
+  width: auto;
+  min-width: 7rem;
+}
+.headerActions {
+  margin-inline-start: auto;
+}
+.menuItems {
+  width: min(16rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.125rem;
+}
+.menuItems > [data-slot="button"] {
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  text-align: start;
+  white-space: normal;
+  font-weight: 500;
+}
+.menuItems > [data-slot="button"] > span {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: 0.6rem;
+  width: 100%;
+}
+.menuItems svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+}
+.notice {
+  padding: 0.5rem 1rem;
+}
+.workspace {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.schedule,
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.schedule {
+  position: relative;
+}
+.weekControls {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.85rem;
+  gap: 0.45rem;
+}
+.weekControls > :last-child {
+  width: min(12rem, 100%);
+}
+.weekScroll {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+.unscheduled {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  font-size: var(--lz-text-caption);
+}
+.week {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.week thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--table-heading);
+  text-align: start;
+  font-weight: 600;
+  color: var(--table-heading-foreground);
+  padding: 0.48rem 0.5rem;
+  border-block: 1px solid var(--border);
+  font-size: var(--lz-text-caption);
+}
+.week .hourHead {
+  width: 3.5rem;
+}
+.week tbody th {
+  padding: 0.6rem 0.4rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  font-weight: 500;
+}
+.week tbody th,
+.week td {
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.week td {
+  padding: 0.22rem;
+  border-inline-start: 1px solid var(--border-subtle);
+}
+.place {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.25rem 0.4rem;
+  border-inline-start: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--foreground);
+  text-align: start;
+  cursor: pointer;
+}
+.place + .place {
+  margin-top: 0.2rem;
+}
+.place[data-ppt="true"] {
+  border-inline-start-color: var(--interactive);
+  background: var(--accent);
+}
+.place[aria-pressed="true"],
+.place:hover,
+.item:hover:enabled,
+.dayPicker button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--interactive);
+}
+.place[aria-pressed="true"] {
+  outline: 1px solid var(--interactive);
+  outline-offset: -1px;
+}
+.place:focus-visible,
+.item:focus-visible,
+.dayPicker button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.placeName {
+  font-weight: 600;
+  font-size: var(--lz-text-caption);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.placeDetails,
+.placeCount {
+  display: flex;
+  align-items: center;
+}
+.placeDetails {
+  justify-content: space-between;
+  gap: 0.25rem;
+  font-size: var(--lz-text-micro, 0.7rem);
+  color: var(--muted-foreground);
+}
+.placeDetails > :first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.placeCount {
+  flex-shrink: 0;
+  gap: 0.13rem;
+}
+.riskIndicator,
+.studentFacts .warning,
+.notice {
+  color: var(--warning);
+}
+.panel {
+  border-inline-start: 1px solid var(--border);
+  background: var(--card);
+}
+.panelTitle {
+  padding: 0.5rem 0.85rem;
+  min-height: 2.75rem;
+}
+.panelTitle h2 {
+  flex: 1;
+  font-weight: 600;
+  color: var(--heading);
+  font-size: var(--lz-text-body);
+}
+.panelTitle h2:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.planCounts,
+.planHeading,
+.item small,
+.item svg {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.studentFacts {
+  padding: 0.15rem 0.85rem 0.6rem;
+  display: grid;
+  gap: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+.panelScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.panelFooter {
+  flex: none;
+  display: grid;
+  padding: 0.55rem 0.85rem;
+  border-top: 1px solid var(--border);
+}
+.personSummary {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.25rem 0.85rem 0.7rem;
+  font-size: var(--lz-text-caption);
+  overflow-wrap: anywhere;
+}
+.item:disabled {
+  cursor: default;
+}
+.item > svg {
+  flex: none;
+}
+.suggestionNote,
+.emptyDay {
+  padding: 0.6rem 0.85rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: start;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+.item span {
+  display: grid;
+  gap: 0.1rem;
+}
+.item strong,
+.zero h2,
+.zero h3,
+.gate h3 {
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+  color: var(--heading);
+}
+.planHeading {
+  justify-content: space-between;
+}
+.match {
+  padding: 0.25rem 0.85rem;
+  color: var(--interactive);
+  font-size: var(--lz-text-caption);
+}
+.zero,
+.gate {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 0.5rem;
+  padding: 1.5rem;
+}
+.gate {
+  flex: 1;
+  overflow: auto;
+  padding-block-start: clamp(2rem, 8vh, 5rem);
+  max-width: 36rem;
+  align-self: center;
+}
+.gate h2 {
+  font-size: var(--lz-text-h3);
+  color: var(--heading);
+  font-weight: 600;
+}
+.gate section {
+  margin-top: 1rem;
+}
+.gate p,
+.studentFacts p,
+.zero p {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.panel a:not([data-slot="button"]),
+.gate li a {
+  color: var(--interactive);
+}
+.feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border-top: 1px solid var(--border);
+  background: var(--accent);
+  padding: 0.3rem 0.85rem;
+  font-size: var(--lz-text-caption);
+}
+.dayPicker,
+.emptyDay {
+  display: none;
+}
+@media (max-width: 52rem) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  .schedule,
+  .panel {
+    flex: 1;
+    border-inline-start: 0;
+  }
+  .header {
+    gap: 0.4rem;
+    padding: 0.5rem 0.65rem;
+    flex-wrap: wrap;
+  }
+  .heading h1 {
+    font-size: var(--lz-text-body);
+  }
+  .weekControls {
+    padding-inline: 0.65rem;
+  }
+  .weekControls > :last-child {
+    width: min(10rem, 100%);
+  }
+  .dayPicker {
+    display: flex;
+    border-top: 1px solid var(--border);
+  }
+  .emptyDay {
+    display: block;
+    padding-block: 1rem;
+  }
+  .dayPicker button {
+    flex: 1;
+    padding: 0.45rem 0.2rem;
+    font-size: var(--lz-text-caption);
+  }
+  .week [data-day-selected="false"],
+  .week [data-day-empty="true"] {
+    display: none;
+  }
+  .placeName,
+  .placeDetails {
+    font-size: var(--lz-text-caption);
+  }
+  .place {
+    padding: 0.4rem 0.6rem;
+  }
+}
+@media (max-width: 29rem) {
+  .weekControls > :last-child {
+    width: 100%;
+  }
+  .headerActions {
+    gap: 0.1rem;
+  }
+}
+
+.saturday {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 400;
+}
+.week td[data-closed="true"] {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--border-subtle) 6px 7px);
+}
+.board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity var(--lz-duration-fast) var(--lz-ease-standard);
+}
+.board[aria-busy="true"] {
+  opacity: 0.65;
+}
+.header .weekControls {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0.3rem;
+}
+.progress {
+  overflow: hidden;
+  height: 2px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.progress span {
+  display: block;
+  width: 36%;
+  height: 100%;
+  opacity: 0;
+  background: var(--interactive);
+  animation: formation-progress 1.15s linear 160ms infinite;
+}
+@keyframes formation-progress {
+  from {
+    opacity: 0.75;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 0.75;
+    transform: translateX(280%);
+  }
+}
+:global(html[data-formation-panel]) .panel {
+  /* Match the global snapshot selectors even after CSS Modules scopes local names. */
+  --formation-panel-transition: formation-panel;
+  view-transition-name: var(--formation-panel-transition);
+}
+:global(html[data-formation-panel]::view-transition-old(root)),
+:global(html[data-formation-panel]::view-transition-new(root)) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:global(html[data-formation-panel]::view-transition-group(formation-panel)) {
+  animation: none;
+  overflow: clip;
+}
+:global(html[data-formation-panel]::view-transition-old(formation-panel)) {
+  animation: none;
+  opacity: 0;
+}
+:global(html[data-formation-panel]::view-transition-new(formation-panel)) {
+  animation: formation-panel-appear 120ms ease-out both;
+}
+@keyframes formation-panel-appear {
+  from {
+    opacity: 0;
+  }
+}
+@media (max-width: 72rem) {
+  .header {
+    flex-wrap: wrap;
+  }
+  .header .weekControls {
+    order: 2;
+    flex-basis: 100%;
+    padding: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board {
+    transition: none;
+  }
+  .progress span {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+.placeTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+.placeTitle small {
+  flex-shrink: 0;
+  font-size: var(--lz-text-micro, 0.68rem);
+  color: var(--muted-foreground);
+}
+
+.workspace[data-formation-expanded] {
+  display: flex;
+  flex-direction: column;
+}
+.workspace[data-formation-expanded] .schedule,
+.page:has(.workspace[data-formation-expanded]) .weekControls {
+  display: none;
+}
+.workspace[data-formation-expanded] .panel {
+  display: flex;
+  flex: 1;
+  border-inline-start: 0;
+}
+.workspace[data-formation-expanded] .panelTitle {
+  border-bottom: 1px solid var(--border);
+}
+.workspace[data-formation-expanded] .studentFacts {
+  padding: 0.85rem 1rem;
+}
+.workspace[data-formation-expanded] .studentFacts > :is(button, a) {
+  justify-self: start;
+}
+.place[data-highlighted="true"] {
+  background: var(--accent);
+  outline: 2px solid var(--interactive);
+  outline-offset: -2px;
+}
+.confirmedCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: var(--lz-text-micro);
+  color: var(--interactive);
+}
+
+.place {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
+}
+.placeDetails,
+.placeTitle,
+.placeDetails > span,
+.placeName {
+  min-width: 0;
+}
+.placeTitle small {
+  font-variant-numeric: tabular-nums;
+}
+.slotCounts,
+.gridLegend,
+.gridLegend span {
+  display: flex;
+  align-items: center;
+}
+.slotCounts {
+  gap: 0.45rem;
+  font-size: var(--lz-text-micro, 0.7rem);
+  color: var(--muted-foreground);
+}
+.gridLegend {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  padding: 0.35rem 0.65rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.gridLegend span {
+  gap: 0.25rem;
+}
+.gridLegend span:nth-child(2) svg {
+  color: var(--interactive);
+}
+.gridLegend span:last-child svg {
+  color: var(--warning);
+}
+
+.header > [data-slot="field"] {
+  align-self: center;
+}
+.placeTitle {
+  flex-wrap: wrap;
+  column-gap: 0.2rem;
+}
+.placeTitle small {
+  margin-inline-start: auto;
+}
+
+.page:has([data-student-detail], [data-plan-detail], [data-lead-detail]) > .header {
+  display: none;
+}
+
+.panel[data-student-detail] {
+  container: student-sheet / inline-size;
+  --student-content-width: min(69rem, calc(100% - 12rem));
+}
+
+.studentMasthead {
+  display: grid;
+  grid-template-columns: 1fr var(--student-content-width) 1fr;
+  flex: none;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.studentHeader {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 0.875rem;
+}
+
+.identity {
+  min-width: 0;
+}
+
+.identity h1 {
+  color: var(--heading);
+  font-family: var(--lz-font-display);
+  font-size: var(--lz-text-h2);
+  font-weight: 600;
+  line-height: var(--lz-leading-h2);
+  overflow-wrap: anywhere;
+}
+
+.identity h1:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.identity p {
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+
+.studentDetailBody {
+  width: var(--student-content-width);
+  margin-inline: auto;
+  padding-block: 1.25rem 2rem;
+}
+
+@container student-sheet (max-width: 54rem) {
+  .studentMasthead {
+    grid-template-columns: 1rem minmax(0, 1fr) 1rem;
+  }
+
+  .studentHeader {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.25rem 0.75rem;
+    padding-block: 0.25rem 0.875rem;
+  }
+
+  .studentHeader > :first-child {
+    grid-row: 1 / 3;
+  }
+
+  .studentHeader > [data-slot="badge"] {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .studentDetailBody {
+    width: calc(100% - 2rem);
+    padding-block: 0.875rem 1.5rem;
+  }
+}
+
+/* Carry the selected student's name from the roster to the sheet and back. */
+@media (prefers-reduced-motion: no-preference) {
+  :global(html[data-formation-panel]) .identity h1 {
+    --formation-identity-transition: formation-student-name;
+    view-transition-name: var(--formation-identity-transition);
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  :global(html[data-formation-panel]) .panel[data-student-detail] .panelScroll {
+    --formation-body-transition: formation-student-body;
+    view-transition-name: var(--formation-body-transition);
+  }
+
+  :global(html[data-formation-panel]::view-transition-group(formation-student-name)) {
+    z-index: 1;
+    animation-duration: var(--lz-duration-slow);
+    animation-timing-function: var(--lz-ease-standard);
+  }
+
+  :global(html[data-formation-panel]::view-transition-group(formation-student-body)) {
+    overflow: clip;
+    animation: none;
+  }
+
+  :global(html[data-formation-panel]::view-transition-new(formation-student-body)),
+  .panel[data-student-arrival="forward"] {
+    animation: student-sheet-enter var(--lz-duration-slow) var(--lz-ease-standard) both;
+  }
+
+  :global(html[data-formation-panel]::view-transition-old(formation-student-body)) {
+    animation: student-sheet-exit var(--lz-duration-base) var(--lz-ease-standard) both;
+  }
+
+  .panel[data-student-arrival="backward"] {
+    animation: student-list-return var(--lz-duration-base) var(--lz-ease-standard) both;
+  }
+}
+
+@keyframes student-sheet-enter {
+  from {
+    transform: translateX(1.75rem);
+    opacity: 0.25;
+  }
+}
+
+@keyframes student-sheet-exit {
+  to {
+    transform: translateX(1.75rem);
+    opacity: 0;
+  }
+}
+
+@keyframes student-list-return {
+  from {
+    transform: translateX(-1rem);
+    opacity: 0.5;
+  }
+}

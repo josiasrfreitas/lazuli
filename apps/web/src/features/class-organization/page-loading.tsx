@@ -1,19 +1,42 @@
-import type { JSX as ReactJSX } from "react";
+import type { ReactElement } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
+import { WeekHeader } from "./week-header";
+import styles from "./formation.module.css";
 
-export function OrganizationLoading(): ReactJSX.Element {
+export function FormationProgress({ label }: { label: string }): ReactElement {
   return (
-    <div
-      className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4"
-      role="status"
-      aria-label="Carregando organização"
-    >
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {Array.from({ length: 4 }, (_unused, position) => (
-          <InlineSkeleton key={position} className="h-24 w-full shrink-0" />
+    <div className={styles.progress} role="progressbar" aria-label={label}>
+      <span />
+    </div>
+  );
+}
+
+export function OrganizationLoading({ review = false }: { review?: boolean }): ReactElement {
+  if (review)
+    return (
+      <section className={styles.board} aria-label="Carregando vínculos" aria-busy="true">
+        <FormationProgress label="Buscando os vínculos do semestre" />
+        {Array.from({ length: 5 }, (_unused, index) => (
+          <div
+            key={index}
+            aria-hidden="true"
+            className="flex items-center gap-3 border-b border-border-subtle px-4 py-3"
+          >
+            <InlineSkeleton className="size-6 rounded-full" />
+            <InlineSkeleton className="h-3 w-36" />
+            <InlineSkeleton className="ml-auto h-3 w-24" />
+          </div>
         ))}
-      </div>
-      <span className="sr-only">Carregando turmas e alunos…</span>
+      </section>
+    );
+  return (
+    <div className={styles.workspace} aria-busy="true">
+      <section className={styles.schedule} aria-label="Grade semanal">
+        <table className={styles.week} aria-hidden="true">
+          <WeekHeader day="MONDAY" />
+        </table>
+        <FormationProgress label="Buscando as turmas do período" />
+      </section>
     </div>
   );
 }

@@ -94,7 +94,17 @@ export async function createStudentFor(
   input: StudentFixtureInput,
 ): Promise<{ id: string }> {
   return db.student.create({
-    data: { fullName: `${config.prefix}${input.suffix}`, status: input.status ?? "ACTIVE" },
+    data: {
+      fullName: `${config.prefix}${input.suffix}`,
+      status: input.status ?? "ACTIVE",
+      contracts: {
+        create: {
+          startsOn: new Date("2000-01-01"),
+          endsOn: new Date("2100-12-31"),
+          payer: { create: { name: config.prefix + "Enrollment payer" } },
+        },
+      },
+    },
     select: { id: true },
   });
 }
@@ -193,6 +203,8 @@ export async function cleanEnrollmentFixtures(config: EnrollmentFixtureConfig): 
   await db.enrollment.deleteMany({
     where: { student: { fullName: { startsWith: config.prefix } } },
   });
+  await db.contract.deleteMany({ where: { student: { fullName: { startsWith: config.prefix } } } });
+  await db.payer.deleteMany({ where: { name: config.prefix + "Enrollment payer" } });
   await db.student.deleteMany({ where: { fullName: { startsWith: config.prefix } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: config.prefix } } });
   await db.period.deleteMany({ where: { name: { startsWith: config.prefix } } });

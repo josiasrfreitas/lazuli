@@ -47,7 +47,7 @@ export function useRenewalModel({
   onSaved: () => void;
 }): RenewalModel {
   const [initial] = useState(() => emptyRenewalFields(data));
-  const state = useContractFormState(true, initial, false);
+  const state = useContractFormState(true, { initialFields: initial, suggestAgreementDate: false });
   const due = useRenewalDueDate();
   const restoreTerms = (): void => restoreRenewalTerms(data, { state, due });
   const preview = renewalPreview({ data, state, firstDueDate: due.firstDueDate });
@@ -88,6 +88,7 @@ export function useRenewalModel({
 function emptyRenewalFields(data: RenewalTerms): ContractFields {
   return {
     ...emptyContractFields,
+    ...renewalPayerFields(data),
     materialPayment: "NONE",
     studentId: data.student.id,
     studentName: data.student.fullName,
@@ -110,10 +111,18 @@ function restoreRenewalTerms(
   const previous = initialRenewalFields(data);
   for (const key of Object.keys(previous) as Array<keyof ContractFields>) {
     const value = previous[key];
-    if (!key.startsWith("material") && value !== undefined) state.change(key, value);
+    if (!key.startsWith("payer") && !key.startsWith("student") && value !== undefined) {
+      state.change(key, value);
+    }
   }
   due.changeDueDate(initialDueDate(data, previous.firstDueDate));
   state.setErrors({});
+  if (data.material?.missingCount) {
+    state.setFieldError(
+      "materialStageIds",
+      "A sequência não tem livros suficientes. Escolha os livros restantes ou remova os espaços vazios.",
+    );
+  }
 }
 
 function useRenewalDueDate(): RenewalDue {
@@ -136,7 +145,7 @@ function initialRenewalFields(data: RenewalTerms): ContractFields {
   const start = next.toISOString().slice(0, ISO_DATE_LENGTH);
   return {
     ...emptyContractFields,
-    materialPayment: "NONE",
+    ...renewalMaterialFields(data),
     studentId: data.student.id,
     studentName: data.student.fullName,
     payerId: data.payer.id,
@@ -155,6 +164,50 @@ function initialRenewalFields(data: RenewalTerms): ContractFields {
     endsOn: formatDateOnlyBR(addCalendarMonths(start, data.durationMonths)),
     paymentPlan: data.installmentCount === data.durationMonths ? "common" : "special",
     installmentCount: String(data.installmentCount),
+  };
+}
+
+function renewalPayerFields(data: RenewalTerms): Partial<ContractFields> {
+  return {
+    payerMode: "existing",
+    payerId: data.payer.id,
+    payerLabel: data.payer.name,
+    payerName: data.payer.name,
+    payerDocumentType: data.payer.documentType ?? "",
+    payerDocumentNumber: data.payer.documentNumber ?? "",
+    payerPhone: data.payer.phone ?? "",
+    payerEmail: data.payer.email ?? "",
+  };
+}
+
+function renewalMaterialFields(data: RenewalTerms): Partial<ContractFields> {
+  const material = data.material;
+  if (!material) return { materialPayment: "NONE" };
+  return {
+    ...(material.acquisitionSemesters.length > 0
+      ? {
+          materialBooks: JSON.stringify(
+            material.stageIds.map((stageId, index) => ({
+              stageId: stageId || null,
+              acquisitionSemester: index === 0 ? 1 : (material.acquisitionSemesters[index] ?? null),
+            })),
+          ),
+        }
+      : {}),
+    materialStageIds: material.stageIds.join(","),
+    materialCategory: material.category,
+    materialPayment: material.payment,
+    materialInstallments: String(material.installmentCount),
+    materialCardFeeMode: material.cardFeePct === null ? "REFERENCE" : "CUSTOM",
+    materialCardFeePct: material.cardFeePct === null ? "" : String(material.cardFeePct),
+    materialScholarshipMode: renewalScholarshipMode(material.scholarshipPct),
+    materialScholarshipPct: material.scholarshipPct ? String(material.scholarshipPct) : "",
+    materialScholarshipAgreement: material.scholarshipAgreement ?? "",
+    materialPriceMode: material.priceOverrideCents === null ? "REFERENCE" : "CUSTOM",
+    materialCustomPrice:
+      material.priceOverrideCents === null
+        ? ""
+        : (material.priceOverrideCents / CENTS_PER_REAL).toFixed(2),
   };
 }
 

@@ -1,12 +1,10 @@
+import { seedSchoolFiles } from "./student-media.js";
 import { seedTeachingPrograms } from "./teaching-programs.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { seedCourseCatalog } from "../../packages/db/src/seed-course-catalog.js";
 import { seedDevData } from "../../packages/db/src/seed-dev.js";
 import { DEV_CLASSES, DEV_STUDENTS, DEV_TEACHERS } from "../../packages/db/src/seed-dev-data.js";
-import {
-  resolvePersonalizedPortalClassName,
-  resolveRegularPortalClassName,
-} from "../../packages/api/src/classes/portal-name.js";
+import { resolvePortalClassName } from "../../packages/api/src/classes/portal-name.js";
 import { seedSettings } from "./settings.js";
 import { seedContracts } from "./contracts.js";
 import { seedAdmissions } from "./admissions.js";
@@ -21,25 +19,16 @@ import { seedClassOrganization } from "./class-organization.js";
 import { seedSemesterOrganization } from "./semester-organization.js";
 
 /** Shared by initial provisioning and the destructive pnpm seed entry point. */
-export async function seedSchool(database: DatabaseClient, todayIso: string): Promise<void> {
+export async function seedSchool(
+  database: DatabaseClient,
+  options: { todayIso: string; includeNextSemester: boolean },
+): Promise<void> {
+  const { todayIso } = options;
   await seedCourseCatalog(database);
   await seedTeachingPrograms(database);
   await seedDevData(database, {
     todayIso,
-    resolveClassName: (classSeed, semester) => {
-      const input = {
-        database,
-        slots: classSeed.slots,
-        semesterName: semester.name,
-        year: semester.year,
-      };
-      return classSeed.scheduleType === "PERSONALIZED"
-        ? resolvePersonalizedPortalClassName(input)
-        : resolveRegularPortalClassName({
-            ...input,
-            stageInternalCode: classSeed.stageInternalCode,
-          });
-    },
+    resolveClassName: (fields) => resolvePortalClassName(database, fields),
   });
   await seedSettings(database);
   await seedContracts(database, todayIso);
@@ -50,9 +39,10 @@ export async function seedSchool(database: DatabaseClient, todayIso: string): Pr
   await seedClassRecords(database, todayIso);
   await seedStudentAttendance(database, todayIso);
   await seedAppointments(database, todayIso);
-  await seedSemesterOrganization(database, todayIso);
+  if (options.includeNextSemester) await seedSemesterOrganization(database, todayIso);
   await seedClassOrganization(database, todayIso);
   await seedActivity(database, todayIso);
+  await seedSchoolFiles(database);
   process.stdout.write(
     `School loaded for ${todayIso}: ${DEV_STUDENTS.length + 2} students, ${DEV_CLASSES.length + 1} current-semester classes and ${DEV_TEACHERS.length} teachers.\n`,
   );

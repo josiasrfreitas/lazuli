@@ -5,6 +5,10 @@ O comando público `pnpm seed` reconstrói o banco e o bucket isolados do worksp
 validações manuais. A execução precisa ser coordenada com quem estiver validando aquele workspace.
 Os loaders internos não são comandos incrementais de atualização.
 
+Para conferir a escola existente, rode `pnpm seed:status` na raiz. O relatório consulta o banco do workspace, lê os anexos no armazenamento privado e imprime links para perfis com foto. Ele mostra turmas, histórico, aulas futuras, frequência, distribuição das notas e inadimplência usando a mesma consulta da página de contratos. O cadastro dos ativos recebe retratos sintéticos e documentos de demonstração conforme a idade. A cada 19 cadastros, um fica com um documento faltando. Nos contratos anuais com estágio sucessor, cerca de quatro em cada cinco simulam os dois livros pagos no ato. Os demais deixam o segundo pagamento para depois, com ou sem semestre combinado. O relatório também conta as pendências de anexos, livros e registros de aula pela consulta da página inicial.
+
+Use `pnpm seed` quando quiser voltar ao cenário de referência com as datas atualizadas. Para ensaiar a criação do próximo semestre desde o início, use `pnpm seed --sem-proximo-semestre`. Esse comando também reconstrói a base local, mas gera apenas o semestre vigente, com suas turmas e seus alunos. O próximo período, seus planos e suas alocações ficam por criar. Entre reconstruções, o relógio do aplicativo continua real e os exemplos podem ser editados normalmente.
+
 Este cenário sustenta a operação cotidiana de uma escola de inglês de aproximadamente 250 alunos.
 Todos os nomes e contatos são sintéticos. A data de referência é o dia civil da escola em
 `America/Sao_Paulo`; vencimentos, semestre, entradas, visitas e pagamentos acompanham essa data.
@@ -34,7 +38,7 @@ usando as turmas presenciais já definidas; contratos, notas e planos mantêm os
 
 ## Calendário, entrada e frequência
 
-O semestre segue a metade civil do ano. Feriados nacionais de data fixa são dias de fechamento,
+A cada reconstrução o semestre atual começa 16 semanas antes da data de referência e termina oito semanas depois. Assim, inclusive em janeiro e julho, há aulas realizadas, avaliações e horários futuros para validar. Feriados nacionais de data fixa são dias de fechamento,
 sem sessões ou frequência. Este recorte não pretende reproduzir recessos, feriados móveis ou
 feriados municipais de uma escola específica.
 
@@ -231,14 +235,7 @@ o `pnpm seed`, conforme ADR0024, sem workflow de aplicação parcial.
 
 ## Registro e baixa da aula
 
-V4 seleciona as quatro últimas aulas passadas de cada turma, até 88 encontros. Na reconstrução
-de 11/10/2026 foram carregadas 87 baixas (75 regulares, 12 PPT), 89 versões, uma aula cancelada
-e uma aula sem presentes. As duas correções de conteúdo couberam no recorte; a correção de
-presença foi omitida pelas dependências existentes. Na configuração
-atual, um encontro regular é cancelado e outro termina sem presentes; os demais recebem conteúdo
-realizado. Aulas antigas conservam frequência confirmada sem baixa de conteúdo, distinção visível
-na operação. O recorte não cria registros futuros nem transforma automaticamente presença em
-conteúdo realizado.
+O gerador registra o conteúdo das aulas anteriores a hoje nas 22 turmas regulares e PPT do cenário principal. Inclui exemplos de substituição, correção, cancelamento e aula sem presentes. Aulas futuras continuam disponíveis para a operação.
 
 No regular há um relato compartilhado por aula com presentes. No PPT, cada presente tem seu
 relato e o estágio vigente naquela data; ausentes não recebem conteúdo individual. Os relatos

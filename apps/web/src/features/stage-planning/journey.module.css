@@ -142,7 +142,7 @@
 }
 .moments {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
   padding-block: 0.875rem;
 }
@@ -274,3 +274,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.summaryFooter { border-top: 1px solid var(--border-subtle); padding-top: .625rem; display: flex; align-items: start; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.summaryFooter .method { border: 0; padding-top: .5rem; flex: 1 1 18rem; }

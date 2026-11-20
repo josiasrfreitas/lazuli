@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { StaffRole } from "@lazuli/auth";
 import { z } from "@lazuli/validators";
-import { createServiceLogger, safeError } from "@lazuli/logging";
+import { createServiceLogger, safeError, reportError } from "@lazuli/logging";
 import superjson from "superjson";
 
 import type { Context } from "./context.js";
@@ -62,11 +62,15 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
           ...fields,
           status: "ok",
           process_step: label,
-          ...(Array.isArray(result.data) ? { facts: { items: result.data.length } } : {}),
+          ...resultFacts(result.data),
         },
         label,
       );
-    } else if (result.error.code !== "INTERNAL_SERVER_ERROR")
+    } else if (result.error.code === "INTERNAL_SERVER_ERROR") {
+      if (isTransactionExpiry(result.error.cause))
+        return { ...result, error: transactionTimeout(result.error, fields) };
+      reportError(result.error.cause ?? result.error, { procedure: path, service: "web" });
+    } else
       logger.warn(
         {
           ...fields,
@@ -156,4 +160,32 @@ export const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 function httpOperation(type: string): "GET" | "POST" {
   return type === "query" ? "GET" : "POST";
+}
+
+function resultFacts(data: Parameters<typeof safeError>[0]): { facts?: { items: number } } {
+  return Array.isArray(data) ? { facts: { items: data.length } } : {};
+}
+
+function transactionTimeout(
+  error: TRPCError,
+  fields: Record<string, string | number | undefined>,
+): TRPCError {
+  logger.warn(
+    { ...fields, status: "error", error_code: "TIMEOUT", error_cause_code: "P2028" },
+    "Database transaction exceeded its time limit",
+  );
+  return new TRPCError({
+    code: "TIMEOUT",
+    message: "O banco excedeu o tempo para concluir a operação. Tente novamente.",
+    cause: error.cause,
+  });
+}
+
+function isTransactionExpiry(cause: TRPCError["cause"]): boolean {
+  return (
+    cause instanceof Error &&
+    "code" in cause &&
+    cause.code === "P2028" &&
+    /expired transaction|transaction[^\n]*timed out/i.test(cause.message)
+  );
 }

@@ -10,8 +10,9 @@ export function formatCurrencyCents(cents: number | null): string {
   return `R$ ${integerFormatter.format(whole)},${fraction}`;
 }
 
-/** Extract centavos from typed or pasted text; undefined means the value is too large. */
+/** Extract centavos from typed or pasted text; undefined preserves the current value for invalid input. */
 export function parseCurrencyDigits(text: string): number | null | undefined {
+  if (!/^(?:R\$\s*)?[\d.,\s]*$/u.test(text.trim())) return undefined;
   const digits = text.replaceAll(/\D/gu, "");
   if (!digits) return null;
   const cents = Number(digits);

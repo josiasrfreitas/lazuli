@@ -89,7 +89,7 @@ function TreatmentHeader({ review }: { review: boolean }): ReactElement {
       <DialogDescription>
         {review
           ? "Confira o efeito em cada parcela antes de confirmar."
-          : "Selecione as parcelas e defina as condições combinadas com o responsável."}
+          : "Selecione as parcelas vencidas e defina as condições combinadas com o responsável."}
       </DialogDescription>
     </DialogHeader>
   );

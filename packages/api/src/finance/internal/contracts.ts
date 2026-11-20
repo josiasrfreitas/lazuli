@@ -1,13 +1,18 @@
-import { materialOrderData } from "./contract-materials.js";
+import { materialOrderData, receiveNewMaterial } from "./contract-materials.js";
 import { searchIds } from "../../search.js";
 import { createHash } from "node:crypto";
 
-import { previewMonthlyContract, type ContractFinancialStatus } from "@lazuli/domain";
+import {
+  saoPauloDateOnly,
+  previewMonthlyContract,
+  type ContractFinancialStatus,
+} from "@lazuli/domain";
 import type { FinanceSettings, Prisma } from "@lazuli/db";
 import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
 import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import { groupedContractPage } from "./grouped-contract-page.js";
 import { contractStatusPage } from "./contract-status-page.js";
 import { createStudent } from "../../students/data.js";
 import { createContractPayer } from "./payers.js";
@@ -86,7 +91,7 @@ async function readyTerms(input: {
     assertContractParties(database, values),
   ]);
   const prior = await renewalPrior(database, values);
-  if (!prior && !values.material) {
+  if (!prior && !values.material && !values.books) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Inclua o material para criar um novo contrato.",
@@ -220,37 +225,90 @@ type PersistContractInput = {
   terms: ReadyTerms;
 };
 
+function normalizedAgreement(agreement: string | null | undefined): string | null {
+  return agreement?.trim() || null;
+}
+
+function plannedBooksData(
+  books: PersistContractInput["values"]["books"],
+): Pick<Prisma.ContractUncheckedCreateInput, "plannedBooks"> {
+  if (!books) return {};
+  return {
+    plannedBooks: {
+      create: books.map((book, index) => ({
+        semester: index + 1,
+        stageId: book.stageId,
+        acquisitionSemester: book.acquisitionSemester,
+        agreedPriceCents: book.agreedPriceCents ?? null,
+      })),
+    },
+  };
+}
+
 async function persistContract(input: PersistContractInput): Promise<ContractListRow> {
   const { database, values, terms } = input;
   const { settings, preview } = terms;
   const orders = await contractOrders(input);
+  const data: Prisma.ContractUncheckedCreateInput = {
+    commandId: values.commandId,
+    commandFingerprint: contractFingerprint(values),
+    renewedFromId: values.renewedFromId ?? null,
+    payerId: input.payerId,
+    studentId: input.studentId,
+    agreedOn: toDateOnly(values.agreedOn),
+    startsOn: toDateOnly(values.startsOn),
+    durationMonths: values.durationMonths,
+    endsOn: toDateOnly(preview.endsOn),
+    monthlyAmountCents: preview.chargedMonthlyCents,
+    baseMonthlyAmountCents: values.monthlyAmountCents,
+    scholarshipPct: values.scholarshipPct ?? 0,
+    scholarshipAgreement: normalizedAgreement(values.scholarshipAgreement),
+    tuitionCeilingCents: settings.tuitionCeilingCents,
+    maximumDiscountPct: settings.maximumDiscountPct,
+    punctualityDiscountPct:
+      (values.scholarshipPct ?? 0) > 0 ? 0 : Number(settings.punctualityDiscountPct),
+    standardPunctualityDiscountPct: settings.punctualityDiscountPct,
+    interestRatePctMonthly: settings.interestRatePctMonthly,
+    cancellationFeePct: settings.cancellationFeePct,
+    ...plannedBooksData(values.books),
+    orders: { create: orders },
+  };
+  const received = (values.books ?? []).flatMap((book) =>
+    book.acquisition?.receivedMethod ? [book.acquisition] : [],
+  );
+  if (received.length === 0)
+    return toRow(await database.contract.create({ data, select: contractSelect }));
+
+  // Only material installment IDs and amounts are needed to post receipts.
+  // Load the contract summary once, after all allocations are visible.
   const contract = await database.contract.create({
-    data: {
-      commandId: values.commandId,
-      commandFingerprint: contractFingerprint(values),
-      renewedFromId: values.renewedFromId ?? null,
-      payerId: input.payerId,
-      studentId: input.studentId,
-      agreedOn: toDateOnly(values.agreedOn),
-      startsOn: toDateOnly(values.startsOn),
-      durationMonths: values.durationMonths,
-      endsOn: toDateOnly(preview.endsOn),
-      monthlyAmountCents: preview.chargedMonthlyCents,
-      baseMonthlyAmountCents: values.monthlyAmountCents,
-      scholarshipPct: values.scholarshipPct ?? 0,
-      scholarshipAgreement: values.scholarshipAgreement?.trim() || null,
-      tuitionCeilingCents: settings.tuitionCeilingCents,
-      maximumDiscountPct: settings.maximumDiscountPct,
-      punctualityDiscountPct:
-        (values.scholarshipPct ?? 0) > 0 ? 0 : Number(settings.punctualityDiscountPct),
-      standardPunctualityDiscountPct: settings.punctualityDiscountPct,
-      interestRatePctMonthly: settings.interestRatePctMonthly,
-      cancellationFeePct: settings.cancellationFeePct,
-      orders: { create: orders },
+    data,
+    select: {
+      id: true,
+      orders: {
+        where: { kind: "MATERIAL", deletedAt: null },
+        select: {
+          material: { select: { stageId: true } },
+          installments: {
+            where: { deletedAt: null },
+            orderBy: { sequenceNumber: "asc" },
+            select: { id: true, amountCents: true },
+          },
+        },
+      },
     },
-    select: contractSelect,
   });
-  return toRow(contract);
+  for (const material of received) {
+    const order = contract.orders.find((row) => row.material?.stageId === material.stageIds[0]);
+    if (!order) throw new Error("Cobrança do material não encontrada.");
+    await receiveNewMaterial({ ...input, order, material, date: values.agreedOn });
+  }
+  return toRow(
+    await database.contract.findUniqueOrThrow({
+      where: { id: contract.id },
+      select: contractSelect,
+    }),
+  );
 }
 
 async function contractOrders(
@@ -265,21 +323,26 @@ async function contractOrders(
   const enrollmentFee = values.enrollmentFeeCents
     ? enrollmentFeeOrderData({ values, staffUserId })
     : null;
-  const material = values.material
-    ? await materialOrderData({
+  const acquisitions =
+    values.books?.flatMap((book) => (book.acquisition ? [book.acquisition] : [])) ??
+    (values.material ? [values.material] : []);
+  const materials = [];
+  for (const material of acquisitions)
+    materials.push(
+      await materialOrderData({
         database,
-        material: values.material,
+        material,
         settings,
-        firstDueDate: values.firstDueDate,
+        firstDueDate: values.books ? values.agreedOn : values.firstDueDate,
         staffUserId,
-      })
-    : null;
+      }),
+    );
   return [
     ...(preview.principalAmountCents > 0
       ? [tuitionOrderData({ values, preview, staffUserId })]
       : []),
     ...(enrollmentFee ? [enrollmentFee] : []),
-    ...(material ? [material] : []),
+    ...materials,
   ];
 }
 
@@ -367,6 +430,10 @@ type ContractListOptions = {
   query?: string;
   payerId?: string | undefined;
   studentId?: string | undefined;
+  followUp?: boolean | undefined;
+  grouped?: boolean | undefined;
+  materialState?: "ACQUIRED" | "PLANNED" | undefined;
+  scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
   startsFrom?: string | undefined;
   endsTo?: string | undefined;
   status?: ContractFinancialStatus | undefined;
@@ -374,7 +441,22 @@ type ContractListOptions = {
 };
 
 function contractListWhere(options: ContractListOptions): Prisma.ContractWhereInput {
+  const today = new Date(saoPauloDateOnly(options.now ?? new Date()));
   return {
+    ...(options.scheduleType
+      ? {
+          student: {
+            enrollments: {
+              some: {
+                deletedAt: null,
+                entryDate: { lte: today },
+                OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+                class: { scheduleType: options.scheduleType, deletedAt: null },
+              },
+            },
+          },
+        }
+      : {}),
     commandId: { not: null },
     deletedAt: null,
     ...(options.payerId ? { payerId: options.payerId } : {}),
@@ -395,6 +477,31 @@ export async function listContracts(
 }> {
   const { page, now = new Date() } = options;
   const pageSize = 25;
+  if (options.grouped) {
+    const grouped = await groupedContractPage(database, { ...options, now });
+    const contracts = await database.contract.findMany({
+      where: { id: { in: grouped.ids } },
+      select: contractSelect,
+    });
+    const byId = new Map(contracts.map((contract) => [contract.id, contract]));
+    return {
+      rows: grouped.ids.flatMap((id) => {
+        const row = byId.get(id);
+        return row
+          ? [
+              {
+                ...toRow(row, now),
+                renewalPending: grouped.renewals.has(id),
+                materialDue: grouped.materials.get(row.student.id) ?? null,
+              },
+            ]
+          : [];
+      }),
+      page,
+      pageSize,
+      total: grouped.total,
+    };
+  }
   const where = contractListWhere(options);
   if (options.query) {
     const [students, payers] = await Promise.all([

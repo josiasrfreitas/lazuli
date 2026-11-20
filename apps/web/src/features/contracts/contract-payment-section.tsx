@@ -10,7 +10,13 @@ import { parseDateBR } from "~/lib/masks";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
 import { selectedMaterialCardFee } from "./material-card-fee";
-import { materialPriceInput, scholarshipInput, paymentPlanLabel } from "./contract-form-model";
+import {
+  boundedInstallmentInput,
+  durationFromDates,
+  materialPriceInput,
+  scholarshipInput,
+  installmentBreakdown,
+} from "./contract-form-model";
 
 const CENTS_PER_REAL = 100;
 
@@ -58,10 +64,6 @@ function PaymentPreview({ preview }: { preview: NonNullable<FormProps["preview"]
         mensalidade.
       </p>
     );
-  const firstAmount = preview.installments[0]?.amountCents ?? null;
-  const uniformAmount = preview.installments.every((row) => row.amountCents === firstAmount)
-    ? firstAmount
-    : null;
   return (
     <>
       <div
@@ -72,7 +74,7 @@ function PaymentPreview({ preview }: { preview: NonNullable<FormProps["preview"]
           Vigência até {formatDateOnlyBR(preview.endsOn)} · mensalidades{" "}
           {formatBRLFromCents(preview.principalAmountCents)}
         </p>
-        <p>{paymentPlanLabel(preview.installments.length, uniformAmount)}</p>
+        <p>{installmentBreakdown(preview.installments)}</p>
         <p className="text-muted-foreground">
           Mensalidade de referência em dia {formatBRLFromCents(preview.onTimeMonthlyCents)} · piso
           da mensalidade acordada {formatBRLFromCents(preview.floorCents)}
@@ -248,7 +250,12 @@ function AdvancedPaymentControls({
               size="sm"
               value={fields.installmentCount}
               invalid={Boolean(errors.installmentCount)}
-              onChange={(event) => change("installmentCount", event.target.value)}
+              onChange={(event) =>
+                change(
+                  "installmentCount",
+                  boundedInstallmentInput(event.target.value, durationFromDates(fields)),
+                )
+              }
               aria-describedby={`${id}-help`}
             />
             <p id={`${id}-help`} className="text-caption text-muted-foreground">

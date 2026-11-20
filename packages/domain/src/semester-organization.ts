@@ -2,14 +2,15 @@ export type SemesterEligibility = {
   semesterId: string;
   entryOn: string;
   studentActive: boolean;
+  cohortAdvance?: boolean;
   mode: "ENTRY" | "CONTINUE" | "ADVANCE" | "REPEAT";
-  stage: { id: string; trackId: string; sequence: number } | null;
+  stage: { id: string; trackId: string } | null;
   source: {
     semesterId: string;
     active: boolean;
     stageId: string;
     trackId: string;
-    sequence: number;
+    nextStageId: string | null;
     scheduleType: "REGULAR" | "PERSONALIZED";
     decision: string | null;
     confirmed: boolean;
@@ -68,8 +69,7 @@ function continuationBlockers(input: SemesterEligibility, source: Source): strin
 function academicDecisionBlockers(input: SemesterEligibility, source: Source): string[] {
   const blockers: string[] = [];
   const advancing = input.mode === "ADVANCE";
-  const decision = advancing ? "APPROVED" : "REPEAT";
-  if (!source.confirmed || source.decision !== decision)
+  if (!hasAcademicDecision(input, source))
     blockers.push(
       advancing ? "Aprovação pedagógica pendente" : "Confirmação de repetência pendente",
     );
@@ -80,6 +80,12 @@ function academicDecisionBlockers(input: SemesterEligibility, source: Source): s
   return blockers;
 }
 
+function hasAcademicDecision(input: SemesterEligibility, source: Source): boolean {
+  const advancing = input.mode === "ADVANCE";
+  if (advancing && input.cohortAdvance && !source.decision) return true;
+  return source.confirmed && source.decision === (advancing ? "APPROVED" : "REPEAT");
+}
+
 function isNextStage(stage: SemesterEligibility["stage"], source: Source): boolean {
-  return stage?.trackId === source.trackId && stage.sequence === source.sequence + 1;
+  return stage?.trackId === source.trackId && stage.id === source.nextStageId;
 }

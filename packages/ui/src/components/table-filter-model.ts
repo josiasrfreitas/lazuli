@@ -24,6 +24,7 @@ export type TableFilterField = FilterBase &
         options: TableFilterOption[];
         selected: string[];
         onChange: (values: string[]) => void;
+        searchOptions?: (query: string) => (TableFilterOption & { description?: string })[];
         onSearch?: (value: string) => void;
       }
     | {

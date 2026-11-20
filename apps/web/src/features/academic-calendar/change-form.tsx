@@ -27,6 +27,7 @@ type ChangeFormProps = {
 type ChangeFormState = {
   item: ChangeFormProps["item"];
   draft: CalendarDraft;
+  hasChanges: boolean;
   change: CalendarChange | null;
   setChange: (change: CalendarChange | null) => void;
   validation: ReturnType<typeof useValidation>;
@@ -61,7 +62,13 @@ function useChangeForm({
   onPendingChange,
 }: ChangeFormProps): ChangeFormState {
   const [item] = useState(initialItem);
-  const [draft, setDraft] = useState<CalendarDraft>(() => initialChangeDraft(item, initialDate));
+  const [initialDraft] = useState(() => initialChangeDraft(item, initialDate));
+  const [draft, setDraft] = useState<CalendarDraft>(initialDraft);
+  const hasChanges =
+    !item ||
+    (Object.keys(initialDraft) as (keyof CalendarDraft)[]).some(
+      (key) => draft[key].trim() !== initialDraft[key].trim(),
+    );
   const [change, setChange] = useState<CalendarChange | null>(null);
   const validation = useValidation();
   const preview = trpc.calendar.academic.changes.preview.useMutation();
@@ -77,7 +84,7 @@ function useChangeForm({
     setChange(value);
     preview.mutate(value);
   }
-  return { item, draft, change, setChange, validation, preview, update, prepare };
+  return { item, draft, hasChanges, change, setChange, validation, preview, update, prepare };
 }
 function ChangeDialog({
   props: { mode, embedded = false, onBack, onClose },
@@ -103,6 +110,7 @@ function ChangeDialog({
       formId="calendar-change"
       firstField="calendar-title"
       submitLabel="Conferir impactos"
+      submitDisabled={!state.hasChanges}
       pendingLabel="Conferindo impactos…"
       pending={preview.isPending}
       error={preview.error?.message}
@@ -133,7 +141,7 @@ function ChangeDialogFields({
         update={update}
         submit={(event) => {
           event.preventDefault();
-          if (preview.isPending) return;
+          if (preview.isPending || !state.hasChanges) return;
           const values = validation.validate(draftSchema, draft);
           if (!values) return;
           const revision = item

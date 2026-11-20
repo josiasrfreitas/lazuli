@@ -1,37 +1,32 @@
 "use client";
-
-import { useState, type ComponentProps, type ReactElement } from "react";
+import { useQueryState } from "nuqs";
+import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
+import type { FinanceInstallmentRow } from "@lazuli/validators";
 import {
   ToastAlert,
-  Badge,
   Button,
-  DataTable,
   Dialog,
   DialogBackdrop,
   DialogBody,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogPortal,
   DialogTitle,
-  DialogTrigger,
   InlineSkeleton,
-  type DataTableColumn,
 } from "@lazuli/ui";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, CheckCircle2, Wallet } from "lucide-react";
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
-import { AddContractMaterial } from "~/features/contracts/add-contract-material";
-import { materialPaymentLabel } from "~/features/contracts/material-payment-label";
+import { PaymentDialog } from "~/features/installments/payment/payment-dialog";
 import { visibleFinanceContracts } from "./finance-contract-terms";
+import { MaterialReceipt, type MaterialTarget } from "./material-receipt";
 import styles from "./student-materials.module.css";
 
 type Summary = RouterOutputs["finance"]["studentSummary"];
 type Materials = RouterOutputs["finance"]["studentMaterials"];
-type Acquisition = Materials["acquisitions"][number];
+type Sale = Materials["acquisitions"][number];
 
 export function StudentMaterials({
   studentId,
@@ -42,36 +37,111 @@ export function StudentMaterials({
   studentName: string;
   summary: Summary;
 }): ReactElement {
-  const [open, setOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [requested, setRequested] = useQueryState("material");
+  const open = requested === "1";
+  const [target, setTarget] = useState<MaterialTarget | null>(null);
+  const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
   const [pending, setPending] = useState(false);
   const query = trpc.finance.studentMaterials.useQuery({ studentId }, { enabled: open });
   const utils = trpc.useUtils();
   const contract = visibleFinanceContracts(summary).find((row) => row.hasDetail);
-  const dueDate =
-    contract?.schedules.find((row) => row.kind === "TUITION")?.firstDueDate ?? contract?.startsOn;
+  function saved(): void {
+    void Promise.all([
+      utils.finance.invalidate(),
+      utils.students.invalidate(),
+      utils.dashboard.invalidate(),
+    ]);
+    setTarget(null);
+    setRows([]);
+  }
   return (
-    <Dialog open={open} onOpenChange={materialOpenChange({ pending, setOpen, setAdding })}>
-      <DialogTrigger render={<Button size="sm" variant="secondary" />}>
-        <BookOpen aria-hidden="true" /> Material didático
-      </DialogTrigger>
+    <>
+      <StudentMaterialsDialog
+        open={open && rows.length === 0}
+        pending={pending}
+        passingToPayment={rows.length > 0}
+        studentName={studentName}
+        title={target ? "Pagamento do material" : "Material didático"}
+        onClose={() => {
+          void setRequested(null);
+          setTarget(null);
+        }}
+      >
+        {target ? (
+          <MaterialReceipt
+            target={target}
+            onBack={() => setTarget(null)}
+            onPending={setPending}
+            onSaved={saved}
+          />
+        ) : (
+          <MaterialLibrary
+            query={query}
+            onPay={setTarget}
+            onReceive={setRows}
+            contractId={contract?.id}
+          />
+        )}
+      </StudentMaterialsDialog>
+      {open && rows.length > 0 && (
+        <PaymentDialog
+          open
+          rows={rows}
+          onOpenChange={(next) => {
+            if (!next) setRows([]);
+          }}
+          onRegistered={saved}
+        />
+      )}
+    </>
+  );
+}
+
+function StudentMaterialsDialog({
+  open,
+  pending,
+  passingToPayment,
+  studentName,
+  title,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  pending: boolean;
+  passingToPayment: boolean;
+  studentName: string;
+  title: string;
+  onClose: () => void;
+  children: ReactElement;
+}): ReactElement {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next, event) => {
+        if (pending) {
+          event.cancel();
+          return;
+        }
+        if (!next) onClose();
+      }}
+    >
       <DialogPortal>
         <div className={styles.dialogScope}>
           <DialogBackdrop data-student-materials-backdrop="" />
-          <DialogContent data-student-materials-dialog="" showCloseButton={!pending}>
-            <MaterialContents
-              studentId={studentId}
-              studentName={studentName}
-              adding={adding}
-              contract={contract}
-              dueDate={dueDate}
-              data={query.data}
-              error={query.isError}
-              onRetry={() => void query.refetch()}
-              onPendingChange={setPending}
-              onAddingChange={setAdding}
-              onSaved={() => void utils.finance.invalidate()}
-            />
+          <DialogContent
+            data-student-materials-dialog=""
+            showCloseButton={!pending}
+            finalFocus={() =>
+              passingToPayment
+                ? null
+                : document.querySelector<HTMLElement>("#student-finance-actions")
+            }
+          >
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{studentName}</DialogDescription>
+            </DialogHeader>
+            {children}
           </DialogContent>
         </div>
       </DialogPortal>
@@ -79,262 +149,206 @@ export function StudentMaterials({
   );
 }
 
-function materialOpenChange(input: {
-  pending: boolean;
-  setOpen: (open: boolean) => void;
-  setAdding: (adding: boolean) => void;
-}): NonNullable<ComponentProps<typeof Dialog>["onOpenChange"]> {
-  return (next, event) => {
-    if (!next && input.pending) {
-      event.cancel();
-      return;
-    }
-    input.setOpen(next);
-    if (!next) input.setAdding(false);
-  };
-}
-
-type MaterialContentsProps = {
-  studentId: string;
-  studentName: string;
-  adding: boolean;
-  contract: ReturnType<typeof visibleFinanceContracts>[number] | undefined;
-  dueDate: string | null | undefined;
-  data: Materials | undefined;
-  error: boolean;
-  onRetry: () => void;
-  onPendingChange: (pending: boolean) => void;
-  onAddingChange: (adding: boolean) => void;
-  onSaved: () => void;
-};
-
-function MaterialContents(props: MaterialContentsProps): ReactElement {
-  const { adding, contract, dueDate, studentId, studentName, data } = props;
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{adding ? "Adquirir material" : "Material didático"}</DialogTitle>
-        <DialogDescription>{studentName}</DialogDescription>
-      </DialogHeader>
-      {adding && contract && dueDate ? (
-        <AddContractMaterial
-          contractId={contract.id}
-          firstDueDate={dueDate}
-          studentId={studentId}
-          suggestedStageId={data?.suggestedStageId ?? null}
-          onPendingChange={props.onPendingChange}
-          onClose={() => props.onAddingChange(false)}
-          onSaved={props.onSaved}
-        />
-      ) : (
-        <MaterialList {...props} />
-      )}
-    </>
-  );
-}
-
-function MaterialList(props: MaterialContentsProps): ReactElement {
-  const { contract, dueDate, data, error, onRetry, onAddingChange } = props;
-  return (
-    <>
-      <DialogBody>
-        <div className={styles.body}>
-          <MaterialQueryState data={data} error={error} onRetry={onRetry} />
-        </div>
-      </DialogBody>
-      <DialogFooter>
-        <DialogClose render={<Button variant="secondary" size="sm" />}>Fechar</DialogClose>
-        {contract && dueDate && (
-          <Button size="sm" onClick={() => onAddingChange(true)} disabled={!data}>
-            <Plus aria-hidden="true" /> Adquirir material
-          </Button>
-        )}
-      </DialogFooter>
-    </>
-  );
-}
-
-function MaterialQueryState({
-  data,
-  error,
-  onRetry,
+function MaterialLibrary({
+  query,
+  onPay,
+  onReceive,
+  contractId,
 }: {
-  data: Materials | undefined;
-  error: boolean;
-  onRetry: () => void;
+  query: { data: Materials | undefined; isError: boolean; refetch: () => void };
+  onPay: (target: MaterialTarget) => void;
+  onReceive: (rows: FinanceInstallmentRow[]) => void;
+  contractId: string | undefined;
 }): ReactElement {
-  if (error)
-    return (
+  let content = <InlineSkeleton className="h-24 w-full" aria-label="Carregando livros" />;
+  if (query.isError) {
+    content = (
       <ToastAlert variant="destructive">
-        Não foi possível carregar os materiais.{" "}
-        <Button variant="link" size="inline" onClick={onRetry}>
+        Falha ao carregar os livros.{" "}
+        <Button variant="link" onClick={() => void query.refetch()}>
           Tentar novamente
         </Button>
       </ToastAlert>
     );
-  return data ? <MaterialDetails data={data} /> : <MaterialLoading />;
+  } else if (query.data) {
+    content = (
+      <BookList data={query.data} onPay={onPay} onReceive={onReceive} contractId={contractId} />
+    );
+  }
+  return (
+    <DialogBody>
+      <div className={styles.body}>{content}</div>
+    </DialogBody>
+  );
 }
 
-function MaterialDetails({ data }: { data: Materials }): ReactElement {
+function BookList({
+  data,
+  onPay,
+  onReceive,
+  contractId,
+}: {
+  data: Materials;
+  onPay: (target: MaterialTarget) => void;
+  onReceive: (rows: FinanceInstallmentRow[]) => void;
+  contractId: string | undefined;
+}): ReactElement {
+  const shownOrders = new Set<string>();
+  const slots = data.plannedBooks.map((book) => {
+    const sale = data.acquisitions.find(
+      (acquisition) =>
+        acquisition.contractId === book.contractId &&
+        acquisition.books.some((item) => item.stageId === book.stageId),
+    );
+    if (sale) shownOrders.add(sale.id);
+    return (
+      <PlannedBook
+        key={book.contractId + book.semester}
+        book={book}
+        sale={sale}
+        openRows={data.openMaterialRows}
+        onReceive={onReceive}
+        onPay={onPay}
+      />
+    );
+  });
+  const history = data.acquisitions.filter((sale) => !shownOrders.has(sale.id));
+  const hasSlots = data.plannedBooks.some((book) => book.contractId === contractId);
   return (
     <>
-      <dl className={styles.coverage}>
-        <CurrentMaterial data={data} />
-        <NextMaterial data={data} />
-      </dl>
-      <section className={styles.history} aria-labelledby="material-acquisitions-heading">
-        <div className={styles.historyHeading}>
-          <h3 id="material-acquisitions-heading">Aquisições</h3>
-          <span>
-            {data.acquiredCount}{" "}
-            {data.acquiredCount === 1 ? "livro adquirido" : "livros adquiridos"}
-          </span>
-        </div>
-        <AcquisitionTable acquisitions={data.acquisitions} />
-      </section>
+      {data.current.length > 0 && (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <BookOpen className="size-4" aria-hidden /> Em uso ·{" "}
+          {data.current.map((book) => book.name).join(", ")}
+        </p>
+      )}
+      {slots.length > 0 && (
+        <section>
+          <h3>Livros do contrato</h3>
+          <ul className={styles.books}>{slots}</ul>
+        </section>
+      )}
+      {history.length > 0 && (
+        <section>
+          <h3>Outros materiais</h3>
+          <ul className={styles.books}>
+            {history.map((sale) => (
+              <li key={sale.id}>
+                <div className={styles.identity}>
+                  <strong>{sale.books.map((book) => book.name).join(" + ")}</strong>
+                </div>
+                <BookPayment sale={sale} openRows={data.openMaterialRows} onReceive={onReceive} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {slots.length === 0 && history.length === 0 && <p>Nenhum livro registrado.</p>}
+      {contractId && !hasSlots && (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="justify-self-start"
+          onClick={() => onPay({ contractId, stageId: null })}
+        >
+          Registrar pagamento de livro
+        </Button>
+      )}
     </>
   );
 }
 
-function CurrentMaterial({ data }: { data: Materials }): ReactElement {
+function ReceiptAction({ name, action }: { name: string; action: () => void }): ReactElement {
   return (
-    <div>
-      <dt>Material atual</dt>
-      <dd>
-        {data.current.length === 0 ? (
-          <span className={styles.empty}>Estágio a definir</span>
-        ) : (
-          data.current.map((book) => (
-            <div key={book.id} className={styles.book}>
-              <strong>{book.name}</strong>
-              <Badge variant={book.acquired ? "success" : "warning"}>
-                {book.acquired ? "Adquirido" : "Precisa adquirir"}
-              </Badge>
-            </div>
-          ))
-        )}
-      </dd>
-      {data.next
-        .filter((book) => book.acquired)
-        .map((book) => (
-          <dd key={book.id} className={styles.note}>
-            {book.name} também já adquirido
-          </dd>
-        ))}
-    </div>
+    <Button
+      size="sm"
+      variant="secondary"
+      aria-label={`Registrar pagamento de ${name}`}
+      onClick={action}
+    >
+      <Wallet aria-hidden />
+      Registrar pagamento
+    </Button>
   );
 }
 
-function nextMaterialNote(book: Materials["nextAcquisitions"][number]): string {
-  if (book.source === "CURRENT") return "Para o estágio atual";
-  if (book.neededOn) return "Previsto para " + formatDateOnlyBR(book.neededOn);
-  if (book.source === "PLANNED") return "Próximo estágio definido";
-  return "Sugestão pela sequência do curso";
-}
-
-function NextMaterial({ data }: { data: Materials }): ReactElement {
+function BookPayment({
+  sale,
+  openRows,
+  onReceive,
+}: {
+  sale: Sale;
+  openRows: FinanceInstallmentRow[];
+  onReceive: (rows: FinanceInstallmentRow[]) => void;
+}): ReactElement {
+  const rows = openRows.filter((row) => row.orderId === sale.id);
+  if (rows.length > 0)
+    return (
+      <>
+        <div className={styles.payment}>
+          <strong>{money(sale.balanceCents)}</strong>
+          <span>A pagar</span>
+        </div>
+        <ReceiptAction
+          name={sale.books.map((book) => book.name).join(" + ")}
+          action={() => onReceive(rows)}
+        />
+      </>
+    );
   return (
-    <div>
-      <dt>Próxima aquisição</dt>
-      {data.nextAcquisitions.length === 0 ? (
-        <dd className={styles.empty}>
-          {data.current.length > 0 ? "Nenhum material pendente" : "Defina o estágio para consultar"}
-        </dd>
+    <div className={styles.settled}>
+      <strong>
+        {sale.lastReceipt && <CheckCircle2 aria-hidden />}
+        {sale.chargedCents ? money(sale.chargedCents) : "Bolsa integral"}
+      </strong>
+      {sale.lastReceipt ? (
+        <span>
+          Pago em {formatDateOnlyBR(sale.lastReceipt.date)} · {sale.lastReceipt.method}
+        </span>
       ) : (
-        data.nextAcquisitions.map((book) => (
-          <dd key={book.id}>
-            <strong>{book.name}</strong>
-            <p className={styles.note}>{nextMaterialNote(book)}</p>
-          </dd>
-        ))
+        sale.chargedCents > 0 && (
+          <span>{sale.balanceCents > 0 ? "A pagar" : "Sem saldo a receber"}</span>
+        )
       )}
     </div>
   );
 }
 
-function AcquisitionTable({ acquisitions }: { acquisitions: Acquisition[] }): ReactElement {
+function PlannedBook({
+  book,
+  sale,
+  openRows,
+  onReceive,
+  onPay,
+}: {
+  book: Materials["plannedBooks"][number];
+  sale: Sale | undefined;
+  openRows: FinanceInstallmentRow[];
+  onReceive: (rows: FinanceInstallmentRow[]) => void;
+  onPay: (target: MaterialTarget) => void;
+}): ReactElement {
+  const name = book.name ?? "Livro a definir";
   return (
-    <DataTable
-      label="Aquisições de material"
-      columns={acquisitionColumns}
-      state={acquisitions.length > 0 ? { kind: "data", rows: acquisitions } : { kind: "empty" }}
-      empty={{
-        title: "Nenhum material adquirido",
-        description: "Registre os livros e as condições combinadas em Adquirir material.",
-      }}
-      errorTitle="Não foi possível carregar as aquisições"
-      onRetry={() => null}
-    />
-  );
-}
-
-const acquisitionColumns: DataTableColumn<Acquisition>[] = [
-  {
-    id: "books",
-    header: "Livros",
-    width: "wide",
-    cell: (sale) => (
-      <div className="grid gap-1">
-        <span className="font-medium">{sale.books.map((book) => book.name).join(" + ")}</span>
-        <span className="text-caption text-muted-foreground">
-          {formatDateOnlyBR(sale.acquiredOn)}
-        </span>
+    <li>
+      <div className={styles.identity}>
+        <strong>{name}</strong>
+        <span>{book.semester}º semestre</span>
       </div>
-    ),
-  },
-  {
-    id: "total",
-    header: "Valor cobrado",
-    width: "standard",
-    numeric: true,
-    cell: (sale) => <span className="font-numeric">{money(sale.chargedCents)}</span>,
-  },
-  {
-    id: "terms",
-    header: "Pagamento do aluno",
-    width: "wide",
-    cell: (sale) => (
-      <div className="grid gap-1">
-        <span>{acquisitionTerms(sale)}</span>
-        {sale.payment === "INSTALLMENTS" && sale.installmentCount > 1 && (
-          <span className="text-caption text-muted-foreground">Parcelado por terceiros</span>
-        )}
-      </div>
-    ),
-  },
-];
-
-function acquisitionTerms(sale: Acquisition): string {
-  if (sale.chargedCents === 0) return "Bolsa integral";
-  if (sale.payment === "CASH") return "À vista";
-  if (sale.installmentCount === 1) return "Cartão · à vista";
-  return materialPaymentLabel(sale.chargedCents, sale.installmentCount);
-}
-
-function MaterialLoading(): ReactElement {
-  return (
-    <div className="grid gap-6" aria-busy="true" aria-label="Carregando materiais">
-      <div className={styles.coverage} aria-hidden="true">
-        {[0, 1].map((id) => (
-          <div key={id} className="grid gap-2">
-            <InlineSkeleton className="h-3 w-28" />
-            <InlineSkeleton className="h-6 w-48 max-w-full" />
-            <InlineSkeleton className="h-3 w-40 max-w-full" />
+      {sale ? (
+        <BookPayment sale={sale} openRows={openRows} onReceive={onReceive} />
+      ) : (
+        <>
+          <div className={styles.payment}>
+            {book.agreedPriceCents && <strong>{money(book.agreedPriceCents)}</strong>}
+            <span>
+              {book.acquisitionSemester
+                ? `Pagamento no ${book.acquisitionSemester}º semestre`
+                : "Pagamento sem data definida"}
+            </span>
           </div>
-        ))}
-      </div>
-      <div className={styles.history}>
-        <InlineSkeleton className="h-5 w-28" aria-hidden="true" />
-        <DataTable
-          label="Carregando aquisições"
-          columns={acquisitionColumns}
-          state={{ kind: "loading" }}
-          loadingRows={1}
-          empty={{ title: "Nenhuma aquisição", description: "Ainda não há aquisições." }}
-          errorTitle="Não foi possível carregar as aquisições"
-          onRetry={() => null}
-        />
-      </div>
-    </div>
+          <ReceiptAction name={name} action={() => onPay(book)} />
+        </>
+      )}
+    </li>
   );
 }

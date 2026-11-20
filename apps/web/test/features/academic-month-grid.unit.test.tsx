@@ -10,7 +10,6 @@ const empty: AcademicYear = {
   events: [],
   closedDays: [],
   requests: [],
-  planWarnings: [],
 };
 const base = {
   year: 2026,

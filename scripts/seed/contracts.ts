@@ -1,3 +1,4 @@
+import type { CreateMonthlyContractInput } from "../../packages/validators/src/index.js";
 import { finance } from "../../packages/api/src/finance/index.js";
 import { readMaterialPrice } from "../../packages/api/src/finance/internal/settings.js";
 import { priceAfterDiscountCents } from "../../packages/domain/src/monthly-contract.js";
@@ -11,6 +12,7 @@ import {
 import { monthlyDueDate } from "../../packages/db/src/seed-dev-finance.js";
 import { addDays, isoOf, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
+const DEFER_SECOND_BOOK_EVERY = 5;
 const STANDARD_MONTHLY_PRICE = 25_000;
 const NEGOTIATED_MONTHLY_PRICE_240 = 24_000;
 const NEGOTIATED_MONTHLY_PRICE_230 = 23_000;
@@ -154,9 +156,11 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
     },
   });
   const { agreedOn, firstDueDate } = contractDates(input);
-  const material = await seedContractMaterial(transaction, {
+  const books = await seedContractBooks(transaction, {
     student,
     prices: input.materialPrices,
+    payBoth: index % DEFER_SECOND_BOOK_EVERY !== 0,
+    planSecond: index % 2 === 0,
   });
   const contract = await finance(transaction, adminId).createMonthlyContract({
     commandId: stableUuid(["dev-contract", student.key]),
@@ -167,24 +171,22 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
     durationMonths: CONTRACT_MONTHS,
     firstDueDate,
     monthlyAmountCents: MONTHLY_PRICES[selectionIndex % MONTHLY_PRICES.length]!,
-    material,
+    books,
   });
   await seedPayments(transaction, { ...input, contractId: contract.id, payerId });
 }
 
-async function seedContractMaterial(
+type SeedBook = NonNullable<CreateMonthlyContractInput["books"]>[number];
+
+async function seedContractBooks(
   database: TransactionClient,
-  input: { student: DevStudentSeed; prices: ContractInput["materialPrices"] },
-): Promise<{
-  stageIds: string[];
-  category: "CHILD" | "ADULT";
-  payment: "CASH";
-  installmentCount: number;
-  quoteVersion: string;
-  expectedTotalCents: number;
-  scholarshipPct: number;
-  scholarshipAgreement: string;
-}> {
+  input: {
+    student: DevStudentSeed;
+    prices: ContractInput["materialPrices"];
+    payBoth: boolean;
+    planSecond: boolean;
+  },
+): Promise<SeedBook[]> {
   const { student, prices } = input;
   const code = seededStageCode(student);
   const stage = await database.stage.findFirst({
@@ -197,22 +199,39 @@ async function seedContractMaterial(
         productLine: { deletedAt: null, status: "ACTIVE" },
       },
     },
-    select: { id: true, track: { select: { ageGroup: true } } },
+    select: { id: true, sequence: true, trackId: true, track: { select: { ageGroup: true } } },
   });
   if (!stage) throw new Error(`No material stage ${code} for seeded student ${student.key}.`);
   const category = stage.track.ageGroup;
   const price = category === "CHILD" ? prices.child : prices.adult;
-  return {
-    stageIds: [stage.id],
-    category,
-    payment: "CASH",
-    installmentCount: 1,
-    quoteVersion: price.version,
-    expectedTotalCents: price.cashCents,
-    // Keep the existing tuition/payment scenarios while recording a valid book acquisition.
-    scholarshipPct: 100,
-    scholarshipAgreement: "Material concedido no cenário financeiro de desenvolvimento",
-  };
+  const next = await database.stage.findFirst({
+    where: { trackId: stage.trackId, sequence: { gt: stage.sequence }, deletedAt: null },
+    orderBy: { sequence: "asc" },
+    select: { id: true },
+  });
+  const paidBook = (stageId: string): SeedBook => ({
+    stageId,
+    acquisitionSemester: null,
+    acquisition: {
+      stageIds: [stageId],
+      category,
+      payment: "CASH" as const,
+      installmentCount: 1,
+      quoteVersion: price.version,
+      expectedTotalCents: price.cashCents,
+      receivedMethod: "PIX" as const,
+    },
+  });
+  return [
+    paidBook(stage.id),
+    next && input.payBoth
+      ? paidBook(next.id)
+      : {
+          stageId: next?.id ?? null,
+          acquisitionSemester: input.planSecond && next ? 2 : null,
+          agreedPriceCents: price.cashCents,
+        },
+  ];
 }
 
 function seededStageCode(student: DevStudentSeed): string {
@@ -281,7 +300,7 @@ async function seedPayments(
 ): Promise<void> {
   const { student, index, todayIso, adminId, payerId, contractId } = input;
   const installments = await transaction.installment.findMany({
-    where: { order: { contractId } },
+    where: { order: { contractId, kind: "TUITION" } },
     orderBy: { sequenceNumber: "asc" },
   });
   const isLate = student.financeProfile === "overdue";

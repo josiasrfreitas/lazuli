@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { after, before, it } from "node:test";
 import { db, type TransactionClient } from "@lazuli/db";
+import { readAcquiredStages } from "../../src/finance/index.js";
 import { finance } from "../../src/finance/index.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
 
@@ -570,7 +571,7 @@ void it("allows three books in one sale without generating three school receivab
 });
 
 for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
-  void it(`uses the ${scheduleType} academic plan instead of contract duration for material attention`, async () => {
+  void it(`uses the ${scheduleType} stage end instead of contract duration for material attention`, async () => {
     await scenario(async (tx, { stageId, values }) => {
       const stage = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
       const next = await tx.stage.create({
@@ -580,7 +581,7 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
         data: {
           name: randomUUID(),
           startDate: new Date("2026-01-01"),
-          endDate: new Date("2026-06-30"),
+          endDate: new Date(scheduleType === "REGULAR" ? "2026-02-28" : "2026-06-30"),
         },
       });
       const group = await tx.class.create({
@@ -639,8 +640,8 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
           now: NOW,
         });
         assert.equal(withoutDestination.materialNeeds.length, 1);
-        assert.equal(withoutDestination.materialNeeds[0]!.nextStage, null);
-        assert.equal(withoutDestination.materialNeeds[0]!.stagePending, true);
+        assert.equal(withoutDestination.materialNeeds[0]!.nextStage, next.name);
+        assert.equal(withoutDestination.materialNeeds[0]!.stagePending, false);
         const nextSemester = await tx.period.create({
           data: {
             name: randomUUID(),
@@ -677,20 +678,17 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
       assert.equal(summary.materialNeeds.length, 1);
       assert.equal(summary.materialNeeds[0]!.plannedEndOn, "2026-02-28");
       assert.equal(summary.materialNeeds[0]!.nextStage, "Essentials 2");
-      // Moving the academic plan, with the same class and same twelve-month contract, removes attention.
-      await tx.stagePlan.update({
-        where: { id: plan.id },
-        data: { plannedEndOn: new Date("2026-06-01") },
-      });
+      const moveEnd = (end: string): Promise<object> =>
+        scheduleType === "REGULAR"
+          ? tx.period.update({ where: { id: semester.id }, data: { endDate: new Date(end) } })
+          : tx.stagePlan.update({ where: { id: plan.id }, data: { plannedEndOn: new Date(end) } });
+      await moveEnd("2026-06-01");
       const coveredSummary = await service.studentSummary({
         studentId: values.studentId,
         now: NOW,
       });
       assert.deepEqual(coveredSummary.materialNeeds, []);
-      await tx.stagePlan.update({
-        where: { id: plan.id },
-        data: { plannedEndOn: new Date("2026-02-28") },
-      });
+      await moveEnd("2026-02-28");
       // Agreeing the next book is enough: an unpaid sale must not prompt a duplicate purchase.
       await service.addContractMaterial({
         commandId: randomUUID(),
@@ -889,5 +887,173 @@ void it("records bank installments on one receipt and keeps one material charge"
       where: { orderId: charge.orderId },
     });
     assert.equal(chargedMaterial.chargedAmountCents, 166667);
+  });
+});
+
+void it("reserves one book per semester and bills a deferred acquisition only once", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const first = await tx.stage.findFirstOrThrow({ where: { id: stageId } });
+    const second = await tx.stage.create({
+      data: { trackId: first.trackId, name: "Essentials 2", internalCode: "E2", sequence: 2 },
+    });
+    const prices = (await service.readMaterialPrice())!;
+    const terms = {
+      stageIds: [stageId],
+      category: "ADULT" as const,
+      payment: "CASH" as const,
+      installmentCount: 1,
+      quoteVersion: prices.adult.version,
+      expectedTotalCents: prices.adult.cashCents,
+    };
+    const contract = await service.createMonthlyContract({
+      ...values,
+      books: [
+        { stageId, acquisitionSemester: null, acquisition: terms },
+        { stageId: second.id, acquisitionSemester: 2 },
+      ],
+    });
+    assert.equal(contract.plannedBooks?.length, 2);
+    assert.equal(contract.materials.length, 1);
+    const acquisition = {
+      commandId: randomUUID(),
+      contractId: contract.id,
+      firstDueDate: "2026-07-31",
+      material: { ...terms, stageIds: [second.id] },
+    };
+    const added = await service.addContractMaterial(acquisition);
+    assert.deepEqual(await service.addContractMaterial(acquisition), added);
+    await assert.rejects(
+      service.addContractMaterial({ ...acquisition, commandId: randomUUID() }),
+      /já foi adquirido/,
+    );
+    const detail = await service.readContract(contract.id, NOW);
+    assert.equal(detail.orders.filter((order) => order.kind === "MATERIAL").length, 2);
+  });
+});
+
+void it("settles payment at signing and receives scheduled and open-date books once on their actual payment date", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const stage = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
+    const later = [];
+    for (const sequence of [2, 3])
+      later.push(
+        await tx.stage.create({
+          data: {
+            trackId: stage.trackId,
+            name: "Book " + sequence,
+            internalCode: "BOOK" + sequence,
+            sequence,
+          },
+        }),
+      );
+    const price = (await service.readMaterialPrice())!.adult;
+    const terms = {
+      stageIds: [stageId],
+      category: "ADULT" as const,
+      payment: "CASH" as const,
+      installmentCount: 1,
+      quoteVersion: price.version,
+      expectedTotalCents: price.cashCents,
+      receivedMethod: "PIX",
+    };
+    const input = {
+      ...values,
+      durationMonths: 18,
+      books: [
+        { stageId, acquisitionSemester: null, acquisition: terms },
+        { stageId: later[0]!.id, acquisitionSemester: 2, agreedPriceCents: 50000 },
+        { stageId: later[1]!.id, acquisitionSemester: null, agreedPriceCents: 50000 },
+      ],
+    };
+    const contract = await service.createMonthlyContract(input);
+    await service.createMonthlyContract(input);
+    assert.equal(await tx.paymentEntry.count({ where: { payerId: values.payerId } }), 1);
+    assert.equal(contract.materials.length, 1);
+    for (const [index, book] of later.entries()) {
+      const payment = {
+        commandId: randomUUID(),
+        contractId: contract.id,
+        semester: index + 2,
+        firstDueDate: "2026-02-03",
+        material: { ...terms, stageIds: [book.id], priceOverrideCents: 50000 },
+      };
+      const saved = await service.addContractMaterial(payment);
+      assert.deepEqual(await service.addContractMaterial(payment), saved);
+      await assert.rejects(
+        service.addContractMaterial({ ...payment, commandId: randomUUID() }),
+        /já foi adquirido/,
+      );
+    }
+    const payments = await tx.paymentEntry.findMany({
+      where: { payerId: values.payerId },
+      orderBy: { date: "asc" },
+    });
+    assert.deepEqual(
+      payments.map((payment) => [
+        payment.method,
+        payment.amountCents,
+        payment.date.toISOString().slice(0, 10),
+      ]),
+      [
+        ["PIX", price.cashCents, values.agreedOn],
+        ["PIX", 50000, "2026-02-03"],
+        ["PIX", 50000, "2026-02-03"],
+      ],
+    );
+    const materials = await service.studentMaterials({
+      studentId: values.studentId,
+      now: new Date("2026-02-04T14:00:00Z"),
+    });
+    assert.equal(materials.acquisitions.length, 3);
+    assert.equal(materials.openMaterialRows.length, 0);
+    assert.ok(materials.acquisitions.every((order) => order.balanceCents === 0));
+  });
+});
+
+void it("matches formation material coverage to purchased contract books, including legacy single-book orders", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const service = finance(tx, ADMIN.id);
+    const { trackId } = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
+    const second = await tx.stage.create({
+      data: { trackId, name: "Essentials 2", internalCode: "E2", sequence: 2 },
+    });
+    const other = await tx.student.create({
+      data: { fullName: "Another student with the same payer" },
+    });
+    const contract = await service.createMonthlyContract({
+      ...values,
+      material: {
+        stageIds: [stageId, second.id],
+        category: "ADULT",
+        payment: "CASH",
+        installmentCount: 1,
+        quoteVersion: ADULT_VERSION,
+        expectedTotalCents: 146880,
+      },
+    });
+    const order = await tx.order.findFirstOrThrow({
+      where: { contractId: contract.id, kind: "MATERIAL" },
+    });
+    const read = (): ReturnType<typeof readAcquiredStages> =>
+      readAcquiredStages(tx, [values.studentId, other.id]);
+    const initial = await read();
+    assert.deepEqual(initial.get(values.studentId), new Set([stageId, second.id]));
+    assert.equal(initial.has(other.id), false);
+    await tx.materialOrderItem.deleteMany({ where: { orderId: order.id } });
+    await tx.contractBook.upsert({
+      where: { contractId_semester: { contractId: contract.id, semester: 2 } },
+      create: { contractId: contract.id, semester: 2, stageId: second.id, acquisitionSemester: 2 },
+      update: { stageId: second.id, acquisitionSemester: 2 },
+    });
+    const legacy = await read();
+    assert.deepEqual(legacy.get(values.studentId), new Set([stageId]));
+    await tx.order.update({
+      where: { id: order.id },
+      data: { cancelledAt: NOW, cancelledReason: "Compra cancelada" },
+    });
+    const cancelled = await read();
+    assert.equal(cancelled.has(values.studentId), false);
   });
 });

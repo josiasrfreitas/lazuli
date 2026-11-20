@@ -83,7 +83,8 @@ async function sourceForMove(
   { row, input }: { row: Placement; input: z.infer<typeof moveSchema> },
 ): Promise<{ current: Placement; sourceProgressId: string | null; stageId: string | null }> {
   let current = row;
-  let sourceProgressId = row.sourceProgressId;
+  let sourceProgressId =
+    row.classClosurePending && row.mode === "ENTRY" ? null : row.sourceProgressId;
   let stageId = row.stageId;
   if (current.publishedAt && current.entryActionId) {
     const action = await context.database.enrollmentAction.findUniqueOrThrow({
@@ -169,8 +170,25 @@ async function moveAcrossSemester(
     });
     return;
   }
+  await createPlacementInTarget(context, { input, source, semesterId });
+}
+
+async function createPlacementInTarget(
+  context: OrganizationContext,
+  {
+    input,
+    source,
+    semesterId,
+  }: {
+    input: z.infer<typeof moveSchema>;
+    source: Placement;
+    semesterId: string;
+  },
+): Promise<void> {
   const current = await currentSourceProgress(context, source);
-  const sourceProgressId = current?.id ?? source.sourceProgressId;
+  const sourceProgressId =
+    current?.id ??
+    (source.classClosurePending && source.mode === "ENTRY" ? null : source.sourceProgressId);
   await savePlacement(context, {
     semesterId,
     studentId: source.studentId,

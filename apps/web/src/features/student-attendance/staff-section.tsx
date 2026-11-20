@@ -108,7 +108,7 @@ function AttendanceSettingsLink(): ReactElement | null {
   if (me.data?.role !== "ADMIN" && me.data?.role !== "SYSTEM_ADMIN") return null;
   return (
     <Link
-      href="/configuracoes/presenca"
+      href="/ajustes?secao=localizacao"
       className="w-fit text-caption text-interactive hover:underline"
     >
       Configurar área da escola

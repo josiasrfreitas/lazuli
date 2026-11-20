@@ -8,15 +8,30 @@ import {
   type ContractServiceStatus,
 } from "@lazuli/domain";
 
+import { timeOnly } from "../../class-records/data.js";
 import { toDateOnlyString } from "./shared.js";
 
 export type ContractListRow = {
+  plannedBooks?: Array<{
+    semester: number;
+    stageId: string | null;
+    name: string | null;
+    acquisitionSemester: number | null;
+    acquired: boolean;
+  }>;
+  renewalPending?: boolean;
+  materialDue?: string | null;
   id: string;
   payer: { id: string; name: string };
   student: {
     id: string;
     fullName: string;
-    placements: Array<{ stageCode: string; classCode: string }>;
+    placements: Array<{
+      stageCode: string;
+      classCode: string;
+      description?: string;
+      modality?: string;
+    }>;
   };
   agreedOn: string;
   startsOn: string;
@@ -30,6 +45,8 @@ export type ContractListRow = {
   materials: Array<{
     id: string;
     name: string;
+    stageIds?: string[];
+    paymentLabel?: string;
     totalCents: number;
     count: number;
     installmentCents: number | null;
@@ -46,6 +63,15 @@ export type ContractListRow = {
 export const contractSelect = {
   id: true,
   commandFingerprint: true,
+  plannedBooks: {
+    orderBy: { semester: "asc" },
+    select: {
+      semester: true,
+      stageId: true,
+      acquisitionSemester: true,
+      stage: { select: { name: true } },
+    },
+  },
   terminatedAt: true,
   agreedOn: true,
   startsOn: true,
@@ -64,10 +90,21 @@ export const contractSelect = {
         select: {
           entryDate: true,
           exitDate: true,
-          class: { select: { portalClassName: true } },
+          class: {
+            select: {
+              portalClassName: true,
+              scheduleType: true,
+              teacher: { select: { name: true } },
+              scheduleSlots: {
+                where: { deletedAt: null },
+                orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+                select: { weekday: true, startTime: true, endTime: true },
+              },
+            },
+          },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
-            select: { stage: { select: { internalCode: true } } },
+            select: { stage: { select: { internalCode: true, name: true } } },
           },
         },
       },
@@ -110,9 +147,35 @@ export const contractSelect = {
       },
     },
   },
-} as const;
+} satisfies Prisma.ContractSelect;
 
 export type SelectedContract = Prisma.ContractGetPayload<{ select: typeof contractSelect }>;
+
+const weekdays = {
+  MONDAY: "segunda-feira",
+  TUESDAY: "terça-feira",
+  WEDNESDAY: "quarta-feira",
+  THURSDAY: "quinta-feira",
+  FRIDAY: "sexta-feira",
+  SATURDAY: "sábado",
+  SUNDAY: "domingo",
+};
+const dayList = new Intl.ListFormat("pt-BR", { type: "conjunction" });
+
+function classSchedule(
+  slots: SelectedContract["student"]["enrollments"][number]["class"]["scheduleSlots"],
+): string {
+  const daysByTime = new Map<string, string[]>();
+  for (const slot of slots) {
+    const hours = `${timeOnly(slot.startTime)} às ${timeOnly(slot.endTime)}`;
+    const days = daysByTime.get(hours) ?? [];
+    days.push(weekdays[slot.weekday]);
+    daysByTime.set(hours, days);
+  }
+  return Array.from(daysByTime, ([hours, days]) => `${dayList.format(days)}, das ${hours}`).join(
+    " / ",
+  );
+}
 
 function academicPlacements(
   student: SelectedContract["student"],
@@ -127,8 +190,16 @@ function academicPlacements(
     )
     .flatMap((enrollment) =>
       enrollment.progressRecords.map((progress) => ({
+        description: [
+          progress.stage.name,
+          classSchedule(enrollment.class.scheduleSlots),
+          enrollment.class.teacher.name,
+        ]
+          .filter(Boolean)
+          .join(" · "),
         stageCode: progress.stage.internalCode,
         classCode: enrollment.class.portalClassName,
+        modality: enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
       })),
     );
 }
@@ -161,10 +232,22 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
   const materialOrders = row.orders.filter(
     (entry) => entry.kind === "MATERIAL" && !entry.cancelledAt,
   );
-  const amounts = contractAmounts(order, materialOrders);
+  const amounts = contractAmounts(order, { materialOrders, now });
   const tuition = tuitionDetails({ order, row, now });
   return {
     id: row.id,
+    plannedBooks: row.plannedBooks.map((book) => ({
+      semester: book.semester,
+      stageId: book.stageId,
+      name: book.stage?.name ?? null,
+      acquisitionSemester: book.acquisitionSemester,
+      acquired: materialOrders.some(
+        (order) =>
+          book.stageId &&
+          (order.material?.stageId === book.stageId ||
+            order.material?.items.some((item) => item.stageId === book.stageId)),
+      ),
+    })),
     payer: row.payer,
     student: {
       id: row.student.id,
@@ -210,7 +293,7 @@ function tuitionDetails({
   };
 }
 
-function orderFinancialSummary(
+export function orderFinancialSummary(
   order: SelectedContract["orders"][number] | undefined,
   now: Date,
 ): ReturnType<typeof deriveContractFinancialSummary> {
@@ -232,7 +315,7 @@ function orderFinancialSummary(
 
 function contractAmounts(
   order: SelectedContract["orders"][number] | undefined,
-  materialOrders: SelectedContract["orders"],
+  { materialOrders, now }: { materialOrders: SelectedContract["orders"]; now: Date },
 ): Pick<ContractListRow, "principalAmountCents" | "materialAmountCents" | "materials"> {
   return {
     principalAmountCents:
@@ -243,14 +326,37 @@ function contractAmounts(
         0,
       ),
     materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
-    materials: materialOrders.map((entry) => ({
-      id: entry.id,
-      name: entry.material?.name ?? "Material",
-      totalCents: entry.principalAmountCents,
-      count: entry.installmentCount ?? entry.installments.length,
-      installmentCents: uniformInstallmentAmount(entry),
-    })),
+    materials: materialOrders.map((entry) => materialSummary(entry, now)),
   };
+}
+
+function materialSummary(
+  entry: SelectedContract["orders"][number],
+  now: Date,
+): ContractListRow["materials"][number] {
+  const material = entry.material;
+  return {
+    stageIds: materialStageIds(material),
+    id: entry.id,
+    name: material?.items.map((item) => item.name).join(" + ") || material?.name || "Material",
+    paymentLabel: materialPaymentLabel(entry, now),
+    totalCents: entry.principalAmountCents,
+    count: entry.installmentCount ?? entry.installments.length,
+    installmentCents: uniformInstallmentAmount(entry),
+  };
+}
+
+function materialStageIds(material: SelectedContract["orders"][number]["material"]): string[] {
+  if (!material) return [];
+  if (material.items.length > 0) return material.items.map((item) => item.stageId);
+  return [material.stageId];
+}
+
+function materialPaymentLabel(entry: SelectedContract["orders"][number], now: Date): string {
+  if (entry.principalAmountCents === 0) return "Sem cobrança";
+  const { status } = orderFinancialSummary(entry, now);
+  if (status === "QUITADO") return "Pago";
+  return status === "SEM_SALDO" ? "Sem saldo" : "Não pago";
 }
 
 function contractServiceStatus(row: SelectedContract, now: Date): ContractListRow["serviceStatus"] {

@@ -55,6 +55,7 @@ export function AcademicMonthGrid({
   vacations = { before: null, after: null },
 }: MonthGridProps): ReactElement {
   const { offset, count, outsideMonth, monthVacation, monthEntries, focusDay } = monthModel({
+    data,
     year,
     month,
     period,
@@ -117,7 +118,10 @@ function keyboardDay(key: string, { day, count }: { day: number; count: number }
     }
   }
 }
-type MonthModelInput = Pick<MonthGridProps, "year" | "month" | "entries" | "selected" | "today"> & {
+type MonthModelInput = Pick<
+  MonthGridProps,
+  "year" | "month" | "entries" | "selected" | "today" | "data"
+> & {
   period: CalendarPeriod | null;
   vacations: CalendarVacations;
 };
@@ -130,6 +134,7 @@ type MonthModel = {
   focusDay: string;
 };
 function monthModel({
+  data,
   year,
   month,
   period,
@@ -145,11 +150,10 @@ function monthModel({
     (isoDay({ year, month, day: count }) < civilDate(period.startDate) ||
       isoDay({ year, month, day: 1 }) > civilDate(period.endDate)),
   );
-  const firstVacation = vacationAt(isoDay({ year, month, day: 1 }), vacations);
-  const monthVacation =
-    firstVacation === vacationAt(isoDay({ year, month, day: count }), vacations)
-      ? firstVacation
-      : null;
+  const first = isoDay({ year, month, day: 1 });
+  const last = isoDay({ year, month, day: count });
+  const firstVacation = vacationAt(first, vacations);
+  const monthVacation = wholeMonthVacation({ period, data, first, last, vacations, firstVacation });
   const monthEntries = entriesInRange(entries, {
     from: isoDay({ year, month, day: 1 }),
     through: isoDay({ year, month, day: count }),
@@ -230,7 +234,7 @@ function MonthDay({ index, context }: { index: number; context: DayContext }): R
   const info = data ? calendarDay(date, data) : null;
   const items = entriesInRange(monthEntries, { from: date, through: date });
   const vacation = vacationAt(date, vacations);
-  const vacationLabel = vacation === "before" ? "Férias anteriores" : "Férias após o período";
+  const vacationLabel = vacationLabelFor(vacation, period);
   const kind = dayKind(info, vacation);
   const outside = isOutsidePeriod(date, period);
   return (
@@ -278,6 +282,38 @@ function MonthDay({ index, context }: { index: number; context: DayContext }): R
       )}
     </Tooltip>
   );
+}
+function wholeMonthVacation({
+  period,
+  data,
+  first,
+  last,
+  vacations,
+  firstVacation,
+}: {
+  period: CalendarPeriod | null;
+  data: AcademicYear | undefined;
+  first: string;
+  last: string;
+  vacations: CalendarVacations;
+  firstVacation: ReturnType<typeof vacationAt>;
+}): ReturnType<typeof vacationAt> {
+  if (
+    !period &&
+    data &&
+    calendarDay(first, data).kind === "vacation" &&
+    calendarDay(last, data).kind === "vacation"
+  )
+    return "after";
+  return firstVacation === vacationAt(last, vacations) ? firstVacation : null;
+}
+function vacationLabelFor(
+  vacation: ReturnType<typeof vacationAt>,
+  period: CalendarPeriod | null,
+): string {
+  if (!period) return "Férias acadêmicas";
+  if (vacation === "before") return "Férias anteriores";
+  return `Férias após ${period.name}`;
 }
 function dayKind(info: DayInfo | null, vacation: ReturnType<typeof vacationAt>): string {
   if (info?.kind === "holiday") return "holiday";
@@ -378,7 +414,7 @@ function MonthFooter({
   if (monthVacation)
     return (
       <span className={styles.vacationLabel} data-before={monthVacation === "before"}>
-        {monthVacation === "before" ? "Férias anteriores" : `Férias após ${period?.name}`}
+        {vacationLabelFor(monthVacation, period ?? null)}
       </span>
     );
   if (outsideMonth) return <span>Fora de {period?.name}</span>;

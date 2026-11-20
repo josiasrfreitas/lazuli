@@ -1,29 +1,55 @@
 "use client";
-import { type ReactElement } from "react";
-import Link from "next/link";
-import { ToastAlert } from "@lazuli/ui";
+import type { ReactElement } from "react";
+import { Button, InlineSkeleton, ToastAlert } from "@lazuli/ui";
 import { AttendanceSettingsForm } from "./settings-fields";
 import { trpc } from "~/lib/trpc";
 import { useSettingsForm, type Settings } from "./settings-model";
+import styles from "./settings.module.css";
+
 export function AttendanceSettingsPage(): ReactElement {
-  const query = trpc.studentAttendance.settings.useQuery();
+  const query = trpc.studentAttendance.settings.useQuery(undefined, { retry: false });
   return (
-    <div className="mx-auto grid w-full max-w-3xl content-start gap-5 p-4 sm:p-6">
-      <Link href="/aulas" className="w-fit text-caption text-interactive hover:underline">
-        Voltar para Aulas
-      </Link>
-      <h1 className="font-display text-h1 text-heading">Área da escola para presença</h1>
-      <p className="text-sm text-muted-foreground">
-        Informe as coordenadas reais e os limites usados pelo QR presencial. Aulas online dispensam
-        localização. Novos limites valem para os próximos links.
-      </p>
-      {query.error && <ToastAlert variant="destructive">{query.error.message}</ToastAlert>}
-      {query.isPending && <p role="status">Carregando configuração…</p>}
+    <section className={styles.section} aria-label="Localização da escola">
+      {query.error && (
+        <ToastAlert variant="destructive">
+          Não foi possível carregar a localização.{" "}
+          <Button type="button" variant="link" size="inline" onClick={() => void query.refetch()}>
+            Tentar novamente
+          </Button>
+        </ToastAlert>
+      )}
+      {query.isPending && <LocationLoading />}
       {query.data !== undefined && <SettingsForm initial={query.data} />}
-    </div>
+    </section>
   );
 }
 function SettingsForm({ initial }: { initial: Settings }): ReactElement {
   const model = useSettingsForm(initial);
   return <AttendanceSettingsForm model={model} />;
+}
+function LocationLoading(): ReactElement {
+  return (
+    <div
+      className={styles.workspace}
+      role="status"
+      aria-label="Carregando localização da escola"
+      aria-busy="true"
+    >
+      <div className={styles.controls} aria-hidden="true">
+        <InlineSkeleton shape="block" className="h-6 w-48" />
+        <InlineSkeleton className="h-4 w-full" />
+        <InlineSkeleton shape="block" className="h-8 w-full" />
+        <InlineSkeleton className="h-4 w-32" />
+        <InlineSkeleton shape="block" className="h-8 w-24" />
+      </div>
+      <div className={styles.mapLoading} aria-hidden="true">
+        <InlineSkeleton shape="block" className="h-5 w-32" />
+        <p>Preparando endereço e mapa…</p>
+      </div>
+      <div className={styles.footer} aria-hidden="true">
+        <InlineSkeleton className="h-3 w-48" />
+        <InlineSkeleton shape="block" className="h-8 w-32" />
+      </div>
+    </div>
+  );
 }

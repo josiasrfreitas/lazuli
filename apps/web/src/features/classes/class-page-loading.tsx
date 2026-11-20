@@ -31,7 +31,7 @@ function ClassBodyLoading({ section }: { section: string | null }): ReactElement
     <>
       <div className={styles.overview} aria-hidden="true">
         <div className={styles.overviewGrid}>
-          {["schedule", "occupancy", "grades", "progress"].map((item) => (
+          {["schedule", "books", "occupancy", "grades", "progress"].map((item) => (
             <div className="grid gap-2" key={item}>
               <InlineSkeleton className="h-4 w-32" />
               <InlineSkeleton className="h-7 w-24" />

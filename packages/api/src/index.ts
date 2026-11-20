@@ -47,3 +47,4 @@ export { studentDocumentCapture, downloadStudentDocument } from "./student-docum
 export { receiveTeacherFile, teacherFileResource } from "./teachers/files.js";
 
 export { teacherMobileCapture } from "./teachers/upload-sessions.js";
+export { schoolMapResponse } from "./addresses/map.js";

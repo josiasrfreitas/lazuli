@@ -36,24 +36,20 @@ Both themes retain explicit labels and non-color cues.
 STORY: Move between registered periods, inspect a month or day, add an event inline or configure an
 interruption, then review the actual consequences for classes before applying it.
 
-FIRST VIEWPORT: Title, centered period navigation and actions share the same header row.
-The user explicitly removed the Ano/Mês selector and separate toolbar to move the calendar up.
-Twelve reference months occupy the main column; a narrower context panel
-holds period ranges, upcoming dates, selected-day details or an inline event form.
-Clicking a month opens that month in the same main area. Novo evento is primary.
-The breadcrumb follows the month/day and owns the back action, preserving the selected period
-across year boundaries without a page reload; no duplicated back control.
-The overview selector follows actual period records in chronological order, with their configured
-dates, including cross-year periods. It does not navigate fixed semester groups or civil years.
-Months and partial-month days outside the selected period remain visible and dimmed.
-Earlier vacations are dimmed and explicitly labeled; subsequent vacations stay fully visible
-for every period. Add a boundary month when needed to show vacations across the year edge;
-July–December 2026 also shows January 2027. Cross-year periods use a continuous month window,
-and a period touching thirteen months retains all its days.
-Overview, month, selected-day and daily context expose both adjacent vacation ranges. A missing
-neighboring period leaves that side of the range open and visibly undefined; do not invent
-return dates. This contextual presentation does not create period records or alter scheduling
-rules. Holiday suspension copy takes precedence when a holiday also falls within vacation context.
+FIRST VIEWPORT (updated by user on 2026-11-16): Title, centered civil-year navigation and
+contextual actions share the header row. The overview shows at most twelve months from the
+selected civil year, covering registered periods and the vacation gaps between them. With only
+one registered period in that year, also show the immediately preceding and following months as
+vacation context, clipped to January–December. Do not expand missing adjacent periods into an
+unbounded vacation range. No period filter or Ano/Mês selector is shown. Adding another period
+expands the annual overview to its configured months and the gap between periods.
+A narrower context panel lists that year's periods, vacation ranges and upcoming dates, or the
+selected day and inline editor. Vacation ranges crossing a year boundary are summarized there;
+the grid stays within one year. Month and daily views remain available through direct selection.
+The breadcrumb returns to the same civil year, including for cross-year periods. The loading
+state retains that year and renders month-shaped skeletons using the actual grid and shared
+skeleton primitive. No giant full-width placeholder. These are presentation rules; calendar
+records, session generation and suspension rules are unchanged.
 
 FORM: Multi-month calendar with contextual side panel, derived from ranked candidate 1,
 seed 7867e447 and the subsequent period/vacation decisions.
@@ -94,3 +90,9 @@ adjacent `REVIEW.md`, and runtime observations in `SCOPE.md`. The user requested
 validation. No automated checks ran in the final pass; the earlier unsuccessful typecheck was
 not resumed, and backend reconciliation was preserved without revalidation. The global design
 system and product context remain unchanged.
+
+## Validation — 2026-11-16
+
+The previous captures document the earlier period-based direction. Current annual navigation,
+bounded vacations and loading changes are checked with focused model/component tests and the
+web typecheck; browser evidence for this revision is pending.

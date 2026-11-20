@@ -6,6 +6,8 @@ export const ACTIVITY_AREAS = {
 } as const;
 export type ActivityArea = keyof typeof ACTIVITY_AREAS;
 export const ACTIVITY_ACTIONS = {
+  "appointments.scheduleClass": ["PEDAGOGICAL", "Atendimentos da turma agendados"],
+  "planning.endClasses": ["PEDAGOGICAL", "Encerramento das aulas antecipado"],
   "studentAttendance.open": ["PEDAGOGICAL", "Abriu link de presença"],
   "studentAttendance.close": ["PEDAGOGICAL", "Encerrou link de presença"],
   "planning.create": ["PEDAGOGICAL", "Planejamento criado"],
@@ -13,6 +15,7 @@ export const ACTIVITY_ACTIONS = {
   "classRecords.confirm": ["PEDAGOGICAL", "Aula registrada"],
   "classRecords.correct": ["PEDAGOGICAL", "Registro da aula corrigido"],
   "semesterOrganization.savePlan": ["PEDAGOGICAL", "Turma do próximo semestre organizada"],
+  "semesterOrganization.reset": ["PEDAGOGICAL", "Formação de turmas reiniciada"],
   "semesterOrganization.prepare": ["PEDAGOGICAL", "Estrutura de turmas reaproveitada"],
   "semesterOrganization.continuity": ["PEDAGOGICAL", "Continuidade do aluno registrada"],
   "semesterOrganization.pendingLead": ["PEDAGOGICAL", "Pendência de alocação atualizada"],

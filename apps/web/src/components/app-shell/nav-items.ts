@@ -129,13 +129,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         icon: History,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
-      { href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["SYSTEM_ADMIN"] },
-      {
-        href: "/configuracoes/presenca",
-        label: "Localização da escola",
-        icon: Settings,
-        roles: ["ADMIN", "SYSTEM_ADMIN"],
-      },
+      { href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["ADMIN", "SYSTEM_ADMIN"] },
     ],
   },
 ];

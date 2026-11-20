@@ -29,10 +29,8 @@ export function PedagogyStepForm(props: FormProps): ReactJSX.Element {
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     try {
-      if (!draft.semesterId || draft.semesterId !== semester.currentId) {
-        setSemesterError(
-          "A entrada exige um período vigente. Para uma entrada futura, cadastre um lead.",
-        );
+      if (!draft.semesterId || ![semester.currentId, semester.nextId].includes(draft.semesterId)) {
+        setSemesterError("Escolha o semestre atual ou o próximo semestre de entrada.");
         return;
       }
       pedagogyIntake(draft);
@@ -52,13 +50,13 @@ export function PedagogyStepForm(props: FormProps): ReactJSX.Element {
       <NarrativeField
         name="intake-notes"
         label="Preferências e combinados · opcional"
-        placeholder="Preferências para a entrada no período vigente"
+        placeholder="Preferências de horário para a entrada"
         rows={2}
         value={draft.notes}
         onChange={(notes) => set({ notes })}
       />
       <p className="text-caption text-muted-foreground">
-        A entrada é no período vigente. Pessoas aguardando uma turma futura permanecem como leads.
+        Sem turma definida, o aluno fica na fila de encaixe do semestre escolhido.
       </p>
     </form>
   );

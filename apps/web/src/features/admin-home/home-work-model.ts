@@ -5,6 +5,7 @@ const PEDAGOGICAL_KINDS: HomeGroup["kind"][] = [
   "health",
   "occurrences",
   "coverage",
+  "planning",
   "semester",
   "lessons",
   "appointments",
@@ -13,7 +14,10 @@ const PEDAGOGICAL_KINDS: HomeGroup["kind"][] = [
   "allocation",
 ];
 export const WORKSTREAMS = [
-  { title: "Conduzir as aulas", kinds: ["coverage", "lessons", "appointments", "occurrences"] },
+  {
+    title: "Conduzir as aulas",
+    kinds: ["coverage", "planning", "lessons", "appointments", "occurrences"],
+  },
   { title: "Preparar a entrada em turma", kinds: ["placement", "students", "allocation"] },
   { title: "Organizar a continuidade", kinds: ["semester"] },
 ] as const;
@@ -40,6 +44,11 @@ export const WORK_COPY: Record<
     action: "Ver turmas",
     outcome: "Defina outro professor para cada turma afetada pela saída.",
     scope: "Saídas de professores com turmas a reatribuir",
+  },
+  planning: {
+    action: "Ver planejamento",
+    outcome: "Revise o planejamento na página de cada turma.",
+    scope: "Turmas com itens do planejamento fora do período letivo",
   },
   lessons: {
     action: "Conferir registros de aula",
@@ -76,10 +85,15 @@ export const WORK_COPY: Record<
     outcome: "Alunos sem primeiro contrato.",
     scope: "Primeiros contratos",
   },
+  materials: {
+    action: "Conferir material",
+    outcome: "Registrar a aquisição do próximo livro.",
+    scope: "Estágios nos últimos 60 dias ou já encerrados",
+  },
   renewals: {
-    action: "Revisar renovações",
+    action: "Conferir rematrículas",
     outcome: "Conversar sobre a continuidade do contrato.",
-    scope: "Terminam nos próximos 30 dias",
+    scope: "Terminam nos próximos 60 dias",
   },
 };
 export type WorkPriority = {

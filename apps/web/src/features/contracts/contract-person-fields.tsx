@@ -42,7 +42,6 @@ export function PersonDocument({ kind, fields, errors, change }: PersonProps): R
 export function InlinePersonFields(props: PersonProps): ReactElement {
   const { kind, fields, errors, change } = props;
   const names = PERSON_FIELDS[kind];
-  const entity = kind === "student" ? "aluno" : "pagador";
   return (
     <div className="space-y-3">
       <FormRow columns={2}>
@@ -68,9 +67,11 @@ export function InlinePersonFields(props: PersonProps): ReactElement {
           Informe pelo menos um contato: telefone ou e-mail.
         </p>
       )}
-      <p className="text-caption text-muted-foreground">
-        O {entity} será cadastrado ao criar o contrato.
-      </p>
+      {kind === "student" && (
+        <p className="text-caption text-muted-foreground">
+          O aluno será cadastrado ao criar o contrato.
+        </p>
+      )}
     </div>
   );
 }

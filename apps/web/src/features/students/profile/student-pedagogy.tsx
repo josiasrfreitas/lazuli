@@ -184,7 +184,7 @@ function emptyEnrollmentContent({
   if (upcoming)
     return {
       Icon: CalendarDays,
-      title: "O próximo período já tem data",
+      title: "O próximo semestre já tem data",
       description: `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`,
     };
   if (hasHistory)

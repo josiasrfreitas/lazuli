@@ -1,76 +1,60 @@
 import type { Prisma } from "@lazuli/db";
-import {
-  generateRegularPortalClassName,
-  generatePersonalizedPortalClassName,
-  type PortalClassNameSlot,
-} from "@lazuli/domain";
-
+import { generatePortalClassName, type ClassNameInput } from "@lazuli/domain";
 import { badRequest } from "../trpc/errors.js";
 import { PORTAL_NAME_COLLISION_MESSAGE } from "./errors.js";
 
 const MAX_PORTAL_NAME_ATTEMPTS = 50;
+type NamingDatabase = Pick<Prisma.TransactionClient, "stage" | "user" | "class">;
+type ClassNameFields = Pick<ClassNameInput, "scheduleType" | "slots"> & {
+  sharedStageId?: string | null | undefined;
+  teacherId: string | null;
+};
 
-type PortalNameDatabase = Pick<Prisma.TransactionClient, "class">;
-
-export async function resolveRegularPortalClassName(input: {
-  database: PortalNameDatabase;
-  stageInternalCode: string;
-  slots: readonly PortalClassNameSlot[];
-  semesterName: string;
-  year: number;
-}): Promise<string> {
-  return resolveGeneratedPortalClassName(input.database, (sequence) =>
-    generateRegularPortalClassName({ ...input, sequence }),
-  );
+async function namingDetails(
+  database: NamingDatabase,
+  fields: ClassNameFields,
+): Promise<ClassNameInput> {
+  const [stage, teacher] = await Promise.all([
+    fields.scheduleType === "REGULAR" && fields.sharedStageId
+      ? database.stage.findUnique({
+          where: { id: fields.sharedStageId },
+          select: { internalCode: true },
+        })
+      : null,
+    fields.teacherId
+      ? database.user.findUnique({ where: { id: fields.teacherId }, select: { name: true } })
+      : null,
+  ]);
+  return {
+    scheduleType: fields.scheduleType,
+    slots: fields.slots,
+    stageInternalCode: stage?.internalCode,
+    teacherName: teacher?.name,
+  };
 }
 
-export async function resolvePersonalizedPortalClassName(input: {
-  database: PortalNameDatabase;
-  slots: readonly PortalClassNameSlot[];
-  semesterName: string;
-  year: number;
-}): Promise<string> {
-  return resolveGeneratedPortalClassName(input.database, (sequence) =>
-    generatePersonalizedPortalClassName({ ...input, sequence }),
-  );
-}
-
-async function resolveGeneratedPortalClassName(
-  database: PortalNameDatabase,
-  generate: (sequence: number) => string,
+export async function plannedClassName(
+  database: NamingDatabase,
+  fields: ClassNameFields,
 ): Promise<string> {
+  return generatePortalClassName(await namingDetails(database, fields));
+}
+
+/** Published classes share a unique active name across periods. Drafts do not reserve it. */
+export async function resolvePortalClassName(
+  database: NamingDatabase,
+  fields: ClassNameFields,
+): Promise<string> {
+  const details = await namingDetails(database, fields);
   const candidates = Array.from({ length: MAX_PORTAL_NAME_ATTEMPTS }, (_unused, index) =>
-    generate(index + 1),
+    generatePortalClassName(details, index + 1),
   );
   const existing = await database.class.findMany({
-    where: {
-      portalClassName: { in: candidates },
-      status: "ACTIVE",
-      deletedAt: null,
-    },
+    where: { portalClassName: { in: candidates }, status: "ACTIVE", deletedAt: null },
     select: { portalClassName: true },
   });
   const occupied = new Set(existing.map((row) => row.portalClassName));
   const available = candidates.find((candidate) => !occupied.has(candidate));
-  if (available !== undefined) return available;
-
-  throw badRequest(PORTAL_NAME_COLLISION_MESSAGE);
-}
-
-export async function assertActivePortalClassNameAvailable(input: {
-  database: PortalNameDatabase;
-  portalClassName: string;
-}): Promise<void> {
-  const existing = await input.database.class.findFirst({
-    where: {
-      portalClassName: input.portalClassName,
-      status: "ACTIVE",
-      deletedAt: null,
-    },
-    select: { id: true },
-  });
-
-  if (existing !== null) {
-    throw badRequest(PORTAL_NAME_COLLISION_MESSAGE);
-  }
+  if (available === undefined) throw badRequest(PORTAL_NAME_COLLISION_MESSAGE);
+  return available;
 }

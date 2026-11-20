@@ -60,14 +60,17 @@ export async function seedDevData(
   await seedMakeups(context);
 }
 
+const SEMESTER_DAYS_ELAPSED = 112;
+const SEMESTER_DAYS_REMAINING = 56;
+
 function currentSemesterSeed(todayIso: string): SemesterSeed {
   const today = utcDate(todayIso);
   const year = today.getUTCFullYear();
   const secondHalf = today.getUTCMonth() >= SECOND_HALF_MONTH;
   return {
     name: `${year}.${secondHalf ? 2 : 1}`,
-    startIso: `${year}-${secondHalf ? "07-01" : "01-01"}`,
-    endIso: `${year}-${secondHalf ? "12-31" : "06-30"}`,
+    startIso: isoOf(addDays(today, -SEMESTER_DAYS_ELAPSED)),
+    endIso: isoOf(addDays(today, SEMESTER_DAYS_REMAINING)),
     year,
   };
 }
@@ -287,8 +290,12 @@ async function seedClosedDays(
     ["11-20", "Dia da Consciência Negra"],
     ["12-25", "Natal"],
   ] as const;
-  const dates = holidays
-    .map(([day, reason]) => ({ dateIso: `${semester.year}-${day}`, reason }))
+  const years = new Set([
+    utcDate(semester.startIso).getUTCFullYear(),
+    utcDate(semester.endIso).getUTCFullYear(),
+  ]);
+  const dates = [...years]
+    .flatMap((year) => holidays.map(([day, reason]) => ({ dateIso: `${year}-${day}`, reason })))
     .filter(({ dateIso }) => dateIso >= semester.startIso && dateIso <= semester.endIso);
   await database.schoolClosedDay.createMany({
     data: dates.map(({ dateIso, reason }) => ({

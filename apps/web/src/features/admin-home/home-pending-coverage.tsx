@@ -8,6 +8,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import type { HomeGroup, HomeItem } from "./home-parts";
 import { departureDayLabel } from "./home-work-model";
 import styles from "./home-pending.module.css";
+import { PendingIcon } from "./home-pending-icon";
 
 export function PendingCoverage({
   group,
@@ -106,9 +107,7 @@ function CoverageRow({ item, today }: { item: HomeItem; today: string }): ReactE
     <tr>
       <td className={styles.cell}>
         <Link className={styles.item} href={item.action.href}>
-          <span className={`${styles.icon} ${styles.coverageIcon}`}>
-            <UsersRound aria-hidden="true" />
-          </span>
+          <PendingIcon icon={UsersRound} className={styles.coverageIcon} missing />
           <span className={styles.identity}>
             <strong className={styles.title}>Turma sem professor</strong>
             <span className={styles.context}>

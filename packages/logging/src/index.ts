@@ -1,3 +1,5 @@
+import { originalError, reportError } from "./error-reporting.js";
+export { reportError, setErrorReporter } from "./error-reporting.js";
 import { randomUUID } from "node:crypto";
 import pino, { type DestinationStream, type Logger, type LoggerOptions } from "pino";
 import {
@@ -14,6 +16,8 @@ type LogObject = Parameters<NonNullable<NonNullable<LoggerOptions["formatters"]>
 
 const requestIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+type LogMethod = NonNullable<NonNullable<LoggerOptions["hooks"]>["logMethod"]>;
+const ERROR_LOG_LEVEL = 50;
 const errorCodePattern = /^[A-Z][A-Z0-9_]{0,63}$/u;
 
 /** The proxy owns HTTP IDs; this fallback also covers callers outside Next requests. */
@@ -27,7 +31,7 @@ export function createServiceLogger(
   options: { destination?: DestinationStream; level?: LogLevel } = {},
 ): Logger {
   const level = options.level ?? configuredLogLevel();
-  const configuration = {
+  const configuration: LoggerOptions = {
     base: { service_name: serviceName },
     level,
     messageKey: "message",
@@ -38,6 +42,21 @@ export function createServiceLogger(
         if (typeof value.error_stack !== "string") return value;
         const { error_stack, ...fields } = value;
         return { ...fields, exception: error_stack };
+      },
+    },
+    hooks: {
+      logMethod(...[args, method, level]: Parameters<LogMethod>) {
+        const fields = args[0];
+        if (
+          level >= ERROR_LOG_LEVEL &&
+          typeof fields === "object" &&
+          fields !== null &&
+          originalError in fields
+        ) {
+          const error = fields[originalError];
+          if (error instanceof Error) reportError(error, { service: serviceName });
+        }
+        return method.apply(this, args);
       },
     },
     // Callers pass only allowlisted fields. Redaction is a second line of defense.
@@ -104,6 +123,7 @@ export function logDevelopmentProcess(
 /** Keep call frames for server diagnosis without recording error messages or query values. */
 // eslint-disable-next-line @typescript-eslint/no-restricted-types -- JavaScript can throw any value.
 export function safeError(error: unknown): {
+  [originalError]?: Error;
   error_name: string;
   error_code?: string;
   error_stack?: string;
@@ -115,6 +135,7 @@ export function safeError(error: unknown): {
     .filter((line) => /^\s+at\s/u.test(line))
     .join("\n");
   return {
+    [originalError]: error,
     error_name: /^[A-Za-z][A-Za-z0-9]{0,63}$/u.test(error.name) ? error.name : "Error",
     ...(code !== undefined && errorCodePattern.test(code) ? { error_code: code } : {}),
     ...(stack ? { error_stack: stack } : {}),

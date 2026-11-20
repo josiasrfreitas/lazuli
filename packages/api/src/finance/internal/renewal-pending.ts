@@ -1,6 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 
-const RENEWAL_DAYS = 30;
+const RENEWAL_DAYS = 60;
 
 /** Same renewal window for the home queue and the student's finance action. */
 export function pendingRenewalWhere(today: string): Prisma.ContractWhereInput {

@@ -55,6 +55,7 @@ export type FinanceDatabase = Pick<
   | "student"
   | "financeSettings"
   | "contract"
+  | "contractBook"
   | "contractRenegotiation"
   | "enrollment"
   | "enrollmentAction"

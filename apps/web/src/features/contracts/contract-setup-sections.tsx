@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { bookQuote } from "./book-agreement";
+import { contractBooks } from "./semester-books";
 import {
   Button,
   Field,
@@ -21,7 +23,11 @@ import {
   TermFields,
   type FormProps,
 } from "./contract-form-fields";
-import { durationFromDates } from "./contract-form-model";
+import {
+  boundedInstallmentInput,
+  contractPeriodLabel,
+  durationFromDates,
+} from "./contract-form-model";
 import { TextField } from "./contract-text-field";
 import { ContractScholarshipFields } from "./contract-scholarship-fields";
 import { ContractPayerFields } from "./contract-payer-fields";
@@ -51,7 +57,13 @@ export function SetupParties(
       <FormSection title="Período do contrato">
         <div className={styles.dates}>
           <TermFields {...props} />
-          {!props.billingFirstDueDate && (
+          {props.billingFirstDueDate ? (
+            <RenewalFirstDueDate
+              value={props.billingFirstDueDate.value}
+              onChange={props.billingFirstDueDate.onChange}
+              error={props.dueError}
+            />
+          ) : (
             <TextField
               name="billingFirstDueDate"
               label="Primeiro vencimento"
@@ -64,13 +76,6 @@ export function SetupParties(
             />
           )}
         </div>
-        {props.billingFirstDueDate && (
-          <RenewalFirstDueDate
-            value={props.billingFirstDueDate.value}
-            onChange={props.billingFirstDueDate.onChange}
-            error={props.dueError}
-          />
-        )}
       </FormSection>
     </div>
   );
@@ -137,8 +142,9 @@ function TuitionPaymentPlan({ fields, errors, change }: FormProps): ReactElement
           value={fullScholarship ? "0" : count}
           invalid={!fullScholarship && Boolean(errors.installmentCount)}
           onChange={(event) => {
-            change("installmentCount", event.target.value);
-            change("paymentPlan", event.target.value === defaultCount ? "common" : "special");
+            const next = boundedInstallmentInput(event.target.value, duration);
+            change("installmentCount", next);
+            change("paymentPlan", next === defaultCount ? "common" : "special");
           }}
         />
         {!fullScholarship && errors.installmentCount && (
@@ -284,7 +290,7 @@ export function SetupReview({
         billingFirstDueDate={billingFirstDueDate}
       />
       <p className={styles.help}>
-        Ao concluir, as cobranças serão criadas. Registre os recebimentos quando forem pagos.
+        Ao concluir, os pagamentos informados no ato serão registrados no financeiro.
       </p>
     </div>
   );
@@ -301,6 +307,9 @@ function ReviewParties({
   billingFirstDueDate?: string | undefined;
   onEdit: (step: SetupStep) => void;
 }): ReactElement {
+  const student = fields.studentMode === "create" ? fields.studentDraftName : fields.studentName;
+  const payer = fields.payerMode === "create" ? fields.payerName : fields.payerLabel;
+  const sameName = Boolean(student.trim()) && student.trim() === payer.trim();
   return (
     <FormSection
       title="Responsável e período"
@@ -312,18 +321,18 @@ function ReviewParties({
     >
       <dl className={styles.reviewList}>
         <div>
-          <dt>Aluno</dt>
-          <dd>{fields.studentMode === "create" ? fields.studentDraftName : fields.studentName}</dd>
+          <dt>{sameName ? "Aluno e responsável financeiro" : "Aluno"}</dt>
+          <dd>{student}</dd>
         </div>
-        <div>
-          <dt>Responsável financeiro</dt>
-          <dd>{fields.payerMode === "create" ? fields.payerName : fields.payerLabel}</dd>
-        </div>
+        {!sameName && (
+          <div>
+            <dt>Responsável financeiro</dt>
+            <dd>{payer}</dd>
+          </div>
+        )}
         <div>
           <dt>Vigência</dt>
-          <dd>
-            {fields.firstDueDate} a {fields.endsOn}
-          </dd>
+          <dd>{contractPeriodLabel(fields)}</dd>
         </div>
         <div>
           <dt>Primeiro vencimento</dt>
@@ -415,7 +424,7 @@ function ReviewMaterial({
   const stageIds = fields.materialStageIds.split(",");
   const books = stageIds
     .map((id) => material.stages.data?.find((stage) => stage.id === id)?.internalCode)
-    .filter(Boolean);
+    .filter((code): code is string => Boolean(code));
   return (
     <FormSection
       title="Material"
@@ -425,28 +434,85 @@ function ReviewMaterial({
         </Button>
       }
     >
-      {fields.materialPayment === "NONE" ? (
-        <p className={styles.help}>Sem nova aquisição.</p>
+      {fields.materialBooks ? (
+        <ContractBooksReview value={fields.materialBooks} material={material} />
       ) : (
-        <>
-          <p className={styles.bookNames}>{books.join(" · ") || "Livros a definir"}</p>
-          <MaterialQuoteSummary fields={fields} material={material} />
-          {fields.materialScholarshipMode !== "NONE" && (
-            <p className={styles.help}>
-              Bolsa de{" "}
-              {fields.materialScholarshipMode === "FULL" ? "100" : fields.materialScholarshipPct}% ·{" "}
-              {fields.materialScholarshipAgreement}
-            </p>
-          )}
-          {material.effective && material.effective.receivableCents > 0 && (
-            <p className={styles.help}>
-              Valor do material a receber: {money(material.effective.receivableCents)}, com
-              vencimento em{" "}
-              {billingFirstDueDate ?? fields.billingFirstDueDate ?? fields.firstDueDate}.
-            </p>
-          )}
-        </>
+        <MaterialQuoteReview
+          fields={fields}
+          material={material}
+          bookCodes={books}
+          billingFirstDueDate={billingFirstDueDate}
+        />
       )}
     </FormSection>
+  );
+}
+
+function ContractBooksReview({
+  value,
+  material,
+}: {
+  value: string;
+  material: SetupMaterial;
+}): ReactElement {
+  return (
+    <ol>
+      {contractBooks(value).map((book, index) => (
+        <li key={index}>
+          {index + 1}º semestre ·{" "}
+          {material.stages.data?.find((stage) => stage.id === book.stageId)?.name ??
+            "Livro a definir"}{" "}
+          · {bookPaymentLabel(book, material.prices.data)}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function bookPaymentLabel(
+  book: ReturnType<typeof contractBooks>[number],
+  prices: SetupMaterial["prices"]["data"],
+): string {
+  if (book.acquisition) {
+    const cents = prices
+      ? bookQuote(book.acquisition, prices).charged
+      : book.acquisition.expectedTotalCents;
+    return `Pago no ato · ${money(cents)}`;
+  }
+  return book.acquisitionSemester
+    ? `Previsto para o ${book.acquisitionSemester}º semestre`
+    : "Data em aberto";
+}
+
+function MaterialQuoteReview({
+  fields,
+  material,
+  bookCodes,
+  billingFirstDueDate,
+}: {
+  fields: FormProps["fields"];
+  material: SetupMaterial;
+  bookCodes: string[];
+  billingFirstDueDate: string | undefined;
+}): ReactElement {
+  if (fields.materialPayment === "NONE") return <p className={styles.help}>Sem nova aquisição.</p>;
+  return (
+    <>
+      <p className={styles.bookNames}>{bookCodes.join(" · ") || "Livros a definir"}</p>
+      <MaterialQuoteSummary fields={fields} material={material} />
+      {fields.materialScholarshipMode !== "NONE" && (
+        <p className={styles.help}>
+          Bolsa de{" "}
+          {fields.materialScholarshipMode === "FULL" ? "100" : fields.materialScholarshipPct}% ·{" "}
+          {fields.materialScholarshipAgreement}
+        </p>
+      )}
+      {material.effective && material.effective.receivableCents > 0 && (
+        <p className={styles.help}>
+          Valor do material a receber: {money(material.effective.receivableCents)}, com vencimento
+          em {billingFirstDueDate ?? fields.billingFirstDueDate ?? fields.firstDueDate}.
+        </p>
+      )}
+    </>
   );
 }

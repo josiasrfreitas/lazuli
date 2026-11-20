@@ -18,8 +18,10 @@ const MIN_RADIUS = 10;
 const MAX_RADIUS = 1000;
 const MIN_ACCURACY = 5;
 const MAX_ACCURACY = 500;
+const MAX_ADDRESS_LENGTH = 500;
 export const attendanceSettingsSchema = z
   .object({
+    addressLabel: z.string().trim().max(MAX_ADDRESS_LENGTH).nullable().optional(),
     latitude: z.number().finite().min(-MAX_LATITUDE).max(MAX_LATITUDE),
     longitude: z.number().finite().min(-MAX_LONGITUDE).max(MAX_LONGITUDE),
     radiusMeters: z.number().int().min(MIN_RADIUS).max(MAX_RADIUS),

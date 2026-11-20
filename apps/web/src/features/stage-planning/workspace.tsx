@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState, type ReactElement } from "react";
-import { CalendarDays, Plus } from "lucide-react";
-import { Badge, Button, EmptyState } from "@lazuli/ui";
+import { Plus } from "lucide-react";
+import { Button, EmptyState } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { PlanWindowForm, PlanItemForm, PlanRemoveForm } from "./forms";
-import { PlanningState, dateLabel, type Planning } from "./shared";
+import { PlanningState, type Planning } from "./shared";
+import { PlanningAdjustments } from "./adjustments";
 import { PlanningJourney } from "./journey";
 import { PlanningLoading } from "./planning-loading";
 import styles from "./planning.module.css";
@@ -56,10 +57,12 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
   return (
     <>
       <section className={styles.workspace} aria-label="Planejamento do estágio">
-        <PlanHeader data={data} onEdit={() => setMode({ kind: "window" })} />
         {data.plan || data.preview ? (
           <PlanningJourney
             data={data}
+            actions={
+              <PlanningAdjustments data={data} onStart={() => setMode({ kind: "window" })} />
+            }
             onEdit={canEditPlanItems(data) ? (item) => setMode({ kind: "item", item }) : undefined}
           />
         ) : (
@@ -79,48 +82,6 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
         <PlanRemoveForm data={data} item={mode.item} onClose={() => setMode(null)} />
       )}
     </>
-  );
-}
-
-function PlanHeader({ data, onEdit }: { data: Planning; onEdit: () => void }): ReactElement {
-  const { plan, preview, scope } = data;
-  return (
-    <header className={styles.context}>
-      <div className={styles.identity}>
-        <h2>{scope.student ? `Planejamento · ${scope.stage.name}` : "Planejamento da turma"}</h2>
-        <p>
-          {plan || preview
-            ? `${dateLabel((plan ?? preview)!.plannedStartOn)} — ${dateLabel(scope.semester.endOn)} · ${scope.stage.track.name}`
-            : "Período ainda não definido"}
-          {scope.student ? ` · ${scope.class.name}` : ""}
-        </p>
-      </div>
-      <PlanHeaderActions data={data} onEdit={onEdit} />
-      {plan?.objective && (
-        <details className={styles.objective}>
-          <summary>Objetivo do estágio</summary>
-          <p>{plan.objective}</p>
-        </details>
-      )}
-    </header>
-  );
-}
-
-function PlanHeaderActions({ data, onEdit }: { data: Planning; onEdit: () => void }): ReactElement {
-  const { plan, scope } = data;
-  return (
-    <div className={styles.actions}>
-      {scope.readOnly && <Badge variant="neutral">Somente consulta</Badge>}
-      {plan && scope.student && !scope.readOnly && plan.plannedEndOn < scope.today && (
-        <Badge variant="warning">Prazo planejado vencido</Badge>
-      )}
-      {(plan || data.preview) && !scope.readOnly && (
-        <Button size="sm" variant="ghost" onClick={onEdit}>
-          <CalendarDays aria-hidden="true" />
-          Alterar início
-        </Button>
-      )}
-    </div>
   );
 }
 

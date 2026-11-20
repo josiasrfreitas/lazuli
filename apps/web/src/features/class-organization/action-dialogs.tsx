@@ -1,5 +1,8 @@
 "use client";
 import type { FormEvent, JSX as ReactJSX } from "react";
+import { ArrowDown } from "lucide-react";
+import { FormationProgress } from "./page-loading";
+import { responseLabels } from "./confirmation";
 import { useState } from "react";
 import { z, withdrawSemesterSchema } from "@lazuli/validators";
 import {
@@ -134,20 +137,30 @@ function ReasonDialogView({
   );
 }
 const actions: Record<string, string> = {
-  INHERITED: "Continuidade herdada",
-  CONTINUITY: "Intenção de continuidade",
+  FORMATION_RESET: "Destino provisório retirado no reinício da formação",
+  INHERITED: "Proposta trazida da turma anterior",
+  CONTINUITY: "Registro de continuidade",
+  CLASS_DISSOLVED: "Turma encerrada",
+  CHANGE_REQUEST: "Pedido de troca registrado",
+  RETRACT_REQUEST: "Pedido de troca retirado",
+  SCHEDULE_RISK: "Risco de troca de horário",
+  RISK: "Risco de saída sinalizado",
+  REVIEW: "Risco de saída reavaliado",
+  BLOCK: "Impedimento sinalizado pela equipe",
+  UNBLOCK: "Impedimento resolvido",
   CARRIED_FORWARD: "Pendência trazida do período anterior",
   ENROLLED: "Matrícula confirmada",
-  NOT_CONTINUING: "Não continuidade registrada",
-  CONFIRMED_CONTINUITY: "Continuidade confirmada",
+  NOT_CONTINUING: "Saída registrada para o semestre",
+  CONFIRMED_CONTINUITY: "Permanência confirmada",
   PROPOSED: "Proposta criada",
   REVISED: "Proposta revisada",
-  PUBLISHED: "Publicação realizada",
-  WITHDRAWN: "Publicação desfeita",
+  PUBLISHED: "Alocação confirmada",
+  WITHDRAWN: "Alocação desfeita",
   REQUIRES_REVIEW: "Devolvida para revisão",
   REMOVED: "Proposta retirada",
 };
 const snapshotSchema = z.object({
+  continuity: z.enum(["UNDECIDED", "STAY", "CHANGE", "LEAVING"]).nullish(),
   mode: z.enum(["ENTRY", "CONTINUE", "ADVANCE", "REPEAT"]).optional(),
   notes: z.string().nullable().optional(),
 });
@@ -175,14 +188,14 @@ export function PlacementHistory({
             <DialogDescription>{row.studentName}</DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <RecordState
-              pending={query.isPending}
-              error={query.error}
-              retry={() => void query.refetch()}
-            />
-            <ol className="grid gap-5 py-4">
-              {query.data?.map((item) => (
-                <HistoryRow key={item.id} item={item} />
+            {query.isPending ? (
+              <FormationProgress label="Buscando o histórico" />
+            ) : (
+              <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
+            )}
+            <ol aria-label="Do registro mais antigo ao mais recente" className="grid gap-5 py-4">
+              {query.data?.toReversed().map((item, index) => (
+                <HistoryRow key={item.id} item={item} followsPrevious={index > 0} />
               ))}
             </ol>
           </DialogBody>
@@ -197,22 +210,47 @@ export function PlacementHistory({
   );
 }
 
-function HistoryRow({ item }: { item: HistoryItem }): ReactJSX.Element {
+export function HistoryRow({
+  item,
+  followsPrevious = false,
+}: {
+  item: HistoryItem;
+  followsPrevious?: boolean;
+}): ReactJSX.Element {
   const snapshot = snapshotSchema.safeParse(item.snapshot);
+  const response = item.action === "CONTINUITY" && snapshot.success && snapshot.data.continuity;
   return (
-    <li className="border-l-2 border-border pl-4">
-      <p className="text-caption font-semibold">{actions[item.action] ?? item.action}</p>
+    <li className="relative border-l-2 border-border pl-4">
+      {followsPrevious && (
+        <ArrowDown
+          aria-hidden="true"
+          className="absolute -top-4 -left-px size-3 -translate-x-1/2 text-muted-foreground"
+        />
+      )}
+      <p className="text-caption font-semibold">
+        {response ? responseLabels[response] : (actions[item.action] ?? item.action)}
+      </p>
       <p className="mt-1 text-caption text-muted-foreground">
         {formatDateOnlyBR(dateOnly(item.createdAt))} · {item.recordedBy?.name ?? "Sistema"} · versão{" "}
         {item.version}
       </p>
-      {snapshot.success && snapshot.data.mode && (
-        <p className="mt-2 text-caption">{modes[snapshot.data.mode]}</p>
-      )}
-      {item.reason && <p className="mt-2 text-caption">{item.reason}</p>}
-      {snapshot.success && snapshot.data.notes && (
-        <p className="mt-2 text-caption text-muted-foreground">{snapshot.data.notes}</p>
-      )}
+      <HistoryDetails item={item} details={snapshot.data} />
     </li>
+  );
+}
+
+function HistoryDetails({
+  item,
+  details,
+}: {
+  item: HistoryItem;
+  details: z.infer<typeof snapshotSchema> | undefined;
+}): ReactJSX.Element {
+  return (
+    <>
+      {details?.mode && <p className="mt-2 text-caption">{modes[details.mode]}</p>}
+      {item.reason && <p className="mt-2 text-caption">{item.reason}</p>}
+      {details?.notes && <p className="mt-2 text-caption text-muted-foreground">{details.notes}</p>}
+    </>
   );
 }

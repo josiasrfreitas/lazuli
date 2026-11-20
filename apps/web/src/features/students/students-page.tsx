@@ -126,6 +126,19 @@ export function studentFilterFields(props: StudentsFilterFieldsProps): TableFilt
       onClear: () => filters.setFilters({ situations: null }),
     },
     {
+      id: "scheduleType",
+      label: "Modalidade",
+      kind: "options",
+      promoted: true,
+      options: [
+        { id: "REGULAR", label: "Regular" },
+        { id: "PERSONALIZED", label: "PPT" },
+      ],
+      selected: filters.scheduleType ? [filters.scheduleType] : [],
+      onChange: (ids) => filters.setFilters({ scheduleType: ids.at(-1) ?? null }),
+      onClear: () => filters.setFilters({ scheduleType: null }),
+    },
+    {
       id: "scholarship",
       label: "Bolsa",
       kind: "options",
@@ -212,6 +225,7 @@ export function StudentsControls({
         onClearAll={() =>
           filters.setFilters({
             situations: null,
+            scheduleType: null,
             scholarship: null,
             ageRanges: null,
             classIds: null,
@@ -273,6 +287,7 @@ function hasStudentFilters(filters: ReturnType<typeof useStudentsFilters>): bool
   return Boolean(
     filters.search ||
     filters.situations.length > 0 ||
+    filters.scheduleType ||
     filters.scholarship.length > 0 ||
     filters.ageRanges.length > 0 ||
     filters.classIds.length > 0 ||

@@ -8,6 +8,8 @@
     "./student-health-batch": "./src/student-health-batch.ts",
     "./teacher-responsibility": "./src/teacher-responsibility.ts",
     "./appointment-evidence": "./src/appointment-evidence.ts",
+    "./material-purchases": "./src/material-purchases.ts",
+    "./formation": "./src/formation.ts",
     "./prisma": "./src/generated/prisma/client.ts"
   },
   "scripts": {

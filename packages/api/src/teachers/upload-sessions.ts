@@ -1,3 +1,4 @@
+import { reportTransportError } from "../telemetry.js";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
@@ -256,6 +257,8 @@ async function uploadCapture(
 }
 
 function captureFailure<Failure>(error: Failure): Response {
+  if (error instanceof Error && !(error instanceof SyntaxError) && !(error instanceof z.ZodError))
+    reportTransportError(error, "teacher-capture");
   if (error instanceof TRPCError && error.code === "FORBIDDEN") return expired();
   return Response.json(
     {

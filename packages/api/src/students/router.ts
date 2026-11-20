@@ -36,6 +36,7 @@ import { readStudentHealth, readStudentHealthBatch } from "./health.js";
 import { TRPCError } from "@trpc/server";
 import { readStudentAgenda } from "./agenda.js";
 
+const INTAKE_CONTRACT_TIMEOUT_MS = 30_000;
 const FILTER_OPTION_LIMIT = 50;
 const HEALTH_PAGE_LIMIT = 50;
 const MAX_AGENDA_DAYS = 31;
@@ -43,14 +44,14 @@ const DAY_MS = 86_400_000;
 
 function futureIntakeDescription(hasPlan: boolean): string {
   return hasPlan
-    ? "Entrada no próximo período com turma planejada."
-    : "Entrada no próximo período sem turma definida.";
+    ? "Entrada no próximo semestre com turma planejada."
+    : "Entrada no próximo semestre sem turma definida.";
 }
 
 function currentIntakeDescription(hasClass: boolean): string {
   return hasClass
-    ? "Entrada neste período com turma definida."
-    : "Entrada neste período sem turma definida.";
+    ? "Entrada neste semestre com turma definida."
+    : "Entrada neste semestre sem turma definida.";
 }
 
 export const studentsRouter = router({
@@ -113,6 +114,7 @@ export const studentsRouter = router({
   resumeIntake: adminProcedure.input(studentIntakeResumeSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.resumeIntake",
+      options: input.contract ? { timeout: INTAKE_CONTRACT_TIMEOUT_MS } : undefined,
       work: async (database) => {
         const result = await resumeStudentIntake({
           database,
@@ -143,7 +145,7 @@ export const studentsRouter = router({
           description:
             input.entryPeriod === "NEXT"
               ? futureIntakeDescription(Boolean(input.planId))
-              : "Entrada neste período registrada no cadastro.",
+              : "Entrada neste semestre registrada no cadastro.",
         };
       },
     }),
@@ -180,6 +182,7 @@ export const studentsRouter = router({
   enrollNew: adminProcedure.input(studentIntakeEnrollSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.enrollNew",
+      options: input.contract ? { timeout: INTAKE_CONTRACT_TIMEOUT_MS } : undefined,
       work: async (database) => {
         const result = await enrollNewStudent({
           database,

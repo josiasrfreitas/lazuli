@@ -20,6 +20,14 @@ void describe("findNextStageInTrack", () => {
     assert.deepEqual(next, { id: "c", internalCode: "TUI", sequence: 3 });
   });
 
+  void it("skips Legacy stages while following the school's ordering", () => {
+    const stages = STAGES.map((stage) =>
+      stage.id === "b" ? { ...stage, status: "LEGACY" as const } : stage,
+    ).toReversed();
+
+    assert.equal(findNextStageInTrack({ stages, currentStageId: "a" })?.id, "c");
+  });
+
   void it("returns null at the end of the track", () => {
     const next = findNextStageInTrack({
       stages: STAGES,

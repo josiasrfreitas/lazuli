@@ -1,5 +1,6 @@
 import { z, civilDateSchema } from "@lazuli/validators";
 const TITLE_LIMIT = 160;
+const CONFIRMATION_TEXT_LIMIT = 160;
 const DESCRIPTION_LIMIT = 2000;
 const PERIOD_NAME_LIMIT = 80;
 const SOURCE_KEY_LIMIT = 120;
@@ -100,5 +101,6 @@ export const confirmCalendarChangeSchema = z
     change: calendarChangeSchema,
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
     commandId: z.string().uuid(),
+    confirmationText: z.string().trim().max(CONFIRMATION_TEXT_LIMIT).optional(),
   })
   .strict();

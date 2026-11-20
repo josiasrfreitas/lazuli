@@ -123,3 +123,8 @@ These category tokens apply in both themes and accompany explicit text in the ag
 cards. They identify event type, not attendance or warning status. Lesson status retains its separate text and status surface;
 recording a lesson does not change its modality color. Selection uses an outline, and the current
 time line uses `selection-indicator` rather than a warning role.
+
+Home pending contract icons use `contract-surface` / `contract-foreground` (orange). A question
+mark accompanies icons for missing records, documents, or assignments; its shape identifies
+missing information independently of the category color. Pending contracts and class planning
+reviews use an exclamation mark to call attention to the action required.

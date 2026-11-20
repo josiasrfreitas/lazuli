@@ -135,7 +135,7 @@ export function SchoolMetrics({ data }: { data: HomeData }): ReactElement {
       label: "Matrículas iniciadas",
       metric: school.enrollments,
       context: "Entradas em turmas, incluindo transferências",
-      href: "/organizacao",
+      href: "/turmas/formacao",
       icon: <GraduationCap aria-hidden="true" />,
     },
     {

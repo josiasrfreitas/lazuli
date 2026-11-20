@@ -117,7 +117,7 @@ function searchItems(options: readonly SearchSelectOption[], allowCreate: boolea
 
 function SearchInput({ props, open, close, highlighted }: SearchInputInput): ReactElement {
   return (
-    <div className="relative">
+    <div className="relative h-fit">
       {props.showSearchIcon && (
         <Search
           aria-hidden="true"

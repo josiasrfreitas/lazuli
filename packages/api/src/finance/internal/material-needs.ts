@@ -1,3 +1,4 @@
+import { readAcquiredStages } from "@lazuli/db/material-purchases";
 import { stageMaterialAttention } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
@@ -9,6 +10,7 @@ const enrollmentSelect = {
       id: true,
       portalClassName: true,
       scheduleType: true,
+      semester: { select: { endDate: true } },
       sharedStageId: true,
       stagePlan: { select: { stageId: true, plannedEndOn: true, deletedAt: true } },
     },
@@ -56,16 +58,9 @@ export async function readMaterialNeeds(
   const today = new Date(asOf);
   const [enrollments, sales] = await Promise.all([
     activeEnrollments(database, { studentId, today }),
-    database.materialOrder.findMany({
-      where: {
-        order: { deletedAt: null, cancelledAt: null, contract: { studentId, deletedAt: null } },
-      },
-      select: { stageId: true, items: { select: { stageId: true } } },
-    }),
+    readAcquiredStages(database, [studentId]),
   ]);
-  const acquiredStageIds = sales.flatMap((sale) =>
-    sale.items.length > 0 ? sale.items.map((item) => item.stageId) : [sale.stageId],
-  );
+  const acquiredStageIds = [...(sales.get(studentId) ?? [])];
   const stages = await relevantStages(database, enrollments);
   return enrollments.flatMap((enrollment) =>
     projectMaterialNeed({ enrollment, studentId, asOf, acquiredStageIds, stages }),
@@ -170,6 +165,7 @@ function materialPlannedEnd(input: {
 }): string | null {
   const { enrollment, progress, studentId } = input;
   const ppt = enrollment.class.scheduleType === "PERSONALIZED";
+  if (!ppt) return toDateOnlyString(enrollment.class.semester.endDate);
   const plan = ppt ? progress.stagePlan : enrollment.class.stagePlan;
   if (!plan || plan.deletedAt || plan.stageId !== progress.stage.id) return null;
   if (ppt && progress.stagePlan?.studentId !== studentId) return null;
@@ -187,7 +183,7 @@ function nextMaterialStage(input: {
   const successor = stages.find(
     (stage) => stage.trackId === progress.stage.trackId && stage.sequence > progress.stage.sequence,
   );
-  const next = ppt ? successor : organization?.stage;
+  const next = ppt ? successor : (organization?.stage ?? successor);
   if (ppt && !successor) return null;
   return { next: next ?? null };
 }

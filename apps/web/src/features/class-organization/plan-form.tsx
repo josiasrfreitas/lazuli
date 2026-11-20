@@ -1,7 +1,7 @@
 "use client";
 
 import type { JSX as ReactJSX } from "react";
-import { InlineSkeleton } from "@lazuli/ui";
+import { FormationProgress } from "./page-loading";
 import { trpc } from "~/lib/trpc";
 import { TaskDialog } from "~/features/shared/task-form";
 import { stageLabel } from "~/features/class-organization/model";
@@ -18,16 +18,31 @@ export function ClassPlanForm(props: ClassPlanProps): ReactJSX.Element {
       compactHeader
       actionSize="sm"
       title={classPlanTitle(props)}
-      description="Horário, professor e composição podem ser preparados aos poucos."
+      description={
+        props.initialStageId
+          ? "A turma será criada vazia. Depois, confirme a escolha para o aluno."
+          : "Horário, professor e composição podem ser preparados aos poucos."
+      }
       formId="semester-plan"
-      firstField="plan-name"
+      firstField="plan-kind"
       submitLabel="Salvar turma"
       onClose={props.onClose}
       pending={model.pending}
       error={model.error ?? options.error?.message}
       bodyRef={model.validation.body}
     >
-      <ClassPlanFields group={props.group} model={model} options={options.data} />
+      <ClassPlanFields
+        group={props.group}
+        model={model}
+        options={
+          props.initialStageId && options.data
+            ? {
+                ...options.data,
+                stages: options.data.stages.filter((stage) => stage.id === props.initialStageId),
+              }
+            : options.data
+        }
+      />
     </TaskDialog>
   );
 }
@@ -48,7 +63,7 @@ function PlanLoading({
       compactHeader
       actionSize="sm"
       title={plan ? "Editar turma" : "Nova turma"}
-      description="Carregando professores e estágios…"
+      description="Horário, estágio e professor."
       formId="plan-loading"
       firstField=""
       submitLabel="Salvar turma"
@@ -56,13 +71,7 @@ function PlanLoading({
       pending={false}
       onClose={onClose}
     >
-      <div className="grid gap-4 py-4" role="status" aria-label="Carregando turma">
-        <InlineSkeleton className="h-12 w-full" />
-        <InlineSkeleton className="h-12 w-full" />
-        <InlineSkeleton className="h-24 w-full" />
-      </div>
+      <FormationProgress label="Buscando professores e estágios" />
     </TaskDialog>
   );
 }
-
-export { SemesterForm } from "./period-create-form";

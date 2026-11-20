@@ -1,6 +1,6 @@
 # Teaching programs
 
-The catalog is read-only in the product. `catalog` returns stage/track metadata and `detail`
+Administrators manage tracks, stages and the book curriculum in the stage catalog. `catalog` returns stage/track metadata and `detail`
 returns the persisted units, teaching hours, activities, book lessons and assessments.
 
 A teaching hour is always 60 minutes. Weekly load belongs to `TeachingModality` and defaults to
@@ -26,7 +26,7 @@ hour's activities must total 60 minutes. Counts are read from the imported entit
 An unchanged source revision is idempotent. Changed content needs a new revision. Import retires
 the previous current program atomically and preserves its identifiers and records for older plans.
 A changed book lesson catalog requires explicit edition reconciliation; imports cannot silently
-rewrite existing lesson references. There is no interactive catalog-write endpoint.
+rewrite existing lesson references. Interactive edits use separate atomic commands. They preserve existing activity IDs, dated plan rows and recorded snapshots. The editor uses the stage import lock when editing lessons or programs. Optional page ranges belong to book activities and supply the pages for newly scheduled rows.
 
 The development seed adapts the previously supplied 40h/50h PDF transcriptions for the seven
 English Main stages. It is not a connection to SGF or another live source. Unknown abbreviations

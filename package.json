@@ -53,7 +53,8 @@
     "seed:contracts": "pnpm seed",
     "prepare": "lefthook install",
     "lint:root": "lazuli-lint scripts",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "seed:status": "dotenv -e .env -- node --import tsx scripts/seed-status.ts"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

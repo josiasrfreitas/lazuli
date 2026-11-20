@@ -9,11 +9,12 @@ const MILLISECONDS_PER_MINUTE = 60_000;
 type ProgramRow = {
   programActivityId: string;
   plannedOn: Date;
+  plannedSessionId: string | null;
   kind: "CONTENT" | "ASSESSMENT" | "REVIEW" | "ACTIVITY";
   title: string;
   reference: string;
-  pageFrom: null;
-  pageTo: null;
+  pageFrom: number | null;
+  pageTo: number | null;
 };
 
 type ScheduleInput = { scope: PlanningScope; startOn: string; plan: Plan | null };
@@ -40,6 +41,64 @@ export async function previewProgramSchedule(
   context: PlanningContext,
   { scope, startOn, plan }: ScheduleInput,
 ): Promise<ProgramPreview | null> {
+  const programId = await programForSchedule(context, { scope, startOn, plan });
+  if (!programId) return null;
+  const [activities, sessions, closedDays] = await Promise.all([
+    context.database.programActivity.findMany({
+      where: { programId, deletedAt: null },
+      orderBy: { sequence: "asc" },
+      include: { unit: true, teachingHour: true },
+    }),
+    context.database.classSession.findMany({
+      where: {
+        classId: scope.class.id,
+        deletedAt: null,
+        status: "SCHEDULED",
+        date: { gte: new Date(startOn) },
+        OR: [
+          { date: { lte: new Date(scope.semester.endOn) } },
+          { appointmentSeriesId: { not: null } },
+        ],
+      },
+      orderBy: [{ date: "asc" }, { startTime: "asc" }],
+    }),
+    context.database.schoolClosedDay.findMany({
+      where: {
+        deletedAt: null,
+        date: { gte: new Date(startOn) },
+      },
+      select: { date: true },
+    }),
+  ]);
+  const closed = new Set(closedDays.map((day) => dateOnly(day.date)));
+  const result = scheduleProgram(
+    activities,
+    sessions
+      .filter((session) => !closed.has(dateOnly(session.date)))
+      .map((session) => ({
+        id: session.id,
+        date: dateOnly(session.date),
+        minutes:
+          (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
+      })),
+  );
+  const rows: ProgramRow[] = result.scheduled.map(({ activity, date, sessionId }) => ({
+    programActivityId: activity.id,
+    plannedOn: new Date(date),
+    plannedSessionId: sessionId ?? null,
+    kind: programActivityKind(activity.kind),
+    title: activity.title,
+    reference: `Unidade ${activity.unit.sequence} · hora-aula ${activity.teachingHour.sequence}`,
+    pageFrom: activity.pageStart,
+    pageTo: activity.pageEnd,
+  }));
+  return { rows, activities, missingMinutes: result.missingMinutes };
+}
+
+async function programForSchedule(
+  context: PlanningContext,
+  { scope, plan }: ScheduleInput,
+): Promise<string | null> {
   const linked = plan?.items.find((item) => item.programActivityId)?.programActivityId;
   const previous = linked
     ? await context.database.programActivity.findUnique({
@@ -56,55 +115,12 @@ export async function previewProgramSchedule(
     },
     select: { id: true },
   });
-  if (programs.length === 0) return null;
+
   if (programs.length > 1)
     throw badRequest(
       "Há mais de uma programação para este estágio. Defina a modalidade da turma antes de distribuir as aulas.",
     );
-  const [activities, sessions, closedDays] = await Promise.all([
-    context.database.programActivity.findMany({
-      where: { programId: programs[0]!.id, deletedAt: null },
-      orderBy: { sequence: "asc" },
-      include: { unit: true, teachingHour: true },
-    }),
-    context.database.classSession.findMany({
-      where: {
-        classId: scope.class.id,
-        deletedAt: null,
-        status: "SCHEDULED",
-        date: { gte: new Date(startOn), lte: new Date(scope.semester.endOn) },
-      },
-      orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    }),
-    context.database.schoolClosedDay.findMany({
-      where: {
-        deletedAt: null,
-        date: { gte: new Date(startOn), lte: new Date(scope.semester.endOn) },
-      },
-      select: { date: true },
-    }),
-  ]);
-  const closed = new Set(closedDays.map((day) => dateOnly(day.date)));
-  const result = scheduleProgram(
-    activities,
-    sessions
-      .filter((session) => !closed.has(dateOnly(session.date)))
-      .map((session) => ({
-        date: dateOnly(session.date),
-        minutes:
-          (session.endTime.getTime() - session.startTime.getTime()) / MILLISECONDS_PER_MINUTE,
-      })),
-  );
-  const rows: ProgramRow[] = result.scheduled.map(({ activity, date }) => ({
-    programActivityId: activity.id,
-    plannedOn: new Date(date),
-    kind: programActivityKind(activity.kind),
-    title: activity.title,
-    reference: `Unidade ${activity.unit.sequence} · hora-aula ${activity.teachingHour.sequence}`,
-    pageFrom: null,
-    pageTo: null,
-  }));
-  return { rows, activities, missingMinutes: result.missingMinutes };
+  return programs[0]?.id ?? null;
 }
 
 export async function persistProgramSchedule(
@@ -116,7 +132,7 @@ export async function persistProgramSchedule(
     await (existing
       ? context.database.stagePlanItem.update({
           where: { id: existing.id },
-          data: { plannedOn: row.plannedOn },
+          data: { plannedOn: row.plannedOn, plannedSessionId: row.plannedSessionId },
         })
       : context.database.stagePlanItem.create({ data: { ...row, planId } }));
   }

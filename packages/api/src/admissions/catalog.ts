@@ -5,9 +5,9 @@ export async function admissionStages(
   database: Prisma.TransactionClient,
 ): Promise<{ id: string; name: string; track: string; initial: boolean }[]> {
   const stages = await database.stage.findMany({
-    where: { deletedAt: null, track: { deletedAt: null, status: "ACTIVE" } },
+    where: { deletedAt: null, status: "ACTIVE", track: { deletedAt: null, status: "ACTIVE" } },
     include: { track: { select: { name: true } } },
-    orderBy: [{ track: { name: "asc" } }, { sequence: "asc" }],
+    orderBy: [{ track: { displayOrder: "asc" } }, { sequence: "asc" }],
   });
   const tracks = new Set<string>();
   return stages.map((stage) => {

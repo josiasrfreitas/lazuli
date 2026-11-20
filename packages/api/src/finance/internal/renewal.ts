@@ -1,6 +1,7 @@
 import type { FinanceDatabase } from "./shared.js";
 import type { Prisma } from "@lazuli/db";
 import { badRequest, notFound } from "../../trpc/errors.js";
+import { renewalMaterials } from "./renewal-materials.js";
 
 const ISO_DATE_LENGTH = 10;
 const renewalInclude = {
@@ -35,6 +36,7 @@ type RenewalTerms = {
   scholarshipAgreement: string | null;
   installmentCount: number;
   dueDay: number;
+  material: Awaited<ReturnType<typeof renewalMaterials>>;
   offer: {
     tuitionCeilingCents: number;
     maximumDiscountPct: number;
@@ -59,7 +61,7 @@ export async function renewalTerms(
     select: { id: true },
   });
   if (existing) throw badRequest("Este contrato já foi renovado. Consulte os contratos do aluno.");
-  return projectRenewal(row);
+  return { ...projectRenewal(row), material: await renewalMaterials(database, row.id) };
 }
 
 function assertRenewalReady(row: RenewalRow): void {
@@ -78,7 +80,7 @@ function assertRenewalReady(row: RenewalRow): void {
     );
 }
 
-function projectRenewal(row: RenewalRow): RenewalTerms {
+function projectRenewal(row: RenewalRow): Omit<RenewalTerms, "material"> {
   return {
     id: row.id,
     updatedAt: row.updatedAt,

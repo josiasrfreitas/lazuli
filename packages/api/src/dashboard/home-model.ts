@@ -4,6 +4,7 @@ export const HOME_GROUPS = [
   "health",
   "occurrences",
   "coverage",
+  "planning",
   "lessons",
   "appointments",
   "placement",
@@ -12,6 +13,7 @@ export const HOME_GROUPS = [
   "documents",
   "contracts",
   "renewals",
+  "materials",
   "semester",
 ] as const;
 export type HomeGroupKind = (typeof HOME_GROUPS)[number];
@@ -76,6 +78,12 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     area: "school",
     attention: true,
   },
+  planning: {
+    title: "Turmas com planejamento a revisar",
+    description: "Turmas com itens do planejamento fora do período letivo.",
+    area: "school",
+    attention: true,
+  },
   appointments: {
     title: "Atendimentos por registrar",
     description: "Encontros encerrados aguardando o resultado.",
@@ -107,14 +115,20 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: false,
   },
   contracts: {
-    title: "Primeiro contrato a criar",
+    title: "Contratos a criar",
     description: "Alunos ativos sem nenhum contrato registrado.",
     area: "finance",
     attention: false,
   },
+  materials: {
+    title: "Próximos livros a adquirir",
+    description: "Alunos com estágio a concluir e próximo material sem aquisição registrada.",
+    area: "finance",
+    attention: false,
+  },
   renewals: {
-    title: "Renovações a conversar",
-    description: "Contratos que terminam nos próximos 30 dias, ainda sem renovação.",
+    title: "Rematrículas a acompanhar",
+    description: "Contratos que terminam nos próximos 60 dias, ainda sem rematrícula.",
     area: "finance",
     attention: false,
   },

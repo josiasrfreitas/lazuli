@@ -30,7 +30,7 @@ async function persistTeachingProgram(
   tx: Database,
   { input, contentHash }: { input: TeachingProgramImport; contentHash: string },
 ): Promise<ImportResult> {
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`program-import:${input.stageId}`}, 0)) IS NULL AS locked`;
+  await lockProgramStage(tx, input.stageId);
   await tx.stage.findFirstOrThrow({ where: { id: input.stageId, deletedAt: null } });
   const modalityId = await ensureModality(tx, input);
   const existing = await existingProgram(tx, { input, modalityId, contentHash });
@@ -259,4 +259,8 @@ async function importActivities(
       },
     });
   }
+}
+
+export async function lockProgramStage(tx: Database, stageId: string): Promise<void> {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`program-import:${stageId}`}, 0)) IS NULL AS locked`;
 }

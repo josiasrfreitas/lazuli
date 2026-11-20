@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactElement } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronDown, MessageSquare, HeartPulse } from "lucide-react";
+import { ArrowRight, ChevronDown, CircleAlert, MessageSquare, HeartPulse } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
@@ -74,8 +74,9 @@ function OccurrenceSummary({ health, total }: { health: boolean; total: number }
   const Icon = health ? HeartPulse : MessageSquare;
   return (
     <>
-      <span className={styles.icon}>
+      <span className={health ? `${styles.icon} ${styles.healthIcon}` : styles.icon}>
         <Icon aria-hidden="true" />
+        {health && <CircleAlert className={styles.iconAttention} aria-hidden="true" />}
       </span>
       <span className={styles.identity}>
         <strong>{health ? "Score baixo" : "Ocorrências pendentes"}</strong>

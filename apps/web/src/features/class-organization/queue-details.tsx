@@ -2,16 +2,11 @@
 import { trpc } from "~/lib/trpc";
 import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import { Button } from "@lazuli/ui";
-import {
-  dateOnly,
-  scheduleLabel,
-  useOrganizationRefresh,
-} from "~/features/class-organization/shared";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import {
-  contractLabel,
   suggestedPlans,
   type ClassPlan,
   type OrganizationAction,
@@ -19,25 +14,28 @@ import {
   type OrganizationBoard,
 } from "./model";
 import styles from "./organization.module.css";
+import formation from "./formation.module.css";
+import detail from "./review-detail.module.css";
+import { StudentReviewDetail } from "./review-detail";
+import { needsReviewDestination, reviewDestinationId, reviewPlanName } from "./review-group-model";
+import { reviewClassHeading } from "./review-class-heading";
 
 const MAX_PLAN_SUGGESTIONS = 5;
 export type QueueProps = {
   board: OrganizationBoard;
   onAction: (action: OrganizationAction) => void;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, origin: HTMLElement) => void;
 };
 type WaitingLead = OrganizationBoard["waitingLeads"][number];
 export function PendingStudent({
   row,
   board,
+  ended,
   onAction,
   onSelect,
-}: QueueProps & { row: Placement }): ReactJSX.Element {
-  const ended = dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
-  const suggestions = suggestedPlans(row, board).filter(
-    (plan) =>
-      row.continuity !== "CHANGE" || (plan.classId !== row.sourceClassId && plan.id !== row.planId),
-  );
+}: QueueProps & { row: Placement; ended: boolean }): ReactJSX.Element {
+  const destinationId = row.publishedAt ? row.planId : reviewDestinationId(row);
+  const needsDestination = !ended && needsReviewDestination(row);
   const choose = (planId?: string): void =>
     onAction(
       row.publishedAt
@@ -45,102 +43,85 @@ export function PendingStudent({
         : { kind: "placement", studentId: row.studentId, row, ...(planId ? { planId } : {}) },
     );
   return (
-    <div className={styles.queueDetails}>
-      <div className={styles.detail}>
-        <StudentFacts row={row} />
-        <StudentBlockers row={row} />
-        <StudentSuggestions suggestions={suggestions} ended={ended} choose={choose} />
-        {row.planId && !row.publishedAt && (
-          <Button size="sm" variant="secondary" onClick={() => onSelect(row.planId)}>
-            Ver turma proposta
-          </Button>
-        )}
+    <div className={formation.panelScroll} data-formation-scroll="">
+      <div className={formation.studentDetailBody}>
+        <StudentReviewDetail
+          board={board}
+          row={row}
+          readOnly={ended}
+          onAction={onAction}
+          planLink={
+            destinationId && (
+              <Button
+                size="inline"
+                variant="link"
+                data-formation-focus="proposed"
+                onClick={(event) => onSelect(destinationId, event.currentTarget)}
+              >
+                Ver turma <ArrowRight />
+              </Button>
+            )
+          }
+        >
+          {needsDestination && (
+            <StudentSuggestions suggestions={suggestedPlans(row, board)} choose={choose} />
+          )}
+        </StudentReviewDetail>
       </div>
-      <footer className={styles.selection}>
-        <Button size="sm" disabled={ended} onClick={() => choose()}>
-          Escolher turma <ArrowRight size={14} />
-        </Button>
-      </footer>
     </div>
-  );
-}
-
-function StudentFacts({ row }: { row: Placement }): ReactJSX.Element {
-  return (
-    <>
-      {(row.continuityReason || row.notes) && (
-        <p className="text-caption">{row.continuityReason || row.notes}</p>
-      )}
-      <dl className={styles.facts}>
-        {row.sourceClassName && (
-          <>
-            <dt>Turma atual</dt>
-            <dd>{row.sourceClassName}</dd>
-          </>
-        )}
-        <dt>Contrato</dt>
-        <dd>{contractCoverage(row)}</dd>
-      </dl>
-      <div className={styles.actions}>
-        <Link className="text-caption text-interactive" href={`/alunos/${row.studentId}`}>
-          Perfil do aluno
-        </Link>
-      </div>
-    </>
-  );
-}
-
-function contractCoverage(row: Placement): string {
-  if (row.confirmation === "PRECONFIRMED") return "Cobre os três primeiros meses do período";
-  if (row.periodCovered) return "Cobre este período";
-  return contractLabel(row).label;
-}
-
-function StudentBlockers({ row }: { row: Placement }): ReactJSX.Element | null {
-  if (row.blockers.length === 0) return null;
-  return (
-    <details className={styles.small}>
-      <summary>O que falta confirmar · {row.blockers.length}</summary>
-      <ul className="grid gap-1 pt-2">
-        {row.blockers.map((blocker) => (
-          <li key={blocker}>{blocker}</li>
-        ))}
-      </ul>
-    </details>
   );
 }
 
 function StudentSuggestions({
   suggestions,
-  ended,
   choose,
 }: {
   suggestions: ClassPlan[];
-  ended: boolean;
   choose: (planId?: string) => void;
 }): ReactJSX.Element {
   return (
-    <section className={styles.suggestions}>
-      <h3>{suggestions.length > 0 ? "Turmas compatíveis" : "Sem turma compatível por enquanto"}</h3>
-      {suggestions.slice(0, MAX_PLAN_SUGGESTIONS).map((plan) => (
-        <button
-          type="button"
-          className={styles.queueItem}
-          key={plan.id}
-          disabled={ended}
-          onClick={() => choose(plan.id)}
-        >
-          <span className={styles.person}>
-            <strong>{plan.name}</strong>
-            <span className={styles.small}>{scheduleLabel(plan.slots)}</span>
+    <section aria-label="Opções de turma">
+      <div className={detail.optionsHeading}>
+        <h2 className={detail.sectionTitle}>
+          <CalendarDays size={18} aria-hidden="true" /> Opções de turma
+        </h2>
+        {suggestions.length > 0 && (
+          <span>
+            {suggestions.length} {suggestions.length === 1 ? "opção" : "opções"}
           </span>
-          <ChevronRight size={14} />
-        </button>
-      ))}
-      {suggestions.length === 0 && (
-        <p className={styles.small}>
-          A pessoa permanece na fila. Você pode reunir outras do mesmo estágio e formar uma turma.
-        </p>
+        )}
+      </div>
+      {suggestions.length === 0 ? (
+        <p className={detail.empty}>Nenhuma turma compatível com o estágio previsto.</p>
+      ) : (
+        <ul className={detail.optionList}>
+          {suggestions.slice(0, MAX_PLAN_SUGGESTIONS).map((plan) => {
+            const heading = reviewClassHeading(plan, reviewPlanName(plan));
+            return (
+              <li key={plan.id}>
+                <div>
+                  <p className={detail.optionTime}>{heading.title}</p>
+                  <p className={detail.optionMeta}>
+                    {[heading.schedule, heading.description].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <Button
+                  size="compact-responsive"
+                  variant="secondary"
+                  onClick={() => choose(plan.id)}
+                  aria-label={`Revisar proposta para ${[heading.title, heading.schedule, heading.description].filter(Boolean).join(" · ")}`}
+                >
+                  Revisar <ArrowRight />
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {suggestions.length > MAX_PLAN_SUGGESTIONS && (
+        <Button size="compact-responsive" variant="link" onClick={() => choose()}>
+          Ver todas as {suggestions.length} turmas <ArrowRight />
+        </Button>
       )}
     </section>
   );
@@ -154,25 +135,27 @@ export function PendingLead({
   lead: WaitingLead;
 }): ReactJSX.Element {
   return (
-    <div className={styles.queueDetails}>
-      <div className={styles.detail}>
-        <p className="text-caption">{lead.allocationPendingReason}</p>
-        <dl className={styles.facts}>
-          <dt>Interesse</dt>
-          <dd>
-            {leadScheduleType(lead)} · {leadFormat(lead)}
-          </dd>
-        </dl>
-        <LeadProposal lead={lead} board={board} onSelect={onSelect} />
-        {!lead.allocationPlan && <LeadSuggestions lead={lead} board={board} />}
-        {lead.notes && <p className={styles.small}>{lead.notes}</p>}
+    <>
+      <div className={formation.panelScroll} data-formation-scroll="">
+        <div className={formation.personSummary}>
+          <p>{lead.allocationPendingReason}</p>
+          <dl className={styles.facts}>
+            <dt>Interesse</dt>
+            <dd>
+              {leadScheduleType(lead)} · {leadFormat(lead)}
+            </dd>
+          </dl>
+          <LeadProposal lead={lead} board={board} onSelect={onSelect} />
+          {!lead.allocationPlan && <LeadSuggestions lead={lead} board={board} />}
+          {lead.notes && <p className={styles.small}>{lead.notes}</p>}
+        </div>
       </div>
-      <footer className={styles.selection}>
+      <footer className={formation.panelFooter}>
         <Button size="sm" nativeButton={false} render={<Link href={`/interessados/${lead.id}`} />}>
           Continuar pelo lead <ArrowRight size={14} />
         </Button>
       </footer>
-    </div>
+    </>
   );
 }
 
@@ -205,10 +188,15 @@ function LeadProposal({
         {lead.allocationPlan.classId &&
         dateOnly(board.semester.startDate) <= toDateOnlySaoPaulo(new Date())
           ? "A turma está aberta. Finalize a matrícula no lead."
-          : "Interesse reservado. A matrícula será concluída quando o período estiver vigente."}
+          : "Interesse registrado. Com o estágio definido, o lead já pode ser cadastrado como aluno."}
       </p>
       {lead.allocationPlan.semesterId === board.semester.id && (
-        <Button size="sm" variant="secondary" onClick={() => onSelect(lead.allocationPlanId)}>
+        <Button
+          size="sm"
+          variant="secondary"
+          data-formation-focus="proposed"
+          onClick={(event) => onSelect(lead.allocationPlanId, event.currentTarget)}
+        >
           Ver turma proposta
         </Button>
       )}
@@ -226,13 +214,19 @@ function LeadSuggestions({
   const refresh = useOrganizationRefresh();
   const mutation = trpc.semesterOrganization.assignLeadInterest.useMutation({ onSuccess: refresh });
   const ended = dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
-  const plans = board.plans.filter(
-    (plan) =>
-      plan.active &&
-      (!lead.scheduleType || plan.scheduleType === lead.scheduleType) &&
-      (!lead.format || plan.format === lead.format) &&
-      (plan.scheduleType === "PERSONALIZED" || plan.sharedStageId === lead.stageId),
-  );
+  const plans = board.plans
+    .filter(
+      (plan) =>
+        plan.active &&
+        (!lead.scheduleType || plan.scheduleType === lead.scheduleType) &&
+        (!lead.format || plan.format === lead.format) &&
+        (plan.scheduleType === "PERSONALIZED" || plan.sharedStageId === lead.stageId),
+    )
+    .toSorted(
+      (left, right) =>
+        Number(right.scheduleType === "PERSONALIZED") -
+        Number(left.scheduleType === "PERSONALIZED"),
+    );
   return (
     <section className={styles.suggestions}>
       <h3>Vincular interesse a uma turma</h3>
@@ -244,14 +238,14 @@ function LeadSuggestions({
           disabled={ended || mutation.isPending}
           onClick={() => mutation.mutate({ leadId: lead.id, planId: plan.id })}
         >
-          {plan.name}
+          {plan.scheduleType === "PERSONALIZED" ? "PPT" : plan.stageCode} · {plan.name}
         </Button>
       ))}
       {plans.length === 0 && (
         <p className={styles.small}>Nenhuma turma compatível. O lead permanece aguardando.</p>
       )}
       {mutation.error && (
-        <p role="alert" className="text-caption text-destructive">
+        <p role="alert" className="text-destructive">
           {mutation.error.message}
         </p>
       )}

@@ -3,6 +3,7 @@ import { it } from "node:test";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AttendanceSettingsForm } from "../../src/features/student-attendance/settings-fields.js";
+import { renderWithQueries } from "../support/query-render.js";
 import { QrWindowForm } from "../../src/features/student-attendance/qr-fields.js";
 import {
   StudentNameField,
@@ -62,33 +63,54 @@ void it("uses an explicit form with three named validity choices and explains li
   assert.doesNotMatch(markup, /sua localização será/u);
 });
 
-void it("requires explicit campus coordinates and criteria without supplying operational defaults", () => {
-  const markup = renderToStaticMarkup(
+void it("supports address search and a map with a 200m radius and explicit GPS criteria", () => {
+  const markup = renderWithQueries(
     React.createElement(AttendanceSettingsForm, {
       model: {
-        fields: { latitude: "", longitude: "", radiusMeters: "", maxAccuracyMeters: "" },
-        error: "",
+        fields: {
+          addressLabel: "",
+          latitude: "",
+          longitude: "",
+          radiusMeters: "200",
+          maxAccuracyMeters: "",
+        },
+        formRef: { current: null },
+        errors: {},
         submit: () => {},
         change: () => {},
+        setPoint: () => {},
+        clearPoint: () => {},
+        mapFocusVersion: 0,
+        reset: () => {},
+        point: null,
+        dirty: true,
+        locating: false,
+        locationError: "",
+        locate: async () => {},
         save: { isPending: false, isSuccess: false, error: null },
-        location: { pending: false, error: "", locate: async () => {} },
       },
     }),
   );
   assert.match(markup, /<form[^>]*noValidate=""/iu);
-  const inputs = markup.match(/<input\b[^>]*>/gu) ?? [];
+  assert.match(markup, /placeholder="Rua, número e cidade"/u);
+  assert.match(markup, /Mapa e área de presença da escola/u);
+  const inputs = (markup.match(/<input\b[^>]*>/gu) ?? []).filter((tag) =>
+    /name="(?:latitude|longitude|radiusMeters|maxAccuracyMeters)"/u.test(tag),
+  );
   assert.deepEqual(
     inputs.map((tag) => /name="([^"]+)"/u.exec(tag)?.[1]),
-    ["latitude", "longitude", "radiusMeters", "maxAccuracyMeters"],
+    ["radiusMeters", "maxAccuracyMeters", "latitude", "longitude"],
   );
   for (const input of inputs) {
-    assert.match(input, /value=""/u);
+    assert.match(input, /name="radiusMeters"/u.test(input) ? /value="200"/u : /value=""/u);
     assert.match(input, /required=""/u);
+    assert.match(input, /autoComplete="off"/iu);
     assert.match(input, /placeholder="Ex\.: [^"]+"/u);
   }
   assert.match(markup, /type="submit"/u);
-  assert.match(markup, /Salvar área da escola/u);
+  assert.match(markup, /Salvar localização/u);
 });
+
 void it("fixes presential validity at five minutes and explains the manual fallback", () => {
   const markup = renderToStaticMarkup(
     React.createElement(QrWindowForm, {

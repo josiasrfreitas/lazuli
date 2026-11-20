@@ -183,7 +183,6 @@ function buildCloneInput(input: {
     id: string;
     semesterId: string;
     sharedStageId?: string | undefined;
-    portalClassName?: string | undefined;
   };
 }): Parameters<typeof cloneClassForNextPeriod>[0] {
   return {
@@ -191,18 +190,11 @@ function buildCloneInput(input: {
     id: input.input.id,
     semesterId: input.input.semesterId,
     ...optionalSharedStageId(input.input.sharedStageId),
-    ...optionalPortalClassName(input.input.portalClassName),
   };
 }
 
 function optionalSharedStageId(sharedStageId: string | undefined): { sharedStageId?: string } {
   return typeof sharedStageId === "string" ? { sharedStageId } : {};
-}
-
-function optionalPortalClassName(portalClassName: string | undefined): {
-  portalClassName?: string;
-} {
-  return typeof portalClassName === "string" ? { portalClassName } : {};
 }
 
 function optionalClassId(classId: string | undefined): { classId?: string } {

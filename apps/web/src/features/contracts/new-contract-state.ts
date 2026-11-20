@@ -19,6 +19,7 @@ import type { FormProps } from "./contract-form-fields";
 import {
   contractInputFromFields,
   contractPreview,
+  durationFromDates,
   emptyContractFields,
   suggestMonthlyAmount,
   type ContractFields,
@@ -87,8 +88,12 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
   if (assignPersonOrMaterialIssue(errors, issue)) return;
   const section = issue.path[0];
   switch (section) {
+    case "books": {
+      errors.materialBooks = issue.message;
+      return;
+    }
     case "durationMonths": {
-      errors.endsOn = "Informe uma data final entre 1 e 120 meses completos após o início.";
+      errors.endsOn = "Informe uma data final posterior ao início, com vigência de até 120 meses.";
       return;
     }
     case "firstDueDate": {
@@ -188,24 +193,39 @@ export type ContractFormState = {
   setSubmissionError: (message: string) => void;
 };
 
+function shiftSuggestedDates(
+  current: ContractFields,
+  { previous, defaultStart }: { previous: string; defaultStart: string },
+): boolean {
+  return (
+    previous !== defaultStart &&
+    current.firstDueDate === previous &&
+    (!current.endsOn || current.endsOn === suggestedContractEnd(previous))
+  );
+}
+
 function useInitialContractDates(
-  open: boolean,
   setFields: Dispatch<SetStateAction<ContractFields>>,
+  { open, suggestedStart }: { open: boolean; suggestedStart: string | undefined },
 ): void {
+  const previousDefault = useRef("");
   useEffect(() => {
     if (!open) return;
     const today = formatDateOnlyBR(toDateOnlySaoPaulo(new Date()));
+    const defaultStart = suggestedStart ? formatDateOnlyBR(suggestedStart) : today;
+    const previous = previousDefault.current;
+    previousDefault.current = defaultStart;
     setFields((current) => {
-      if (current.agreedOn && current.firstDueDate && current.endsOn) return current;
-      const firstDueDate = current.firstDueDate || today;
-      return {
-        ...current,
-        agreedOn: current.agreedOn || today,
-        firstDueDate,
-        endsOn: current.endsOn || suggestedContractEnd(firstDueDate),
-      };
+      const shiftDefault = shiftSuggestedDates(current, { previous, defaultStart });
+      const firstDueDate =
+        !current.firstDueDate || shiftDefault ? defaultStart : current.firstDueDate;
+      const endsOn =
+        !current.endsOn || shiftDefault ? suggestedContractEnd(firstDueDate) : current.endsOn;
+      if (current.agreedOn && current.firstDueDate === firstDueDate && current.endsOn === endsOn)
+        return current;
+      return { ...current, agreedOn: current.agreedOn || today, firstDueDate, endsOn };
     });
-  }, [open, setFields]);
+  }, [open, setFields, suggestedStart]);
 }
 
 function useSuggestedMonthlyAmount(
@@ -232,12 +252,22 @@ function clearedErrors(
   return next;
 }
 
+type ContractFormOptions = {
+  initialFields?: ContractFields;
+  suggestAgreementDate?: boolean;
+  suggestedStart?: string | undefined;
+};
+
 export function useContractFormState(
   open: boolean,
-  ...[initialFields = emptyContractFields, suggestAgreementDate = true]: [ContractFields?, boolean?]
+  {
+    initialFields = emptyContractFields,
+    suggestAgreementDate = true,
+    suggestedStart,
+  }: ContractFormOptions = {},
 ): ContractFormState {
   const [fields, setFields] = useState<ContractFields>(initialFields);
-  useInitialContractDates(open && suggestAgreementDate, setFields);
+  useInitialContractDates(setFields, { open: open && suggestAgreementDate, suggestedStart });
   const [errors, setErrors] = useState<Errors>({});
   const [submissionError, setSubmissionError] = useState("");
   const commandId = useRef(crypto.randomUUID());
@@ -248,11 +278,21 @@ export function useContractFormState(
     if (name === "endsOn") endDateEdited.current = true;
     if (name === "monthlyAmount") monthlyAmountEdited.current = true;
     const updateEnd = name === "firstDueDate" && !endDateEdited.current;
-    setFields((current) => ({
-      ...current,
-      [name]: value,
-      ...(updateEnd ? { endsOn: suggestedContractEnd(value) } : {}),
-    }));
+    setFields((current) => {
+      const next = {
+        ...current,
+        [name]: value,
+        ...(updateEnd ? { endsOn: suggestedContractEnd(value) } : {}),
+      };
+      if (name === "firstDueDate" || name === "endsOn") {
+        const duration = durationFromDates(next);
+        if (Number.isInteger(duration) && duration !== durationFromDates(current)) {
+          next.paymentPlan = "common";
+          next.installmentCount = "";
+        }
+      }
+      return next;
+    });
     setErrors((current) => clearedErrors(current, { name, updateEnd }));
     setSubmissionError("");
   };

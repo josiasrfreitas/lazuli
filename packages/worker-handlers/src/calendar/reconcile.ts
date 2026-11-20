@@ -4,8 +4,9 @@ import { generateClassSessions } from "../sessions/generate.js";
 import { cancelCalendarAppointment } from "./appointments.js";
 const ISO_DATE_LENGTH = 10;
 const civil = (value: Date): string => value.toISOString().slice(0, ISO_DATE_LENGTH);
+const classWindow = { semesterId: true, startDate: true, status: true } as const;
 const sessionInclude = {
-  class: { select: { semesterId: true } },
+  class: { select: classWindow },
   classRecord: { select: { id: true } },
   _count: {
     select: { attendanceRows: true, attendanceDeclarations: true, attendanceWindows: true },
@@ -13,10 +14,10 @@ const sessionInclude = {
 } satisfies Prisma.ClassSessionInclude;
 
 const appointmentInclude = {
-  targetClassSession: { select: { class: { select: { semesterId: true } } } },
+  targetClassSession: { select: { class: { select: classWindow } } },
 } as const;
 const visitInclude = {
-  class: { select: { semesterId: true } },
+  class: { select: classWindow },
   assessment: { select: { visitId: true } },
 } as const;
 type Session = Prisma.ClassSessionGetPayload<{ include: typeof sessionInclude }>;
@@ -31,7 +32,8 @@ type Counts = {
   cancelledVisits: number;
   generatedSessions: number;
 };
-type BlockedDate = (date: Date, semesterId?: string) => boolean;
+type ClassWindow = Session["class"];
+type BlockedDate = (date: Date, target?: ClassWindow | null) => boolean;
 export async function reconcileCalendar(
   database: Prisma.TransactionClient,
   input: ReconciliationInput,
@@ -46,9 +48,15 @@ export async function reconcileCalendar(
     !periods.some(
       (period) => period.id === id && period.startDate <= date && period.endDate >= date,
     );
-  const blocked = (date: Date, semesterId?: string): boolean =>
+  const blocked: BlockedDate = (date, target): boolean =>
     closed.has(civil(date)) ||
-    Boolean(request.semesterId && semesterId === request.semesterId && outside(semesterId, date));
+    Boolean(
+      target &&
+      request.semesterId === target.semesterId &&
+      (outside(target.semesterId, date) ||
+        target.status === "ARCHIVED" ||
+        (target.startDate && date < target.startDate)),
+    );
   const cancelledAppointments = await cancelAppointments(database, {
     appointments,
     blocked,
@@ -101,7 +109,7 @@ async function cancelAppointments(
   const { appointments, blocked, request, now } = input;
   let cancelledAppointments = 0;
   for (const row of appointments)
-    if (blocked(row.date, row.targetClassSession?.class.semesterId))
+    if (blocked(row.date, row.targetClassSession?.class))
       cancelledAppointments += await cancelCalendarAppointment(database, {
         id: row.id,
         request,
@@ -117,7 +125,7 @@ async function cancelVisits(
   let cancelledVisits = 0;
   for (const row of visits)
     if (
-      (blocked(row.date, row.class?.semesterId) ||
+      (blocked(row.date, row.class) ||
         (request.semesterId &&
           !row.class &&
           !periods.some((period) => period.startDate <= row.date && period.endDate >= row.date))) &&
@@ -142,7 +150,7 @@ async function cancelSessions(
   const { sessions, blocked, request, now } = input;
   let cancelledSessions = 0;
   for (const original of sessions) {
-    if (!blocked(original.date, original.class.semesterId)) continue;
+    if (!sessionBlocked(original, blocked)) continue;
     await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`class-record:${original.id}`},0))`;
     const row = await database.classSession.findUniqueOrThrow({
       where: { id: original.id },
@@ -168,6 +176,11 @@ async function cancelSessions(
     cancelledSessions++;
   }
   return cancelledSessions;
+}
+function sessionBlocked(session: Session, blocked: BlockedDate): boolean {
+  // Explicit extras keep their dates across period edits. Dissolution ends the class calendar.
+  if (session.class.status === "ARCHIVED") return true;
+  return blocked(session.date, session.appointmentSeriesId ? undefined : session.class);
 }
 function sessionRecorded(row: Session): boolean {
   return Boolean(

@@ -13,6 +13,7 @@ function scenario(completed: number): Input {
     pageTo: null,
     programActivityId: String(item + 1),
     curriculum: {
+      bookTitle: "Livro de referência",
       title: `Conteúdo ${item + 1}`,
       sequence: item + 1,
       durationMinutes: 60,
@@ -23,7 +24,12 @@ function scenario(completed: number): Input {
   return {
     plan: { items },
     scope: { today: "2026-11-15" },
-    calendar: { availableMinutes: 840, remainingSessions: 7, unrecordedSessions: 0 },
+    calendar: {
+      availableMinutes: 840,
+      remainingSessions: 7,
+      unrecordedSessions: 0,
+      endOn: "2026-12-18",
+    },
     records: [
       {
         id: "r",

@@ -52,14 +52,23 @@ type ActivityRow = HourRow["activities"][number];
 type LessonLink = ActivityRow["lessons"][number];
 type ActivityView = Pick<
   ActivityRow,
-  "id" | "kind" | "title" | "durationMinutes" | "sourceCode" | "descriptionPending"
+  | "id"
+  | "kind"
+  | "title"
+  | "durationMinutes"
+  | "sourceCode"
+  | "descriptionPending"
+  | "pageStart"
+  | "pageEnd"
 > & {
+  bookTitle: string;
   assessment: Pick<NonNullable<ActivityRow["assessment"]>, "id" | "sequence" | "title"> | null;
   lessons: (Pick<LessonLink["lesson"], "id" | "sequence" | "title"> & {
     part: string | null;
   })[];
 };
 type TeachingHourView = Pick<HourRow, "id" | "sequence" | "durationMinutes"> & {
+  lastChange: string;
   unitMinutes: number;
   activities: ActivityView[];
 };
@@ -80,7 +89,7 @@ type ProgramView = Pick<ProgramRow, "id" | "scheduleType"> & {
   unresolvedActivityCount: number;
   units: UnitView[];
 };
-type StageProgramView = Pick<StageRow, "id" | "name" | "internalCode" | "track"> & {
+type StageProgramView = Pick<StageRow, "id" | "name" | "internalCode" | "track" | "status"> & {
   lessonCount: StageRow["bookLessonCount"];
   lessons: Pick<StageRow["bookLessons"][number], "id" | "sequence" | "title">[];
   programs: ProgramView[];
@@ -89,7 +98,7 @@ type StageProgramView = Pick<StageRow, "id" | "name" | "internalCode" | "track">
 export async function readStageCatalog(database: Database): Promise<CatalogRow[]> {
   return database.stage.findMany({
     where: { deletedAt: null, track: { deletedAt: null, productLine: { deletedAt: null } } },
-    orderBy: [{ track: { name: "asc" } }, { sequence: "asc" }],
+    orderBy: [{ track: { displayOrder: "asc" } }, { sequence: "asc" }],
     select: catalogSelect,
   });
 }
@@ -110,6 +119,7 @@ function projectStageProgram(stage: StageRow): StageProgramView {
     id: stage.id,
     name: stage.name,
     internalCode: stage.internalCode,
+    status: stage.status,
     track: stage.track,
     lessonCount: stage.bookLessonCount,
     lessons: stage.bookLessons.map((lesson) => ({
@@ -123,16 +133,6 @@ function projectStageProgram(stage: StageRow): StageProgramView {
 
 function projectProgram(program: ProgramRow): ProgramView {
   const labels = programActivityLabels(program.teachingHours.flatMap((hour) => hour.activities));
-  program = {
-    ...program,
-    teachingHours: program.teachingHours.map((hour) => ({
-      ...hour,
-      activities: hour.activities.map((activity) => ({
-        ...activity,
-        title: labels.get(activity.id) ?? activity.title,
-      })),
-    })),
-  };
   return {
     id: program.id,
     scheduleType: program.scheduleType,
@@ -153,20 +153,28 @@ function projectProgram(program: ProgramRow): ProgramView {
     unresolvedActivityCount: program.teachingHours
       .flatMap((entry) => entry.activities)
       .filter((activity) => activity.descriptionPending).length,
-    units: program.units.map((unit) => projectUnit(program, unit)),
+    units: program.units.map((unit) => projectUnit(unit, { program, labels })),
   };
 }
 
-function projectUnit(program: ProgramRow, unit: UnitRow): UnitView {
+function projectUnit(
+  unit: UnitRow,
+  { program, labels }: { program: ProgramRow; labels: Map<string, string> },
+): UnitView {
   return {
     id: unit.id,
     sequence: unit.sequence,
     title: unit.title,
-    teachingHours: program.teachingHours.flatMap((entry) => unitTeachingHour(entry, unit.id)),
+    teachingHours: program.teachingHours.flatMap((entry) =>
+      unitTeachingHour(entry, { unitId: unit.id, labels }),
+    ),
   };
 }
 
-function unitTeachingHour(entry: HourRow, unitId: string): TeachingHourView[] {
+function unitTeachingHour(
+  entry: HourRow,
+  { unitId, labels }: { unitId: string; labels: Map<string, string> },
+): TeachingHourView[] {
   const activities = entry.activities.filter((activity) => activity.unitId === unitId);
   if (activities.length === 0) return [];
   return [
@@ -174,17 +182,21 @@ function unitTeachingHour(entry: HourRow, unitId: string): TeachingHourView[] {
       id: entry.id,
       sequence: entry.sequence,
       durationMinutes: entry.durationMinutes,
+      lastChange: entry.updatedAt.toISOString(),
       unitMinutes: activities.reduce((total, activity) => total + activity.durationMinutes, 0),
-      activities: activities.map((activity) => projectActivity(activity)),
+      activities: activities.map((activity) => projectActivity(activity, labels)),
     },
   ];
 }
 
-function projectActivity(activity: ActivityRow): ActivityView {
+function projectActivity(activity: ActivityRow, labels: Map<string, string>): ActivityView {
   return {
     id: activity.id,
     kind: activity.kind,
-    title: activity.title,
+    title: labels.get(activity.id) ?? activity.title,
+    bookTitle: activity.title,
+    pageStart: activity.pageStart,
+    pageEnd: activity.pageEnd,
     durationMinutes: activity.durationMinutes,
     sourceCode: activity.sourceCode,
     descriptionPending: activity.descriptionPending,

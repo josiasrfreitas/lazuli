@@ -1,3 +1,4 @@
+import { reportTransportError } from "../telemetry.js";
 import type { Prisma } from "@lazuli/db";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
@@ -123,6 +124,7 @@ function fileFailure(error: Error | null): Response {
       { message: "Informe o nome e escolha um PDF, JPG ou PNG de até 5 MB." },
       { status: BAD_REQUEST_STATUS, headers: HEADERS },
     );
+  reportTransportError(error, "teacher-file");
   if (error instanceof TRPCError)
     return Response.json(
       { message: error.message },

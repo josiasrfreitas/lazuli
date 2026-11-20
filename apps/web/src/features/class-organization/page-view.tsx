@@ -1,376 +1,419 @@
-import type { JSX as ReactJSX } from "react";
-import { ArrowLeft, CalendarRange, Copy, Plus, X, MoreHorizontal, Search } from "lucide-react";
-import { Button, Input, InlineSkeleton, Popover, PopoverTrigger, PopoverContent } from "@lazuli/ui";
+import { useState, type ReactElement } from "react";
+import Link from "next/link";
+import { parseAsString, useQueryStates } from "nuqs";
+import {
+  CalendarDays,
+  ChevronRight,
+  Copy,
+  Plus,
+  Settings2,
+  RotateCcw,
+  TriangleAlert,
+  X,
+} from "lucide-react";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
 import { SelectControl } from "~/features/classes/form-controls";
-import { dateOnly } from "~/features/class-organization/shared";
-import { SemesterForm } from "~/features/class-organization/plan-form";
-import { OrganizationAgenda } from "./agenda";
+import { academicPeriodsUrl } from "./links";
+import { dateOnly } from "./shared";
+import { OrganizationAgenda, WeekControls } from "./agenda";
+import { FormationDetailBreadcrumb } from "./formation-detail-breadcrumb";
 import { OrganizationReview } from "./review";
-import { OrganizationCalendar } from "./calendar";
+import { reviewParsers, type ChangeCriteria, type ReviewCriteria } from "./review-filters";
+import { useFormationReviewHref, useOpenReviewFormationDetail } from "./review-navigation";
+import { usePlanRosterFilters } from "./plan-roster";
 import { OrganizationDialogs } from "./dialogs";
 import type { OrganizationPageModel } from "./page-model";
-import { OrganizationLoading } from "./page-loading";
-import styles from "./organization.module.css";
+import { OrganizationLoading, FormationProgress } from "./page-loading";
+import { trpc } from "~/lib/trpc";
+import styles from "./formation.module.css";
+import reviewStyles from "./review.module.css";
 
-export function OrganizationPageView({
-  model,
-}: {
-  model: OrganizationPageModel;
-}): ReactJSX.Element {
+type ModelProps = { model: OrganizationPageModel };
+type FilterProps = {
+  scope: string;
+  weekSearch: string;
+  clearFilters: () => void;
+};
+export function OrganizationPageView({ model }: ModelProps): ReactElement {
+  const { board, semesterId, action, setAction } = model;
+  const [criteria, setCriteria] = useQueryStates(reviewParsers);
+  const [, setReviewFocus] = useQueryStates({
+    turmasAbertas: parseAsString,
+    grupoVinculo: parseAsString,
+    vinculo: parseAsString,
+    leadFormacao: parseAsString,
+    alunoFormacao: parseAsString,
+    retornoFormacao: parseAsString,
+    origemGradeFormacao: parseAsString,
+  });
+  const [publishing, setPublishing] = useState(false);
+  const [scope, setScope] = useState("all");
+  const [weekSearch, setWeekSearch] = useState("");
+  const clearFilters = (): void => {
+    setScope("all");
+    setWeekSearch("");
+    void setCriteria(null);
+    void setReviewFocus(null);
+  };
+  const switching = Boolean(board && board.semester.id !== semesterId);
   return (
-    <section className={styles.page} aria-label="Organização de turmas">
-      <PageHeader model={model} />
-      <PageToolbar model={model} />
-      <PageError model={model} />
-      <PageBody model={model} />
-      <PageFeedback model={model} />
-      <PageDialogs model={model} />
+    <section className={styles.page} data-page-scroll="internal" aria-label="Formação de turmas">
+      <FormationHeader
+        model={model}
+        publishing={publishing}
+        scope={scope}
+        weekSearch={weekSearch}
+        clearFilters={clearFilters}
+        setScope={setScope}
+        setWeekSearch={setWeekSearch}
+        switching={switching}
+      />
+      <FormationError model={model} />
+      {switching && <FormationProgress label="Atualizando o período" />}
+      <PeriodContent
+        key={board?.semester.id}
+        model={model}
+        criteria={criteria}
+        changeCriteria={(next) => void setCriteria(next)}
+        onPublishing={setPublishing}
+        scope={scope}
+        weekSearch={weekSearch}
+        clearFilters={clearFilters}
+        switching={switching}
+      />
+      {model.feedback && (
+        <div className={styles.feedback} role="status">
+          {model.feedback}
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label="Dispensar mensagem"
+            onClick={() => model.setFeedback("")}
+          >
+            <X size={14} />
+          </Button>
+        </div>
+      )}
+      {action && board && (
+        <OrganizationDialogs
+          key={action.kind}
+          action={action}
+          board={board}
+          onAction={setAction}
+          onClose={() => setAction(null)}
+          onPlan={model.setPlanId}
+          onFeedback={model.setFeedback}
+        />
+      )}
     </section>
   );
 }
-
-function PageHeader({ model }: { model: OrganizationPageModel }): ReactJSX.Element {
+function FormationHeader({
+  model,
+  publishing,
+  scope,
+  weekSearch,
+  clearFilters,
+  setScope,
+  setWeekSearch,
+  switching,
+}: ModelProps &
+  FilterProps & {
+    publishing: boolean;
+    setScope: (scope: string) => void;
+    setWeekSearch: (query: string) => void;
+    switching: boolean;
+  }): ReactElement {
+  const { board, ended } = model;
+  const review = model.tab === "review";
+  const reviewHref = useFormationReviewHref(model.semesterId);
   return (
-    <header className={styles.header}>
-      <h1>Organização</h1>
-      <HeaderPeriod model={model} />
-      <HeaderAgendaSearch model={model} />
-      <HeaderActions model={model} />
+    <header className={review ? reviewStyles.header : styles.header} inert={publishing}>
+      {review && (
+        <FormationDetailBreadcrumb
+          name="Revisão de vínculos"
+          parent={{ label: "Grade semanal", planId: model.planId, agenda: true }}
+          onBack={() => {
+            if (!publishing) model.setTab("agenda");
+          }}
+        />
+      )}
+      <FormationPageHeading review={review} ended={ended} />
+      <PeriodSelect
+        model={model}
+        onChange={(id) => {
+          clearFilters();
+          model.selectPeriod(id);
+        }}
+      />
+      {board && model.tab !== "review" && board.plans.length > 0 && (
+        <WeekControls
+          board={board}
+          scope={scope}
+          query={weekSearch}
+          onScope={setScope}
+          onQuery={setWeekSearch}
+        />
+      )}
+      <div className={styles.headerActions} inert={switching}>
+        {board && !review && (
+          <Button size="sm" nativeButton={false} render={<Link href={reviewHref} scroll={false} />}>
+            {ended ? "Consultar vínculos" : "Revisar vínculos"} <ChevronRight size={15} />
+          </Button>
+        )}
+        <OptionsMenu model={model} />
+      </div>
     </header>
   );
 }
-
-function HeaderPeriod({ model }: { model: OrganizationPageModel }): ReactJSX.Element {
-  const { board, periods, semesterId, today, ended, selectPeriod } = model;
-  let periodLabel = "Em andamento";
-  if (board && dateOnly(board.semester.startDate) > today) periodLabel = "Próximo período";
-  else if (ended) periodLabel = "Período encerrado";
+function FormationPageHeading({
+  review,
+  ended,
+}: {
+  review: boolean;
+  ended: boolean;
+}): ReactElement {
   return (
-    <>
-      <div className={styles.period}>
-        {periods.isPending ? (
-          <InlineSkeleton className="h-8 w-full" />
-        ) : (
-          <SelectControl
-            name="organization-semester"
-            label="Período"
-            hideLabel
-            value={semesterId}
-            onChange={selectPeriod}
-            choices={(periods.data ?? []).map((period) => ({
-              value: period.id,
-              label: period.name,
-            }))}
-          />
-        )}
-      </div>
-      <span className={styles.description}>{board && periodLabel}</span>
-    </>
-  );
-}
-
-function HeaderAgendaSearch({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const { tab, classSearch, setClassSearch } = model;
-  if (tab !== "agenda") return null;
-  return (
-    <>
-      <span className={styles.headerHint}>
-        Selecione uma turma para cuidar dos alunos e da continuidade.
-      </span>
-      <div className={styles.headerSearch}>
-        <Input
-          size="sm"
-          leadingIcon={<Search aria-hidden="true" />}
-          aria-label="Buscar turma ou professor"
-          placeholder="Turma ou professor…"
-          value={classSearch}
-          onChange={(event) => setClassSearch(event.target.value)}
-        />
-      </div>
-    </>
-  );
-}
-
-function HeaderActions({ model }: { model: OrganizationPageModel }): ReactJSX.Element {
-  const { board, ended, query, prepare, setAction } = model;
-  return (
-    <div className={`${styles.actions} ${styles.push}`}>
-      <span className={styles.busy} role="status">
-        {(query.isFetching && board) || prepare.isPending ? "Atualizando…" : ""}
-      </span>
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={!board || ended}
-        onClick={() => setAction({ kind: "plan" })}
-      >
-        <Plus size={14} /> Nova turma
-      </Button>
-      <PageHeaderMenu model={model} />
-    </div>
-  );
-}
-
-function PageHeaderMenu({ model }: { model: OrganizationPageModel }): ReactJSX.Element {
-  const { setupOpen, setSetupOpen } = model;
-  return (
-    <Popover open={setupOpen} onOpenChange={setSetupOpen}>
-      <PopoverTrigger
-        render={<Button size="sm" variant="ghost" aria-label="Opções da organização" />}
-      >
-        <MoreHorizontal size={16} />
-      </PopoverTrigger>
-      <PopoverContent align="end" size="md">
-        <div className="grid gap-2">
-          <PageMenuNavigation model={model} />
-          <PageMenuActions model={model} />
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function PageMenuNavigation({ model }: { model: OrganizationPageModel }): ReactJSX.Element {
-  const { setSetupOpen, setTab, showClosed, setShowClosed } = model;
-  const chooseTab = (value: string): void => {
-    setSetupOpen(false);
-    setTab(value);
-  };
-  return (
-    <>
-      <Button size="sm" variant="ghost" onClick={() => chooseTab("calendar")}>
-        Calendário letivo
-      </Button>
-      <Button size="sm" variant="ghost" onClick={() => chooseTab("review")}>
-        Revisar alocações
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => {
-          setSetupOpen(false);
-          setShowClosed(!showClosed);
-          setTab("agenda");
-        }}
-      >
-        {showClosed ? "Ocultar encerradas" : "Mostrar turmas encerradas"}
-      </Button>
-    </>
-  );
-}
-
-function PageMenuActions({ model }: { model: OrganizationPageModel }): ReactJSX.Element {
-  const { setSetupOpen, board, ended, prepare, semesterId, setAction } = model;
-  return (
-    <>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={!board || ended || prepare.isPending}
-        onClick={() => {
-          setSetupOpen(false);
-          prepare.mutate({ semesterId });
-        }}
-      >
-        <Copy size={14} /> Atualizar turmas e alunos
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => {
-          setSetupOpen(false);
-          setAction({ kind: "newSemester" });
-        }}
-      >
-        <CalendarRange size={14} /> Preparar próximo período
-      </Button>
-    </>
-  );
-}
-
-function PageToolbar({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const { tab, setTab, search, setSearch } = model;
-  if (tab === "agenda") return null;
-  return (
-    <div className={styles.toolbar}>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => {
-          setTab("agenda");
-          setSearch("");
-        }}
-      >
-        <ArrowLeft size={14} /> Turmas e pendências
-      </Button>
-      <span className={styles.small}>
-        {tab === "review" ? "Revisar alocações" : "Calendário letivo"}
-      </span>
-      {tab === "review" && (
-        <div className={`${styles.search} ${styles.push}`}>
-          <Input
-            size="sm"
-            aria-label="Buscar aluno na revisão"
-            placeholder="Buscar aluno…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </div>
+    <div className={styles.heading}>
+      <h1 id="formation-page-heading" tabIndex={-1}>
+        {review ? "Revisão de vínculos" : "Grade semanal"}
+      </h1>
+      {review && (
+        <p className={reviewStyles.description}>
+          {ended
+            ? "Consulte os alunos e as vigências de cada turma neste período encerrado."
+            : "Selecione os alunos para confirmar o vínculo na turma."}
+        </p>
       )}
     </div>
   );
 }
 
-function PageError({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const { query, periods, prepare, semesterId } = model;
-  if (!query.error && !periods.error && !prepare.error) return null;
+function PeriodSelect({
+  model,
+  onChange,
+}: ModelProps & { onChange: (id: string) => void }): ReactElement {
+  const { periods, semesterId } = model;
+  const selected = semesterId || "proximo";
+  const choices = (periods.data ?? []).map((period) => ({ value: period.id, label: period.name }));
+  if (periods.data && !periods.data.some((period) => dateOnly(period.startDate) > model.today))
+    choices.unshift({ value: "proximo", label: "Próximo período" });
+  return periods.isPending ? (
+    <Button size="sm" variant="secondary" disabled>
+      Período letivo
+    </Button>
+  ) : (
+    <SelectControl
+      name="formation-period"
+      label="Período letivo"
+      hideLabel
+      value={selected}
+      onChange={onChange}
+      choices={choices}
+    />
+  );
+}
+function OptionsMenu({ model }: ModelProps): ReactElement {
+  const { board, ended, prepare, semesterId, setAction } = model;
   return (
-    <div role="alert" className={styles.error}>
-      <span>{query.error?.message ?? periods.error?.message ?? prepare.error?.message}</span>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => {
-          void periods.refetch();
-          if (semesterId) void query.refetch();
-          prepare.reset();
-        }}
-      >
+    <Popover open={model.setupOpen} onOpenChange={model.setSetupOpen}>
+      <PopoverTrigger render={<Button size="sm" variant="ghost" aria-label="Opções da formação" />}>
+        <Settings2 size={16} />
+      </PopoverTrigger>
+      <PopoverContent align="end" size="menu">
+        <div className={styles.menuItems}>
+          <Button
+            size="sm"
+            variant="ghost"
+            nativeButton={false}
+            render={<Link href={academicPeriodsUrl} />}
+          >
+            <CalendarDays /> Calendário acadêmico
+          </Button>
+          {board && !ended && (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  model.setSetupOpen(false);
+                  setAction({ kind: "plan" });
+                }}
+              >
+                <Plus /> Nova turma
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={prepare.isPending}
+                onClick={() => {
+                  model.setSetupOpen(false);
+                  prepare.mutate({ semesterId });
+                }}
+              >
+                <Copy /> Atualizar turmas de origem
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  model.setSetupOpen(false);
+                  setAction({ kind: "riskLimit" });
+                }}
+              >
+                <TriangleAlert /> Limite de alunos para alerta
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  model.setSetupOpen(false);
+                  setAction({ kind: "resetFormation" });
+                }}
+              >
+                <RotateCcw /> Reiniciar formação…
+              </Button>
+            </>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+function FormationError({ model }: ModelProps): ReactElement | null {
+  const failure = failedOperation(model);
+  if (!failure) return null;
+  return (
+    <div role="alert" className={styles.notice}>
+      {failure.message}
+      <Button variant="ghost" size="sm" disabled={failure.pending} onClick={failure.retry}>
         Tentar novamente
       </Button>
     </div>
   );
 }
-
-function PageBody({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const { periods, semesterId, query, board, setAction } = model;
-  if (periods.isPending || (semesterId && query.isPending)) return <OrganizationLoading />;
-  if (!semesterId)
-    return (
-      <div className={styles.empty}>
-        <h2>Comece pelo período letivo</h2>
-        <p>
-          Defina as datas reais do período. A estrutura de turmas poderá ser reaproveitada e
-          ajustada ao longo do tempo.
-        </p>
-        <Button size="sm" onClick={() => setAction({ kind: "newSemester" })}>
-          Criar período
-        </Button>
-      </div>
-    );
-  if (!board) return null;
-  if (board.plans.length === 0 && model.tab === "agenda") return <EmptyBoard model={model} />;
-  return <BoardTab model={model} />;
+function failedOperation({
+  periods,
+  query,
+  prepare,
+  semesterId,
+}: OrganizationPageModel): { message: string; pending: boolean; retry: () => void } | null {
+  if (periods.error)
+    return {
+      message: periods.error.data
+        ? periods.error.message
+        : "Não foi possível carregar os períodos letivos.",
+      pending: periods.isFetching,
+      retry: () => void periods.refetch(),
+    };
+  if (query.error)
+    return {
+      message: query.error.data
+        ? query.error.message
+        : "Não foi possível carregar as turmas deste período.",
+      pending: query.isFetching,
+      retry: () => void query.refetch(),
+    };
+  if (prepare.error && prepare.variables?.semesterId === semesterId)
+    return {
+      message: prepare.error.data
+        ? prepare.error.message
+        : "Não foi possível atualizar as turmas de origem.",
+      pending: prepare.isPending,
+      retry: () => prepare.mutate({ semesterId }),
+    };
+  return null;
 }
-
-function EmptyBoard({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const { board, tab, prepare, ended, semesterId, setAction } = model;
-  if (!board || board.plans.length > 0 || tab !== "agenda") return null;
+function PeriodContent({
+  model,
+  criteria,
+  changeCriteria,
+  onPublishing,
+  scope,
+  weekSearch,
+  clearFilters,
+  switching,
+}: ModelProps &
+  FilterProps & {
+    criteria: ReviewCriteria;
+    changeCriteria: ChangeCriteria;
+    onPublishing: (value: boolean) => void;
+    switching: boolean;
+  }): ReactElement | null {
+  const { periods, board, semesterId, query, setAction, prepare } = model;
+  const [versions, setVersions] = useState(() => new Map<string, number>());
+  const [viewBatch, setViewBatch] = useState(false);
+  const { openPlan, openLead } = useOpenReviewFormationDetail();
+  const rosterFilters = usePlanRosterFilters();
+  if (periods.isPending || (semesterId && query.isPending))
+    return <OrganizationLoading review={model.tab === "review"} />;
+  if (!semesterId && !periods.error) return <CalendarGate />;
+  if (!board) return null;
   return (
-    <div className={styles.empty}>
-      <h2>Use as turmas existentes como ponto de partida</h2>
+    <div className={styles.board} inert={switching} aria-busy={switching}>
+      {model.tab === "review" ? (
+        <OrganizationReview
+          key={board.semester.id}
+          board={board}
+          ended={model.ended}
+          criteria={criteria}
+          changeCriteria={changeCriteria}
+          versions={versions}
+          setVersions={setVersions}
+          viewBatch={viewBatch}
+          setViewBatch={setViewBatch}
+          onOpenPlan={(plan) => openPlan(plan.id)}
+          onLead={openLead}
+          onPublishing={onPublishing}
+          onAction={setAction}
+          onFeedback={model.setFeedback}
+        />
+      ) : (
+        <OrganizationAgenda
+          rosterFilters={rosterFilters}
+          scope={scope}
+          query={weekSearch}
+          clearFilters={clearFilters}
+          key={board.semester.id}
+          board={board}
+          today={model.today}
+          selected={model.planId}
+          onSelect={model.setPlanId}
+          onAction={setAction}
+          prepare={() => prepare.mutate({ semesterId })}
+          preparing={prepare.isPending}
+        />
+      )}
+    </div>
+  );
+}
+function CalendarGate(): ReactElement {
+  const waiting = trpc.semesterOrganization.undatedIntakes.useQuery();
+  return (
+    <div className={styles.gate}>
+      <CalendarDays size={28} />
+      <h2>Quando começa o próximo período?</h2>
       <p>
-        Horários, professores e alunos continuam juntos. Depois, revise apenas as exceções e acomode
-        quem está chegando.
+        Defina as datas no calendário acadêmico para preparar as turmas e oficializar os vínculos.
       </p>
-      <div className={styles.actions}>
-        <Button
-          size="sm"
-          disabled={prepare.isPending || ended}
-          onClick={() => prepare.mutate({ semesterId })}
-        >
-          {prepare.isPending ? "Preparando turmas e alunos…" : "Usar turmas existentes como base"}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={ended}
-          onClick={() => setAction({ kind: "plan" })}
-        >
-          Criar primeira turma
-        </Button>
-      </div>
+      <Button size="sm" nativeButton={false} render={<Link href={academicPeriodsUrl} />}>
+        Definir período no calendário
+      </Button>
+      {waiting.error && <p role="alert">{waiting.error.message}</p>}
+      {waiting.isPending && <FormationProgress label="Buscando alunos que aguardam o período" />}
+      {!!waiting.data?.length && (
+        <section>
+          <h3>Aguardando o período · {waiting.data.length}</h3>
+          <ul>
+            {waiting.data.map((row) => (
+              <li key={row.studentId}>
+                <Link href={`/alunos/${row.studentId}`}>{row.student.fullName}</Link> ·{" "}
+                {row.stage?.internalCode ?? "Estágio a definir"}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
-  );
-}
-
-function BoardTab({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const {
-    board,
-    tab,
-    semesterId,
-    classSearch,
-    showClosed,
-    setFeedback,
-    planId,
-    setPlanId,
-    setAction,
-    search,
-  } = model;
-  if (!board) return null;
-  if (tab === "agenda")
-    return (
-      <OrganizationAgenda
-        key={semesterId}
-        board={board}
-        search={classSearch}
-        showClosed={showClosed}
-        onFeedback={setFeedback}
-        selected={planId}
-        onSelect={setPlanId}
-        onAction={setAction}
-      />
-    );
-  if (tab === "review")
-    return (
-      <OrganizationReview
-        key={semesterId}
-        board={board}
-        query={search}
-        onAction={setAction}
-        onFeedback={setFeedback}
-      />
-    );
-  return <OrganizationCalendar board={board} onAction={setAction} />;
-}
-
-function PageFeedback({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const { feedback, setFeedback } = model;
-  if (!feedback) return null;
-  return (
-    <div className={styles.feedback} role="status">
-      <span>{feedback}</span>
-      <div className={styles.push}>
-        <Button
-          size="sm"
-          variant="ghost"
-          aria-label="Dispensar mensagem"
-          onClick={() => setFeedback("")}
-        >
-          <X size={14} />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function PageDialogs({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
-  const { action, board, setAction, selectPeriod, setPlanId, setFeedback } = model;
-  if (!action) return null;
-  if (!board)
-    return action.kind === "newSemester" ? (
-      <SemesterForm onClose={() => setAction(null)} onSaved={selectPeriod} />
-    ) : null;
-  return (
-    <OrganizationDialogs
-      key={`${action.kind}:${"studentId" in action ? action.studentId : ""}`}
-      action={action}
-      board={board}
-      onAction={setAction}
-      onClose={() => setAction(null)}
-      onSemester={selectPeriod}
-      onPlan={setPlanId}
-      onFeedback={setFeedback}
-    />
   );
 }

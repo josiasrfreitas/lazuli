@@ -52,6 +52,7 @@ export function PedagogyEntryFields({
 
 function SemesterField({
   current,
+  next,
   semesterId,
   semesterError,
   pending,
@@ -66,10 +67,10 @@ function SemesterField({
   failed: boolean;
   onChange: (value: string) => void;
 }): ReactJSX.Element {
-  if (pending) return <FormFieldLoading label="Período de entrada" />;
+  if (pending) return <FormFieldLoading label="Semestre de entrada" />;
   return (
     <Field name="intake-semester">
-      <Label id="intake-semester-label">Período de entrada</Label>
+      <Label id="intake-semester-label">Semestre de entrada</Label>
       <SegmentedControl
         size="sm"
         wrap
@@ -80,30 +81,33 @@ function SemesterField({
           if (value) onChange(value);
         }}
       >
-        <SegmentedControlItem value={current?.id ?? "current"} disabled={!current}>
-          Atual{current ? ` · ${current.name}` : ""}
-        </SegmentedControlItem>
+        <SemesterOptionItem option={current} fallback="current" label="Atual" />
+        <SemesterOptionItem option={next} fallback="future" label="Próximo" />
       </SegmentedControl>
       <FieldError match={Boolean(semesterError)}>{semesterError}</FieldError>
-      <SemesterAvailabilityNote current={current} failed={failed} />
+      {!failed && !next && (
+        <p className="text-caption text-muted-foreground">
+          O próximo semestre aguarda definição no calendário acadêmico.
+        </p>
+      )}
     </Field>
   );
 }
 
-function SemesterAvailabilityNote({
-  current,
-  failed,
+function SemesterOptionItem({
+  option,
+  fallback,
+  label,
 }: {
-  current: SemesterOption;
-  failed: boolean;
-}): ReactJSX.Element | null {
-  if (failed) return null;
+  option: SemesterOption;
+  fallback: string;
+  label: string;
+}): ReactJSX.Element {
   return (
-    <p className="text-caption text-muted-foreground">
-      {current
-        ? "Para entradas futuras, cadastre um lead e acompanhe o interesse pela turma."
-        : "Não há período vigente. Mantenha a pessoa como lead até a entrada."}
-    </p>
+    <SegmentedControlItem value={option?.id ?? fallback} disabled={!option}>
+      {label}
+      {option ? ` · ${option.name}` : ""}
+    </SegmentedControlItem>
   );
 }
 

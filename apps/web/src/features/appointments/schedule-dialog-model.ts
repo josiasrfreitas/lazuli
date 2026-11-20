@@ -17,6 +17,7 @@ import { today, useAppointmentRefresh, type Absence } from "./shared";
 
 export type ScheduleDialogProps = {
   student?: { id: string; name: string };
+  initialPurpose?: "PPT_COMPLEMENT";
   initialDate?: string;
   initialSelection?: CalendarInterval | undefined;
   source?: Absence;
@@ -127,11 +128,12 @@ function initialDetails({
   source,
   previous,
   initialDate,
+  initialPurpose,
 }: ScheduleDialogProps): Pick<DraftValues, "purpose" | "date" | "planned" | "notes" | "coverages"> {
   const coverages = initialCoverages(source, previous);
   if (!previous)
     return {
-      purpose: "MAKEUP",
+      purpose: initialPurpose ?? "MAKEUP",
       date: formatDateOnlyBR(initialDate ?? today()),
       planned: "",
       notes: "",

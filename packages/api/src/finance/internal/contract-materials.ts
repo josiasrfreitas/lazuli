@@ -1,5 +1,6 @@
 import { materialFinalPriceVersion, materialPriceVersion } from "./material-price-version.js";
-import { createHash } from "node:crypto";
+import { registerPayment } from "./register-payment.js";
+import { createHash, randomUUID } from "node:crypto";
 import {
   addCalendarMonths,
   materialFinalPriceQuote,
@@ -41,14 +42,16 @@ type MaterialPrice = {
 export async function materialOrderData(input: {
   database: FinanceDatabase;
   material: ContractMaterialInput;
-  settings: FinanceSettings;
+  settings: FinanceSettings | null;
   firstDueDate: string;
   scheduleAnchor?: { date: string; offset: number };
   staffUserId: string;
 }): Promise<Prisma.OrderCreateWithoutContractInput> {
   const { database, material, settings, firstDueDate, staffUserId } = input;
   const orderedStages = await materialStages(database, material.stageIds);
-  const { quote, cash, cardFeePct } = quotedMaterial(material, settings);
+  const { quote, cash, cardFeePct } = settings
+    ? quotedMaterial(material, settings)
+    : receivedPrice(material);
   const scholarship = scholarshipQuote(quote, { material, cardFeePct });
   const receivableCents = scholarship.receivableCents;
   return {
@@ -127,6 +130,26 @@ async function materialStages(
   if (stages.length !== stageIds.length)
     throw new TRPCError({ code: "NOT_FOUND", message: "Estágio indisponível." });
   return stageIds.map((id) => stages.find((stage) => stage.id === id)!);
+}
+
+function receivedPrice(material: ContractMaterialInput): MaterialPrice {
+  const cash = material.payment === "CASH";
+  const cashCents = material.priceOverrideCents;
+  const cardFeePct = cash ? 0 : material.cardFeeOverridePct;
+  if (
+    material.quoteVersion !== "AGREED_PRICE" ||
+    !material.receivedMethod ||
+    !cashCents ||
+    cardFeePct === undefined
+  )
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Informe o valor combinado e a forma de pagamento do livro.",
+    });
+  const quote = materialFinalPriceQuote({ cashCents, cardFeePct });
+  if (material.expectedTotalCents !== (cash ? quote.cashCents : quote.totalCents))
+    throw new TRPCError({ code: "CONFLICT", message: "Confira o valor recebido pelo livro." });
+  return { quote, cash, cardFeePct };
 }
 
 function quotedMaterial(material: ContractMaterialInput, settings: FinanceSettings): MaterialPrice {
@@ -271,6 +294,33 @@ function materialCreateData(input: {
   };
 }
 
+/** New material orders have a single school receivable, including card sales. */
+export async function receiveNewMaterial(input: {
+  database: FinanceDatabase;
+  staffUserId: string;
+  order: { installments: { id: string; amountCents: number }[] };
+  material: ContractMaterialInput;
+  payerId: string;
+  date: string;
+}): Promise<void> {
+  const { receivedMethod, installmentCount } = input.material;
+  const [line] = input.order.installments;
+  if (!receivedMethod || !line) return;
+  await registerPayment({
+    database: input.database,
+    staffUserId: input.staffUserId,
+    values: {
+      commandId: randomUUID(),
+      payerId: input.payerId,
+      date: toDateOnly(input.date),
+      method: receivedMethod,
+      amountCents: line.amountCents,
+      externalInstallments: installmentCount,
+      allocations: [{ installmentId: line.id, amountCents: line.amountCents }],
+    },
+  });
+}
+
 /** Explicit acquisition only; renewal never copies material orders. */
 export async function addContractMaterial(input: {
   database: FinanceDatabase;
@@ -294,21 +344,27 @@ export async function addContractMaterial(input: {
   }
   const { contractId, anchor, monthDistance } = await materialContract(database, values);
   const settings = await database.financeSettings.findUnique({ where: { id: "singleton" } });
-  if (!settings)
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "Configure os preços dos materiais em Ajustes.",
-    });
   const data = await materialOrderData({
     database,
     settings,
     material: values.material,
     firstDueDate: values.firstDueDate,
-    scheduleAnchor: { date: anchor, offset: monthDistance },
+    ...(values.material.receivedMethod
+      ? {}
+      : { scheduleAnchor: { date: anchor, offset: monthDistance } }),
     staffUserId,
   });
   const order = await database.order.create({
     data: { ...data, contract: { connect: { id: contractId } } },
+    include: { contract: { select: { payerId: true } }, installments: true },
+  });
+  await receiveNewMaterial({
+    database,
+    staffUserId,
+    order,
+    payerId: order.contract!.payerId,
+    material: values.material,
+    date: values.firstDueDate,
   });
   await database.materialOrder.update({
     where: { orderId: order.id },
@@ -328,14 +384,17 @@ async function materialContract(
       orders: { where: { kind: "TUITION", deletedAt: null, cancelledAt: null }, take: 1 },
     },
   });
-  const first =
-    contract?.orders[0]?.firstDueDate ??
-    (Number(contract?.scholarshipPct) === FULL_SCHOLARSHIP_PCT ? contract?.startsOn : null);
+  const first = contract ? materialDueAnchor(contract) : null;
   if (!contract || !first)
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Contrato indisponível para adquirir material.",
     });
+  const slots = await database.contractBook.findMany({
+    where: { contractId: contract.id },
+    orderBy: { semester: "asc" },
+  });
+  await claimPlannedBooks(database, { values, slots });
   const anchor = toDateOnlyString(first);
   const monthDistance =
     (Number(values.firstDueDate.slice(0, ISO_YEAR_END_INDEX)) -
@@ -343,8 +402,93 @@ async function materialContract(
       MONTHS_PER_YEAR +
     Number(values.firstDueDate.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX)) -
     Number(anchor.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX));
-  assertMaterialDueDate({ anchor, monthDistance, firstDueDate: values.firstDueDate });
+  if (!values.material.receivedMethod && values.semester === undefined)
+    assertMaterialDueDate({ anchor, monthDistance, firstDueDate: values.firstDueDate });
   return { contractId: contract.id, anchor, monthDistance };
+}
+
+function materialDueAnchor(contract: {
+  orders: { firstDueDate: Date | null }[];
+  startsOn: Date | null;
+  scholarshipPct: Prisma.Decimal;
+}): Date | null {
+  return (
+    contract.orders[0]?.firstDueDate ??
+    (Number(contract.scholarshipPct) === FULL_SCHOLARSHIP_PCT ? contract.startsOn : null)
+  );
+}
+
+type PlannedBook = Prisma.ContractBookGetPayload<Prisma.ContractBookDefaultArgs>;
+
+async function claimPlannedBooks(
+  database: FinanceDatabase,
+  {
+    values,
+    slots,
+  }: {
+    values: AddContractMaterialInput;
+    slots: PlannedBook[];
+  },
+): Promise<void> {
+  if (slots.length === 0 && !values.material.receivedMethod) return;
+  const acquired = await database.materialOrder.findMany({
+    where: { order: { contractId: values.contractId, deletedAt: null, cancelledAt: null } },
+    select: { stageId: true, items: { select: { stageId: true } } },
+  });
+  const used = new Set(
+    acquired.flatMap((row) => [row.stageId, ...row.items.map((item) => item.stageId)]),
+  );
+  for (const stageId of values.material.stageIds) {
+    if (used.has(stageId))
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Este livro já foi adquirido neste contrato.",
+      });
+    if (slots.length === 0 && values.semester === undefined) continue;
+    const slot = findPlannedBook(slots, { semester: values.semester, stageId });
+    assertAgreedPrice(slot, values.material);
+    if (slot.stageId === null) {
+      slot.stageId = stageId;
+      await database.contractBook.update({
+        where: { contractId_semester: { contractId: values.contractId, semester: slot.semester } },
+        data: { stageId },
+      });
+    }
+  }
+}
+
+function findPlannedBook(
+  slots: PlannedBook[],
+  {
+    semester,
+    stageId,
+  }: {
+    semester: number | undefined;
+    stageId: string;
+  },
+): PlannedBook {
+  const slot =
+    semester === undefined
+      ? (slots.find((book) => book.stageId === stageId) ??
+        slots.find((book) => book.stageId === null))
+      : slots.find(
+          (book) =>
+            book.semester === semester && (book.stageId === null || book.stageId === stageId),
+        );
+  if (!slot)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Este livro não está previsto nos semestres disponíveis do contrato.",
+    });
+  return slot;
+}
+
+function assertAgreedPrice(slot: PlannedBook, material: ContractMaterialInput): void {
+  if (
+    slot.agreedPriceCents !== null &&
+    (material.priceOverrideCents !== slot.agreedPriceCents || (material.scholarshipPct ?? 0) !== 0)
+  )
+    throw new TRPCError({ code: "CONFLICT", message: "Confira o valor combinado no contrato." });
 }
 
 function assertMaterialDueDate({

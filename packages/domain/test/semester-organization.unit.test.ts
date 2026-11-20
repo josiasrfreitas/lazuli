@@ -9,13 +9,13 @@ const eligible: SemesterEligibility = {
   entryOn: "2027-01-04",
   studentActive: true,
   mode: "ADVANCE",
-  stage: { id: "C2", trackId: "connect", sequence: 2 },
+  stage: { id: "C2", trackId: "connect" },
   source: {
     semesterId: "current-semester",
     active: true,
     stageId: "C1",
     trackId: "connect",
-    sequence: 1,
+    nextStageId: "C2",
     scheduleType: "REGULAR",
     decision: "APPROVED",
     confirmed: true,
@@ -44,14 +44,22 @@ void it("rejects an invented terminal successor or a skip even when the source w
   assert.deepEqual(
     semesterPlacementBlockers({
       ...eligible,
-      stage: { id: "C2", trackId: "another-track", sequence: 2 },
+      stage: { id: "C2", trackId: "another-track" },
     }),
     ["Avanço exige o próximo estágio da mesma trilha"],
   );
   assert.deepEqual(
     semesterPlacementBlockers({
       ...eligible,
-      stage: { id: "C2", trackId: "connect", sequence: 3 },
+      stage: { id: "C3", trackId: "connect" },
+      plan: { ...eligible.plan!, sharedStageId: "C3" },
+    }),
+    ["Avanço exige o próximo estágio da mesma trilha"],
+  );
+  assert.deepEqual(
+    semesterPlacementBlockers({
+      ...eligible,
+      source: { ...eligible.source!, nextStageId: null },
     }),
     ["Avanço exige o próximo estágio da mesma trilha"],
   );
@@ -61,7 +69,7 @@ void it("requires PPT on both sides for continuing an unfinished attempt", () =>
     semesterPlacementBlockers({
       ...eligible,
       mode: "CONTINUE",
-      stage: { id: "C1", trackId: "connect", sequence: 1 },
+      stage: { id: "C1", trackId: "connect" },
       plan: { ...eligible.plan!, sharedStageId: "C1" },
     }),
     ["Continuidade no mesmo estágio exige origem e destino PPT"],
@@ -72,7 +80,7 @@ void it("permits a current-semester transfer and only PPT continuity across seme
   const continuation: SemesterEligibility = {
     ...eligible,
     mode: "CONTINUE",
-    stage: { id: "C1", trackId: "connect", sequence: 1 },
+    stage: { id: "C1", trackId: "connect" },
     plan: { ...eligible.plan!, sharedStageId: "C1" },
   };
   assert.deepEqual(

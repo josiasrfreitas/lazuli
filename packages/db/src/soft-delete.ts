@@ -13,13 +13,16 @@ const FILTERED_READ_OPERATIONS = new Set([
 
 const UUID_ENTITY_EXCEPTIONS = new Set([
   "Account",
+  "ContractBook",
   "FinanceSettings",
   "RateLimit",
   "Session",
   "Verification",
   "InstallmentAgreement",
+  "SemesterPlacementEvent",
   "MaterialOrder",
   "EntryVisitAssessment",
+  "UndatedStudentIntake",
 ]);
 
 function isInputObject(value: JsInputValue): value is Record<string, JsInputValue> {

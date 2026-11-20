@@ -323,11 +323,13 @@ export const financeRouter = router({
     .input(addContractMaterialInputSchema)
     .mutation(({ ctx, input }) =>
       activityTransaction(ctx, {
-        action: "finance.createOrder",
+        action: input.material.receivedMethod ? "finance.registerPayment" : "finance.createOrder",
         work: (tx) => finance(tx, ctx.staffUser.id).addContractMaterial(input),
         describe: async (result, database) => ({
           subject: await orderSubject(database, result.orderId),
-          description: "Aquisição de material vinculada ao contrato.",
+          description: input.material.receivedMethod
+            ? "Pagamento de material registrado."
+            : "Aquisição de material vinculada ao contrato.",
           deduplicationKey: `finance.createOrder:${result.orderId}`,
         }),
       }),

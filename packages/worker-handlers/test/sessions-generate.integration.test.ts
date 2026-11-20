@@ -1,3 +1,4 @@
+import { reconcileCalendar } from "../src/calendar/reconcile.js";
 import { processSessionGeneration } from "../src/sessions/process-generation.js";
 import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
@@ -126,6 +127,57 @@ void describe("sessions-generate worker", () => {
     );
   });
 
+  void it("preserves an explicit extra outside the edited period until its class is archived", async () => {
+    await cleanDatabase();
+    const fixtures = await seedGenerationFixtures();
+    const date = new Date("2040-03-18T00:00:00.000Z");
+    const series = await db.classAppointmentSeries.create({
+      data: {
+        classId: fixtures.regularClassId,
+        teacherId: TEACHER_ID,
+        scheduledById: TEACHER_ID,
+        fromDate: date,
+        throughDate: date,
+        schedule: [],
+        reason: "Extra class",
+      },
+    });
+    const extra = await db.classSession.create({
+      data: {
+        classId: fixtures.regularClassId,
+        appointmentSeriesId: series.id,
+        date,
+        startTime: new Date("1970-01-01T14:00:00.000Z"),
+        endTime: new Date("1970-01-01T15:00:00.000Z"),
+      },
+    });
+    const request = await db.calendarReconciliationRequest.create({
+      data: {
+        semesterId: fixtures.semesterId,
+        fromDate: date,
+        throughDate: date,
+        reason: `${TEST_PREFIX}Reconcile extras`,
+        requestedById: TEACHER_ID,
+      },
+    });
+    const reconcile = (): ReturnType<typeof reconcileCalendar> =>
+      db.$transaction((database) =>
+        reconcileCalendar(database, { request, now: new Date("2040-03-11T00:00:00.000Z") }),
+      );
+
+    const active = await reconcile();
+    assert.equal(active.cancelledSessions, 0);
+    await db.class.update({
+      where: { id: fixtures.regularClassId },
+      data: { status: "ARCHIVED" },
+    });
+    const archived = await reconcile();
+    const stored = await db.classSession.findUniqueOrThrow({ where: { id: extra.id } });
+    assert.equal(archived.cancelledSessions, 1);
+    assert.equal(stored.status, "CANCELLED");
+    assert.equal(stored.cancelReason, request.reason);
+  });
+
   void it("rejects a delivery for another scope without changing that request or generating encounters", async () => {
     await cleanDatabase();
     const fixtures = await seedGenerationFixtures();
@@ -137,7 +189,7 @@ void describe("sessions-generate worker", () => {
         database: db,
         payload: { classId: fixtures.personalizedClassId, requestId: request.id },
       }),
-      /SESSION_GENERATION_FAILED/u,
+      /SESSION_REQUEST_SCOPE_MISMATCH/u,
     );
     const preserved = await db.sessionGenerationRequest.findUniqueOrThrow({
       where: { id: request.id },
@@ -278,7 +330,13 @@ async function seedCatalog(): Promise<{ stageId: string }> {
 }
 
 async function cleanDatabase(): Promise<void> {
+  await db.calendarReconciliationRequest.deleteMany({
+    where: { reason: { startsWith: TEST_PREFIX } },
+  });
   await db.classSession.deleteMany({
+    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+  });
+  await db.classAppointmentSeries.deleteMany({
     where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
   });
   await db.classScheduleSlot.deleteMany({

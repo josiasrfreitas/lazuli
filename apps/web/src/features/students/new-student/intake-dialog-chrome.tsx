@@ -70,7 +70,7 @@ export function IntakeDialogHeading({
           <DialogHeader className="pr-0">
             <DialogTitle>Turma de entrada</DialogTitle>
             <DialogDescription className="sr-only">
-              Escolha o período de entrada e, se possível, a turma do aluno.
+              Escolha o semestre de entrada e, se possível, a turma do aluno.
             </DialogDescription>
           </DialogHeader>
         </div>

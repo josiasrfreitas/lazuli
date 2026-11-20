@@ -15,8 +15,11 @@ type Props = Pick<FormProps, "fields" | "change" | "errors"> & {
   retry: () => void;
 };
 
+const MAX_BOOK_SUGGESTIONS = 5;
+
 export function MaterialStages(props: Props): ReactElement {
-  const selected = props.fields.materialStageIds.split(",");
+  const selected =
+    props.fields.materialPayment === "NONE" ? [] : props.fields.materialStageIds.split(",");
   return (
     <div className="grid min-w-0 gap-2">
       <div className={styles.materialBooks}>
@@ -28,7 +31,13 @@ export function MaterialStages(props: Props): ReactElement {
           size="sm"
           variant="ghost"
           className="flex-none"
-          onClick={() => props.change("materialStageIds", `${props.fields.materialStageIds},`)}
+          onClick={() => {
+            props.change(
+              "materialStageIds",
+              selected.length > 0 ? `${props.fields.materialStageIds},` : "",
+            );
+            if (selected.length === 0) props.change("materialPayment", "CASH");
+          }}
         >
           <Plus aria-hidden="true" /> Adicionar livro
         </Button>
@@ -66,8 +75,10 @@ function MaterialBook({
   const [query, setQuery] = useState("");
   const books = materialBookOptions(options);
   const value = books.find((book) => book.id === id) ?? null;
-  const remove = (): void =>
+  const remove = (): void => {
     change("materialStageIds", selected.filter((_value, position) => position !== index).join(","));
+    if (selected.length === 1) change("materialPayment", "NONE");
+  };
   const select = (stageId: string): void => {
     change(
       "materialStageIds",
@@ -97,12 +108,12 @@ function MaterialBook({
           errors,
         }}
       />
-      <RemoveMaterialBook visible={selected.length > 1 && !value} index={index} remove={remove} />
+      <RemoveMaterialBook visible={!value} index={index} remove={remove} />
     </div>
   );
 }
 
-function materialBookOptions(options: Props["options"]): BookSelectionProps["books"] {
+export function materialBookOptions(options: Props["options"]): BookSelectionProps["books"] {
   return (options ?? []).map((stage) => ({
     id: stage.id,
     label: `${stage.name} · ${stage.internalCode}`,
@@ -148,7 +159,7 @@ type BookSelectionProps = {
   errors: Props["errors"];
 };
 
-function MaterialBookSelection({
+export function MaterialBookSelection({
   selected,
   id,
   index,
@@ -172,13 +183,15 @@ function MaterialBookSelection({
         value={value}
         query={query}
         onQueryChange={setQuery}
-        options={books.filter(
-          (book) =>
-            (book.id === id || !selected.includes(book.id)) &&
-            normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
-        )}
+        options={books
+          .filter(
+            (book) =>
+              (book.id === id || !selected.includes(book.id)) &&
+              normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
+          )
+          .slice(0, MAX_BOOK_SUGGESTIONS)}
         onSelect={(book) => select(book.id)}
-        onClear={() => (selected.length > 1 ? remove() : select(""))}
+        onClear={remove}
         loading={pending}
         failed={failed}
         invalid={Boolean(errors.materialStageIds) && !id}

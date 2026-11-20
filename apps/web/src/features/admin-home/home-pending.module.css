@@ -80,6 +80,43 @@
   width: 1.125rem;
   height: 1.125rem;
 }
+.planningIcon {
+  background: var(--over-capacity-muted);
+  color: var(--over-capacity);
+}
+.healthIcon,
+.markedIcon,
+.contractIcon {
+  position: relative;
+}
+.contractIcon {
+  background: var(--contract-surface);
+  color: var(--contract-foreground);
+}
+.contractIcon > .contractCurrency {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.625rem;
+  height: 0.625rem;
+  transform: translate(-50%, -35%);
+}
+.healthIcon {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+.healthIcon > .iconAttention,
+.markedIcon > .iconAttention {
+  position: absolute;
+  right: -0.125rem;
+  bottom: -0.125rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: var(--pending-row);
+  fill: var(--pending-row);
+  stroke-width: 2.5;
+}
 .identity {
   display: grid;
   gap: 0.25rem;
@@ -539,6 +576,22 @@
 @media (max-width: 640px) {
   .disclosureHeader {
     flex-wrap: wrap;
+  }
+  .summary .identity {
+    display: grid;
+  }
+  .summary .identity > strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .planningCase {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+  .planningCase > .caseName {
+    overflow: visible;
+    white-space: normal;
   }
 }
 

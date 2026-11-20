@@ -118,6 +118,7 @@ export async function treatmentInstallments(
   })
     .selectFrom("ledger")
     .select("installmentId")
+    .where("status", "=", "OVERDUE")
     .where("collectibleBalanceCents", ">", 0)
     .where(
       sql<boolean>`not exists (select 1 from "Order" o join "Contract" c on c.id = o.contract_id join "Student" s on s.id = c.student_id where o.id = ledger."orderId" and (c.deleted_at is not null or s.deleted_at is not null))`,

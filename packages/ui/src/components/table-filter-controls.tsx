@@ -16,6 +16,7 @@ import { CurrencyInput } from "./currency-input";
 import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./popover";
 import { Switch } from "./switch";
+import { SearchSelect } from "./search-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 import { summary, type TableFilterField, type TableFilterOption } from "./table-filter-model";
 
@@ -127,6 +128,27 @@ function OptionsEditor({
   field: Extract<TableFilterField, { kind: "options" }>;
 }): ReactElement {
   const [search, setSearch] = useState("");
+  if (field.searchOptions)
+    return (
+      <SearchSelect
+        name={field.id}
+        placeholder={`Buscar ${field.label.toLocaleLowerCase("pt-BR")}`}
+        showSearchIcon
+        openOnFocus
+        query={search}
+        onQueryChange={setSearch}
+        options={field.searchOptions(search)}
+        value={field.options.find((option) => field.selected.includes(option.id)) ?? null}
+        onSelect={(option) => {
+          field.onChange([option.id]);
+          setSearch("");
+        }}
+        onClear={() => {
+          field.onClear();
+          setSearch("");
+        }}
+      />
+    );
   if (field.selectionMode === "single") return <SingleOptionDropdown field={field} />;
   if (field.presentation === "dropdown") return <OptionsDropdown field={field} />;
   return (

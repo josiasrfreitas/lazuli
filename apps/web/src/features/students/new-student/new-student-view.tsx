@@ -57,8 +57,8 @@ function classSummary(model: EnrollmentModel): string {
   if (model.existingEnrollment) return `Turma: ${model.existingEnrollment.class.portalClassName}`;
   if (model.step === "student" || model.step === "address") return "";
   return model.entryPeriod === "NEXT"
-    ? "Próximo período · turma pendente"
-    : "Neste período · turma pendente";
+    ? "Próximo semestre · turma pendente"
+    : "Neste semestre · turma pendente";
 }
 
 function pendingReviewStep(kind: "documents" | "class" | "contract" | undefined): IntakeStep {
@@ -80,6 +80,7 @@ export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): Rea
         }}
       />
     );
+  if (model.capturingLead) return <EnrollmentLeadCapture model={model} />;
   const reviewing = Boolean(model.confirmation || model.discarding);
   return (
     <>
@@ -93,7 +94,6 @@ export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): Rea
           <DialogPortal>
             <DialogBackdrop />
             <EnrollmentMainContent model={model} />
-            {model.capturingLead && <EnrollmentLeadCapture model={model} />}
           </DialogPortal>
         </Dialog>
       )}
@@ -612,7 +612,7 @@ function EnrollmentConfirmation({ model }: { model: EnrollmentModel }): ReactJSX
         if (item.kind === "documents") return item.label;
         if (item.kind === "contract") return "Contrato · rascunho não será salvo";
         if (item.label.startsWith("Concluir o nivelamento")) return "Nivelamento e turma";
-        return model.entryPeriod === "NEXT" ? "Turma do próximo período" : "Turma deste período";
+        return model.entryPeriod === "NEXT" ? "Turma do próximo semestre" : "Turma deste semestre";
       })}
       onReviewPending={(index) => {
         const kind = confirmation.items[index]?.kind;

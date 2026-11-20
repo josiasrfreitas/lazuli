@@ -38,7 +38,7 @@ const advanceableEnrollmentSelect = {
               stages: {
                 where: { deletedAt: null },
                 orderBy: { sequence: "asc" },
-                select: { id: true, internalCode: true, sequence: true },
+                select: { id: true, internalCode: true, sequence: true, status: true },
               },
             },
           },

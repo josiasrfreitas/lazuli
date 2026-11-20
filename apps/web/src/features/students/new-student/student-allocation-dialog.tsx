@@ -340,7 +340,7 @@ function AllocationFilters({
         <InterestChoice
           label="Modalidade"
           value={scheduleType}
-          options={{ REGULAR: "Regular", PERSONALIZED: "PPT" }}
+          options={{ PERSONALIZED: "PPT", REGULAR: "Regular" }}
           onChange={(value) => onScheduleTypeChange(value as typeof scheduleType)}
         />
         <InterestChoice
@@ -357,7 +357,7 @@ function AllocationFilters({
         />
       </div>
       <p className="text-caption text-muted-foreground">
-        Regular para o início do semestre; PPT para entrada durante o período.
+        Regular para o início do semestre; PPT para entrada durante o semestre.
       </p>
     </div>
   );

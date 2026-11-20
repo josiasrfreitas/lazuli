@@ -75,8 +75,8 @@ function PendingAllocationTrigger({
             : "Nenhuma turma atende ao combinado?"}
         </p>
         {candidate.allocationPendingAt && (
-          <Link className="text-caption text-interactive" href="/organizacao">
-            Ver na organização de turmas
+          <Link className="text-caption text-interactive" href="/turmas/formacao">
+            Ver na formação de turmas
           </Link>
         )}
       </div>
@@ -113,7 +113,7 @@ function PendingAllocationForm({
       }}
     >
       <p className="text-caption text-muted-foreground">
-        O lead ficará na fila da organização de turmas, junto de outras pessoas do mesmo estágio.
+        O lead ficará na fila da formação de turmas, junto de outras pessoas do mesmo estágio.
       </p>
       <NarrativeField
         name="pending-reason"

@@ -132,6 +132,16 @@ function initialSaveState(
     stageId: context.identity.stageId,
     waitingPlacement: context.classes.waitingPlacement,
   });
+  if (
+    context.identity.entryPeriod === "CURRENT" &&
+    context.classes.selected &&
+    !withContract &&
+    !context.existing.existingContract
+  )
+    blocking.push({
+      label: "Para entrar nesta turma, inclua um contrato ativo ou deixe a turma a definir.",
+      step: "contract",
+    });
   if (issue)
     blocking.push({ label: issue, step: context.classes.blockedLead ? "student" : "pedagogy" });
   return { blocking, items: pendingItemsFor(context, withContract) };

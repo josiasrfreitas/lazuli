@@ -4,7 +4,7 @@ import type { FormProps } from "./contract-form-fields";
 import {
   contractInputFromFields,
   durationFromDates,
-  paymentPlanLabel,
+  installmentBreakdown,
   scholarshipInput,
   type ContractFields,
 } from "./contract-form-model";
@@ -13,7 +13,7 @@ import { fieldErrors, monthlyAmountError } from "./new-contract-state";
 export const setupSteps = ["parties", "tuition", "material", "review"] as const;
 export type SetupStep = (typeof setupSteps)[number];
 export type SetupErrors = FormProps["errors"];
-const MAX_CONTRACT_MONTHS = 120;
+export const MAX_CONTRACT_MONTHS = 120;
 const PERCENT_DIVISOR = 100;
 
 export const setupTitles: Record<SetupStep, string> = {
@@ -52,6 +52,7 @@ export function setupTuitionPreview({
     return previewMonthlyContract({
       ...offer,
       startsOn: start,
+      endsOn: parseDateBR(fields.endsOn) ?? undefined,
       firstDueDate: due,
       durationMonths: duration,
       monthlyAmountCents: Math.round(
@@ -78,11 +79,7 @@ function validDuration(duration: number): boolean {
 export function setupPlanLabel(preview: FormProps["preview"]): string {
   if (!preview) return "Valores a definir";
   if (preview.installments.length === 0) return "Bolsa integral";
-  const first = preview.installments[0]?.amountCents ?? null;
-  return paymentPlanLabel(
-    preview.installments.length,
-    preview.installments.every((row) => row.amountCents === first) ? first : null,
-  );
+  return installmentBreakdown(preview.installments);
 }
 
 export function setupValidation({
@@ -146,18 +143,24 @@ function validateInstallmentCount(
 }
 
 function validateMaterialFields(fields: ContractFields, errors: SetupErrors): void {
-  if (fields.materialPayment !== "NONE") {
-    if (errors.materialCardFeePct) delete errors.materialTotal;
-    if (fields.materialStageIds.split(",").some((id) => !id)) {
-      errors.materialStageIds = "Selecione o livro ou remova a linha vazia.";
-    }
-    if (!fields.materialCategory) errors.materialCategory = "Escolha a tabela de preços.";
-    if ((!fields.materialQuoteVersion || !fields.materialTotal) && !errors.materialCardFeePct) {
-      errors.materialTotal = "Confira os livros e os valores do material antes de continuar.";
-    }
-    if (fields.materialScholarshipMode !== "NONE" && !fields.materialScholarshipAgreement.trim()) {
-      errors.materialScholarshipAgreement = "Descreva o acordo da bolsa de material.";
-    }
+  if (fields.materialBooks || fields.materialPayment === "NONE") return;
+  if (fields.materialStageIds.split(",").some((id) => !id)) {
+    errors.materialStageIds = "Selecione o livro ou remova a linha vazia.";
+  }
+  if (!fields.materialCategory) errors.materialCategory = "Escolha a tabela de preços.";
+  validateMaterialTotal(fields, errors);
+  if (fields.materialScholarshipMode !== "NONE" && !fields.materialScholarshipAgreement.trim()) {
+    errors.materialScholarshipAgreement = "Informe o motivo da bolsa do material.";
+  }
+}
+
+function validateMaterialTotal(fields: ContractFields, errors: SetupErrors): void {
+  if (errors.materialCardFeePct) {
+    delete errors.materialTotal;
+    return;
+  }
+  if (!fields.materialQuoteVersion || !fields.materialTotal) {
+    errors.materialTotal = "Confira os livros e os valores do material antes de continuar.";
   }
 }
 

@@ -33,8 +33,8 @@ export function usePedagogySemester(
   const currentId = current?.id;
   const nextId = next?.id;
   useEffect(() => {
-    if (!periods.data || draft.semesterId === currentId) return;
-    const semesterId = currentId ?? "";
+    if (!periods.data || [currentId, nextId].includes(draft.semesterId)) return;
+    const semesterId = currentId ?? nextId ?? "";
     if (draft.semesterId !== semesterId) onChange({ ...draft, semesterId });
   }, [periods.data, currentId, nextId, draft, onChange]);
   return { periods, current, next, currentId, nextId };

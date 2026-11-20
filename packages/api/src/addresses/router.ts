@@ -1,8 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "@lazuli/validators";
-import { searchAddresses, resolveAddress } from "@lazuli/integrations/address-search";
-import { createServiceLogger, logDevelopmentProcess, safeError } from "@lazuli/logging";
+import {
+  searchAddresses,
+  resolveAddress,
+  resolveAddressLocation,
+} from "@lazuli/integrations/address-search";
+import { createServiceLogger, logDevelopmentProcess } from "@lazuli/logging";
 import { adminProcedure, router } from "../trpc/init.js";
+import { localAddressProfile } from "./config.js";
+import { addressLookupError } from "./lookup-error.js";
 import type { Context } from "../trpc/context.js";
 
 const MIN_QUERY_LENGTH = 3;
@@ -12,7 +18,7 @@ const logger = createServiceLogger("web");
 
 async function lookup<T>(options: {
   context: Context;
-  resource: "addresses.search" | "addresses.resolve";
+  resource: "addresses.search" | "addresses.resolve" | "addresses.location";
   start: string;
   complete: string;
   action: () => Promise<T>;
@@ -36,6 +42,7 @@ async function lookup<T>(options: {
     });
     return result;
   } catch (error) {
+    const failure = addressLookupError(error, localAddressProfile);
     logger.error(
       {
         request_id: options.context.requestId,
@@ -44,10 +51,10 @@ async function lookup<T>(options: {
         operation: "API",
         duration_ms: Math.round(performance.now() - started),
         status: "error",
-        ...safeError(error),
+        ...failure.details,
         diagnostic_state: { integration: "Amazon Location Places", operation: options.resource },
       },
-      "Address lookup failed",
+      failure.message,
     );
     throw new TRPCError({
       code: "SERVICE_UNAVAILABLE",
@@ -59,6 +66,18 @@ async function lookup<T>(options: {
 }
 
 export const addressesRouter = router({
+  location: adminProcedure
+    .input(z.object({ placeId: z.string().min(1).max(MAX_PLACE_ID_LENGTH) }).strict())
+    .mutation(({ ctx, input }) =>
+      lookup({
+        context: ctx,
+        resource: "addresses.location",
+        start: "Resolving school address coordinates",
+        complete: "School address coordinates resolved",
+        action: () => resolveAddressLocation(input.placeId),
+        facts: () => ({ location_found: true }),
+      }),
+    ),
   search: adminProcedure
     .input(
       z.object({ query: z.string().trim().min(MIN_QUERY_LENGTH).max(MAX_QUERY_LENGTH) }).strict(),

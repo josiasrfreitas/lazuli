@@ -1,4 +1,5 @@
 import type { Prisma, Period } from "@lazuli/db";
+import { readNextActiveStageIds } from "@lazuli/db/formation";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   lockSemester,
@@ -7,6 +8,7 @@ import {
   recordPlacementRevision,
   type OrganizationContext,
 } from "./data.js";
+import { plannedClassName } from "../classes/portal-name.js";
 import { recordActivity } from "../activity/record.js";
 
 const ISO_TIME_START_INDEX = 11;
@@ -128,29 +130,42 @@ async function preparationPlan(
     where: {
       semesterId: scope.semester.id,
       deletedAt: null,
-      OR: [
-        { sourceClassId: group.id },
-        { classId: group.id },
-        { placements: { some: { deletedAt: null, sourceEnrollment: { classId: group.id } } } },
-      ],
+      OR: [{ sourceClassId: group.id }, { classId: group.id }],
     },
   });
   if (plan) return { plan, created: false };
+  const fields = await preparationPlanFields(context, { scope, group, slots });
   const created = await context.database.semesterClassPlan.create({
     data: {
+      ...fields,
       semesterId: scope.semester.id,
       sourceClassId: group.id,
       classId: scope.current ? group.id : null,
-      name: group.portalClassName,
-      scheduleType: group.scheduleType,
+      name: scope.current
+        ? group.portalClassName
+        : await plannedClassName(context.database, fields),
       format: group.format,
-      sharedStageId: group.sharedStageId,
-      teacherId: group.teacherAssignments[0]?.teacherId ?? group.teacherId,
-      slots,
       recordedById: context.staffUser.id,
     },
   });
   return { plan: created, created: true };
+}
+
+async function preparationPlanFields(
+  context: OrganizationContext,
+  { scope, group, slots }: { scope: PreparationScope; group: PreparationClass; slots: Slots },
+): Promise<Pick<ClassPlan, "scheduleType" | "sharedStageId" | "teacherId"> & { slots: Slots }> {
+  const { sharedStageId } = group;
+  const successors =
+    !scope.current && group.scheduleType === "REGULAR" && sharedStageId
+      ? await readNextActiveStageIds(context.database, [sharedStageId])
+      : null;
+  return {
+    scheduleType: group.scheduleType,
+    sharedStageId: successors?.get(sharedStageId ?? "") ?? sharedStageId,
+    teacherId: group.teacherAssignments[0]?.teacherId ?? group.teacherId,
+    slots,
+  };
 }
 
 async function prepareProgress(
@@ -223,13 +238,14 @@ function preparedPlacementData(
 ): Prisma.SemesterPlacementUncheckedCreateInput {
   return {
     semesterId: scope.semester.id,
-    ...inheritedContinuity(previous, plan),
+    ...inheritedPlacementState(previous, plan),
     studentId: enrollment.studentId,
     trackId: progress.stage.trackId,
-    stageId: progress.stageId,
+    stageId:
+      !scope.current && plan.scheduleType === "REGULAR" ? plan.sharedStageId : progress.stageId,
     sourceProgressId: progress.id,
     sourceEnrollmentId: enrollment.id,
-    mode: "CONTINUE",
+    mode: placementMode(scope, { plan, progress }),
     effectiveDate: scope.current ? enrollment.entryDate : scope.semester.startDate,
     recordedById: context.staffUser.id,
     ...(scope.current
@@ -242,6 +258,44 @@ function preparedPlacementData(
   };
 }
 
+function inheritedPlacementState(
+  previous: Placement | null,
+  plan: ClassPlan,
+): Pick<
+  Prisma.SemesterPlacementUncheckedCreateInput,
+  | "planId"
+  | "continuity"
+  | "continuityReason"
+  | "classClosurePending"
+  | "attentionNote"
+  | "exitRiskActive"
+  | "declinedAt"
+  | "declinedReason"
+> {
+  return {
+    ...inheritedContinuity(previous, plan),
+    classClosurePending: closurePending(previous, plan),
+    attentionNote: previous?.attentionNote ?? null,
+    exitRiskActive: previous?.exitRiskActive ?? false,
+    declinedAt: previous?.declinedAt ?? null,
+    declinedReason: previous?.declinedReason ?? null,
+  };
+}
+
+function closurePending(previous: Placement | null, plan: ClassPlan): boolean {
+  return Boolean(
+    plan.closedAt || (previous?.classClosurePending && previous.continuity === "CHANGE"),
+  );
+}
+
+function placementMode(
+  scope: PreparationScope,
+  { plan, progress }: { plan: ClassPlan; progress: PreparationProgress },
+): "CONTINUE" | "ADVANCE" | "REPEAT" {
+  if (scope.current || plan.scheduleType !== "REGULAR") return "CONTINUE";
+  return plan.sharedStageId === progress.stageId ? "REPEAT" : "ADVANCE";
+}
+
 function inheritedContinuity(
   previous: Placement | null,
   plan: ClassPlan,
@@ -249,6 +303,12 @@ function inheritedContinuity(
   Prisma.SemesterPlacementUncheckedCreateInput,
   "planId" | "continuity" | "continuityReason"
 > {
+  if (plan.closedAt)
+    return {
+      planId: null,
+      continuity: previous?.continuity ?? "UNDECIDED",
+      continuityReason: previous?.continuityReason ?? null,
+    };
   if (!previous || previous.continuity === "STAY")
     return { planId: plan.id, continuity: "UNDECIDED", continuityReason: null };
   return {
@@ -291,7 +351,7 @@ async function carryWaitingPlacements(
       deletedAt: null,
       declinedAt: null,
       publishedAt: null,
-      sourceEnrollmentId: { not: null },
+      OR: [{ sourceEnrollmentId: { not: null } }, { mode: "ENTRY", planId: null }],
     },
   });
   let students = 0;
@@ -323,6 +383,9 @@ async function carryWaitingPlacement(
       sourceEnrollmentId: previous.sourceEnrollmentId,
       mode: previous.mode,
       notes: previous.notes,
+      attentionNote: previous.attentionNote,
+      exitRiskActive: previous.exitRiskActive,
+      classClosurePending: previous.classClosurePending,
       effectiveDate: scope.semester.startDate,
       continuity: previous.continuity === "STAY" ? "UNDECIDED" : previous.continuity,
       continuityReason: previous.continuity === "STAY" ? null : previous.continuityReason,

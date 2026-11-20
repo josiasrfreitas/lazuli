@@ -10,9 +10,10 @@ import {
 } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { CalendarActions } from "./actions";
-import { Button } from "@lazuli/ui";
+import { Button, EmptyState } from "@lazuli/ui";
 import { schoolToday } from "~/features/class-records/calendar-model";
 import { AcademicMonthGrid } from "./month-grid";
+import { CalendarMonthsLoading } from "./months-loading";
 import { CalendarContextPanel } from "./context-panel";
 import {
   calendarEntries,
@@ -29,6 +30,7 @@ import { useCalendarMotion } from "./use-calendar-motion";
 import {
   periodCalendarMonths,
   periodVacations,
+  calendarYearVacations,
   type CalendarPeriod,
   type CalendarVacations,
 } from "./period-model";
@@ -66,8 +68,6 @@ type WorkspaceModel = {
   date: string | null;
   daily: boolean;
   today: string;
-  previousPeriod: CalendarPeriod | undefined;
-  nextPeriod: CalendarPeriod | undefined;
   months: ReturnType<typeof periodCalendarMonths>;
   vacations: CalendarVacations;
   entries: CalendarEntry[];
@@ -103,23 +103,27 @@ function useWorkspaceModel({ navigation, period, periods, data }: WorkspaceProps
   const { year, location } = navigation;
   const { month, date, daily } = location;
   const today = schoolToday();
-  const periodIndex = periods.findIndex((row) => row.id === period?.id);
-  const previousPeriod = periods[periodIndex - 1];
-  const nextPeriod = periods[periodIndex + 1];
   const months = useMemo(
     () => periodCalendarMonths(period, { fallbackYear: year, periods }),
     [period, year, periods],
   );
-  const vacations = useMemo(() => periodVacations(period, periods), [period, periods]);
+  const vacations = useMemo(
+    () =>
+      period
+        ? periodVacations(period, data?.periods ?? periods)
+        : calendarYearVacations(data?.periods ?? periods, year),
+    [period, periods, data, year],
+  );
   const entries = useMemo(() => (data ? calendarEntries(data) : []), [data]);
   const from =
-    month === null && period
-      ? civilDate(period.startDate)
-      : isoDay({ year, month: month ?? 0, day: 1 });
-  const through =
-    month === null && period
-      ? civilDate(period.endDate)
-      : isoDay({ year, month: month === null ? MONTHS_PER_YEAR : month + 1, day: 0 });
+    month === null
+      ? (months[0]?.from ?? isoDay({ year, month: 0, day: 1 }))
+      : isoDay({ year, month, day: 1 });
+  const through = isoDay({
+    year,
+    month: month === null ? (months.at(-1)?.month ?? MONTHS_PER_YEAR - 1) + 1 : month + 1,
+    day: 0,
+  });
   const scopedEntries = useMemo(
     () => entriesInRange(entries, { from, through }),
     [entries, from, through],
@@ -131,8 +135,6 @@ function useWorkspaceModel({ navigation, period, periods, data }: WorkspaceProps
     date,
     daily,
     today,
-    previousPeriod,
-    nextPeriod,
     months,
     vacations,
     entries,
@@ -172,8 +174,11 @@ function useCalendarScroll({
     if (sameCalendarView(previous, { year, month, daily, periodId })) return;
     const main = canvasRef.current?.closest("main");
     if (main)
-      main.scrollTop = month === null && previous.periodId === periodId ? annualScroll.current : 0;
-    if (previous.periodId !== periodId) annualScroll.current = 0;
+      main.scrollTop =
+        month === null && previous.periodId === periodId && previous.year === year
+          ? annualScroll.current
+          : 0;
+    if (previous.periodId !== periodId || previous.year !== year) annualScroll.current = 0;
   }, [year, month, daily, period, periodId, canvasRef]);
   useEffect(() => {
     if (month !== null) return;
@@ -338,10 +343,12 @@ function WorkspaceMonths({ props, controller }: ViewProps): ReactElement {
     selectDay,
     model: { month, months, year, entries, scopedEntries, vacations, today, date },
   } = controller;
+  if (month === null && (!data || months.length === 0))
+    return <CalendarYearState props={props} year={year} />;
   return month === null ? (
     <div
       className={styles.months}
-      aria-label={period ? `Calendário de ${period.name}` : "Calendário acadêmico"}
+      aria-label={period ? `Calendário de ${period.name} em ${year}` : `Calendário de ${year}`}
     >
       {months.map((value) => (
         <AcademicMonthGrid
@@ -448,15 +455,12 @@ function calendarViewKind({ daily, month }: Pick<WorkspaceModel, "daily" | "mont
 function navigationLabel({
   month,
   year,
-  period,
   unavailable,
-  data,
 }: Pick<WorkspaceModel, "month" | "year"> &
   Pick<WorkspaceProps, "period" | "unavailable" | "data">): string {
   if (month !== null) return `${MONTHS[month]} ${year}`;
-  if (period) return period.name;
   if (unavailable) return "Indisponível";
-  return data ? "Sem períodos" : "Carregando…";
+  return String(year);
 }
 
 type ScrollView = Pick<WorkspaceModel, "year" | "month" | "daily"> & {
@@ -474,19 +478,16 @@ function sameCalendarView(previous: ScrollView, current: ScrollView): boolean {
 function PreviousPeriodButton({ props, controller }: ViewProps): ReactElement {
   const { disabled, navigation } = props;
   const {
-    model: { month, year, previousPeriod },
+    model: { month, year },
   } = controller;
   return (
     <Button
       size="icon-sm"
       variant="ghost"
-      aria-label={month === null ? "Período anterior" : "Mês anterior"}
-      title={month === null ? previousPeriod?.name : undefined}
-      disabled={disabled || (month === null ? !previousPeriod : year === MIN_YEAR && month === 0)}
+      aria-label={month === null ? "Ano anterior" : "Mês anterior"}
+      disabled={disabled || (year === MIN_YEAR && (month === null || month === 0))}
       onClick={() =>
-        month === null
-          ? previousPeriod && navigation.setPeriod(previousPeriod)
-          : navigation.setMonth(year, month - 1)
+        month === null ? navigation.setYear(year - 1) : navigation.setMonth(year, month - 1)
       }
     >
       <ChevronLeft />
@@ -497,24 +498,47 @@ function PreviousPeriodButton({ props, controller }: ViewProps): ReactElement {
 function NextPeriodButton({ props, controller }: ViewProps): ReactElement {
   const { disabled, navigation } = props;
   const {
-    model: { month, year, nextPeriod },
+    model: { month, year },
   } = controller;
   return (
     <Button
       size="icon-sm"
       variant="ghost"
-      aria-label={month === null ? "Próximo período" : "Próximo mês"}
-      title={month === null ? nextPeriod?.name : undefined}
-      disabled={
-        disabled || (month === null ? !nextPeriod : year === MAX_YEAR && month === LAST_MONTH)
-      }
+      aria-label={month === null ? "Próximo ano" : "Próximo mês"}
+      disabled={disabled || (year === MAX_YEAR && (month === null || month === LAST_MONTH))}
       onClick={() =>
-        month === null
-          ? nextPeriod && navigation.setPeriod(nextPeriod)
-          : navigation.setMonth(year, month + 1)
+        month === null ? navigation.setYear(year + 1) : navigation.setMonth(year, month + 1)
       }
     >
       <ChevronRight />
     </Button>
+  );
+}
+
+function CalendarYearState({
+  props: { data, unavailable, onConfigure },
+  year,
+}: {
+  props: ResolvedProps;
+  year: number;
+}): ReactElement {
+  if (!data && !unavailable) return <CalendarMonthsLoading />;
+  if (unavailable && !data)
+    return (
+      <EmptyState
+        title="Datas indisponíveis"
+        description="Tente carregar novamente para consultar os períodos deste ano."
+      />
+    );
+  return (
+    <EmptyState
+      title={`Nenhum período em ${year}`}
+      description="Cadastre um semestre para exibir seus meses no calendário."
+      action={
+        <Button size="sm" variant="secondary" onClick={() => onConfigure("semestres")}>
+          Definir semestres
+        </Button>
+      }
+    />
   );
 }

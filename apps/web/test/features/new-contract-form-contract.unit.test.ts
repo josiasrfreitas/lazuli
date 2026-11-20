@@ -53,9 +53,9 @@ void describe("new contract form contract", () => {
       [
         "studentSearch",
         "payerSearch",
-        "agreedOn",
         "firstDueDate",
         "endsOn",
+        "agreedOn",
         "monthlyAmount",
         "enrollmentFee",
         "material-stage-0",

@@ -58,7 +58,7 @@ void describe("role-aware navigation", () => {
         CONTRACTS_PATH,
         RECEIVABLES_PATH,
         ACTIVITY_PATH,
-        SCHOOL_LOCATION_PATH,
+        SETTINGS_PATH,
       ],
     );
     assert.deepEqual(
@@ -76,7 +76,7 @@ void describe("role-aware navigation", () => {
       },
       { label: "Comercial", items: ["Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
-      { label: "Sistema", items: ["Log de atividades", "Localização da escola"] },
+      { label: "Sistema", items: ["Log de atividades", "Ajustes"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
@@ -129,7 +129,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
   }
 });
 
-void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigation", () => {
+void it("keeps school location under Ajustes for administrators without a separate menu entry", () => {
   assert.deepEqual(
     navItemsFor("SYSTEM_ADMIN").map((item) => item.href),
     [
@@ -145,11 +145,18 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       RECEIVABLES_PATH,
       ACTIVITY_PATH,
       SETTINGS_PATH,
-      SCHOOL_LOCATION_PATH,
     ],
   );
   assert.equal(
     navItemsFor("ADMIN").some((item) => item.href === SETTINGS_PATH),
+    true,
+  );
+  assert.equal(
+    navItemsFor("ADMIN").some((item) => item.href === SCHOOL_LOCATION_PATH),
+    false,
+  );
+  assert.equal(
+    navItemsFor("SYSTEM_ADMIN").some((item) => item.href === SCHOOL_LOCATION_PATH),
     false,
   );
   assert.deepEqual(navBreadcrumbFor(SETTINGS_PATH, "SYSTEM_ADMIN"), {
@@ -196,7 +203,6 @@ void it("returns child pages to their authorized source and ignores foreign dest
     "/turmas-other",
     "/turmas/another-class",
     "https://elsewhere.test",
-    "/ajustes",
   ]) {
     assert.deepEqual(navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back }), {
       href: "/turmas",

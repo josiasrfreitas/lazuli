@@ -1,4 +1,4 @@
-import { addCalendarMonths, previewMonthlyContract } from "@lazuli/domain";
+import { nearestContractUnits, previewMonthlyContract } from "@lazuli/domain";
 import {
   createMonthlyContractInputSchema,
   type studentCreateInputSchema,
@@ -10,10 +10,11 @@ import { formatBRLFromCents } from "~/lib/format";
 import { materialCardFeeInput } from "./material-card-fee";
 
 const CENTS_PER_REAL = 100;
-const MONTHS_PER_YEAR = 12;
+export const MONTHS_PER_SEMESTER = 6;
 
 export type ContractFields = {
   // Comma-separated UUID draft keeps the shared string-field form interface; commas preserve empty book slots.
+  materialBooks?: string;
   materialStageIds: string;
   materialCategory: string;
   materialPayment: string;
@@ -119,6 +120,14 @@ export function paymentPlanLabel(count: number, uniformAmountCents: number | nul
     : `${count} × ${formatBRLFromCents(uniformAmountCents)}`;
 }
 
+export function installmentBreakdown(installments: readonly { amountCents: number }[]): string {
+  const counts = new Map<number, number>();
+  for (const { amountCents } of installments) {
+    counts.set(amountCents, (counts.get(amountCents) ?? 0) + 1);
+  }
+  return Array.from(counts, ([amount, count]) => paymentPlanLabel(count, amount)).join(" + ");
+}
+
 export function suggestMonthlyAmount(
   fields: ContractFields,
   input: { tuitionCeilingCents: number; edited: boolean },
@@ -128,14 +137,21 @@ export function suggestMonthlyAmount(
   return fields.monthlyAmount === monthlyAmount ? fields : { ...fields, monthlyAmount };
 }
 
-export function durationFromDates(fields: ContractFields): number {
+export function durationFromDates(fields: ContractFields, monthsPerUnit = 1): number {
   const start = parseDateBR(fields.firstDueDate);
   const end = parseDateBR(fields.endsOn);
-  if (!start || !end) return Number.NaN;
-  const [startYear, startMonth] = start.split("-").map(Number);
-  const [endYear, endMonth] = end.split("-").map(Number);
-  const months = (endYear! - startYear!) * MONTHS_PER_YEAR + endMonth! - startMonth!;
-  return months > 0 && addCalendarMonths(start, months) === end ? months : Number.NaN;
+  return start && end ? nearestContractUnits({ start, end }, monthsPerUnit) : Number.NaN;
+}
+
+export function boundedInstallmentInput(value: string, duration: number): string {
+  if (!/^\d+$/.test(value) || !Number.isFinite(duration)) return "";
+  return String(Math.min(Number(value), duration));
+}
+
+export function contractPeriodLabel(fields: ContractFields): string {
+  const months = durationFromDates(fields);
+  if (!Number.isFinite(months)) return "Período a definir";
+  return `${fields.firstDueDate} a ${fields.endsOn} (${months} ${months === 1 ? "mês" : "meses"})`;
 }
 
 function studentInput(fields: ContractFields): object {
@@ -194,22 +210,7 @@ export function contractInputFromFields(
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
     ...(renewedFromId ? { renewedFromId } : {}),
-    ...(fields.materialPayment === "NONE"
-      ? {}
-      : {
-          material: {
-            ...scholarshipInput(fields, true),
-            ...materialPriceInput(fields),
-            ...materialCardFeeInput(fields),
-            stageIds: fields.materialStageIds.split(","),
-            quoteVersion: fields.materialQuoteVersion,
-            category: fields.materialCategory,
-            payment: fields.materialPayment,
-            installmentCount: materialInstallmentCount(fields),
-            expectedTotalCents:
-              fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
-          },
-        }),
+    ...contractMaterialInput(fields),
     ...(fields.paymentPlan === "special" && fields.scholarshipMode !== "FULL"
       ? { installmentCount: Number(fields.installmentCount) }
       : {}),
@@ -218,6 +219,7 @@ export function contractInputFromFields(
     ...payerInput(fields),
     agreedOn: parseDateBR(fields.agreedOn),
     startsOn: parseDateBR(fields.firstDueDate),
+    endsOn: parseDateBR(fields.endsOn) ?? undefined,
     durationMonths: durationFromDates(fields),
     firstDueDate: parseDateBR(fields.billingFirstDueDate ?? fields.firstDueDate),
     monthlyAmountCents: Math.round(Number(fields.monthlyAmount.replace(",", ".")) * CENTS_PER_REAL),
@@ -230,6 +232,35 @@ export function contractInputFromFields(
       : {}),
   });
   return parsed;
+}
+
+function contractMaterialInput(fields: ContractFields): object {
+  const semesters = durationFromDates(fields, MONTHS_PER_SEMESTER);
+  if (Number.isInteger(semesters) && (fields.materialBooks || fields.materialPayment === "NONE")) {
+    const books = fields.materialBooks
+      ? (JSON.parse(fields.materialBooks) as z.input<
+          typeof createMonthlyContractInputSchema
+        >["books"])
+      : Array.from({ length: semesters }, (_unused, index) => ({
+          stageId: null,
+          acquisitionSemester: index === 0 ? 1 : null,
+        }));
+    return { books };
+  }
+  if (fields.materialPayment === "NONE") return {};
+  return {
+    material: {
+      ...scholarshipInput(fields, true),
+      ...materialPriceInput(fields),
+      ...materialCardFeeInput(fields),
+      stageIds: fields.materialStageIds.split(","),
+      quoteVersion: fields.materialQuoteVersion,
+      category: fields.materialCategory,
+      payment: fields.materialPayment,
+      installmentCount: materialInstallmentCount(fields),
+      expectedTotalCents: fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
+    },
+  };
 }
 
 export function contractPreview(

@@ -209,7 +209,7 @@ export function SettingsPage(): ReactElement {
   return (
     <div className="mx-auto h-full w-full max-w-6xl space-y-2 overflow-y-auto p-3 sm:p-4">
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="font-display text-h2 font-semibold">Ajustes financeiros</h1>
+        <h2 className="font-display text-h3 font-semibold">Ajustes financeiros</h2>
         <p className="hidden text-caption text-muted-foreground sm:block">
           Condições para novos contratos e preços dos livros por faixa.
         </p>

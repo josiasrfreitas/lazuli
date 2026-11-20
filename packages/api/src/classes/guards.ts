@@ -39,6 +39,7 @@ export async function loadActiveStage(input: {
       id: true,
       internalCode: true,
       trackId: true,
+      status: true,
       track: { select: { status: true } },
     },
   });
@@ -46,6 +47,8 @@ export async function loadActiveStage(input: {
   if (stage === null) {
     throw notFound(STAGE_NOT_FOUND_MESSAGE);
   }
+
+  if (stage.status === "LEGACY") throw badRequest("Este estágio está marcado como Legacy.");
 
   if (stage.track.status === "LEGACY") {
     throw badRequest(LEGACY_TRACK_MESSAGE);

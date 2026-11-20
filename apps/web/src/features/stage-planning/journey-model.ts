@@ -5,6 +5,7 @@ export type JourneyItem = {
   plannedOn: string | null;
   title: string;
   reference: string | null;
+  curriculum?: { sequence: number } | null;
 };
 export type JourneyRecord = {
   id: string;
@@ -24,7 +25,9 @@ export function planningJourney<I extends JourneyItem, R extends JourneyRecord>(
   { records, today }: { records: readonly R[]; today: string },
 ): PlanningJourney<I, R> {
   const ordered = items.toSorted((first, second) =>
-    (first.plannedOn ?? "9999").localeCompare(second.plannedOn ?? "9999"),
+    first.curriculum && second.curriculum
+      ? first.curriculum.sequence - second.curriculum.sequence
+      : (first.plannedOn ?? "9999").localeCompare(second.plannedOn ?? "9999"),
   );
   const history = records.toSorted(
     (first, second) =>

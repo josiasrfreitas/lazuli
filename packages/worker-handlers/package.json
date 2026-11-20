@@ -24,7 +24,8 @@
     "@lazuli/domain": "workspace:*",
     "@lazuli/integrations": "workspace:*",
     "@lazuli/job-contracts": "workspace:*",
-    "@lazuli/validators": "workspace:*"
+    "@lazuli/validators": "workspace:*",
+    "@lazuli/logging": "workspace:*"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

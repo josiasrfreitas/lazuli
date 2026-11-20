@@ -108,7 +108,7 @@ function AttendanceHistoryTrigger({
   );
 }
 
-function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElement {
+export function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElement {
   const fieldId = useId();
   const [selectedEnrollment, setSelectedEnrollment] = useState(enrollmentId ?? "all");
   const [status, setStatus] = useState<AttendanceFilter>("ALL");

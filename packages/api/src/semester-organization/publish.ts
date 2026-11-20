@@ -146,8 +146,6 @@ function selectedPlacement(
   if (!row) throw notFound(PLACEMENT_NOT_FOUND);
   assertVersion(row.version, item.version);
   if (row.declinedAt) throw badRequest("O aluno não continuará neste semestre.");
-  if (row.continuity === "LEAVING")
-    throw badRequest(`${row.studentName}: converse sobre a possível saída antes de confirmar.`);
   if (dateOnly(row.effectiveDate ?? semester.startDate) < saoPauloDateOnly(context.now))
     throw badRequest("Revise a vigência: a data proposta já passou.");
   if (row.publishedAt) throw badRequest("Um dos alunos já foi publicado. Atualize a página.");
@@ -221,7 +219,7 @@ async function publicationClass(
   const existingClass = current.classId
     ? await context.database.class.findUniqueOrThrow({
         where: { id: current.classId },
-        select: { id: true, startDate: true },
+        select: { id: true, startDate: true, portalClassName: true },
       })
     : null;
   const classRow =
@@ -235,13 +233,17 @@ async function publicationClass(
         format: current.format,
         sharedStageId: current.sharedStageId,
         semesterId: semester.id,
+        ...(plan.sourceClassId ? { previousClassId: plan.sourceClassId } : {}),
         startDate: firstEntryDate,
         slots: current.slots,
       },
     }));
   const earlierEntry =
     existingClass !== null &&
-    firstEntryDate < dateOnly(existingClass.startDate ?? semester.startDate);
+    startsEarlier(firstEntryDate, {
+      scheduled: existingClass.startDate,
+      periodStart: semester.startDate,
+    });
   if (earlierEntry)
     await context.database.class.update({
       where: { id: classRow.id },
@@ -251,7 +253,7 @@ async function publicationClass(
   if (!current.classId) {
     await context.database.semesterClassPlan.update({
       where: { id: plan.id },
-      data: { classId: classRow.id, version: { increment: 1 } },
+      data: { classId: classRow.id, name: classRow.portalClassName, version: { increment: 1 } },
     });
   }
   if (!current.classId || earlierEntry) {
@@ -264,10 +266,17 @@ async function publicationClass(
   }
   return { classId: classRow.id, generationRequestId };
 }
+function startsEarlier(
+  entry: string,
+  dates: { scheduled: Date | null; periodStart: Date },
+): boolean {
+  return entry < dateOnly(dates.scheduled ?? dates.periodStart);
+}
+
 async function publishOne(
   context: OrganizationContext,
   options: {
-    row: PlacementRow;
+    row: BoardPlacement;
     classId: string;
     entryDate: Date;
   },
@@ -312,7 +321,7 @@ async function markPlacementPublished(
     entryActionId,
     sourceExitActionId,
   }: {
-    row: PlacementRow;
+    row: BoardPlacement;
     enrollmentId: string | null;
     entryActionId: string | null;
     sourceExitActionId: string | null;
@@ -324,7 +333,7 @@ async function markPlacementPublished(
       publishedAt: context.now,
       publishedById: context.staffUser.id,
       enrollmentId,
-      continuity: "STAY",
+      continuity: "UNDECIDED",
       continuityReason: null,
       entryActionId,
       sourceExitActionId,
@@ -339,14 +348,17 @@ async function markPlacementPublished(
   });
 }
 
-async function confirmContinuity(context: OrganizationContext, row: PlacementRow): Promise<void> {
+async function confirmContinuity(
+  context: OrganizationContext,
+  row: Pick<PlacementRow, "id" | "sourceEnrollmentId">,
+): Promise<void> {
   await context.database.semesterPlacement.update({
     where: { id: row.id },
     data: {
       publishedAt: context.now,
       publishedById: context.staffUser.id,
       enrollmentId: row.sourceEnrollmentId,
-      continuity: "STAY",
+      continuity: "UNDECIDED",
       version: { increment: 1 },
     },
   });
@@ -355,7 +367,7 @@ async function confirmContinuity(context: OrganizationContext, row: PlacementRow
 
 async function scheduleSourceExit(
   context: OrganizationContext,
-  { row, entryDate, immediate }: { row: PlacementRow; entryDate: Date; immediate: boolean },
+  { row, entryDate, immediate }: { row: BoardPlacement; entryDate: Date; immediate: boolean },
 ): Promise<string | null> {
   if (!row.sourceEnrollmentId) return null;
   const pending = await context.database.enrollmentAction.count({
@@ -377,7 +389,7 @@ async function scheduleSourceExit(
       effectiveDate: entryDate,
       exitReason: "TRANSFERRED",
       recordedById: context.staffUser.id,
-      justification: "Organização de turmas",
+      justification: "Formação de turmas",
     },
   });
   if (immediate)
@@ -398,7 +410,7 @@ async function openPublishedStudent(
     entryDate,
     immediate,
   }: {
-    row: PlacementRow;
+    row: BoardPlacement;
     classId: string;
     entryDate: Date;
     immediate: boolean;
@@ -460,6 +472,8 @@ export async function withdrawPlacement(
     data: {
       publishedAt: null,
       publishedById: null,
+      continuity: "UNDECIDED",
+      continuityReason: null,
       enrollmentId: null,
       entryActionId: null,
       sourceExitActionId: null,

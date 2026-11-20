@@ -64,7 +64,7 @@ export const studentIntakeEnrollSchema = z
       context.addIssue({
         code: "custom",
         path: ["classId"],
-        message: "A turma de entrada pertence ao período atual.",
+        message: "A turma de entrada pertence ao semestre atual.",
       });
     if (value.entryPeriod === "CURRENT" && value.planId)
       context.addIssue({

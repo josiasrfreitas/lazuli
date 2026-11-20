@@ -1,7 +1,7 @@
 import { useState, type JSX as ReactJSX } from "react";
 import type { ComponentProps } from "react";
 import Link from "next/link";
-import { CalendarDays, ClipboardCheck, ArrowUpRight, BookOpen, UserRound } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ArrowUpRight } from "lucide-react";
 import { normalizeSearch } from "@lazuli/domain";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -97,19 +97,44 @@ export function IntakePedagogyControls({
     draftRegistration?.lead.englishExperience === "SOME" ||
     (lead?.englishExperience === "SOME" && !lead.stageId);
   return (
-    <div className="flex min-w-0 flex-wrap items-end gap-x-2 gap-y-1">
-      <div className="w-44 min-w-0 shrink-0">
-        <IntakeStageSelect
-          value={filters.stageId}
-          onChange={(stageId) => onFiltersChange({ ...filters, stageId })}
-          initialOnly={!lead || lead.englishExperience === "NONE"}
-          disabled={waitingPlacement || lead?.englishExperience === "SOME"}
-          labelIcon={<BookOpen className="size-4" aria-hidden="true" />}
-        />
+    <div className="flex min-w-0 flex-wrap items-stretch gap-x-5 gap-y-3">
+      <fieldset className="min-w-0">
+        <legend className="text-caption text-muted-foreground">Entrada do aluno</legend>
+        <div className="mt-1 flex flex-wrap items-end gap-2">
+          <div className="w-44 min-w-0 shrink-0">
+            <IntakeStageSelect
+              value={filters.stageId}
+              onChange={(stageId) => onFiltersChange({ ...filters, stageId })}
+              initialOnly={!lead || lead.englishExperience === "NONE"}
+              disabled={waitingPlacement || lead?.englishExperience === "SOME"}
+            />
+          </div>
+          <div className="w-fit shrink-0">
+            <InterestChoice
+              label="Entrada"
+              value={filters.entryPeriod}
+              options={{ CURRENT: "Neste semestre", NEXT: "Próximo semestre" }}
+              onChange={(value) =>
+                onFiltersChange({ ...filters, entryPeriod: value as IntakeFilters["entryPeriod"] })
+              }
+            />
+          </div>
+          <LevelingButton draftRegistration={draftRegistration} onCaptureLead={onCaptureLead} />
+        </div>
+      </fieldset>
+      <div className="min-w-0 border-s border-border ps-4">
+        <fieldset className="min-w-0">
+          <legend className="text-caption text-muted-foreground">Filtros de turma</legend>
+          <div className="mt-1 flex flex-wrap items-end gap-2">
+            <IntakeFilterFields filters={filters} onFiltersChange={onFiltersChange} />
+            <TeacherSearch
+              value={teacherSelection}
+              choices={teacherChoices}
+              onChange={onTeacherChange}
+            />
+          </div>
+        </fieldset>
       </div>
-      <TeacherSearch value={teacherSelection} choices={teacherChoices} onChange={onTeacherChange} />
-      <IntakeFilterFields filters={filters} onFiltersChange={onFiltersChange} />
-      <LevelingButton draftRegistration={draftRegistration} onCaptureLead={onCaptureLead} />
     </div>
   );
 }
@@ -147,7 +172,7 @@ function IntakeFilterFields({
         <InterestChoice
           label="Modalidade"
           value={filters.scheduleType}
-          options={{ REGULAR: "Regular", PERSONALIZED: "PPT" }}
+          options={{ PERSONALIZED: "PPT", REGULAR: "Regular" }}
           onChange={(value) => change({ scheduleType: value as IntakeFilters["scheduleType"] })}
         />
       </div>
@@ -157,14 +182,6 @@ function IntakeFilterFields({
           value={filters.format}
           options={{ IN_PERSON: "Presencial", ONLINE: "Online" }}
           onChange={(value) => change({ format: value as IntakeFilters["format"] })}
-        />
-      </div>
-      <div className="w-fit shrink-0">
-        <InterestChoice
-          label="Entrada"
-          value={filters.entryPeriod}
-          options={{ CURRENT: "Neste período", NEXT: "Próximo período" }}
-          onChange={(value) => change({ entryPeriod: value as IntakeFilters["entryPeriod"] })}
         />
       </div>
     </div>
@@ -192,11 +209,7 @@ function TeacherSearch({
   return (
     <div className="w-48 min-w-0 shrink-0">
       <Field>
-        <Label>
-          <span className="inline-flex items-center gap-1.5">
-            <UserRound className="size-4" aria-hidden="true" /> Professor
-          </span>
-        </Label>
+        <Label>Professor</Label>
         <SearchSelect
           name="teacherId"
           placeholder="Buscar professor"

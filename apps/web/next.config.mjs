@@ -1,4 +1,6 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { networkInterfaces } from "node:os";
+import { sentryBuildSettings } from "./telemetry-build/env.mjs";
 const DEFAULT_IMAGE_QUALITY = 75;
 const LOGIN_IMAGE_QUALITY = 90;
 const REFERRER_POLICY = "Referrer-Policy";
@@ -69,4 +71,9 @@ const config = {
   },
 };
 
-export default config;
+export default withSentryConfig(config, {
+  org: "lazuli-ql",
+  project: "lazuli-web",
+  widenClientFileUpload: true,
+  ...sentryBuildSettings,
+});

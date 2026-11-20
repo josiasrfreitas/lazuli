@@ -4,7 +4,8 @@ import { assertTrackAvailable } from "./eligibility.js";
 import type { enrollmentCreateInputSchema, z } from "@lazuli/validators";
 
 import { loadActiveStage } from "../classes/guards.js";
-import { saoPauloDateOnly } from "@lazuli/domain";
+import { contractAt } from "@lazuli/db/formation";
+import { MISSING_ENTRY_CONTRACT, saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
   CLASS_ARCHIVED_MESSAGE,
@@ -26,6 +27,7 @@ export type EnrollmentDatabase = Pick<
   | "$kysely"
   | "$queryRaw"
   | "enrollment"
+  | "contract"
   | "pedagogicalProgress"
   | "class"
   | "student"
@@ -311,6 +313,11 @@ export async function openEnrollmentAtStage(input: {
 }): Promise<{ enrollment: EnrollmentSummary; progress: ProgressSummary }> {
   await lockStudentEnrollment(input.database, input.studentId);
   await assertTrackAvailable(input);
+  const contract = await input.database.contract.findFirst({
+    where: { studentId: input.studentId, ...contractAt(input.entryDate) },
+    select: { id: true },
+  });
+  if (!contract) throw badRequest(MISSING_ENTRY_CONTRACT);
   const enrollment = await input.database.enrollment.create({
     data: {
       studentId: input.studentId,

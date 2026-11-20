@@ -1,62 +1,201 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   CalendarDays,
+  CalendarOff,
   CalendarRange,
   Flag,
+  Palmtree,
   Pencil,
   Plus,
+  Wrench,
 } from "lucide-react";
-import { Button, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
+import {
+  Button,
+  Dialog,
+  DialogBackdrop,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogPortal,
+  DialogTitle,
+  EmptyState,
+  Tabs,
+  TabsList,
+  TabsTab,
+  TabsPanel,
+} from "@lazuli/ui";
 import { CalendarChangeForm } from "./change-form";
 import { CalendarHolidays } from "./holidays";
 import { civilDate, shortDate } from "./date-model";
 import type { AcademicYear } from "./model";
+import { useManagementStep } from "./use-management-step";
 import styles from "./management.module.css";
 
 export type CalendarEditor =
   | { kind: "period" | "interruption"; id?: string }
   | { kind: "holidays" };
 const kinds = { HOLIDAY: "Feriado", RECESS: "Recesso", MAINTENANCE: "Manutenção", OTHER: "Outro" };
+const kindIcons = { HOLIDAY: Flag, RECESS: Palmtree, MAINTENANCE: Wrench, OTHER: CalendarOff };
 export function CalendarManagement({
   data,
   year,
-  onClose,
   section,
   onSectionChange,
+  onClose,
 }: {
   data: AcademicYear;
   year: number;
-  onClose: () => void;
   section: string;
   onSectionChange: (section: string) => void;
+  onClose: () => void;
 }): ReactElement {
-  const [editor, setEditor] = useState<CalendarEditor | null>(null);
+  const steps = useManagementStep<CalendarEditor | null>(null);
+  const editor = steps.step;
+  const [pending, setPending] = useState(false);
+  useManagementFocus(steps.container, editor);
 
-  const periods = data.periods.filter(
-    (row) => row.startDate.getUTCFullYear() <= year && row.endDate.getUTCFullYear() >= year,
-  );
   return (
-    <section className={styles.page}>
-      <header className={styles.header}>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <ArrowLeft aria-hidden="true" /> Voltar ao calendário
-        </Button>
-        <h1>
-          Organizar o ano acadêmico <span>{year}</span>
-        </h1>
-        <p>Defina até quando as aulas acontecem e quais datas interrompem as atividades.</p>
-      </header>
-      <Tabs
-        value={section === "semestres" ? "periods" : "interruptions"}
-        onValueChange={(value) =>
-          onSectionChange(value === "periods" ? "semestres" : "interrupcoes")
-        }
-        variant="underline"
-      >
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !pending) onClose();
+      }}
+    >
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogContent
+          render={<div className={styles.dialog} />}
+          showCloseButton={!pending}
+          finalFocus={() =>
+            document.querySelector<HTMLElement>("[data-calendar-configure-trigger]")
+          }
+        >
+          <div
+            ref={steps.container}
+            className={styles.stage}
+            onPointerDownCapture={steps.onPointerDown}
+            onKeyDownCapture={steps.onKeyDown}
+          >
+            {editor ? (
+              <ManagementEditor
+                key={`${editor.kind}:${"id" in editor ? (editor.id ?? "new") : "new"}`}
+                editor={editor}
+                data={data}
+                year={year}
+                onBack={() => steps.setStep(null)}
+                onPendingChange={setPending}
+              />
+            ) : (
+              <Tabs
+                render={<div className={styles.workspace} />}
+                value={section === "semestres" ? "periods" : "interruptions"}
+                onValueChange={(value) =>
+                  onSectionChange(value === "periods" ? "semestres" : "interrupcoes")
+                }
+                variant="underline"
+              >
+                <ManagementHeader section={section} setEditor={steps.setStep} />
+                <DialogBody>
+                  <PeriodSettings periods={data.periods} setEditor={steps.setStep} />
+                  <InterruptionSettings data={data} setEditor={steps.setStep} />
+                </DialogBody>
+              </Tabs>
+            )}
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  );
+}
+
+function useManagementFocus(
+  container: { current: HTMLElement | null },
+  editor: CalendarEditor | null,
+): void {
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const element = container.current;
+      if (element) void focusManagementStep(element, editor !== null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editor, container]);
+}
+
+async function focusManagementStep(element: HTMLElement, editing: boolean): Promise<void> {
+  const target = element.querySelector<HTMLElement>(
+    editing
+      ? 'input:not(:disabled), textarea:not(:disabled), [role="combobox"]'
+      : '[role="tab"][aria-selected="true"]',
+  );
+  await Promise.allSettled(element.getAnimations().map((animation) => animation.finished));
+  if (target?.isConnected) target.focus({ preventScroll: true });
+}
+
+function ManagementEditor({
+  editor,
+  data,
+  year,
+  onBack,
+  onPendingChange,
+}: {
+  editor: CalendarEditor;
+  data: AcademicYear;
+  year: number;
+  onBack: () => void;
+  onPendingChange: (pending: boolean) => void;
+}): ReactElement {
+  if (editor.kind === "holidays")
+    return (
+      <CalendarHolidays
+        embedded
+        year={year}
+        data={data}
+        onBack={onBack}
+        onClose={onBack}
+        onPendingChange={onPendingChange}
+      />
+    );
+  return (
+    <CalendarChangeForm
+      embedded
+      mode={editor.kind}
+      item={
+        editor.kind === "period"
+          ? data.periods.find((row) => row.id === editor.id)
+          : data.interruptions.find((row) => row.id === editor.id)
+      }
+      onBack={onBack}
+      onClose={onBack}
+      onPendingChange={onPendingChange}
+    />
+  );
+}
+
+function ManagementHeader({
+  section,
+  setEditor,
+}: {
+  section: string;
+  setEditor: (value: CalendarEditor) => void;
+}): ReactElement {
+  const periods = section === "semestres";
+  return (
+    <DialogHeader>
+      <div className={styles.sectionHeader}>
+        <DialogTitle size="lg">
+          {periods ? "Limites dos semestres" : "Dias sem atividades acadêmicas"}
+        </DialogTitle>
+        <DialogDescription>
+          {periods
+            ? "As turmas usam estas datas para organizar suas aulas regulares."
+            : "Feriados e recessos suspendem aulas, atendimentos e experimentais."}
+        </DialogDescription>
+      </div>
+      <div className={styles.headerControls}>
         <TabsList aria-label="Configuração do calendário">
           <TabsTab value="periods">
             <CalendarRange aria-hidden="true" /> Semestres
@@ -65,25 +204,21 @@ export function CalendarManagement({
             <Flag aria-hidden="true" /> Feriados e recessos
           </TabsTab>
         </TabsList>
-        <PeriodSettings periods={periods} setEditor={setEditor} />
-        <InterruptionSettings data={data} setEditor={setEditor} />
-      </Tabs>
-      {editor?.kind === "holidays" && (
-        <CalendarHolidays year={year} data={data} onClose={() => setEditor(null)} />
-      )}
-      {editor && editor.kind !== "holidays" && (
-        <CalendarChangeForm
-          key={`${editor.kind}:${editor.id ?? "new"}`}
-          mode={editor.kind}
-          item={
-            editor.kind === "period"
-              ? data.periods.find((row) => row.id === editor.id)
-              : data.interruptions.find((row) => row.id === editor.id)
-          }
-          onClose={() => setEditor(null)}
-        />
-      )}
-    </section>
+        <div className={styles.actions}>
+          {!periods && (
+            <Button size="sm" variant="secondary" onClick={() => setEditor({ kind: "holidays" })}>
+              <CalendarDays aria-hidden="true" /> Buscar feriados
+            </Button>
+          )}
+          <Button
+            size="sm"
+            onClick={() => setEditor({ kind: periods ? "period" : "interruption" })}
+          >
+            <Plus aria-hidden="true" /> {periods ? "Novo semestre" : "Adicionar intervalo"}
+          </Button>
+        </div>
+      </div>
+    </DialogHeader>
   );
 }
 
@@ -96,15 +231,6 @@ function PeriodSettings({
 }): ReactElement {
   return (
     <TabsPanel value="periods" render={<div className={styles.section} />}>
-      <div className={styles.sectionHeader}>
-        <div>
-          <h2>Limites dos semestres</h2>
-          <p>As turmas usam estas datas para organizar suas aulas regulares.</p>
-        </div>
-        <Button size="sm" onClick={() => setEditor({ kind: "period" })}>
-          <Plus aria-hidden="true" /> Novo semestre
-        </Button>
-      </div>
       <PeriodList periods={periods} setEditor={setEditor} />
       <div className={styles.explanation}>
         <h3>O que muda ao ajustar um semestre</h3>
@@ -124,55 +250,53 @@ function InterruptionSettings({
   data: AcademicYear;
   setEditor: (value: CalendarEditor) => void;
 }): ReactElement {
+  if (data.interruptions.length === 0) {
+    return (
+      <TabsPanel value="interruptions" render={<div className={styles.emptySection} />}>
+        <EmptyState
+          icon={<Palmtree aria-hidden="true" />}
+          title="Até as pausas estão de folga"
+          description="Nenhum feriado ou recesso cadastrado neste ano. Busque as sugestões ou adicione as datas da escola."
+        />
+      </TabsPanel>
+    );
+  }
   return (
     <TabsPanel value="interruptions" render={<div className={styles.section} />}>
-      <div className={styles.sectionHeader}>
-        <div>
-          <h2>Dias sem atividades acadêmicas</h2>
-          <p>Feriados e recessos suspendem aulas, atendimentos e experimentais.</p>
-        </div>
-        <div className={styles.actions}>
-          <Button size="sm" variant="secondary" onClick={() => setEditor({ kind: "holidays" })}>
-            <CalendarDays aria-hidden="true" /> Buscar feriados
-          </Button>
-          <Button size="sm" onClick={() => setEditor({ kind: "interruption" })}>
-            <Plus aria-hidden="true" /> Adicionar intervalo
-          </Button>
-        </div>
-      </div>
-      {data.interruptions.length > 0 ? (
-        <ul className={styles.interruptions}>
-          {data.interruptions.map((row) => (
+      <ul className={styles.interruptions}>
+        {data.interruptions.map((row) => {
+          const KindIcon = kindIcons[row.kind];
+          return (
             <li key={row.id} className={styles.interruption}>
-              <span className={styles.interruptionDate}>
-                {shortDate(civilDate(row.fromDate))}
-                {row.fromDate.getTime() !== row.throughDate.getTime() && (
-                  <small>até {shortDate(civilDate(row.throughDate))}</small>
-                )}
-              </span>
+              <div className={styles.interruptionHeader}>
+                <span className={styles.interruptionDate}>
+                  <CalendarDays aria-hidden="true" />
+                  {shortDate(civilDate(row.fromDate))}
+                  {row.fromDate.getTime() !== row.throughDate.getTime() && (
+                    <small>até {shortDate(civilDate(row.throughDate))}</small>
+                  )}
+                </span>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={`Editar ${row.title}`}
+                  title={`Editar ${row.title}`}
+                  onClick={() => setEditor({ kind: "interruption", id: row.id })}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+              </div>
               <div>
                 <h3>{row.title}</h3>
-                <p>{kinds[row.kind]} · sem atividades acadêmicas</p>
+                <p className={styles.interruptionKind}>
+                  <KindIcon aria-hidden="true" /> {kinds[row.kind]} · sem atividades acadêmicas
+                </p>
                 {row.description && <p className={styles.description}>{row.description}</p>}
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                aria-label={`Editar ${row.title}`}
-                onClick={() => setEditor({ kind: "interruption", id: row.id })}
-              >
-                <Pencil aria-hidden="true" /> Editar
-              </Button>
             </li>
-          ))}
-        </ul>
-      ) : (
-        <div className={styles.empty}>
-          <Flag aria-hidden="true" />
-          <h3>Nenhum feriado ou recesso cadastrado</h3>
-          <p>Busque as sugestões de feriados ou adicione as datas da escola.</p>
-        </div>
-      )}
+          );
+        })}
+      </ul>
       <div className={styles.explanation}>
         <h3>Eventos e pausas têm efeitos diferentes</h3>
         <p>
@@ -195,21 +319,9 @@ function PeriodList({
     <ul className={styles.periods}>
       {periods.map((period) => (
         <li key={period.id} className={styles.period}>
-          <CalendarRange aria-hidden="true" />
-          <div>
+          <div className={styles.periodHeading}>
+            <CalendarRange aria-hidden="true" />
             <h3>{period.name}</h3>
-            <p className={styles.range}>
-              <span>
-                {shortDate(civilDate(period.startDate))}
-                <small>{period.startDate.getUTCFullYear()}</small>
-              </span>
-              <ArrowRight aria-hidden="true" />
-              <span>
-                {shortDate(civilDate(period.endDate))}
-                <small>{period.endDate.getUTCFullYear()}</small>
-              </span>
-            </p>
-            <p>Aulas regulares dentro deste intervalo.</p>
           </div>
           <Button
             size="sm"
@@ -218,16 +330,25 @@ function PeriodList({
           >
             <Pencil aria-hidden="true" /> Editar limites
           </Button>
+          <p className={styles.range}>
+            <span>
+              {shortDate(civilDate(period.startDate))}
+              <small>{period.startDate.getUTCFullYear()}</small>
+            </span>
+            <ArrowRight aria-hidden="true" />
+            <span>
+              {shortDate(civilDate(period.endDate))}
+              <small>{period.endDate.getUTCFullYear()}</small>
+            </span>
+          </p>
         </li>
       ))}
     </ul>
   ) : (
-    <div className={styles.empty}>
-      <CalendarRange aria-hidden="true" />
-      <h3>O ano ainda não tem limites definidos</h3>
-      <p>
-        Cadastre as datas reais dos semestres. Dias sem configuração não são tratados como férias.
-      </p>
-    </div>
+    <EmptyState
+      icon={<CalendarRange aria-hidden="true" />}
+      title="Nenhum semestre cadastrado"
+      description="Cadastre as datas reais dos semestres. Dias sem configuração não são tratados como férias."
+    />
   );
 }

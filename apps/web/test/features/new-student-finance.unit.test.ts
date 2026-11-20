@@ -140,3 +140,18 @@ void it("preserves the server's actionable financial rejection", () => {
     "Confira a mensalidade e a quantidade de parcelas autorizadas.",
   );
 });
+
+void it("keeps two deferred book slots when enrolling a new student for one year", () => {
+  const books = [
+    { stageId: fields.materialStageIds, acquisitionSemester: 1 },
+    { stageId: null, acquisitionSemester: null },
+  ];
+  const result = studentContractInput({
+    fields: { ...fields, materialBooks: JSON.stringify(books) },
+    student,
+    commandId: COMMAND,
+  });
+  assert.deepEqual(result.data?.books, books);
+  assert.equal(result.data?.material, undefined);
+  assert.equal(result.data?.durationMonths, 12);
+});

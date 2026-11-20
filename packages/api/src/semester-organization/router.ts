@@ -1,4 +1,11 @@
+import { appendCaseEvent, caseFinanceOptions } from "./case-events.js";
+import { caseHistory } from "./case-history.js";
+import { formationCaseSchema } from "@lazuli/validators";
+import { dispatchCalendarReconciliation } from "../calendar/dispatch.js";
+import { postponeClass, postponeSchema } from "./postpone.js";
+import { TRPCError } from "@trpc/server";
 import { assignLeadInterest, leadInterestSchema } from "./lead-interest.js";
+import { previewFormationReset, resetFormation } from "./reset.js";
 import { prepareSemester } from "./prepare.js";
 import { moveSchema, declineSchema, movePlacements, declinePlacements } from "./commands.js";
 import {
@@ -25,12 +32,13 @@ import {
   pendingLead,
   planLifecycleSchema,
   changePlanStatus,
+  dissolveClass,
 } from "./lifecycle.js";
 
-const MIN_HOLIDAY_YEAR = 2000;
-const MAX_HOLIDAY_YEAR = 2100;
-const HOLIDAY_REQUEST_TIMEOUT_MS = 8000;
+const FORMATION_FINGERPRINT_LENGTH = 64;
+
 const MAX_STUDENT_SEARCH_LENGTH = 100;
+const MAX_FORMATION_RISK_LIMIT = 50;
 
 const ISO_DATE_LENGTH = 10;
 
@@ -44,6 +52,50 @@ const context = (ctx: {
   now: ctx.now ?? new Date(),
 });
 export const semesterOrganizationRouter = router({
+  caseHistory: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(({ ctx, input }) => caseHistory(context(ctx), input.id)),
+  caseFinance: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(({ ctx, input }) => caseFinanceOptions(context(ctx), input.id)),
+  recordCase: adminProcedure
+    .input(formationCaseSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => appendCaseEvent({ ...context(ctx), database }, input)),
+    ),
+  postpone: adminProcedure.input(postponeSchema).mutation(async ({ ctx, input }) => {
+    const { requestId } = await ctx.db.$transaction(
+      (database) => postponeClass({ ...context(ctx), database }, input),
+      { timeout: 30_000 },
+    );
+    if (requestId) await dispatchCalendarReconciliation(ctx, requestId);
+  }),
+  riskLimit: adminProcedure
+    .input(
+      semesterScopeSchema.extend({
+        limit: z.number().int().min(1).max(MAX_FORMATION_RISK_LIMIT),
+        previous: z.number().int(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db.period.updateMany({
+        where: { id: input.semesterId, deletedAt: null, formationRiskLimit: input.previous },
+        data: { formationRiskLimit: input.limit },
+      });
+      if (!result.count)
+        throw new TRPCError({ code: "CONFLICT", message: "O limite mudou. Atualize o período." });
+    }),
+  undatedIntakes: adminProcedure.query(({ ctx }) =>
+    ctx.db.undatedStudentIntake.findMany({
+      where: { student: { deletedAt: null, status: "ACTIVE" } },
+      select: {
+        studentId: true,
+        student: { select: { fullName: true } },
+        stage: { select: { internalCode: true } },
+      },
+      orderBy: { student: { fullName: "asc" } },
+    }),
+  ),
   assignLeadInterest: adminProcedure
     .input(leadInterestSchema)
     .mutation(({ ctx, input }) =>
@@ -59,10 +111,24 @@ export const semesterOrganizationRouter = router({
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) => pendingLead({ ...context(ctx), database }, input)),
     ),
+  dissolveClass: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db.$transaction(
+        (database) => dissolveClass({ ...context(ctx), database }, input.id),
+        { timeout: 30_000 },
+      );
+      if (result.reconciliationRequestId)
+        await dispatchCalendarReconciliation(ctx, result.reconciliationRequestId);
+      return result;
+    }),
   planStatus: adminProcedure.input(planLifecycleSchema).mutation(async ({ ctx, input }) => {
-    const result = await ctx.db.$transaction((database) =>
-      changePlanStatus({ ...context(ctx), database }, input),
+    const result = await ctx.db.$transaction(
+      (database) => changePlanStatus({ ...context(ctx), database }, input),
+      { timeout: 30_000 },
     );
+    if (result.reconciliationRequestId)
+      await dispatchCalendarReconciliation(ctx, result.reconciliationRequestId);
     if (result.generationRequestId)
       await dispatchSessionGeneration({
         database: ctx.db,
@@ -92,6 +158,19 @@ export const semesterOrganizationRouter = router({
       });
       return placements.map((placement) => ({ semester: placement.semester, placement }));
     }),
+  resetPreview: adminProcedure
+    .input(semesterScopeSchema)
+    .query(({ ctx, input }) => previewFormationReset(context(ctx), input.semesterId)),
+  reset: adminProcedure
+    .input(
+      semesterScopeSchema.extend({ fingerprint: z.string().length(FORMATION_FINGERPRINT_LENGTH) }),
+    )
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => resetFormation({ ...context(ctx), database }, input), {
+        isolationLevel: "Serializable",
+        timeout: 30_000,
+      }),
+    ),
   prepare: adminProcedure
     .input(semesterScopeSchema)
     .mutation(({ ctx, input }) =>
@@ -110,22 +189,8 @@ export const semesterOrganizationRouter = router({
       timeout: 30_000,
     }),
   ),
-  holidays: adminProcedure
-    .input(z.object({ year: z.number().int().min(MIN_HOLIDAY_YEAR).max(MAX_HOLIDAY_YEAR) }))
-    .query(async ({ input }) => {
-      const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${input.year}`, {
-        signal: AbortSignal.timeout(HOLIDAY_REQUEST_TIMEOUT_MS),
-      });
-      if (!response.ok)
-        throw new Error(
-          "A fonte de feriados está indisponível. Tente novamente ou cadastre a data manualmente.",
-        );
-      return z
-        .array(z.object({ date: z.string(), name: z.string(), type: z.string() }))
-        .parse(await response.json());
-    }),
   semesters: adminProcedure.query(({ ctx }) =>
-    ctx.db.period.findMany({ orderBy: { startDate: "desc" } }),
+    ctx.db.period.findMany({ where: { deletedAt: null }, orderBy: { startDate: "desc" } }),
   ),
   detail: adminProcedure
     .input(semesterScopeSchema)

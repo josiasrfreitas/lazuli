@@ -88,6 +88,33 @@ void it("drains more than one due batch on the same date and leaves tomorrow unt
   assert.equal(tomorrow.status, "SCHEDULED");
 });
 
+void it("closes the membership after the final covered day even without a scheduled action", async () => {
+  await clean();
+  const fixture = await seed();
+  await db.enrollmentAction.update({
+    where: { id: fixture.actionId },
+    data: { status: "CANCELLED" },
+  });
+  const enrollment = await db.enrollment.findUniqueOrThrow({ where: { id: fixture.enrollmentId } });
+  await db.contract.updateMany({
+    where: { studentId: enrollment.studentId },
+    data: { endsOn: new Date("2026-10-07") },
+  });
+  const membership = (): Promise<typeof enrollment> =>
+    db.enrollment.findUniqueOrThrow({ where: { id: enrollment.id } });
+  await processAllDueEnrollmentActions({ database: db, now: new Date("2026-10-08T02:59:59Z") });
+  const active = await membership();
+  assert.equal(active.exitDate, null);
+  await processAllDueEnrollmentActions({ database: db, now: new Date("2026-10-08T03:00:00Z") });
+  const closed = await membership();
+  assert.equal(closed.exitReason, "SUSPENDED");
+  assert.equal(closed.exitDate?.toISOString().slice(0, 10), "2026-10-08");
+  const progress = await db.pedagogicalProgress.findUniqueOrThrow({
+    where: { id: fixture.progressId },
+  });
+  assert.equal(progress.endDate?.getTime(), closed.exitDate?.getTime());
+});
+
 async function seed(): Promise<{ enrollmentId: string; progressId: string; actionId: string }> {
   await db.user.createMany({
     data: [
@@ -136,7 +163,17 @@ async function seed(): Promise<{ enrollmentId: string; progressId: string; actio
     },
   });
   const student = await db.student.create({
-    data: { fullName: `${PREFIX}Student`, status: "ACTIVE" },
+    data: {
+      fullName: `${PREFIX}Student`,
+      status: "ACTIVE",
+      contracts: {
+        create: {
+          startsOn: semester.startDate,
+          endsOn: semester.endDate,
+          payer: { create: { name: PREFIX + "Payer" } },
+        },
+      },
+    },
   });
   return db.$transaction(async (database) => {
     const enrollment = await database.enrollment.create({
@@ -165,6 +202,8 @@ async function clean(): Promise<void> {
     where: { enrollment: { student: { fullName: { startsWith: PREFIX } } } },
   });
   await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: PREFIX } } } });
+  await db.contract.deleteMany({ where: { student: { fullName: { startsWith: PREFIX } } } });
+  await db.payer.deleteMany({ where: { name: PREFIX + "Payer" } });
   await db.student.deleteMany({ where: { fullName: { startsWith: PREFIX } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: PREFIX } } });
   await db.period.deleteMany({ where: { name: { startsWith: PREFIX } } });

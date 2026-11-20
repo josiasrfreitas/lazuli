@@ -143,7 +143,7 @@ function useCompletionHandlers(
 }
 
 export function useStudentCompletion(input: CompletionInput): StudentCompletion {
-  const state = useContractFormState(input.open, EMPTY_FINANCE_FIELDS);
+  const state = useContractFormState(input.open, { initialFields: EMPTY_FINANCE_FIELDS });
   const submitting = useRef(false);
   const [errorsRevision, setErrorsRevision] = useState(0);
   const offer = useCompletionOffer(input.open && input.financeActive, state);

@@ -1,12 +1,22 @@
 import { PENDING_PAGE_SIZE as PAGE_SIZE } from "./home-pending-pagination";
 import { useState, type ReactElement } from "react";
-import { ArrowRight, ChevronDown, FileText, FolderOpen, Plus, UserRoundPlus } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  ChevronDown,
+  DollarSign,
+  File,
+  FolderOpen,
+  Plus,
+  UserRoundPlus,
+} from "lucide-react";
 import { Badge, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import Link from "next/link";
 import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
+import { PendingIcon } from "./home-pending-icon";
 import styles from "./home-pending.module.css";
 
 const REFRESH_MS = 60_000;
@@ -16,7 +26,7 @@ export function PendingStudents({
   kind = "students",
 }: {
   group: HomeGroup | undefined;
-  kind?: "students" | "contracts" | "documents";
+  kind?: "students" | "contracts" | "documents" | "materials";
 }): ReactElement | null {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -58,18 +68,25 @@ function StudentsSummary({
   kind,
 }: {
   total: number;
-  kind: "students" | "contracts" | "documents";
+  kind: "students" | "contracts" | "documents" | "materials";
 }): ReactElement {
   const { Icon, title, detail } = STUDENT_SUMMARIES[kind];
+  const financial = kind === "contracts";
   return (
     <>
-      <span className={styles.icon}>
-        <Icon aria-hidden="true" />
-      </span>
+      <PendingIcon
+        icon={Icon}
+        className={financial ? styles.contractIcon : ""}
+        missing={!financial}
+        attention={financial}
+      >
+        {financial && <DollarSign className={styles.contractCurrency} aria-hidden="true" />}
+      </PendingIcon>
       <span className={styles.identity}>
         <strong>{title}</strong>
         <span>
-          {total} {total === 1 ? "aluno" : "alunos"} · {detail}
+          {total} {total === 1 ? "aluno" : "alunos"}
+          {detail && <> · {detail}</>}
         </span>
       </span>
       <span className={styles.action}>
@@ -80,7 +97,12 @@ function StudentsSummary({
 }
 
 const STUDENT_SUMMARIES = {
-  contracts: { Icon: FileText, title: "Criar primeiro contrato", detail: "sem contrato" },
+  materials: { Icon: BookOpen, title: "Próximos livros a adquirir", detail: "Fim do estágio" },
+  contracts: {
+    Icon: File,
+    title: "Contratos a criar",
+    detail: null,
+  },
   documents: {
     Icon: FolderOpen,
     title: "Aluno com anexos cadastrais ausentes ou incompletos",
@@ -89,7 +111,7 @@ const STUDENT_SUMMARIES = {
   students: {
     Icon: UserRoundPlus,
     title: "Alunos sem turma",
-    detail: "entrada neste período",
+    detail: "entrada neste semestre",
   },
 } as const;
 
@@ -98,8 +120,25 @@ function StudentsCases({
   kind,
 }: {
   group: HomeGroup;
-  kind: "students" | "contracts" | "documents";
+  kind: "students" | "contracts" | "documents" | "materials";
 }): ReactElement {
+  if (kind === "materials")
+    return (
+      <ul className={styles.lessonList}>
+        {group.items.map((item) => (
+          <li key={item.id}>
+            <Link
+              className={styles.appointmentCase}
+              href={`/alunos/${item.id}?secao=financeiro&material=1`}
+            >
+              <strong>{item.title}</strong>
+              <span>{item.detail}</span>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    );
   if (kind === "documents") return <DocumentCases group={group} />;
   const contracts = kind === "contracts";
   return (
@@ -196,7 +235,7 @@ function StudentsPagination({
   page: number;
   busy: boolean;
   setPage: (page: number) => void;
-  kind: "students" | "contracts" | "documents";
+  kind: "students" | "contracts" | "documents" | "materials";
 }): ReactElement | null {
   if (total <= PAGE_SIZE) return null;
   return (

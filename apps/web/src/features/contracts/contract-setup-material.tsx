@@ -196,12 +196,15 @@ export function useSetupMaterial({
   fields,
   change,
   suggestedStageId,
+  autoSuggest = true,
 }: Pick<MaterialProps, "fields" | "change"> & {
   suggestedStageId?: string | null | undefined;
+  autoSuggest?: boolean;
 }): SetupMaterial {
   const enabled = fields.materialPayment !== "NONE";
   const { prices, status, stages } = useMaterialQueries(fields);
-  const suggested = suggestedStageId ?? status.data?.suggestedStageId;
+  const suggested =
+    autoSuggest && enabled ? (suggestedStageId ?? status.data?.suggestedStageId) : null;
   useSuggestedStage({ fields, change, stages, suggested });
   const count = fields.materialStageIds.split(",").filter(Boolean).length;
   const unit = priceForCategory(fields.materialCategory, prices.data);
@@ -209,11 +212,11 @@ export function useSetupMaterial({
   const priceError = materialPriceError(fields);
   const effective = effectiveMaterialQuote({ fields, quote, prices: prices.data });
   const total = quotedMaterialTotal(fields, quote);
-  const version = enabled ? (unit?.version ?? "") : "";
-  useSyncMaterialQuote({ fields, change, version, total });
+  const version = enabled ? unit?.version : undefined;
+  useSyncMaterialQuote({ fields, change, version: version ?? "", total });
   const { plan, installmentError } = installmentPlan(fields, effective);
   const feeError = materialCardFeeError(fields, prices.data?.cardFeeRates);
-  const referenceCents = unit ? unit.cashCents * count : null;
+  const referenceCents = materialReferenceCents(unit, count);
   return {
     prices,
     stages,
@@ -227,6 +230,13 @@ export function useSetupMaterial({
     referenceCents,
     feeError,
   };
+}
+
+function materialReferenceCents(
+  unit: ReturnType<typeof priceForCategory>,
+  count: number,
+): number | null {
+  return unit ? unit.cashCents * count : null;
 }
 
 function quotedMaterialTotal(
@@ -252,25 +262,27 @@ export function SetupMaterialFields({
   suggestedStageId?: string | null | undefined;
   allowNoAcquisition?: boolean;
 }): ReactElement {
-  const enabled = !allowNoAcquisition || fields.materialPayment !== "NONE";
+  const enabled = fields.materialPayment !== "NONE";
   return (
     <div className={materialStyles.root}>
-      {allowNoAcquisition && <MaterialAcquisitionChoice enabled={enabled} change={change} />}
       {allowNoAcquisition && <PreviousMaterial material={material} />}
-      <fieldset disabled={!enabled} className={materialStyles.layout} data-enabled={enabled}>
+      <fieldset className={materialStyles.layout}>
         <div className={materialStyles.controls}>
           <MaterialBooks fields={fields} errors={errors} change={change} material={material} />
-          <div className={materialStyles.terms}>
-            <MaterialCategory fields={fields} errors={errors} change={change} />
-            <MaterialPayment fields={fields} change={change} />
-            <MaterialInstallments
-              fields={fields}
-              errors={errors}
-              change={change}
-              material={material}
-            />
-          </div>
-          <SetupScholarship fields={fields} errors={errors} change={change} material />
+          {enabled && (
+            <div className={materialStyles.terms}>
+              <MaterialCategory fields={fields} errors={errors} change={change} />
+              <MaterialPayment fields={fields} change={change} />
+              <MaterialInstallments
+                fields={fields}
+                errors={errors}
+                change={change}
+                material={material}
+              />
+            </div>
+          )}
+          {enabled && <SetupScholarship fields={fields} errors={errors} change={change} material />}
+          {!enabled && <p className={styles.help}>Sem nova aquisição de material.</p>}
         </div>
         {enabled && (
           <div className={materialStyles.summary}>
@@ -297,32 +309,6 @@ function MaterialTotalError({ message }: { message: string }): ReactElement {
   );
 }
 
-function MaterialAcquisitionChoice({
-  enabled,
-  change,
-}: {
-  enabled: boolean;
-  change: MaterialProps["change"];
-}): ReactElement {
-  return (
-    <Field name="materialAcquisition">
-      <Label>Material neste contrato</Label>
-      <SegmentedControl
-        size="sm"
-        wrap
-        value={enabled ? "BUY" : "NONE"}
-        onValueChange={(value) => {
-          if (value) change("materialPayment", value === "NONE" ? "NONE" : "CASH");
-        }}
-        aria-label="Material neste contrato"
-      >
-        <SegmentedControlItem value="NONE">Sem nova aquisição</SegmentedControlItem>
-        <SegmentedControlItem value="BUY">Adquirir material</SegmentedControlItem>
-      </SegmentedControl>
-    </Field>
-  );
-}
-
 function MaterialBooks({
   fields,
   errors,
@@ -330,7 +316,7 @@ function MaterialBooks({
   material,
 }: MaterialProps & { material: SetupMaterial }): ReactElement {
   return (
-    <FormSection title="Livros da compra">
+    <FormSection title="Livros desta aquisição">
       <div
         aria-invalid={Boolean(errors.materialStageIds)}
         tabIndex={-1}
@@ -386,14 +372,14 @@ function MaterialPayment({
 }: Pick<MaterialProps, "fields" | "change">): ReactElement {
   return (
     <Field name="materialPayment" className="w-fit">
-      <Label>Forma de pagamento</Label>
+      <Label>Condição de pagamento combinada</Label>
       <SegmentedControl
         size="sm"
         value={fields.materialPayment}
         onValueChange={(value) => {
           if (value) change("materialPayment", value);
         }}
-        aria-label="Forma de pagamento"
+        aria-label="Condição de pagamento combinada"
       >
         <SegmentedControlItem value="CASH">À vista</SegmentedControlItem>
         <SegmentedControlItem value="INSTALLMENTS">Cartão</SegmentedControlItem>

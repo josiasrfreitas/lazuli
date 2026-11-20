@@ -1,35 +1,38 @@
-import { addCalendarMonths } from "./monthly-contract.js";
+export type PeriodConfirmation =
+  | "CONFIRMED"
+  | "PRECONFIRMED"
+  | "BLOCKED"
+  | "PENDING"
+  | "CHANGING"
+  | "LEAVING";
 
-const PRECONFIRMATION_MONTHS = 3;
-const ISO_DATE_END = 10;
-
-/** Coverage is inclusive: a January 1 start needs a contract through March 31. */
-export function preconfirmationThrough(periodStart: string): string {
-  const boundary = new Date(`${addCalendarMonths(periodStart, PRECONFIRMATION_MONTHS)}T12:00:00Z`);
-  boundary.setUTCDate(boundary.getUTCDate() - 1);
-  return boundary.toISOString().slice(0, ISO_DATE_END);
+export function followsOwnClass(
+  sourceClassId: string | null,
+  plan: {
+    classId: string | null;
+    sourceClassId: string | null;
+    previousClassId: string | null;
+  } | null,
+): boolean {
+  return Boolean(
+    sourceClassId &&
+    plan &&
+    (sourceClassId === plan.classId ||
+      sourceClassId === (plan.previousClassId ?? plan.sourceClassId)),
+  );
 }
-
-export type PeriodConfirmation = "CONFIRMED" | "PRECONFIRMED" | "PENDING" | "CHANGING" | "LEAVING";
 
 export function periodConfirmation(input: {
   continuity: "UNDECIDED" | "STAY" | "CHANGE" | "LEAVING";
   declined: boolean;
   enrolled: boolean;
-  periodStart: string;
-  contracts: Array<{ startsOn: string | null; endsOn: string | null }>;
+  ready: boolean;
+  continuing: boolean;
 }): PeriodConfirmation {
-  if (input.declined || input.continuity === "LEAVING") return "LEAVING";
+  if (input.declined) return "LEAVING";
+  if (input.enrolled) return "CONFIRMED";
+  if (input.continuity === "LEAVING") return input.continuing ? "BLOCKED" : "LEAVING";
   if (input.continuity === "CHANGE") return "CHANGING";
-  if (input.continuity === "STAY" || input.enrolled) return "CONFIRMED";
-  const through = preconfirmationThrough(input.periodStart);
-  return input.contracts.some(
-    (contract) =>
-      contract.startsOn &&
-      contract.endsOn &&
-      contract.startsOn <= input.periodStart &&
-      contract.endsOn >= through,
-  )
-    ? "PRECONFIRMED"
-    : "PENDING";
+  if (!input.continuing) return "PENDING";
+  return input.ready ? "PRECONFIRMED" : "BLOCKED";
 }

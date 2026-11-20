@@ -14,7 +14,7 @@ export type PendingWork = {
 const DAY_MS = 86_400_000;
 const STUDENT_DESTINATION = "Alunos";
 const ACTIVE_STUDENTS_URL = "/alunos?status=ativos";
-const LINKED_GROUPS = new Set<HomeGroup["kind"]>(["semester", "occurrences", "health"]);
+const LINKED_GROUPS = new Set<HomeGroup["kind"]>(["semester", "occurrences", "health", "planning"]);
 const AGED_DAYS = 7;
 const RECENT_SCORE = 4;
 const URGENT_SCORE = 7;
@@ -42,6 +42,12 @@ const GROUPS: Record<
     destination: "Acompanhamento",
   },
   coverage: { title: "Turmas sem professor", score: 7, href: "/turmas", destination: "Turmas" },
+  planning: {
+    title: "Turmas com planejamento a revisar",
+    score: 4,
+    href: "/turmas",
+    destination: "Planejamento da turma",
+  },
   lessons: { title: "Aulas sem registro", score: 4, href: "/aulas", destination: "Agenda" },
   appointments: {
     title: "Atendimentos sem registro",
@@ -79,6 +85,12 @@ const GROUPS: Record<
     href: ACTIVE_STUDENTS_URL,
     destination: STUDENT_DESTINATION,
   },
+  materials: {
+    title: "Próximos livros a adquirir",
+    score: 5,
+    href: "/contratos?acompanhamento=rematriculas-e-materiais",
+    destination: "Contratos",
+  },
   renewals: {
     title: "Contratos a renovar",
     score: 5,
@@ -88,8 +100,8 @@ const GROUPS: Record<
   semester: {
     title: "Entradas em turma para confirmar",
     score: 5,
-    href: "/organizacao",
-    destination: "Organização",
+    href: "/turmas/formacao",
+    destination: "Formação de turmas",
   },
 };
 
@@ -175,7 +187,7 @@ function groupContext(kind: HomeGroup["kind"], item: HomeItem | undefined): stri
   if (kind === "renewals")
     return datedContext(item, {
       prefix: "Próximo vencimento",
-      fallback: "Vencem nos próximos 30 dias",
+      fallback: "Vencem nos próximos 60 dias",
     });
   if (kind === "semester")
     return datedContext(item, {

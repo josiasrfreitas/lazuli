@@ -1,7 +1,9 @@
-import { useState, type ReactElement } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
+import { useQueryState } from "nuqs";
 import dynamic from "next/dynamic";
 import {
   ArrowRight,
+  BookOpen,
   Handshake,
   FilePenLine,
   FileText,
@@ -279,56 +281,69 @@ function FinanceManagementActions({
   onReversePayment: () => void;
 }): ReactElement | null {
   const [open, setOpen] = useState(false);
+  const [, setMaterial] = useQueryState("material");
+  const [, setDetails] = useQueryState("detalhesContrato");
   const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   const showNegotiate = installmentColumnMode(state.situations) !== "paid";
+  function select(action: () => void): () => void {
+    return () => {
+      setOpen(false);
+      action();
+    };
+  }
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
+      <PopoverTrigger
+        id="student-finance-actions"
+        render={<Button variant="secondary" size="sm" />}
+      >
         <Ellipsis aria-hidden="true" /> Outras ações
       </PopoverTrigger>
       <PopoverContent align="end" size="menu">
         <div className="grid min-w-64 gap-0.5">
-          {showNegotiate && (
-            <button
-              type="button"
-              className={financeActionClassName}
-              onClick={() => {
-                setOpen(false);
-                onTreat();
-              }}
-            >
-              <Handshake aria-hidden="true" /> Negociar parcelas
-            </button>
+          {state.summary.data && (
+            <>
+              <FinanceAction onClick={select(() => void setMaterial("1"))}>
+                <BookOpen aria-hidden="true" /> Material didático
+              </FinanceAction>
+              <FinanceAction onClick={select(() => void setDetails("1"))}>
+                <FileText aria-hidden="true" /> Contrato e detalhes
+              </FinanceAction>
+            </>
           )}
-          <button
-            type="button"
-            className={financeActionClassName}
-            onClick={() => {
-              setOpen(false);
-              onReversePayment();
-            }}
-          >
+          {showNegotiate && (
+            <FinanceAction onClick={select(onTreat)}>
+              <Handshake aria-hidden="true" /> Negociar parcelas
+            </FinanceAction>
+          )}
+          <FinanceAction onClick={select(onReversePayment)}>
             <RotateCcw aria-hidden="true" /> Cancelar / estornar recebimento
-          </button>
+          </FinanceAction>
           {contracts.map((contract) => (
-            <button
-              key={contract.id}
-              type="button"
-              className={financeActionClassName}
-              onClick={() => {
-                setOpen(false);
-                onManageContract(contract.id);
-              }}
-            >
+            <FinanceAction key={contract.id} onClick={select(() => onManageContract(contract.id))}>
               <FilePenLine aria-hidden="true" /> Renegociar / rescindir
               {contracts.length > 1 && contract.startsOn
                 ? ` · ${formatDateOnlyBR(contract.startsOn)}`
                 : ""}
-            </button>
+            </FinanceAction>
           ))}
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function FinanceAction({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <button type="button" className={financeActionClassName} onClick={onClick}>
+      {children}
+    </button>
   );
 }
 

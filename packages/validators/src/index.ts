@@ -275,3 +275,4 @@ export * from "./contract-termination.js";
 export * from "./contract-renegotiation.js";
 export * from "./payment-proof.js";
 export { teachingProgramImportSchema, trackAgeGroupSchema } from "./teaching-program.js";
+export * from "./formation-case.js";

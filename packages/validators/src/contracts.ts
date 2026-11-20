@@ -1,12 +1,15 @@
+import { addCalendarMonths, nearestContractUnits } from "@lazuli/domain";
 import { z } from "zod";
 
 import { civilDateSchema } from "./civil-date.js";
-import { payerCreateInputSchema } from "./finance.js";
+import { payerCreateInputSchema, paymentMethodSchema } from "./finance.js";
 import { studentCreateInputSchema } from "./student.js";
 
 const MAX_PERCENT = 100;
 const PERCENT_DECIMAL_PLACES = 4;
 const MAX_DURATION_MONTHS = 120;
+const MAX_PLANNED_BOOKS = 20;
+const MONTHS_PER_SEMESTER = 6;
 const MAX_MONTHLY_AMOUNT_CENTS = 1_000_000_000;
 const MAX_PERSISTED_AMOUNT_CENTS = 2_147_483_647;
 const MAX_SEARCH_LENGTH = 80;
@@ -31,6 +34,7 @@ const newContractPayerSchema = payerCreateInputSchema;
 
 export const contractMaterialInputSchema = z
   .object({
+    receivedMethod: paymentMethodSchema.optional(),
     stageIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um livro."),
     category: z.enum(["CHILD", "ADULT"]),
     scholarshipPct: scholarshipPercentage.optional(),
@@ -45,7 +49,7 @@ export const contractMaterialInputSchema = z
       .int("Informe um número inteiro de parcelas.")
       .min(1, "Informe pelo menos uma parcela.")
       .max(MAX_PERSISTED_AMOUNT_CENTS),
-    quoteVersion: z.string().regex(/^[a-f0-9]{64}$/u),
+    quoteVersion: z.union([z.string().regex(/^[a-f0-9]{64}$/u), z.literal("AGREED_PRICE")]),
     expectedTotalCents: z.number().int().nonnegative().max(MAX_PERSISTED_AMOUNT_CENTS),
     priceOverrideCents: z
       .number()
@@ -92,7 +96,7 @@ export const contractMaterialInputSchema = z
       context.addIssue({
         code: "custom",
         path: ["scholarshipAgreement"],
-        message: "Descreva o acordo da bolsa de material.",
+        message: "Informe o motivo da bolsa do material.",
       });
     if (!(input.scholarshipPct ?? 0) && input.scholarshipAgreement?.trim())
       context.addIssue({
@@ -106,6 +110,7 @@ export const addContractMaterialInputSchema = z
   .object({
     commandId: z.string().uuid(),
     contractId: z.string().uuid(),
+    semester: z.number().int().positive().optional(),
     firstDueDate: civilDateSchema,
     material: contractMaterialInputSchema,
   })
@@ -114,15 +119,56 @@ export const addContractMaterialInputSchema = z
 export type ContractMaterialInput = z.infer<typeof contractMaterialInputSchema>;
 export type AddContractMaterialInput = z.infer<typeof addContractMaterialInputSchema>;
 
+type PlannedBook = {
+  stageId: string | null;
+  acquisitionSemester: number | null;
+  acquisition?: ContractMaterialInput | undefined;
+};
+
+function booksMatchContract(books: readonly PlannedBook[], semesters: number): boolean {
+  const stageIds = books.flatMap(({ stageId }) => (stageId ? [stageId] : []));
+  return (
+    books.length === semesters &&
+    new Set(stageIds).size === stageIds.length &&
+    books.every((book) => bookMatchesSemester(book, books.length))
+  );
+}
+
+function bookMatchesSemester(book: PlannedBook, semesters: number): boolean {
+  if ((book.acquisitionSemester ?? 0) > semesters) return false;
+  const acquisition = book.acquisition;
+  return (
+    !acquisition ||
+    (book.acquisitionSemester === null &&
+      acquisition.stageIds.length === 1 &&
+      acquisition.stageIds[0] === book.stageId)
+  );
+}
+
 export const createMonthlyContractInputSchema = z
   .object({
     commandId: z.string().uuid(),
     renewedFromId: z.string().uuid().optional(),
     material: contractMaterialInputSchema.optional(),
+    books: z
+      .array(
+        z
+          .object({
+            stageId: z.string().uuid().nullable(),
+            agreedPriceCents: z.number().int().positive().max(MAX_PERSISTED_AMOUNT_CENTS).nullish(),
+            acquisitionSemester: z.number().int().positive().nullable(),
+            acquisition: contractMaterialInputSchema.optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(MAX_PLANNED_BOOKS)
+      .optional(),
     studentId: z.string().uuid().optional(),
     payerId: z.string().uuid().optional(),
     agreedOn: civilDateSchema,
     startsOn: civilDateSchema,
+    endsOn: civilDateSchema.optional(),
     durationMonths: z.number().int().min(1).max(MAX_DURATION_MONTHS),
     installmentCount: z.number().int().positive().optional(),
     firstDueDate: civilDateSchema,
@@ -163,13 +209,46 @@ export const createMonthlyContractInputSchema = z
         message: "O total do contrato ultrapassa o limite permitido.",
       });
     }
-    if (!input.renewedFromId && !input.material) {
+  })
+  .superRefine((input, context) => {
+    const end = input.endsOn ?? addCalendarMonths(input.startsOn, input.durationMonths);
+    if (nearestContractUnits({ start: input.startsOn, end }) !== input.durationMonths) {
+      context.addIssue({
+        code: "custom",
+        path: ["durationMonths"],
+        message: "Confira a vigência do contrato.",
+      });
+    }
+  })
+  .superRefine((input, context) => {
+    const firstBook = input.books?.[0];
+    if (firstBook && !firstBook.acquisition && firstBook.acquisitionSemester !== 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["books", 0, "acquisitionSemester"],
+        message: "O pagamento do primeiro livro deve ocorrer no primeiro semestre.",
+      });
+    }
+  })
+  .superRefine((input, context) => {
+    const end = input.endsOn ?? addCalendarMonths(input.startsOn, input.durationMonths);
+    const semesters = nearestContractUnits({ start: input.startsOn, end }, MONTHS_PER_SEMESTER);
+    if (input.books && (input.material || !booksMatchContract(input.books, semesters))) {
+      context.addIssue({
+        code: "custom",
+        path: ["books"],
+        message: "Confira o livro e a aquisição de cada semestre.",
+      });
+    }
+    if (!input.books && !input.renewedFromId && !input.material) {
       context.addIssue({
         code: "custom",
         path: ["material", "stageIds"],
         message: "Inclua o material para criar um novo contrato.",
       });
     }
+  })
+  .superRefine((input, context) => {
     if (input.renewedFromId && (input.enrollmentFeeCents ?? 0) > 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -208,6 +287,10 @@ export const listContractsInputSchema = z
     query: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
     payerId: z.string().uuid().optional(),
     studentId: z.string().uuid().optional(),
+    scheduleType: z.enum(["REGULAR", "PERSONALIZED"]).optional(),
+    followUp: z.boolean().optional(),
+    grouped: z.boolean().optional(),
+    materialState: z.enum(["ACQUIRED", "PLANNED"]).optional(),
     startsFrom: civilDateSchema.optional(),
     endsTo: civilDateSchema.optional(),
     status: z.enum(["INADIMPLENTE", "EM_DIA", "QUITADO", "SEM_SALDO", "CANCELADO"]).optional(),

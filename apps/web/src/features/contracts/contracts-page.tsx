@@ -30,7 +30,9 @@ export function NewContractDialog({
   onCreated: () => void;
   initialFields?: Partial<ContractFields>;
 }): ReactElement {
-  const state = useContractFormState(open, { ...emptyContractFields, ...initialFields });
+  const state = useContractFormState(open, {
+    initialFields: { ...emptyContractFields, ...initialFields },
+  });
   const operation = useContractOperation({ open, onOpenChange, onCreated, state });
   return (
     <Dialog open={open} onOpenChange={operation.close}>
@@ -72,6 +74,7 @@ export function ContractsPage(): ReactElement {
     <>
       <DataTablePage
         title="Contratos"
+        className="[&_[data-slot=data-table-page-toolbar]]:flex-nowrap [&_[data-slot=data-table-page-controls]]:min-w-0 [&_[data-slot=data-table-page-controls]]:flex-1"
         controls={<ContractsToolbar filters={filters} onNew={() => setCreating(true)} />}
       >
         <ContractsTable filters={filters} />

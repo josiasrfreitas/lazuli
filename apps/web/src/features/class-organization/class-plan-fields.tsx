@@ -1,7 +1,7 @@
 import type { JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, Checkbox } from "@lazuli/ui";
-import { TextControl, SelectControl } from "~/features/classes/form-controls";
+import { SelectControl } from "~/features/classes/form-controls";
 import type { PendingGroup } from "~/features/class-organization/model";
 import { Choices } from "./shared";
 import { SlotFields } from "./slot-fields";
@@ -21,14 +21,6 @@ export function ClassPlanFields({
 }): ReactJSX.Element {
   return (
     <form id="semester-plan" noValidate className="grid gap-4 pt-4" onSubmit={model.submit}>
-      <TextControl
-        name="plan-name"
-        label="Nome da turma"
-        placeholder="Connect 2 · tarde"
-        value={model.name}
-        onChange={model.changeName}
-        error={model.validation.errors.name}
-      />
       <PlanKindFormat model={model} />
       <PlanTeacherStage model={model} options={options} />
       <SlotFields

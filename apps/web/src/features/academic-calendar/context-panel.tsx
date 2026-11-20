@@ -22,7 +22,13 @@ import {
   type CalendarEntry,
 } from "./date-model";
 import styles from "./workspace.module.css";
-import { vacationAt, type CalendarPeriod, type CalendarVacations } from "./period-model";
+import {
+  calendarPeriodsInYear,
+  calendarVacationRanges,
+  vacationAt,
+  type CalendarPeriod,
+  type CalendarVacations,
+} from "./period-model";
 
 type ContextProps = {
   data?: AcademicYear | undefined;
@@ -122,6 +128,7 @@ function DayContextPanel({
   );
 }
 function PeriodContextPanel({
+  data,
   period,
   entries,
   today,
@@ -132,7 +139,7 @@ function PeriodContextPanel({
   vacations,
   onSelectDate,
 }: LoadedProps): ReactElement {
-  const periods = period ? [period] : [];
+  const periods = period ? [period] : calendarPeriodsInYear(data.periods, year);
   const scoped = entries;
   const upcoming = scoped.filter((row) => row.through >= today);
   const highlights =
@@ -145,11 +152,13 @@ function PeriodContextPanel({
     <aside className={styles.context} aria-label="Contexto acadêmico">
       <div className={styles.contextHeading}>
         <h2>
-          <CalendarRange aria-hidden="true" /> Período selecionado
+          <CalendarRange aria-hidden="true" />{" "}
+          {period ? "Período selecionado" : `Períodos de ${year}`}
         </h2>
       </div>
       <SelectedPeriods periods={periods} onEdit={onEdit} onConfigure={onConfigure} />
       {period && <VacationContext vacations={vacations} onSelectDate={onSelectDate} />}
+      {!period && <YearVacationContext data={data} year={year} onSelectDate={onSelectDate} />}
       <Highlights
         month={month}
         upcoming={upcoming}
@@ -159,6 +168,35 @@ function PeriodContextPanel({
       />
       <CalendarLegend />
     </aside>
+  );
+}
+
+function YearVacationContext({
+  data,
+  year,
+  onSelectDate,
+}: Pick<LoadedProps, "data" | "year" | "onSelectDate">): ReactElement | null {
+  const ranges = calendarVacationRanges(data.periods, year);
+  if (ranges.length === 0) return null;
+  return (
+    <div className={styles.vacations} aria-label="Férias do calendário">
+      {ranges.map((range) => (
+        <button
+          type="button"
+          key={range.from}
+          onClick={() => onSelectDate(range.from < `${year}-01-01` ? `${year}-01-01` : range.from)}
+        >
+          <Palmtree aria-hidden="true" />
+          <span>
+            <strong>Férias acadêmicas</strong>
+            <small>
+              {shortDate(range.from, true)} — {shortDate(range.through, true)}
+            </small>
+          </span>
+          <ArrowRight aria-hidden="true" />
+        </button>
+      ))}
+    </div>
   );
 }
 

@@ -13,6 +13,7 @@ import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
 import { useSectionCarousel } from "~/lib/use-section-carousel";
 import { ClassRecentOccurrences } from "./class-recent-occurrences";
+import { PlanStatusDialog } from "~/features/class-organization/continuity";
 import { ClassPageLoading } from "./class-page-loading";
 import { ClassIdentityHeader, ClassOverview } from "./class-overview";
 import { CapacityDialog } from "./capacity-dialog";
@@ -70,14 +71,25 @@ function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] 
     setArrivalReady(true);
     void setAction(open ? "professor" : null);
   };
+  const [feedback, setFeedback] = useState("");
   const [capacityOpen, setCapacityOpen] = useState(false);
   return (
     <>
       <ClassSections
         detail={detail}
+        onDissolve={() => void setAction("desfazer")}
         onAssign={() => setAssigning(true)}
         editCapacity={() => setCapacityOpen(true)}
       />
+      {feedback && <p role="status">{feedback}</p>}
+      {action === "desfazer" && detail.canDissolve && (
+        <PlanStatusDialog
+          open={false}
+          classroom={{ id: detail.id, name: detail.portalClassName }}
+          onClose={() => void setAction(null)}
+          onFeedback={setFeedback}
+        />
+      )}
       {assigning && (
         <AssignmentDialog
           classId={detail.id}
@@ -93,8 +105,10 @@ function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] 
 function ClassSections({
   detail,
   editCapacity,
+  onDissolve,
   onAssign,
 }: {
+  onDissolve: () => void;
   onAssign: () => void;
   detail: RouterOutputs["classes"]["byId"];
   editCapacity: () => void;
@@ -147,6 +161,11 @@ function ClassSections({
                   regular={detail.scheduleType === "REGULAR"}
                   pendingLessons={pendingLessons}
                 />
+                {detail.canDissolve && (
+                  <Button variant="destructive-ghost" size="sm" onClick={onDissolve}>
+                    Desfazer turma
+                  </Button>
+                )}
               </div>
             }
           />

@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./hatchet": "./src/hatchet.ts",
     "./identity-ocr": "./src/identity-ocr.ts",
-    "./address-search": "./src/address-search.ts"
+    "./address-search": "./src/address-search.ts",
+    "./school-map": "./src/school-map.ts"
   },
   "scripts": {
     "lint": "lazuli-lint .",
@@ -17,6 +18,7 @@
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
+    "@aws-sdk/client-geo-maps": "3.1152.0",
     "@aws-sdk/client-geo-places": "3.1152.0",
     "@aws-sdk/client-textract": "3.1152.0",
     "@hatchet-dev/typescript-sdk": "1.37.0",
@@ -24,7 +26,8 @@
     "@lazuli/job-contracts": "workspace:*",
     "nodemailer": "catalog:",
     "resend": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@lazuli/logging": "workspace:*"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

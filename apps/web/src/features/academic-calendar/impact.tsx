@@ -1,20 +1,15 @@
 "use client";
 import { useEffect, useState, type ReactElement } from "react";
-import Link from "next/link";
-import type { RouterOutputs } from "@lazuli/api";
-import { notifyCalendarExecution } from "./execution-notifications";
-import { Alert } from "@lazuli/ui";
-import { CalendarX2, ShieldCheck, CalendarCheck2 } from "lucide-react";
+import type { RouterInputs } from "@lazuli/api";
+import { Field, Input, Label } from "@lazuli/ui";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { TaskDialog } from "~/features/shared/task-form";
-import { formatDateOnlyBR } from "~/lib/format";
 import { trpc } from "~/lib/trpc";
+import { notifyCalendarExecution } from "./execution-notifications";
+import { ImpactOverview, TeacherImpacts, OtherImpacts, type ImpactPreview } from "./impact-summary";
 import type { CalendarChange } from "./change-form";
 import styles from "./impact.module.css";
 
-type Preview = RouterOutputs["calendar"]["academic"]["changes"]["preview"];
-const MINUTES_PER_HOUR = 60;
-const hours = (minutes: number): string =>
-  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(minutes / MINUTES_PER_HOUR)} h`;
 export function CalendarImpact({
   change,
   preview,
@@ -27,12 +22,73 @@ export function CalendarImpact({
   embedded?: boolean;
   onPendingChange?: ((pending: boolean) => void) | undefined;
   change: CalendarChange;
-  preview: Preview;
+  preview: ImpactPreview;
   onBack: () => void;
   onClose: () => void;
   onSaved?: ((semesterId: string) => void) | undefined;
 }): ReactElement {
   const [commandId] = useState(() => crypto.randomUUID());
+  const [confirmationText, setConfirmationText] = useState("");
+  const phrase = preview.confirmationPhrase;
+  const confirmed = !phrase || confirmationText.trim().toLocaleUpperCase("pt-BR") === phrase;
+  const confirm = useCalendarConfirmation({ onSaved, onClose, onPendingChange });
+  return (
+    <TaskDialog
+      embedded={embedded}
+      size="wide"
+      actionSize="sm"
+      title="Revisar alteração do calendário"
+      description={preview.subject}
+      formId="calendar-confirm"
+      firstField="calendar-review-start"
+      submitLabel={phrase ? "Cancelar atividades e aplicar" : "Aplicar alteração"}
+      submitVariant={phrase ? "destructive" : "primary"}
+      submitDisabled={!confirmed}
+      pendingLabel="Aplicando calendário…"
+      pending={confirm.isPending}
+      onBack={onBack}
+      onClose={onClose}
+      error={confirm.error?.message}
+    >
+      <form
+        id="calendar-confirm"
+        className={styles.review}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (confirm.isPending || !confirmed) return;
+          confirm.mutate({ change, fingerprint: preview.fingerprint, commandId, confirmationText });
+        }}
+      >
+        <div className={styles.content}>
+          <ImpactOverview preview={preview} />
+          <TeacherImpacts preview={preview} />
+          <OtherImpacts preview={preview} />
+        </div>
+        <ImpactConfirmation
+          phrase={phrase}
+          confirmationText={confirmationText}
+          setConfirmationText={setConfirmationText}
+          pending={confirm.isPending}
+          preserved={preview.preserved}
+        />
+      </form>
+    </TaskDialog>
+  );
+}
+
+function useCalendarConfirmation({
+  onSaved,
+  onClose,
+  onPendingChange,
+}: {
+  onSaved: ((semesterId: string) => void) | undefined;
+  onClose: () => void;
+  onPendingChange: ((pending: boolean) => void) | undefined;
+}): {
+  isPending: boolean;
+  error: { message: string } | null;
+  mutate: (input: RouterInputs["calendar"]["academic"]["changes"]["confirm"]) => void;
+} {
   const utils = trpc.useUtils();
   const confirm = trpc.calendar.academic.changes.confirm.useMutation({
     onSuccess: async (result) => {
@@ -50,173 +106,68 @@ export function CalendarImpact({
     onPendingChange?.(confirm.isPending);
     return () => onPendingChange?.(false);
   }, [confirm.isPending, onPendingChange]);
-  return (
-    <TaskDialog
-      embedded={embedded}
-      compactHeader
-      size="medium"
-      actionSize="sm"
-      title="Confira o efeito nas aulas"
-      description={`${preview.subject} · ${formatDateOnlyBR("from" in change ? change.from : preview.from)} a ${formatDateOnlyBR("through" in change ? change.through : preview.through)}`}
-      formId="calendar-confirm"
-      firstField="calendar-confirm-submit"
-      submitLabel="Confirmar e aplicar"
-      pendingLabel="Aplicando calendário…"
-      pending={confirm.isPending}
-      onBack={onBack}
-      onClose={onClose}
-      error={confirm.error?.message}
-    >
-      <form
-        id="calendar-confirm"
-        className="grid gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!confirm.isPending)
-            confirm.mutate({ change, fingerprint: preview.fingerprint, commandId });
-        }}
-      >
-        <ImpactSummary preview={preview} />
-        <AffectedActivities preview={preview} />
-        <AffectedPlans preview={preview} />
-        <CapacityImpact preview={preview} />
-        <CalendarChangeNotice preview={preview} />
-      </form>
-    </TaskDialog>
-  );
+  return confirm;
 }
 
-function CalendarChangeNotice({ preview }: { preview: Preview }): ReactElement {
+function ImpactConfirmation({
+  phrase,
+  confirmationText,
+  setConfirmationText,
+  pending,
+  preserved,
+}: {
+  phrase: ImpactPreview["confirmationPhrase"];
+  confirmationText: string;
+  setConfirmationText: (value: string) => void;
+  pending: boolean;
+  preserved: number;
+}): ReactElement {
   return (
-    <>
-      {preview.releasedDates.length > 0 && (
-        <Alert>
-          {preview.releasedDates.length} dias serão liberados. Aulas já canceladas não serão
-          reativadas; confira o plano e reagende o que for necessário.
-        </Alert>
-      )}
-      <p className="text-caption text-muted-foreground">
-        O calendário passa a valer ao confirmar. A atualização das atividades aparece na Agenda;
-        eventos e registros realizados permanecem disponíveis.
-      </p>
-    </>
-  );
-}
-
-function ImpactSummary({ preview }: { preview: Preview }): ReactElement {
-  const total = preview.sessions.length + preview.appointments.length + preview.visits.length;
-  return (
-    <>
-      <div className={styles.summary} data-affected={total > 0}>
-        {total > 0 ? <CalendarX2 aria-hidden="true" /> : <CalendarCheck2 aria-hidden="true" />}
-        <p>
-          {total
-            ? `${total} atividades futuras serão canceladas. Confira os detalhes antes de aplicar.`
-            : "Nenhuma atividade futura precisa ser cancelada."}{" "}
-        </p>
+    <aside className={styles.confirmation} aria-label="Confirmação da alteração">
+      <div className={styles.confirmationTitle}>
+        {phrase ? <ShieldAlert aria-hidden="true" /> : <ShieldCheck aria-hidden="true" />}
+        <h3>{phrase ? "Confirme os cancelamentos" : "Antes de aplicar"}</h3>
       </div>
-      {preview.preserved > 0 && (
+      {phrase ? (
+        <>
+          <p>
+            As atividades indicadas serão canceladas. A alteração não remarca essas aulas nem move
+            os itens do planejamento.
+          </p>
+          <Field name="confirmationText">
+            <Label htmlFor="calendar-confirmation">Para confirmar, digite a frase:</Label>
+            <strong id="calendar-confirmation-phrase" className={styles.phrase}>
+              {phrase}
+            </strong>
+            <Input
+              id="calendar-confirmation"
+              name="confirmationText"
+              size="sm"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={160}
+              aria-describedby="calendar-confirmation-phrase"
+              placeholder="Digite a confirmação"
+              value={confirmationText}
+              disabled={pending}
+              onChange={(event) => setConfirmationText(event.target.value)}
+            />
+          </Field>
+        </>
+      ) : (
+        <p>Não há atividades futuras a cancelar. O calendário será atualizado ao confirmar.</p>
+      )}
+      {preserved > 0 && (
         <p className={styles.preserved}>
           <ShieldCheck aria-hidden="true" />
-          {preview.preserved}{" "}
-          {preview.preserved === 1
-            ? "registro passado, iniciado ou com informações registradas será preservado."
-            : "registros passados, iniciados ou com informações registradas serão preservados."}
+          <span>
+            {preserved} registros passados, iniciados ou com informações registradas serão
+            preservados.
+          </span>
         </p>
       )}
-    </>
-  );
-}
-
-function AffectedActivities({ preview }: { preview: Preview }): ReactElement {
-  return (
-    <>
-      {(
-        [
-          ["Aulas regulares", preview.sessions],
-          ["Atendimentos", preview.appointments],
-          ["Aulas experimentais e visitas", preview.visits],
-        ] as const
-      ).map(([label, entries]) => (
-        <details key={label} open={entries.length > 0} className="border-b border-border pb-2">
-          <summary className="cursor-pointer text-body font-medium">
-            {label} · {entries.length}
-          </summary>
-          {entries.length > 0 ? (
-            <ul className="mt-2 grid gap-2 text-caption">
-              {entries.map((row) => (
-                <li key={row.id} className="flex flex-wrap justify-between gap-x-3">
-                  <span>{row.name}</span>
-                  <span className="text-muted-foreground">
-                    {formatDateOnlyBR(row.date)} · {row.startTime}–{row.endTime}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-caption text-muted-foreground">Nenhuma atividade afetada.</p>
-          )}
-        </details>
-      ))}
-    </>
-  );
-}
-
-function AffectedPlans({ preview }: { preview: Preview }): ReactElement {
-  return (
-    <>
-      {preview.plans.length > 0 && (
-        <details>
-          <summary className="cursor-pointer font-medium">
-            Itens do plano que precisam de nova data · {preview.plans.length}
-          </summary>
-          <ul className="mt-2 grid gap-2 text-caption">
-            {preview.plans.map((row) => (
-              <li key={row.id}>
-                {row.classId ? (
-                  <Link className="text-interactive underline" href={`/turmas/${row.classId}`}>
-                    {row.name}
-                  </Link>
-                ) : (
-                  row.name
-                )}{" "}
-                · {row.title} · {formatDateOnlyBR(row.date)}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-    </>
-  );
-}
-
-function CapacityImpact({ preview }: { preview: Preview }): ReactElement {
-  return (
-    <>
-      {preview.capacity.some((row) => row.deficitMinutes && row.deficitMinutes > 0) && (
-        <Alert>
-          A carga disponível ficou abaixo do plano de uma ou mais turmas. Você pode salvar e decidir
-          depois sobre reposição ou revisão do plano.
-        </Alert>
-      )}
-      {preview.capacity.length > 0 && (
-        <details>
-          <summary className="cursor-pointer font-medium">Carga disponível das turmas</summary>
-          <ul className="mt-2 grid gap-2 text-caption">
-            {preview.capacity.map((row) => (
-              <li key={row.classId} className="flex flex-wrap justify-between gap-x-3">
-                <span>{row.name}</span>
-                <span className="text-muted-foreground">
-                  {hours(row.availableMinutes)} disponíveis ·{" "}
-                  {row.requiredMinutes === null
-                    ? "meta do plano não definida"
-                    : `${hours(row.requiredMinutes)} no plano${row.deficitMinutes ? ` · faltam ${hours(row.deficitMinutes)}` : ""}`}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-    </>
+      <p>A atualização das atividades poderá ser acompanhada na Agenda.</p>
+    </aside>
   );
 }

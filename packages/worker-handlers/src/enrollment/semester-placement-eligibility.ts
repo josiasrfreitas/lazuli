@@ -1,8 +1,14 @@
+import type { TransactionClient } from "@lazuli/db";
+import { readNextActiveStageIds } from "@lazuli/db/formation";
 import { effectiveTeacherId, type SemesterEligibility } from "@lazuli/domain";
 import { dateOnly, type Placement } from "./semester-placement-data.js";
 
-export function eligibility(row: Placement): SemesterEligibility {
+export async function eligibility(
+  database: TransactionClient,
+  row: Placement,
+): Promise<SemesterEligibility> {
   const entryOn = dateOnly(row.entryAction!.effectiveDate);
+  const nextStageId = await scheduledNextStageId(database, row);
   return {
     entryOn,
     semesterId: row.semesterId,
@@ -10,14 +16,27 @@ export function eligibility(row: Placement): SemesterEligibility {
     mode: row.mode,
     stage:
       row.stage && !row.stage.deletedAt && row.stage.track.status === "ACTIVE"
-        ? { id: row.stage.id, trackId: row.stage.trackId, sequence: row.stage.sequence }
+        ? { id: row.stage.id, trackId: row.stage.trackId }
         : null,
-    source: sourceEligibility(row),
+    source: sourceEligibility(row, nextStageId),
     plan: planEligibility(row, entryOn),
   };
 }
 
-function sourceEligibility(row: Placement): SemesterEligibility["source"] {
+async function scheduledNextStageId(
+  database: TransactionClient,
+  row: Placement,
+): Promise<string | null> {
+  const stageId = row.sourceProgress?.stageId;
+  if (row.mode !== "ADVANCE" || !stageId) return null;
+  const successors = await readNextActiveStageIds(database, [stageId]);
+  return successors.get(stageId) ?? null;
+}
+
+function sourceEligibility(
+  row: Placement,
+  nextStageId: string | null,
+): SemesterEligibility["source"] {
   const source = row.sourceProgress;
   const enrollment = row.sourceEnrollment;
   if (!source || !enrollment) return null;
@@ -26,7 +45,7 @@ function sourceEligibility(row: Placement): SemesterEligibility["source"] {
     active: !source.deletedAt && !source.endDate && !enrollment.deletedAt && !enrollment.exitDate,
     stageId: source.stageId,
     trackId: source.stage.trackId,
-    sequence: source.stage.sequence,
+    nextStageId,
     scheduleType: enrollment.class.scheduleType,
     decision: source.assessment?.decision ?? null,
     confirmed: Boolean(source.assessment?.confirmedAt && !source.assessment.deletedAt),

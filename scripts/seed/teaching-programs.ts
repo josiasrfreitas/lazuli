@@ -8,6 +8,8 @@ import {
 import { importTeachingProgram } from "../../packages/api/src/teaching-programs/import.js";
 import { sourcePrograms } from "./teaching-program-source.js";
 
+import { teenPptPrograms } from "./teen-ppt-programs.js";
+
 const REGULAR_HOURS = 40;
 const PERSONALIZED_HOURS = 50;
 const PROGRAM_HOURS = [REGULAR_HOURS, PERSONALIZED_HOURS] as const;
@@ -31,6 +33,7 @@ const sources = [
 ] as const;
 
 function sourceKind(raw: string): ProgramActivityKind {
+  if (/^U\d+ /u.test(raw)) return "LESSON";
   if (raw === "TEST" || /^MT\d+$/u.test(raw)) return "ASSESSMENT";
   if (raw === "REVIEW") return "REVIEW";
   if (raw === "INTRO") return "INTRODUCTION";
@@ -62,6 +65,11 @@ function emptyProgram({ stageId, sourceCode, total }: Transcription): TeachingPr
 }
 
 function sourceLessons(raw: string): SourceLessons {
+  if (/^U\d+ /u.test(raw))
+    return raw
+      .split(" ")[1]!
+      .split(",")
+      .map((part) => ({ key: raw.split(" ")[0] + " " + part, part: null }));
   return raw.split("/").map((part) => {
     const match = /^(\d+)([AB])?$/u.exec(part)!;
     return { key: match[1]!, part: match[2] ?? null };
@@ -120,6 +128,7 @@ function appendActivity(input: TeachingProgramImport, source: SourceActivity): v
 function fromTranscription(source: Transcription): TeachingProgramImport {
   const input = emptyProgram(source);
   const { entries } = source;
+  input.lessons = transcribedLessons(source) ?? input.lessons;
   let unit = 1;
   let assessmentKey: string | null = null;
   for (const [index, raw] of entries.entries()) {
@@ -143,6 +152,31 @@ function fromTranscription(source: Transcription): TeachingProgramImport {
   return input;
 }
 
+function transcribedLessons(source: Transcription): TeachingProgramImport["lessons"] | undefined {
+  const { entries } = source;
+  if (source.sourceCode === "TH1/TH2") {
+    const keys = entries
+      .filter((entry) => /^U\d+ /u.test(entry))
+      .flatMap((entry) => sourceLessons(entry).map((lesson) => lesson.key));
+    return [...new Set(keys)].map((key, index) => ({
+      key,
+      sequence: index + 1,
+      title: key,
+    }));
+  }
+  if (source.sourceCode in teenPptPrograms) {
+    const numbers = entries.filter((entry) => /^\d+$/u.test(entry)).map(Number);
+    return [...new Set(numbers)]
+      .toSorted((left, right) => left - right)
+      .map((sequence) => ({
+        key: String(sequence),
+        sequence,
+        title: `Lição ${sequence}`,
+      }));
+  }
+  return undefined;
+}
+
 /** Development data only. This does not fetch or claim to synchronize with the external provider. */
 export async function seedTeachingPrograms(database: DatabaseClient): Promise<void> {
   for (const [internalCode, sourceCode, family] of sources) {
@@ -159,6 +193,35 @@ export async function seedTeachingPrograms(database: DatabaseClient): Promise<vo
           sourceCode,
           total,
           entries: sourcePrograms[family][total],
+        }),
+      );
+    }
+  }
+  const teensLegacy = "Teens Legacy";
+  const teenstationLegacy = "Teenstation Legacy";
+  const groups = [
+    [teensLegacy, "TE1/TE2", ["TE1", "TE2"]],
+    ["Teens Connect", "TC", ["C1", "C2", "C3", "C4"]],
+    [teenstationLegacy, "TST1/TST2", ["TS1", "TS2"]],
+    [teenstationLegacy, "TST3", ["TS3"]],
+    [teenstationLegacy, "TST4", ["TS4"]],
+    [teensLegacy, "TPI/TI", ["TPI", "TI"]],
+    [teensLegacy, "TUI/TA", ["TUI", "TA"]],
+    [teensLegacy, "TH1/TH2", ["TH1", "TH2"]],
+  ] as const;
+  for (const [track, sourceCode, codes] of groups) {
+    const stages = await database.stage.findMany({
+      where: { internalCode: { in: [...codes] }, deletedAt: null, track: { name: track } },
+      select: { id: true },
+    });
+    for (const stage of stages) {
+      await importTeachingProgram(
+        database,
+        fromTranscription({
+          stageId: stage.id,
+          sourceCode,
+          total: PERSONALIZED_HOURS,
+          entries: teenPptPrograms[sourceCode],
         }),
       );
     }

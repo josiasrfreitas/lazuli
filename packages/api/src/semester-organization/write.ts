@@ -1,6 +1,7 @@
 import type { SemesterPlanInput, SemesterPlacementInput } from "@lazuli/validators";
 import { classScheduleSlotsInputSchema } from "@lazuli/validators";
-import { saoPauloDateOnly } from "@lazuli/domain";
+import { followsOwnClass, formationTeachingDay, saoPauloDateOnly } from "@lazuli/domain";
+import { plannedClassName } from "../classes/portal-name.js";
 import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 import { loadActiveStage, assertTeacherIsActive } from "../classes/guards.js";
@@ -24,7 +25,7 @@ export async function saveClassPlan(
   await lockSemester(context, input.semesterId);
   const previous = await validatePlanInput(context, input);
   const data = {
-    name: input.name,
+    name: await plannedClassName(context.database, input),
     scheduleType: input.scheduleType,
     format: input.format,
     teacherId: input.teacherId,
@@ -86,6 +87,8 @@ function assertPlanSchedule(input: SemesterPlanInput, previous: ClassPlan | null
       .toSorted()
       .join("|");
   if (!previous || scheduleKey(readSlots(previous.slots)) !== scheduleKey(input.slots)) {
+    if (input.slots.some((slot) => !formationTeachingDay(slot)))
+      throw badRequest("Escolha um horário de segunda a sexta ou no sábado até meio-dia.");
     const schedule = classScheduleSlotsInputSchema.safeParse(input.slots);
     if (!schedule.success) throw badRequest(schedule.error.issues[0]!.message);
   }
@@ -130,13 +133,14 @@ export async function savePlacement(
   const semester = await lockSemester(context, input.semesterId);
   const effectiveDate = placementEffectiveDate(context, { input, semester });
   await lockStudentEnrollment(context.database, input.studentId);
-  const { student, previous, source, trackId } = await placementRelations(context, input);
+  const { student, previous, source, trackId, plan } = await placementRelations(context, input);
   const data = placementWriteData(context, {
     input,
     effectiveDate,
     trackId,
     source,
     previous,
+    plan,
   });
   const row = previous
     ? await context.database.semesterPlacement.update({
@@ -164,37 +168,61 @@ function placementWriteData(
     trackId,
     source,
     previous,
+    plan,
   }: {
     input: SemesterPlacementInput;
     effectiveDate: string;
     trackId: string;
     source: SourceProgress | null;
     previous: Placement | null;
+    plan: Destination | null;
   },
 ): Prisma.SemesterPlacementUncheckedCreateInput {
   return {
     semesterId: input.semesterId,
     studentId: input.studentId,
     planId: input.planId,
+    ...(input.planId ? { classClosurePending: false } : {}),
     stageId: input.stageId,
     trackId,
     sourceEnrollmentId: source?.enrollmentId ?? null,
     sourceProgressId: source?.id ?? null,
     mode: input.mode,
     effectiveDate: new Date(effectiveDate),
-    ...(previous?.continuity === "CHANGE" && input.planId && input.planId !== previous.planId
+    ...(clearsChangeRequest(previous, { plan, planId: input.planId, source })
       ? { continuity: "UNDECIDED" as const, continuityReason: null }
       : {}),
-    declinedAt: null,
-    declinedReason: null,
     notes: input.notes || null,
     recordedById: context.staffUser.id,
   };
 }
 
+function clearsChangeRequest(
+  previous: Placement | null,
+  {
+    plan,
+    planId,
+    source,
+  }: {
+    plan: Destination | null;
+    planId: SemesterPlacementInput["planId"];
+    source: SourceProgress | null;
+  },
+): boolean {
+  return (
+    previous?.continuity === "CHANGE" &&
+    planId !== previous.planId &&
+    plan !== null &&
+    !followsOwnClass(source?.enrollment.classId ?? null, plan)
+  );
+}
+
 type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
 type Student = Prisma.StudentGetPayload<Prisma.StudentDefaultArgs>;
-type SourceProgress = Prisma.PedagogicalProgressGetPayload<{ include: { stage: true } }>;
+type SourceProgress = Prisma.PedagogicalProgressGetPayload<{
+  include: { stage: true; enrollment: { select: { classId: true } } };
+}>;
+type Destination = NonNullable<Parameters<typeof followsOwnClass>[1]>;
 type Period = Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
 
 function placementEffectiveDate(
@@ -220,6 +248,7 @@ async function placementRelations(
   input: SemesterPlacementInput,
 ): Promise<{
   student: Student;
+  plan: Destination | null;
   previous: Placement | null;
   source: SourceProgress | null;
   trackId: string;
@@ -234,23 +263,23 @@ async function placementRelations(
   if (input.id && !previous) throw notFound("Proposta não encontrada.");
   assertVersion(previous?.version ?? 0, input.version);
   if (previous?.publishedAt) throw badRequest("Desfaça a publicação antes de revisar a proposta.");
-  await assertPlacementPlan(context, input);
+  const plan = await placementPlan(context, input);
   const { source, trackId } = await placementSource(context, input);
   await assertNoDuplicatePlacement(context, { input, previous, trackId });
-  return { student, previous, source, trackId };
+  return { student, previous, source, trackId, plan };
 }
 
-async function assertPlacementPlan(
+async function placementPlan(
   context: OrganizationContext,
   input: SemesterPlacementInput,
-): Promise<void> {
-  if (
-    input.planId &&
-    !(await context.database.semesterClassPlan.findFirst({
-      where: { id: input.planId, semesterId: input.semesterId },
-    }))
-  )
-    throw badRequest("Escolha uma turma deste semestre.");
+): Promise<Destination | null> {
+  if (!input.planId) return null;
+  const plan = await context.database.semesterClassPlan.findFirst({
+    where: { id: input.planId, semesterId: input.semesterId, deletedAt: null, closedAt: null },
+    select: { classId: true, sourceClassId: true, class: { select: { previousClassId: true } } },
+  });
+  if (!plan) throw badRequest("Escolha uma turma deste semestre.");
+  return { ...plan, previousClassId: plan.class?.previousClassId ?? null };
 }
 
 async function assertNoDuplicatePlacement(
@@ -290,7 +319,7 @@ async function placementSource(
           id: input.sourceProgressId,
           enrollment: { studentId: input.studentId, deletedAt: null },
         },
-        include: { stage: true },
+        include: { stage: true, enrollment: { select: { classId: true } } },
       })
     : null;
   assertPlacementSource(input, source);

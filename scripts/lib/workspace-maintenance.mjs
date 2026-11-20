@@ -90,7 +90,7 @@ export async function refreshWorkspaceFixtures({ root, output }) {
   await resetWorkspace({ root, output });
 }
 
-export async function resetWorkspace({ root, output }) {
+export async function resetWorkspace({ root, output, seedEnvironment = {} }) {
   await withFullSetupLock(root, async () => {
     const workspace = await assertOwnedFullWorkspace(root);
     await writePendingJournal(root, workspace.resources.database);
@@ -98,7 +98,7 @@ export async function resetWorkspace({ root, output }) {
     deleteDatabase(root, workspace.resources.database);
     output(`Removing fake-GCS bucket ${workspace.resources.bucket}...`);
     deleteBucket(root, workspace.resources.bucket);
-    await ensureDatabase({ root, workspace, output });
+    await ensureDatabase({ root, workspace, output, seedEnvironment });
     await ensureBucket({ root, workspace, output });
     output("Workspace data reset complete. Shared Compose services were preserved.");
   });

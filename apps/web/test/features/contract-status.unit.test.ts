@@ -15,16 +15,23 @@ function renderColumn(id: string, row: Partial<ContractRow>): string {
   );
 }
 
-void it("shows only stage and class codes in the placement column", () => {
-  const markup = renderColumn("placement", {
-    student: {
-      id: "student",
-      fullName: "Ana Beatriz Rocha",
-      placements: [{ stageCode: "E1", classCode: "2026.2-E1A" }],
-    },
+for (const [description, expected] of [
+  ["E1 · Seg 14h · Marina", "E1 · Seg 14h · Marina"],
+  [undefined, "E1"],
+] as const) {
+  void it(`shows ${expected} in the placement column`, () => {
+    const markup = renderColumn("placement", {
+      student: {
+        id: "student",
+        fullName: "Ana Beatriz Rocha",
+        placements: [
+          { stageCode: "E1", classCode: "2026.2-E1A", ...(description ? { description } : {}) },
+        ],
+      },
+    });
+    assert.equal(markup.replaceAll(/<[^>]*>/g, ""), expected);
   });
-  assert.equal(markup.replaceAll(/<[^>]*>/g, ""), "E1 · 2026.2-E1A");
-});
+}
 
 for (const [fullName, abbreviated] of [
   ["Patrícia Ferreira", "Patrícia F."],

@@ -13,6 +13,7 @@ import { PendingStudents } from "./home-pending-students";
 import { PendingPlacement } from "./home-pending-placement";
 import { PendingLessons } from "./home-pending-lessons";
 import { PendingCoverage } from "./home-pending-coverage";
+import { PendingPlanning } from "./home-pending-planning";
 import styles from "./home-pending.module.css";
 
 export function HomePending({
@@ -108,8 +109,10 @@ function PendingRows({
 }
 
 type PendingGroups = {
+  planning: HomeGroup | undefined;
   group: HomeGroup | undefined;
   appointments: HomeGroup | undefined;
+  materials: HomeGroup | undefined;
   renewals: HomeGroup | undefined;
   placement: HomeGroup | undefined;
   students: HomeGroup | undefined;
@@ -123,10 +126,12 @@ function pendingGroups(data: HomeData | undefined): PendingGroups {
   const groups = data?.groups ?? [];
   const finance = Boolean(data?.canViewFinance);
   return {
+    planning: groups.find((item) => item.kind === "planning"),
     health: groups.find((item) => item.kind === "health"),
     occurrences: groups.find((item) => item.kind === "occurrences"),
     group: groups.find((item) => item.kind === "coverage"),
     appointments: groups.find((item) => item.kind === "appointments"),
+    materials: finance ? groups.find((item) => item.kind === "materials") : undefined,
     renewals: finance ? groups.find((item) => item.kind === "renewals") : undefined,
     placement: groups.find((item) => item.kind === "placement"),
     contracts: finance ? groups.find((item) => item.kind === "contracts") : undefined,
@@ -156,6 +161,8 @@ function PendingActionRows({
       <PendingOccurrences group={groups.occurrences} />
       <PendingOccurrences group={groups.health} kind="health" />
       <PendingCoverage group={groups.group} today={today} />
+      <PendingPlanning group={groups.planning} />
+      {finance && <PendingStudents group={groups.materials} kind="materials" />}
       {finance && <PendingRenewals group={groups.renewals} today={today} />}
       <PendingAppointments group={groups.appointments} today={today} />
       <PendingPlacement group={groups.placement} today={today} />
@@ -175,12 +182,14 @@ type PendingFeedbackProps = PendingGroups & {
 };
 
 function PendingFeedback({
+  planning,
   group,
   hasFinance,
   placement,
   students,
   documents,
   contracts,
+  materials,
   renewals,
   appointments,
   occurrences,
@@ -190,12 +199,14 @@ function PendingFeedback({
   financeUnavailable,
 }: PendingFeedbackProps): ReactElement {
   const empty = pendingIsEmpty({
+    planning,
     group,
     hasFinance,
     placement,
     students,
     documents,
     contracts,
+    materials,
     renewals,
     appointments,
     occurrences,
@@ -223,12 +234,14 @@ function PendingFeedback({
 }
 
 function pendingIsEmpty({
+  planning,
   group,
   hasFinance,
   placement,
   students,
   documents,
   contracts,
+  materials,
   renewals,
   appointments,
   occurrences,
@@ -237,11 +250,13 @@ function pendingIsEmpty({
 }: Pick<
   PendingFeedbackProps,
   | "group"
+  | "planning"
   | "hasFinance"
   | "placement"
   | "students"
   | "documents"
   | "contracts"
+  | "materials"
   | "renewals"
   | "health"
   | "occurrences"
@@ -249,11 +264,13 @@ function pendingIsEmpty({
   | "lessons"
 >): boolean {
   const totals = [
+    planning,
     group,
     placement,
     students,
     documents,
     contracts,
+    materials,
     renewals,
     health,
     occurrences,

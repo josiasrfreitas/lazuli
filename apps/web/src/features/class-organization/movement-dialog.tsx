@@ -1,15 +1,31 @@
 "use client";
-import type { JSX as ReactJSX } from "react";
+import { useState, type JSX as ReactJSX } from "react";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { dateOnly, scheduleLabel } from "~/features/class-organization/shared";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import { useMovementModel, type MovementModel, type MovementProps } from "./movement-model";
+import { Button } from "@lazuli/ui";
+import { ClassPlanForm } from "./plan-form";
+import { compatible } from "./model";
 import styles from "./organization.module.css";
 
 export function MovementForm(props: MovementProps): ReactJSX.Element {
   const model = useMovementModel(props);
   const { rows, decline, board, onClose } = props;
+  const [creating, setCreating] = useState(false);
+  if (creating)
+    return (
+      <ClassPlanForm
+        semesterId={model.targetSemesterId}
+        initialStageId={rows.length === 1 ? (rows[0]?.stageId ?? undefined) : undefined}
+        onClose={() => setCreating(false)}
+        onSaved={(id) => {
+          model.changePlan(id);
+          setCreating(false);
+        }}
+      />
+    );
   return (
     <TaskDialog
       compactHeader
@@ -24,15 +40,17 @@ export function MovementForm(props: MovementProps): ReactJSX.Element {
       onClose={onClose}
       bodyRef={model.body}
     >
-      <MovementFields props={props} model={model} />
+      <MovementFields onCreate={() => setCreating(true)} props={props} model={model} />
     </TaskDialog>
   );
 }
 
 function MovementFields({
+  onCreate,
   props,
   model,
 }: {
+  onCreate: () => void;
   props: MovementProps;
   model: MovementModel;
 }): ReactJSX.Element {
@@ -45,17 +63,32 @@ function MovementFields({
           suas próprias datas e condições.
         </p>
       ) : (
-        <MovementDestination model={model} />
+        <>
+          <MovementDestination model={model} rows={props.rows} />
+          {props.rows.length === 1 && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-fit"
+              onClick={onCreate}
+            >
+              Criar turma vazia
+            </Button>
+          )}
+        </>
       )}
-      <NarrativeField
-        name="movement-reason"
-        label={props.decline ? "Motivo" : "Motivo · opcional"}
-        value={model.reason}
-        onChange={model.changeReason}
-        placeholder="Horário, adaptação ou outro combinado"
-        rows={2}
-        error={model.errors.reason}
-      />
+      {(props.decline || props.rows.length > 1) && (
+        <NarrativeField
+          name="movement-reason"
+          label={props.decline ? "Motivo" : "Motivo · opcional"}
+          value={model.reason}
+          onChange={model.changeReason}
+          placeholder="Horário, adaptação ou outro combinado"
+          rows={2}
+          error={model.errors.reason}
+        />
+      )}
     </form>
   );
 }
@@ -76,7 +109,13 @@ function MovementSummary({ rows, board }: MovementProps): ReactJSX.Element {
   );
 }
 
-function MovementDestination({ model }: { model: MovementModel }): ReactJSX.Element {
+function MovementDestination({
+  model,
+  rows,
+}: {
+  model: MovementModel;
+  rows: MovementProps["rows"];
+}): ReactJSX.Element {
   return (
     <>
       <SelectControl
@@ -99,7 +138,11 @@ function MovementDestination({ model }: { model: MovementModel }): ReactJSX.Elem
         value={model.planId}
         onChange={model.changePlan}
         choices={(model.targetBoard?.plans ?? [])
-          .filter((plan) => plan.active)
+          .filter(
+            (plan) =>
+              plan.active &&
+              rows.every((row) => row.continuity !== "CHANGE" || compatible(row, plan)),
+          )
           .map((plan) => ({
             value: plan.id,
             label: `${plan.name} · ${scheduleLabel(plan.slots)}`,

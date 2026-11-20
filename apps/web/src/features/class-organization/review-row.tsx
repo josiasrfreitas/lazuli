@@ -1,283 +1,214 @@
-import type { JSX as ReactJSX } from "react";
+import type { ReactElement } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, History } from "lucide-react";
-import {
-  Button,
-  Checkbox,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverTitle,
-} from "@lazuli/ui";
-import { formatDateOnlyBR } from "~/lib/format";
-import { dateOnly, scheduleLabel } from "~/features/class-organization/shared";
-import {
-  changeLabel,
-  contractLabel,
-  type OrganizationAction,
-  type Placement,
-  type OrganizationBoard,
-} from "./model";
-import styles from "./organization.module.css";
+import { ArrowRight } from "lucide-react";
+import { followsOwnClass } from "@lazuli/domain";
+import { Badge, Checkbox } from "@lazuli/ui";
+import { StudentAvatar } from "~/components/student-avatar";
+import { rosterAttentionReasons } from "./attention-reasons";
+import { FormationReason } from "./formation-reason";
+import { responseLabels } from "./confirmation";
+import type { ClassPlan, OrganizationBoard, Placement } from "./model";
+import { isReviewDeparture, reviewPlanName } from "./review-group-model";
+import { reviewStatus } from "./review-model";
+import styles from "./review-groups.module.css";
 
 type RowProps = {
   row: Placement;
+  plan: ClassPlan | undefined;
   board: OrganizationBoard;
-  selected: boolean;
+  ended: boolean;
   eligible: boolean;
+  selected: boolean;
   working: boolean;
-  onSelection: (value: boolean) => void;
-  onAction: (action: OrganizationAction) => void;
+  href: string;
+  onNavigate?: () => void;
+  onSelection: (row: Placement, value: boolean) => void;
 };
 
 export function ReviewRow({
   row,
-  board,
-  selected,
-  eligible,
-  working,
-  onSelection,
-  onAction,
-}: RowProps): ReactJSX.Element {
-  const plan = board.plans.find((item) => item.id === row.planId);
-  return (
-    <tr>
-      <td>
-        <Checkbox
-          size="sm"
-          aria-label={`Confirmar ${row.studentName}`}
-          checked={selected}
-          disabled={working || !eligible}
-          onCheckedChange={(value) => onSelection(Boolean(value))}
-        />
-      </td>
-      <td>
-        <div className={styles.person}>
-          <Link href={`/alunos/${row.studentId}`}>
-            <strong>{row.studentName}</strong>
-          </Link>
-          <DiffDetails row={row} board={board} />
-        </div>
-      </td>
-      <td>
-        <ReviewOrigin row={row} />
-      </td>
-      <td>
-        <ReviewDestination row={row} plan={plan} board={board} />
-      </td>
-      <td className="whitespace-nowrap">
-        <ReviewTiming row={row} board={board} />
-      </td>
-      <td>
-        <ReviewBlockers row={row} />
-      </td>
-      <td>
-        <ReviewActions row={row} working={working} onAction={onAction} />
-      </td>
-    </tr>
-  );
-}
-
-function ReviewOrigin({ row }: { row: Placement }): ReactJSX.Element {
-  return (
-    <div className={styles.origin}>
-      <span>{row.sourceClassName ?? "Sem vínculo anterior"}</span>
-      <span className={styles.small}>{row.sourceStageCode ?? "Nova entrada"}</span>
-      <span className={styles.small}>{scheduleLabel(row.sourceSchedule) || "—"}</span>
-      <span className={styles.small}>{row.sourceTeacher ?? "—"}</span>
-    </div>
-  );
-}
-
-function ReviewDestination({
-  row,
   plan,
   board,
-}: {
-  row: Placement;
-  plan: OrganizationBoard["plans"][number] | undefined;
-  board: OrganizationBoard;
-}): ReactJSX.Element {
-  return (
-    <div className={styles.destination}>
-      <span className={changeLabel(row, board) === "Transferência" ? styles.changed : undefined}>
-        {row.declinedAt ? "Não continuará" : (plan?.name ?? "Turma a definir")}
-      </span>
-      <span className={row.stageId === row.sourceStageId ? styles.small : styles.changed}>
-        {row.stageCode ?? "Estágio a definir"}
-      </span>
-      <span className={styles.small}>{plan ? scheduleLabel(plan.slots) : "—"}</span>
-      <span className={styles.small}>{plan?.teacherName ?? "Professor a definir"}</span>
-    </div>
-  );
-}
-
-function ReviewTiming({
-  row,
-  board,
-}: {
-  row: Placement;
-  board: OrganizationBoard;
-}): ReactJSX.Element {
-  let status = "A confirmar";
-  if (row.declinedAt) status = "Registrada";
-  else if (row.publishedAt) status = "Confirmada";
-  return (
-    <div className={styles.person}>
-      <span>{formatDateOnlyBR(dateOnly(row.effectiveDate ?? board.semester.startDate))}</span>
-      <span className={styles.small}>{status}</span>
-    </div>
-  );
-}
-
-function ReviewBlockers({ row }: { row: Placement }): ReactJSX.Element {
-  const contract = contractLabel(row);
-  return (
-    <div className={styles.person}>
-      {row.blockers.slice(0, 2).map((blocker) => (
-        <span key={blocker} className={`${styles.small} ${styles.attention}`}>
-          {blocker}
-        </span>
-      ))}
-      {row.blockers.length > 2 && (
-        <span className={styles.small}>+{row.blockers.length - 2} nos detalhes</span>
-      )}
-      {row.blockers.length === 0 && !row.declinedAt && (
-        <span className={styles.small}>
-          <Check size={12} className="inline" />
-          {row.publishedAt ? "Alocação confirmada" : "Alocação pronta"}
-        </span>
-      )}
-      {contract.warning && row.lastContract ? (
-        <Link
-          className={`${styles.small} ${styles.attention} text-left underline underline-offset-4`}
-          href={`/alunos/${row.studentId}?secao=financeiro&renovarContrato=${row.lastContract.id}`}
-        >
-          {contract.label} · renovar
-        </Link>
-      ) : (
-        <Link
-          href={`/alunos/${row.studentId}?secao=financeiro`}
-          className={`${styles.small} ${contract.warning ? styles.attention : ""}`}
-        >
-          {contract.label}
-        </Link>
-      )}
-    </div>
-  );
-}
-
-function ReviewActions({
-  row,
+  ended,
+  eligible,
+  selected,
   working,
-  onAction,
-}: {
-  row: Placement;
-  working: boolean;
-  onAction: RowProps["onAction"];
-}): ReactJSX.Element {
+  href,
+  onNavigate,
+  onSelection,
+}: RowProps): ReactElement {
+  const detailId = `review-case-${row.id}`;
+  const checkboxId = `review-select-student-${row.id}`;
+  const { publishedPlan, context, description } = rowLinkDetails({ row, board, plan }, detailId);
   return (
-    <div className={styles.actions}>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={working}
-        onClick={() =>
-          onAction(
-            row.publishedAt
-              ? { kind: "move", rows: [row] }
-              : { kind: "placement", studentId: row.studentId, row },
-          )
-        }
-      >
-        Revisar
-      </Button>
-      {row.entryStatus === "SCHEDULED" && (
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={working}
-          onClick={() => onAction({ kind: "withdraw", row })}
+    <li className={styles.student} data-selected={selected || undefined}>
+      <div className={styles.studentBar}>
+        <div className={styles.pick}>
+          {eligible && (
+            <StudentSelection
+              row={row}
+              checkboxId={checkboxId}
+              selected={selected}
+              working={working}
+              onSelection={onSelection}
+            />
+          )}
+        </div>
+        <Link
+          href={href}
+          scroll={false}
+          prefetch={false}
+          id={`review-student-${row.id}`}
+          className={styles.studentLink}
+          aria-label={`Abrir ficha de ${row.studentName}`}
+          aria-describedby={description}
+          onNavigate={() => onNavigate?.()}
         >
-          Desfazer
-        </Button>
-      )}
-      <Button
-        size="sm"
-        variant="ghost"
-        aria-label={`Histórico de ${row.studentName}`}
-        onClick={() => onAction({ kind: "history", row })}
-      >
-        <History size={14} />
-      </Button>
-    </div>
+          <span className={styles.person}>
+            <StudentAvatar name={row.studentName} colorKey={row.studentId} size="sm" />
+            <span className={styles.personName}>
+              <strong>{row.studentName}</strong>
+              {context && <small id={`${detailId}-context`}>{context}</small>}
+              {publishedPlan && (
+                <small id={`${detailId}-plan`}>
+                  {row.declinedAt ? "Última alocação" : "Turma confirmada"} ·{" "}
+                  {reviewPlanName(publishedPlan)}
+                </small>
+              )}
+            </span>
+          </span>
+          <span className={styles.situation} id={`${detailId}-status`}>
+            <RowStatus row={row} ended={ended} />
+          </span>
+          <ArrowRight className={styles.studentArrow} aria-hidden="true" size={15} />
+        </Link>
+      </div>
+    </li>
   );
 }
 
-function diffFields(row: Placement, board: OrganizationBoard): [string, string, string][] {
-  const plan = board.plans.find((item) => item.id === row.planId);
-  return [
-    ["Turma", row.sourceClassName ?? "Sem turma", plan?.name ?? "A definir"],
-    ["Estágio", row.sourceStageCode ?? "—", row.stageCode ?? "A definir"],
-    ...staffFields(row, plan),
-  ];
-}
-
-function staffFields(
-  row: Placement,
-  plan: OrganizationBoard["plans"][number] | undefined,
-): [string, string, string][] {
-  return [
-    [
-      "Horário",
-      scheduleLabel(row.sourceSchedule) || "—",
-      plan ? scheduleLabel(plan.slots) : "A definir",
-    ],
-    ["Professor", row.sourceTeacher ?? "—", plan?.teacherName ?? "A definir"],
-  ];
-}
-
-function DiffDetails({
+function StudentSelection({
   row,
-  board,
-}: {
-  row: Placement;
-  board: OrganizationBoard;
-}): ReactJSX.Element {
+  checkboxId,
+  selected,
+  working,
+  onSelection,
+}: Pick<RowProps, "row" | "selected" | "working" | "onSelection"> & {
+  checkboxId: string;
+}): ReactElement {
   return (
-    <Popover>
-      <PopoverTrigger
-        openOnHover
-        delay={300}
-        className="text-micro text-interactive text-left underline underline-offset-4"
-      >
-        {changeLabel(row, board)} · detalhes
-      </PopoverTrigger>
-      <PopoverContent size="lg">
-        <PopoverTitle>{row.studentName}</PopoverTitle>
-        <div className={`${styles.diffDetails} mt-3`}>
-          {diffFields(row, board).map(([label, before, after]) => (
-            <div key={label}>
-              <span className={styles.small}>{label}</span>
-              <div className={styles.diffLine}>
-                <span className={styles.origin}>{before}</span>
-                <ArrowRight size={12} />
-                <span className={before === after ? undefined : styles.changed}>{after}</span>
-              </div>
-            </div>
-          ))}
-          <p>
-            Válida a partir de{" "}
-            {formatDateOnlyBR(dateOnly(row.effectiveDate ?? board.semester.startDate))}.
-          </p>
-          {row.notes && <p className={styles.small}>{row.notes}</p>}
-          {row.blockers.map((blocker) => (
-            <p key={blocker} className={styles.attention}>
-              {blocker}
-            </p>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <label htmlFor={checkboxId} className={styles.studentSelection}>
+      <Checkbox
+        id={checkboxId}
+        size="md"
+        aria-labelledby={`${checkboxId}-label`}
+        checked={selected}
+        disabled={working}
+        onCheckedChange={(value) => onSelection(row, Boolean(value))}
+      />
+      <span id={`${checkboxId}-label`} className="sr-only">
+        Selecionar {row.studentName} para alocação
+      </span>
+    </label>
+  );
+}
+
+function rowLinkDetails(
+  { row, plan, board }: Pick<RowProps, "row" | "plan" | "board">,
+  detailId: string,
+): { publishedPlan: ClassPlan | undefined; context: string; description: string } {
+  const publishedPlan =
+    row.publishedAt && row.planId && row.planId !== plan?.id
+      ? board.plans.find((candidate) => candidate.id === row.planId)
+      : undefined;
+  const score = row.attention.healthScore;
+  const context = [
+    ageLabel(row.studentAge),
+    typeof score === "number" ? `Score ${score}` : "Score indisponível",
+    studentContext(row, plan),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const description = [
+    context && `${detailId}-context`,
+    publishedPlan && `${detailId}-plan`,
+    `${detailId}-status`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return { publishedPlan, context, description };
+}
+
+function ageLabel(age: number | null | undefined): string {
+  if (typeof age !== "number") return "Idade não informada";
+  return `${age} ${age === 1 ? "ano" : "anos"}`;
+}
+
+function departureContext(row: Placement, plan: ClassPlan | undefined): string {
+  const origin = plan && row.sourceClassId !== plan.classId ? row.sourceClassName : null;
+  const stage = row.sourceStageName ?? row.sourceStageCode;
+  return [origin && `Origem · ${origin}`, stage && `Estágio de origem · ${stage}`]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function arrivalContext(row: Placement, plan: ClassPlan | undefined): string | null {
+  if (row.mode === "ENTRY") return "Nova entrada";
+  const sameGroup = followsOwnClass(row.sourceClassId, plan ?? null);
+  return !sameGroup && row.sourceClassName ? `Origem · ${row.sourceClassName}` : null;
+}
+
+function studentContext(row: Placement, plan: ClassPlan | undefined): string {
+  if (isReviewDeparture(row)) return departureContext(row, plan);
+  const stage = row.stageName ?? row.stageCode ?? "A definir";
+  const individualStage =
+    !plan || plan.scheduleType === "PERSONALIZED" || plan.sharedStageId !== row.stageId;
+  return [
+    arrivalContext(row, plan),
+    individualStage && `Destino · ${stage}`,
+    row.mode === "REPEAT" && "Repete o estágio",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function changedResponseLabel(row: Placement): string | null {
+  if (!row.publishedAt || row.declinedAt) return null;
+  return row.continuity === "CHANGE" || row.continuity === "LEAVING"
+    ? responseLabels[row.continuity]
+    : null;
+}
+
+function RowStatus({ row, ended }: Pick<RowProps, "row" | "ended">): ReactElement {
+  const { label, variant, impliedBlocker } = reviewStatus(row, ended);
+  const reasons = row.declinedAt ? [] : rosterAttentionReasons(row);
+  const blockers = reasons.filter((reason) => reason.blocker);
+  const showBlocker =
+    blockers.length > 0 &&
+    (variant === "destructive" || (row.confirmation === "BLOCKED" && !!impliedBlocker));
+  const visible = [
+    ...blockers.filter((reason) => showBlocker || reason.blocker !== impliedBlocker),
+    ...reasons.filter(
+      ({ blocker, risk }) =>
+        !blocker &&
+        (risk === "lowHealth" ||
+          risk === "incomplete" ||
+          risk === "missingAttendance" ||
+          risk === "other"),
+    ),
+  ];
+  const changedResponse = changedResponseLabel(row);
+  return (
+    <>
+      {showBlocker ? (
+        <span className="sr-only">{label}.</span>
+      ) : (
+        <Badge variant={variant}>{label}</Badge>
+      )}
+      {changedResponse && <small>{changedResponse}</small>}
+      {visible.map((reason) => (
+        <FormationReason key={reason.risk} reason={reason} />
+      ))}
+    </>
   );
 }

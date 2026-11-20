@@ -4,7 +4,11 @@ import type { Guardian, Period, Stage, Student } from "../packages/db/src/index.
 import type { Class } from "../packages/db/src/generated/prisma/client.js";
 import { getDatabaseUrl } from "../packages/db/src/config.js";
 import { seedCourseCatalog } from "../packages/db/src/seed-course-catalog.js";
-import { saoPauloTodayIso } from "../packages/db/src/seed-dev-support.js";
+import { saoPauloTodayIso, timeOfDay } from "../packages/db/src/seed-dev-support.js";
+import {
+  plannedClassName,
+  resolvePortalClassName,
+} from "../packages/api/src/classes/portal-name.js";
 import { finance } from "../packages/api/src/finance/index.js";
 
 const url = new URL(getDatabaseUrl());
@@ -189,24 +193,33 @@ async function createNightClass(
   tx: TransactionClient,
   input: { teacherId: string; stageId: string; semester: Period },
 ): Promise<Class> {
-  const name = input.semester.name;
+  const fields = {
+    teacherId: input.teacherId,
+    scheduleType: "REGULAR" as const,
+    sharedStageId: input.stageId,
+  };
+  const slots = (["TUESDAY", "THURSDAY"] as const).map((weekday) => ({
+    weekday,
+    startTime: "19:00",
+    endTime: "20:30",
+  }));
+  const portalClassName = await resolvePortalClassName(tx, { ...fields, slots });
   return tx.class.create({
     data: {
-      teacherId: input.teacherId,
-      scheduleType: "REGULAR",
+      ...fields,
       format: "IN_PERSON",
-      sharedStageId: input.stageId,
       year,
       capacity: 16,
       status: "ACTIVE",
-      internalCode: `${name}-E1-NOITE`,
-      portalClassName: `Essentials 1 · Noite · ${name}`,
+      internalCode: `${input.semester.name}-E1-NOITE`,
+      portalClassName,
+      originalPortalClassName: portalClassName,
       semesterId: input.semester.id,
       scheduleSlots: {
-        create: ["TUESDAY", "THURSDAY"].map((weekday) => ({
-          weekday: weekday as "TUESDAY" | "THURSDAY",
-          startTime: new Date("1970-01-01T19:00:00Z"),
-          endTime: new Date("1970-01-01T20:30:00Z"),
+        create: slots.map((slot) => ({
+          weekday: slot.weekday,
+          startTime: timeOfDay(slot.startTime),
+          endTime: timeOfDay(slot.endTime),
         })),
       },
     },
@@ -354,18 +367,21 @@ async function seedFuturePlan(
     luisaId: string;
   },
 ): Promise<void> {
+  const fields = {
+    scheduleType: "REGULAR" as const,
+    sharedStageId: input.stageId,
+    teacherId: input.teacherId,
+    slots: [
+      { weekday: "TUESDAY" as const, startTime: "16:00", endTime: "17:30" },
+      { weekday: "THURSDAY" as const, startTime: "16:00", endTime: "17:30" },
+    ],
+  };
   const plan = await tx.semesterClassPlan.create({
     data: {
+      ...fields,
       semesterId: input.next.id,
-      name: "Connect 1 · Terças e quintas",
-      scheduleType: "REGULAR",
+      name: await plannedClassName(tx, fields),
       format: "IN_PERSON",
-      sharedStageId: input.stageId,
-      teacherId: input.teacherId,
-      slots: [
-        { weekday: "TUESDAY", startTime: "16:00", endTime: "17:30" },
-        { weekday: "THURSDAY", startTime: "16:00", endTime: "17:30" },
-      ],
       recordedById: input.adminId,
     },
   });

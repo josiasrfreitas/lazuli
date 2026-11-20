@@ -44,25 +44,36 @@ type EnrollResult = {
 type Candidate = Awaited<ReturnType<typeof readCandidate>>;
 type ClassModel = Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>;
 
+async function lockEnrollmentIntake({
+  database,
+  values,
+  now,
+}: EnrollInput): ReturnType<typeof lockIntakeSemester> {
+  // A direct, unallocated intake writes only this new student’s placement.
+  const directIntake =
+    !values.classId && !values.planId && !values.candidateId && !values.leadRegistration;
+  const lockMode = directIntake ? "shared" : "exclusive";
+  const semester =
+    values.entryPeriod === "NEXT"
+      ? await lockNextIntakeSemester(database, { now, mode: lockMode })
+      : await lockIntakeSemester(database, { now, mode: lockMode });
+  if (!directIntake) await lockTeacher(database, "");
+  return semester;
+}
+
 export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult> {
   const { database, values, now } = input;
   const enrollmentDatabase = captureEnrollmentTransaction(database);
-  const semester =
-    values.entryPeriod === "NEXT"
-      ? await lockNextIntakeSemester(database, now)
-      : await lockIntakeSemester(database, now);
-  await lockTeacher(database, "");
+  const semester = await lockEnrollmentIntake(input);
   await lockCreationCommand(database, values.commandId);
   await assertCreationCommandOwner(database, { id: values.commandId, owner: "studentCompletion" });
-  const { leadRegistration, ...existingIntake } = values;
-  const fingerprint = createHash("sha256")
-    .update(JSON.stringify(leadRegistration ? values : existingIntake))
-    .digest("hex");
+  const fingerprint = intakeFingerprint(values);
   const previous = await existingIntakeResult(database, { values, fingerprint });
   if (previous) return previous;
-  const candidate = await captureIntakeCandidate(input);
   const today = saoPauloDateOnly(now);
   assertBirthDate(values.student.birthDate, today);
+  const candidate = await captureIntakeCandidate(input);
+  await assertCandidatePlacementStage(database, { stageId: values.stageId, candidate });
   const target =
     values.entryPeriod === "CURRENT" && values.classId
       ? await intakeTarget(database, {
@@ -85,6 +96,23 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
     fingerprint,
   });
   return { ...created, classId: target?.id ?? null };
+}
+
+function intakeFingerprint(values: EnrollValues): string {
+  const { leadRegistration, ...existingIntake } = values;
+  return createHash("sha256")
+    .update(JSON.stringify(leadRegistration ? values : existingIntake))
+    .digest("hex");
+}
+
+async function assertCandidatePlacementStage(
+  database: TransactionClient,
+  { stageId, candidate }: { stageId: EnrollValues["stageId"]; candidate: Candidate | null },
+): Promise<void> {
+  if (candidate?.englishExperience === "SOME") {
+    await assertPlacementReady(database, candidate);
+    if (stageId !== candidate.stageId) throw badRequest("Use o estágio definido no nivelamento.");
+  }
 }
 
 function assertBirthDate(birthDate: Date | null | undefined, today: string): void {
@@ -250,7 +278,8 @@ async function finalizeIntake(
     });
   await (values.entryPeriod === "NEXT"
     ? recordFutureStudentIntake(database, {
-        semester: semester!,
+        semester,
+        now,
         studentId,
         stageId: values.stageId,
         planId: values.planId,
@@ -323,7 +352,7 @@ export async function allocateIntakeStudent({
   recordedById: string;
   now: Date;
 }): Promise<{ studentId: string; enrollmentId: string }> {
-  const semester = await lockIntakeSemester(database, now);
+  const semester = await lockIntakeSemester(database, { now });
   await lockTeacher(database, "");
   const candidate = await allocationCandidate(database, values.studentId);
   const today = saoPauloDateOnly(now);
@@ -451,8 +480,8 @@ export async function resumeStudentIntake({
 }): Promise<{ studentId: string; contractId: string | null }> {
   const semester =
     values.entryPeriod === "NEXT"
-      ? await lockNextIntakeSemester(database, now)
-      : await lockIntakeSemester(database, now);
+      ? await lockNextIntakeSemester(database, { now })
+      : await lockIntakeSemester(database, { now });
   await lockTeacher(database, "");
   await database.$executeRaw`SELECT id FROM "Student" WHERE id = ${values.studentId}::uuid FOR UPDATE`;
   const state = await readStudentPendingActions(database, { id: values.studentId, now });
@@ -466,8 +495,8 @@ export async function resumeStudentIntake({
     });
   await updateStudentContact({ database, id: values.studentId, values: values.contact });
   await assertResumeGuardian(database, { state, studentId: values.studentId });
-  await allocateResumedIntake({ database, state, values, recordedById, now });
   const contract = await createMissingIntakeContract(database, { state, values, recordedById });
+  await allocateResumedIntake({ database, state, values, recordedById, now });
   await recordResumedIntake({ database, semester, state, values, recordedById, now });
   return { studentId: values.studentId, contractId: contract?.id ?? null };
 }
@@ -501,7 +530,8 @@ async function recordResumedIntake(input: {
   const { database, semester, state, values, recordedById, now } = input;
   if (values.entryPeriod === "NEXT") {
     await recordFutureStudentIntake(database, {
-      semester: semester!,
+      semester,
+      now,
       studentId: values.studentId,
       stageId: values.stageId,
       planId: values.planId,
@@ -556,7 +586,7 @@ function assertResumePlacement(state: ResumeState, values: ResumeValues): void {
   if (state.enrollment && values.entryPeriod === "NEXT")
     throw badRequest("Este aluno já tem turma no período atual.");
   if (values.entryPeriod === "NEXT" && values.classId)
-    throw badRequest("A turma de entrada pertence ao período atual.");
+    throw badRequest("A turma de entrada pertence ao semestre atual.");
   if (values.entryPeriod === "CURRENT" && values.planId)
     throw badRequest("A turma planejada pertence ao próximo período.");
 }

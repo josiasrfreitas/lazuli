@@ -14,9 +14,8 @@ export {
 export { resolveSemesterForDate, SemesterBucketError } from "./semester.js";
 export type { SemesterBucketErrorCode, SemesterWindow } from "./semester.js";
 export {
-  generateRegularPortalClassName,
-  generatePersonalizedPortalClassName,
-  type GenerateRegularPortalClassNameInput,
+  generatePortalClassName,
+  type ClassNameInput,
   type PortalClassNameSlot,
   type Weekday,
 } from "./class-portal-name.js";
@@ -80,6 +79,7 @@ export {
 export { toWhatsAppUrl } from "./whatsapp-url.js";
 export {
   addCalendarMonths,
+  nearestContractUnits,
   previewMonthlyContract,
   priceAfterDiscountCents,
   punctualityDiscountOnPayment,
@@ -183,8 +183,8 @@ export type {
 } from "./identity-extraction/types.js";
 
 export {
+  followsOwnClass,
   periodConfirmation,
-  preconfirmationThrough,
   type PeriodConfirmation,
 } from "./period-confirmation.js";
 
@@ -197,3 +197,14 @@ export { academicActivityCanBeCancelled } from "./academic-calendar.js";
 export { scheduleProgram } from "./program-schedule.js";
 export { programActivityLabels } from "./program-labels.js";
 export { recordedActivities } from "./recorded-activities.js";
+
+export {
+  contractCoverageEnd,
+  formationContractStatus,
+  formationTeachingDay,
+  formationPlacementBlockers,
+  formationBlocker,
+  hasFormationSignal,
+  MISSING_ENTRY_CONTRACT,
+  type FormationContractStatus,
+} from "./formation.js";

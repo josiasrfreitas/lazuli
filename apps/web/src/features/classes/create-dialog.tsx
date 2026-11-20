@@ -19,7 +19,7 @@ import { parseDateBR } from "~/lib/masks";
 import type { RouterOutputs } from "@lazuli/api";
 import { ClassCreateFields, initialClassDraft, type ClassDraft } from "./create-fields";
 
-type Props = { open: boolean; onOpenChange: (open: boolean) => void };
+type Props = { initialSemesterId?: string; open: boolean; onOpenChange: (open: boolean) => void };
 type State = {
   draft: ClassDraft;
   errors: Record<string, string>;
@@ -41,8 +41,11 @@ function parseClassDraft(draft: ClassDraft): ReturnType<typeof classCreateInputS
     ...(draft.scheduleType === "REGULAR" ? { sharedStageId: draft.sharedStageId } : {}),
   });
 }
-const useCreateClass = ({ onOpenChange }: Props): State => {
-  const [draft, setDraft] = useState<ClassDraft>(initialClassDraft);
+const useCreateClass = ({ onOpenChange, initialSemesterId }: Props): State => {
+  const [draft, setDraft] = useState<ClassDraft>(() => ({
+    ...initialClassDraft,
+    semesterId: initialSemesterId ?? "",
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const popup = useRef<HTMLDivElement>(null);

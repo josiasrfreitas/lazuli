@@ -1,3 +1,4 @@
+import { reportTransportError } from "../telemetry.js";
 import { createServiceLogger, safeError } from "@lazuli/logging";
 import { z } from "@lazuli/validators";
 import { getStorage } from "@lazuli/storage";
@@ -81,7 +82,8 @@ async function deleteCapture(
   try {
     await deleteStudentDocument(ctx.db, { id: row.id, sessionId, requireOpen: true });
     return json({ deleted: true });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) reportTransportError(error, "student-document-delete");
     return json({ code: "DELETE_FAILED" }, HTTP.conflict);
   }
 }

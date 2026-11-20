@@ -1,8 +1,10 @@
+import { releaseClassPlaces, releaseEnrollments } from "./dissolve.js";
 import { z } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { recordActivity } from "../activity/record.js";
 import { createClass } from "../classes/data.js";
+import { resolvePortalClassName } from "../classes/portal-name.js";
 import {
   lockTeacher,
   assertNoTeacherConflict,
@@ -30,6 +32,7 @@ export const continuitySchema = z
     id: z.string().uuid(),
     version: z.number().int().positive(),
     continuity: z.enum(["UNDECIDED", "STAY", "CHANGE", "LEAVING"]),
+    attentionNote: z.string().trim().max(MAX_REASON_LENGTH).optional(),
     reason: z.string().trim().max(MAX_REASON_LENGTH).default(""),
   })
   .strict()
@@ -54,8 +57,12 @@ export async function saveContinuity(
   await context.database.semesterPlacement.update({
     where: { id: row.id },
     data: {
-      continuity: input.continuity,
+      continuity: input.continuity === "STAY" ? "UNDECIDED" : input.continuity,
       continuityReason: input.reason || null,
+      ...(row.continuity === "LEAVING" && input.continuity === "CHANGE"
+        ? { exitRiskActive: true }
+        : {}),
+      ...(input.attentionNote === undefined ? {} : { attentionNote: input.attentionNote || null }),
       version: { increment: 1 },
     },
   });
@@ -70,8 +77,8 @@ export async function saveContinuity(
     details: {
       subject: { type: "student", id: row.studentId, name: row.student.fullName },
       description: {
-        UNDECIDED: "Continuidade a conversar.",
-        STAY: "Intenção de continuar na turma.",
+        UNDECIDED: "Sinalização de continuidade atualizada.",
+        STAY: "Sinalização de continuidade atualizada.",
         CHANGE: "Continuará na escola; aguarda outra turma.",
         LEAVING: "Possível saída da escola; acompanhamento necessário.",
       }[input.continuity],
@@ -131,7 +138,7 @@ export const planLifecycleSchema = z
 export async function changePlanStatus(
   context: OrganizationContext,
   input: z.infer<typeof planLifecycleSchema>,
-): Promise<{ classId: string | null; generationRequestId: string | null }> {
+): Promise<PlanStatus & { reconciliationRequestId: string | null }> {
   const initial = await context.database.semesterClassPlan.findUnique({ where: { id: input.id } });
   if (!initial) throw notFound("Turma não encontrada.");
   const semester = await lockSemester(context, initial.semesterId);
@@ -140,40 +147,126 @@ export async function changePlanStatus(
   });
   assertVersion(plan.version, input.version);
   await lockTeacher(context.database, plan.teacherId ?? "");
-  const { classId, generationRequestId } = input.open
+  const { classId, generationRequestId, name } = input.open
     ? await openClassPlan(context, { plan, semester })
     : await closeClassPlan(context, plan);
   await context.database.semesterClassPlan.update({
     where: { id: plan.id },
-    data: { classId, closedAt: input.open ? null : context.now, version: { increment: 1 } },
+    data: { classId, name, closedAt: input.open ? null : context.now, version: { increment: 1 } },
   });
   await recordActivity(context.database, {
     context,
     action: "semesterOrganization.planStatus",
     details: {
-      subject: { type: "school", name: plan.name },
+      subject: { type: "school", name },
       description: input.open ? "Turma aberta para receber alunos." : "Turma encerrada.",
     },
   });
-  return { classId, generationRequestId };
+  const reconciliationRequestId =
+    input.open || classId === null
+      ? null
+      : await requestDissolutionReconciliation(context, { classId, semester });
+  return { classId, generationRequestId, reconciliationRequestId };
+}
+
+/** Operational classes can exist before their semester plan is prepared. */
+export async function dissolveClass(
+  context: OrganizationContext,
+  id: string,
+): Promise<{ reconciliationRequestId: string | null }> {
+  const { semesterId } = await context.database.class.findUniqueOrThrow({
+    where: { id },
+    select: { semesterId: true },
+  });
+  const semester = await lockSemester(context, semesterId);
+  const classroom = await context.database.class.findUniqueOrThrow({
+    where: { id, semesterId },
+    select: {
+      status: true,
+      teacherId: true,
+      portalClassName: true,
+      semesterPlan: { select: { id: true, version: true, deletedAt: true } },
+    },
+  });
+  if (classroom.status === "ARCHIVED") throw badRequest("A turma já está encerrada.");
+  const plan = classroom.semesterPlan;
+  if (plan && !plan.deletedAt)
+    return changePlanStatus(context, { id: plan.id, version: plan.version, open: false });
+  await lockTeacher(context.database, classroom.teacherId);
+  await releaseEnrollments(context, {
+    classId: id,
+    semesterId,
+    today: new Date(saoPauloDateOnly(context.now)),
+  });
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.planStatus",
+    details: {
+      subject: { type: "school", name: classroom.portalClassName },
+      description: "Turma encerrada.",
+    },
+  });
+  return {
+    reconciliationRequestId: await requestDissolutionReconciliation(context, {
+      classId: id,
+      semester,
+    }),
+  };
 }
 
 type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
 type Period = Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
 type PlanStatus = { classId: string | null; generationRequestId: string | null };
+type LinkedClass = { id: string; portalClassName: string };
+
+async function requestDissolutionReconciliation(
+  context: OrganizationContext,
+  { classId, semester }: { classId: string; semester: Period },
+): Promise<string> {
+  const fromDate = new Date(saoPauloDateOnly(context.now));
+  // Explicit collective extras can be later than the academic period.
+  const lastExtra = await context.database.classSession.findFirst({
+    where: {
+      classId,
+      date: { gte: fromDate, gt: semester.endDate },
+      deletedAt: null,
+      status: "SCHEDULED",
+      appointmentSeriesId: { not: null },
+    },
+    orderBy: { date: "desc" },
+    select: { date: true },
+  });
+  const request = await context.database.calendarReconciliationRequest.create({
+    data: {
+      semesterId: semester.id,
+      fromDate,
+      throughDate: lastExtra?.date ?? (semester.endDate >= fromDate ? semester.endDate : fromDate),
+      reason: "Turma desfeita.",
+      requestedById: context.staffUser.id,
+    },
+    select: { id: true },
+  });
+  return request.id;
+}
 
 async function openClassPlan(
   context: OrganizationContext,
   { plan, semester }: { plan: ClassPlan; semester: Period },
-): Promise<PlanStatus> {
+): Promise<PlanStatus & { name: string }> {
   if (!plan.teacherId) throw badRequest("Defina o professor antes de abrir a turma.");
-  const from = [saoPauloDateOnly(context.now), dateOnly(semester.startDate)].toSorted().at(-1)!;
+  const from = [
+    saoPauloDateOnly(context.now),
+    dateOnly(semester.startDate),
+    dateOnly(plan.startsOn ?? semester.startDate),
+  ]
+    .toSorted()
+    .at(-1)!;
   await assertTeacherEligible({
     database: context.database,
     teacherId: plan.teacherId,
     date: from,
   });
-  const classId = plan.classId
+  const classroom = plan.classId
     ? await reopenClassPlan(context, {
         plan,
         semester,
@@ -187,6 +280,7 @@ async function openClassPlan(
         teacherId: plan.teacherId,
         startDate: from,
       });
+  const classId = classroom.id;
   const preparing = await context.database.sessionGenerationRequest.findFirst({
     where: {
       classId,
@@ -202,7 +296,7 @@ async function openClassPlan(
         requestedById: context.staffUser.id,
         now: context.now,
       });
-  return { classId, generationRequestId: generation?.id ?? null };
+  return { classId, name: classroom.portalClassName, generationRequestId: generation?.id ?? null };
 }
 
 async function reopenClassPlan(
@@ -220,17 +314,40 @@ async function reopenClassPlan(
     classId: string;
     teacherId: string;
   },
-): Promise<string> {
+): Promise<LinkedClass> {
+  const slots = readSlots(plan.slots);
   await assertNoTeacherConflict({
     database: context.database,
     teacherId,
     from,
     through: dateOnly(semester.endDate),
-    slots: readSlots(plan.slots),
+    slots,
     excludeClassId: classId,
   });
-  await context.database.class.update({ where: { id: classId }, data: { status: "ACTIVE" } });
-  return classId;
+  const current = await context.database.class.findUniqueOrThrow({
+    where: { id: classId },
+    select: { id: true, status: true, portalClassName: true },
+  });
+  if (current.status === "ACTIVE") return current;
+  const collision = await context.database.class.findFirst({
+    where: { portalClassName: current.portalClassName, status: "ACTIVE", deletedAt: null },
+    select: { id: true },
+  });
+  if (collision && slots.length === 0)
+    throw badRequest("O nome desta turma já está em uso. Defina os horários antes de reabri-la.");
+  const portalClassName = collision
+    ? await resolvePortalClassName(context.database, {
+        scheduleType: plan.scheduleType,
+        sharedStageId: plan.sharedStageId,
+        teacherId,
+        slots,
+      })
+    : current.portalClassName;
+  return context.database.class.update({
+    where: { id: classId },
+    data: { status: "ACTIVE", portalClassName },
+    select: { id: true, portalClassName: true },
+  });
 }
 
 async function createClassPlan(
@@ -241,12 +358,13 @@ async function createClassPlan(
     teacherId,
     startDate,
   }: { plan: ClassPlan; semester: Period; teacherId: string; startDate: string },
-): Promise<string> {
-  const created = await createClass({
+): Promise<LinkedClass> {
+  return createClass({
     database: context.database,
     recordedById: context.staffUser.id,
     values: {
       semesterId: semester.id,
+      ...(plan.sourceClassId ? { previousClassId: plan.sourceClassId } : {}),
       startDate,
       teacherId,
       scheduleType: plan.scheduleType,
@@ -255,24 +373,12 @@ async function createClassPlan(
       slots: readSlots(plan.slots),
     },
   });
-  return created.id;
 }
 
-async function closeClassPlan(context: OrganizationContext, plan: ClassPlan): Promise<PlanStatus> {
-  if (plan.classId) {
-    const active = await context.database.enrollment.count({
-      where: {
-        classId: plan.classId,
-        deletedAt: null,
-        OR: [{ exitDate: null }, { exitDate: { gt: new Date(saoPauloDateOnly(context.now)) } }],
-      },
-    });
-    if (active)
-      throw badRequest("Transfira ou encerre os vínculos dos alunos antes de encerrar a turma.");
-    await context.database.class.update({
-      where: { id: plan.classId },
-      data: { status: "ARCHIVED" },
-    });
-  }
-  return { classId: plan.classId, generationRequestId: null };
+async function closeClassPlan(
+  context: OrganizationContext,
+  plan: ClassPlan,
+): Promise<PlanStatus & { name: string }> {
+  await releaseClassPlaces(context, plan);
+  return { classId: plan.classId, name: plan.name, generationRequestId: null };
 }

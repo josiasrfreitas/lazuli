@@ -3,6 +3,7 @@ import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { DEV_ADMIN, DEV_TEACHERS } from "../../packages/db/src/seed-dev-data.js";
 import { addDays, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 import type { OrganizationContext } from "../../packages/api/src/semester-organization/data.js";
+import { plannedClassName } from "../../packages/api/src/classes/portal-name.js";
 import { prepareSemester } from "../../packages/api/src/semester-organization/prepare.js";
 import {
   saveContinuity,
@@ -110,7 +111,6 @@ async function seedSmallClass(context: SeedContext): Promise<void> {
     publishedAt: entryDate,
     group: {
       key: "current-small-e2",
-      name: "E2 · manhã",
       scheduleType: "REGULAR",
       format: "IN_PERSON",
       stageCode: "E2",
@@ -265,7 +265,6 @@ async function seedDrafts(context: SeedContext): Promise<void> {
   await saveClassPlan(context, {
     semesterId: semester.id,
     version: 0,
-    name: "E1 · nova turma da noite",
     scheduleType: "REGULAR",
     format: "IN_PERSON",
     teacherId,
@@ -273,15 +272,19 @@ async function seedDrafts(context: SeedContext): Promise<void> {
     slots: eveningSlots,
   });
   const stage = await database.stage.findFirstOrThrow({ where: { internalCode: "C2" } });
+  const closedClass = {
+    scheduleType: "REGULAR" as const,
+    sharedStageId: stage.id,
+    teacherId: null,
+    slots: [{ weekday: "FRIDAY" as const, startTime: "10:00", endTime: "12:00" }],
+  };
   await database.semesterClassPlan.create({
     data: {
+      ...closedClass,
       id: organizationId("plan", { semesterName: semester.name, key: "closed-current" }),
       semesterId: semester.id,
-      name: "C2 · horário encerrado",
-      scheduleType: "REGULAR",
+      name: await plannedClassName(database, closedClass),
       format: "IN_PERSON",
-      sharedStageId: stage.id,
-      slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "12:00" }],
       closedAt: now,
       recordedById: staffUser.id,
     },

@@ -225,6 +225,10 @@ export type FinanceModule = {
     query?: string;
     payerId?: string | undefined;
     studentId?: string | undefined;
+    followUp?: boolean | undefined;
+    grouped?: boolean | undefined;
+    materialState?: "ACQUIRED" | "PLANNED" | undefined;
+    scheduleType?: "REGULAR" | "PERSONALIZED" | undefined;
     startsFrom?: string | undefined;
     endsTo?: string | undefined;
     status?: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "SEM_SALDO" | "CANCELADO" | undefined;
@@ -297,3 +301,7 @@ export {
   WAIVED_INSTALLMENT_ADJUSTMENT_MESSAGE,
   WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
 } from "./internal/shared.js";
+
+export { readAcquiredStages } from "@lazuli/db/material-purchases";
+
+export { readStudentAgreements, requireStudentAgreement } from "./internal/student-agreements.js";

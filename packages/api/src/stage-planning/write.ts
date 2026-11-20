@@ -39,6 +39,13 @@ export async function savePlanWindow(
   input: StagePlanWindow,
 ): Promise<VersionedResult> {
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
+  const previousStart = plan ? dateOnly(plan.plannedStartOn) : null;
+  if (
+    previousStart !== null &&
+    previousStart !== input.plannedStartOn &&
+    (previousStart <= scope.today || input.plannedStartOn <= scope.today)
+  )
+    throw badRequest("O início só pode ser alterado enquanto ainda estiver no futuro.");
   input = windowInSemester(input, scope);
   const rows = await windowProgramRows(context, { scope, plan, input });
   if (!rows) assertWindowBounds(scope, { plan, input });
@@ -53,6 +60,21 @@ export async function savePlanWindow(
     if (rows) await persistProgramSchedule(context, { planId: plan.id, rows, plan });
     return recordRevision(context, { scope, planId: plan.id, reason: input.reason! });
   }
+  return createPlanWindow(context, { scope, data, rows });
+}
+
+async function createPlanWindow(
+  context: PlanningContext,
+  {
+    scope,
+    data,
+    rows,
+  }: {
+    scope: PlanningScope;
+    data: { plannedStartOn: Date; plannedEndOn: Date; objective: string | null };
+    rows: Awaited<ReturnType<typeof windowProgramRows>>;
+  },
+): Promise<VersionedResult> {
   const created = await context.database.stagePlan.create({
     data: {
       ...data,
@@ -82,6 +104,10 @@ export async function savePlanItem(
   const data = {
     programActivityId: program.id,
     plannedOn: new Date(input.plannedOn),
+    plannedSessionId:
+      previous && dateOnly(previous.plannedOn) === input.plannedOn
+        ? previous.plannedSessionId
+        : null,
     ...plannedText(program.content, input),
     pageFrom: input.pageFrom,
     pageTo: input.pageTo,
@@ -126,7 +152,7 @@ async function bumpVersion(context: PlanningContext, plan: Plan): Promise<void> 
       message: "O planejamento mudou. Atualize a página antes de salvar novamente.",
     });
 }
-async function recordRevision(
+export async function recordRevision(
   context: PlanningContext,
   input: { scope: PlanningScope; planId: string; reason: string },
 ): Promise<VersionedResult> {
@@ -259,6 +285,11 @@ export async function saveProgramStart(
   input: StagePlanWindow,
 ): Promise<VersionedResult> {
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
+  if (
+    (plan ? dateOnly(plan.plannedStartOn) : scope.classStartOn) <= scope.today ||
+    input.plannedStartOn <= scope.today
+  )
+    throw badRequest("O início só pode ser alterado enquanto ainda estiver no futuro.");
   if (
     !plan &&
     !(await programSchedule(context, { scope, startOn: input.plannedStartOn, plan: null }))

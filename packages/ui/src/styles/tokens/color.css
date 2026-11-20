@@ -76,6 +76,8 @@
   --lesson-personalized-foreground: #763c98;
   --appointment-surface: #f6ece6;
   --appointment-foreground: #824c34;
+  --contract-surface: #fff0e5;
+  --contract-foreground: #9d4c12;
   --experimental-surface: #e3f2ee;
   --experimental-foreground: #24665c;
   --interactive: var(--lz-ref-blue-700);
@@ -172,6 +174,8 @@
   --lesson-personalized-foreground: #cdabe3;
   --appointment-surface: #3e2d26;
   --appointment-foreground: #e6b39a;
+  --contract-surface: #432d1d;
+  --contract-foreground: #f3ad72;
   --experimental-surface: #203b36;
   --experimental-foreground: #92d0c2;
   --interactive: var(--lz-ref-blue-300);
@@ -192,7 +196,7 @@
   --selection-indicator: var(--lz-ref-gold);
   --icon-active: var(--selection-indicator);
 
-  --navigation: var(--lz-ref-navy);
+  --navigation: var(--card);
   --navigation-foreground: #e9edf6;
   --navigation-muted: #b1bfd3;
   --navigation-active: #243958;

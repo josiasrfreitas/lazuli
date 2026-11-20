@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Plus, Search } from "lucide-react";
 import {
   Button,
@@ -84,7 +84,6 @@ function partyField(input: PartyFieldInput): TableFilterField {
     id: input.id,
     label: input.label,
     kind: "remote-options",
-    promoted: true,
     selected: input.selectedId ? [input.selectedId] : [],
     selectedOptions: input.selectedOptions,
     search: input.search,
@@ -135,7 +134,6 @@ function contractTermFilterField(filters: ContractFilters): TableFilterField {
     id: "term",
     label: "Vigência",
     kind: "period",
-    promoted: true,
     from: filters.startsFrom ?? "",
     to: filters.endsTo ?? "",
     onChange: (from, to) => {
@@ -154,6 +152,7 @@ function contractStatusFilterField(filters: ContractFilters): TableFilterField {
     id: "status",
     label: "Situação",
     kind: "options",
+    promoted: true,
     options: STATUS_OPTIONS,
     selected: filters.status ? [filters.status] : [],
     onChange: (ids) => filters.setFilters({ situacao: ids.at(-1) ?? null }),
@@ -176,6 +175,18 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
     { enabled: Boolean(filters.studentId) },
   );
   return [
+    {
+      id: "followUp",
+      label: "Rematrículas e materiais",
+      kind: "options",
+      promoted: true,
+      options: [
+        { id: "rematriculas-e-materiais", label: "Rematrículas e materiais · até 60 dias" },
+      ],
+      selected: filters.followUp ? ["rematriculas-e-materiais"] : [],
+      onChange: (ids) => filters.setFilters({ acompanhamento: ids.at(-1) ?? null }),
+      onClear: () => filters.setFilters({ acompanhamento: null }),
+    },
     ...contractPartyFilterFields({
       filters,
       search,
@@ -187,8 +198,33 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
       })),
       setSearch,
     }),
+    {
+      id: "material",
+      label: "Aquisição de material",
+      kind: "options",
+      options: [
+        { id: "ACQUIRED", label: "Com aquisição registrada" },
+        { id: "PLANNED", label: "Com livro previsto a adquirir" },
+      ],
+      selected: filters.materialState ? [filters.materialState] : [],
+      onChange: (ids) => filters.setFilters({ material: ids.at(-1) ?? null }),
+      onClear: () => filters.setFilters({ material: null }),
+    },
     contractTermFilterField(filters),
     contractStatusFilterField(filters),
+    {
+      id: "scheduleType",
+      label: "Modalidade",
+      kind: "options",
+      promoted: true,
+      options: [
+        { id: "REGULAR", label: "Regular" },
+        { id: "PERSONALIZED", label: "PPT" },
+      ],
+      selected: filters.scheduleType ? [filters.scheduleType] : [],
+      onChange: (ids) => filters.setFilters({ modalidade: ids.at(-1) ?? null }),
+      onClear: () => filters.setFilters({ modalidade: null }),
+    },
   ];
 }
 
@@ -197,7 +233,7 @@ function ContractSearch({ filters }: { filters: ContractFilters }): ReactElement
     filters.setFilters({ busca: search || null }),
   );
   return (
-    <div className="relative min-w-48 flex-1 sm:w-64 sm:flex-none">
+    <div className="relative w-40 min-w-28 max-w-64 flex-1">
       <Search
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
@@ -218,6 +254,9 @@ function ContractSearch({ filters }: { filters: ContractFilters }): ReactElement
   );
 }
 
+const FOLLOW_UP_INLINE_MIN_WIDTH = 840;
+const NEW_CONTRACT_LABEL_MIN_WIDTH = 600;
+
 export function ContractsToolbar({
   filters,
   onNew,
@@ -226,25 +265,57 @@ export function ContractsToolbar({
   onNew: () => void;
 }): ReactElement {
   const fields = useContractFilterFields(filters);
+  const toolbar = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const node = toolbar.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setWidth(entry.contentRect.width);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  const inlineThreshold: Record<string, number> = {
+    followUp: FOLLOW_UP_INLINE_MIN_WIDTH,
+    status: 990,
+    scheduleType: 1120,
+  };
+  const visibleFields = fields.map((field) => ({
+    ...field,
+    promoted: Boolean(
+      field.promoted && width >= (inlineThreshold[field.id] ?? FOLLOW_UP_INLINE_MIN_WIDTH),
+    ),
+  }));
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-      <ContractSearch filters={filters} />
-      <TableFilters
-        fields={fields}
-        onClearAll={() =>
-          filters.setFilters({
-            pagador: null,
-            beneficiario: null,
-            vigenciaDe: null,
-            vigenciaAte: null,
-            situacao: null,
-          })
-        }
-      />
-      <Button onClick={onNew} size="sm">
-        <Plus aria-hidden="true" className="size-4" />
-        Novo contrato
-      </Button>
+    <div
+      ref={toolbar}
+      className="scrollbar-subtle flex w-full min-w-0 items-center gap-2 overflow-x-auto py-1"
+    >
+      <div className="ml-auto flex min-w-max flex-1 items-center justify-end gap-2">
+        <ContractSearch filters={filters} />
+        <TableFilters
+          fields={visibleFields}
+          onClearAll={() =>
+            filters.setFilters({
+              material: null,
+              acompanhamento: null,
+              pagador: null,
+              beneficiario: null,
+              vigenciaDe: null,
+              vigenciaAte: null,
+              modalidade: null,
+              situacao: null,
+            })
+          }
+        />
+        <Button onClick={onNew} size="sm">
+          <Plus aria-hidden="true" className="size-4" />
+          <span className={width < NEW_CONTRACT_LABEL_MIN_WIDTH ? "sr-only" : undefined}>
+            Novo contrato
+          </span>
+        </Button>
+      </div>
     </div>
   );
 }

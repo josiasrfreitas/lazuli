@@ -1,5 +1,6 @@
 import { academicActivityCanBeCancelled } from "@lazuli/domain";
 import { civil } from "./change-dates.js";
+import { currentClosedDays } from "./change-projection.js";
 import type { CalendarChangeState } from "./change-state.js";
 import type { CalendarChange } from "./change-schema.js";
 import type {
@@ -31,6 +32,7 @@ export function selectImpactCandidates(
   const affectedSession = (row: ImpactSession): boolean =>
     state.closed.has(civil(row.date)) ||
     (change.action === "period" &&
+      !row.appointmentSeriesId &&
       row.class.semesterId === change.id &&
       outside(row.class.semesterId, row.date));
   const affectedAppointment = (row: ImpactAppointment): boolean =>
@@ -70,12 +72,16 @@ export function selectImpactCandidates(
   const cancellableVisits = visitCandidates.filter((row) =>
     academicActivityCanBeCancelled({ ...row, recorded: Boolean(row.assessment), now }),
   );
+  const previouslyClosed = currentClosedDays(state);
   const plans = plannedItems.filter(
     (row) =>
-      state.closed.has(civil(row.plannedOn)) ||
+      (state.closed.has(civil(row.plannedOn)) && !previouslyClosed.has(civil(row.plannedOn))) ||
       (change.action === "period" &&
         row.plan.class !== null &&
         row.plan.class.semesterId === change.id &&
+        state.period !== undefined &&
+        row.plannedOn >= state.period.startDate &&
+        row.plannedOn <= state.period.endDate &&
         outside(row.plan.class.semesterId, row.plannedOn)),
   );
   return {

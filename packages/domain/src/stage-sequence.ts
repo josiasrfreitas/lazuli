@@ -2,6 +2,7 @@ export type StageInTrack = {
   id: string;
   internalCode: string;
   sequence: number;
+  status?: "ACTIVE" | "LEGACY";
 };
 
 /** Returns the next stage in the same track, or null at end of path ("fim da trilha"). */
@@ -14,6 +15,8 @@ export function findNextStageInTrack(input: {
     return null;
   }
 
-  const nextSequence = current.sequence + 1;
-  return input.stages.find((stage) => stage.sequence === nextSequence) ?? null;
+  const following = input.stages.filter(
+    (stage) => stage.sequence > current.sequence && stage.status !== "LEGACY",
+  );
+  return following.toSorted((left, right) => left.sequence - right.sequence)[0] ?? null;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { SemesterBooks } from "./semester-books";
 import {
   useEffect,
   useId,
@@ -13,11 +14,12 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
 import { ToastAlert, Button } from "@lazuli/ui";
 import { parseDateBR } from "~/lib/masks";
 import type { FormProps } from "./contract-form-fields";
-import { contractInputFromFields } from "./contract-form-model";
+import { contractInputFromFields, durationFromDates } from "./contract-form-model";
 import type { ContractFormState, ContractOperation } from "./new-contract-state";
 import { validatePrice } from "./new-contract-state";
 import {
   firstInvalidStep,
+  MAX_CONTRACT_MONTHS,
   setupSteps,
   setupTitles,
   setupTuitionPreview,
@@ -25,11 +27,7 @@ import {
   stepForField,
   type SetupStep,
 } from "./contract-setup-model";
-import {
-  SetupMaterialFields,
-  useSetupMaterial,
-  type SetupMaterial,
-} from "./contract-setup-material";
+import { useSetupMaterial, type SetupMaterial } from "./contract-setup-material";
 import { SetupParties, SetupReview, SetupTuition } from "./contract-setup-sections";
 import { SetupSummary } from "./contract-setup-summary";
 import styles from "./contract-setup.module.css";
@@ -146,10 +144,10 @@ function collectSetupErrors({
       props.parseInput?.() ??
       contractInputFromFields(fields, state.commandId.current, props.renewedFromId),
   });
-  if (fields.materialPayment !== "NONE" && material.installmentError)
-    all.materialInstallments = material.installmentError;
-  if (fields.materialPayment !== "NONE" && material.priceError)
-    all.materialCustomPrice = material.priceError;
+  if (!fields.materialBooks && fields.materialPayment !== "NONE") {
+    if (material.installmentError) all.materialInstallments = material.installmentError;
+    if (material.priceError) all.materialCustomPrice = material.priceError;
+  }
   if (props.deferStudentValidation) removeStudentErrors(all);
   return step === "review"
     ? all
@@ -195,6 +193,7 @@ function useSetupData(props: Props): {
   const { state, offer } = props;
   const fields = props.fields ?? state.fields;
   const material = useSetupMaterial({
+    autoSuggest: !props.renewedFromId,
     fields,
     change: state.change,
     suggestedStageId: props.suggestedStageId,
@@ -455,7 +454,7 @@ function SetupHeader({
         <h2 tabIndex={-1}>{setupTitles[step]}</h2>
         <p>{introductions[step]}</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
         {step === "parties" && onRestoreTerms && (
           <Button
             type="button"
@@ -504,15 +503,14 @@ function SetupStepFields({
     );
   if (step === "tuition")
     return <SetupTuition {...formProps} allowEnrollmentFee={props.allowEnrollmentFee ?? false} />;
-  if (step === "material")
-    return (
-      <SetupMaterialFields
-        {...formProps}
-        material={material}
-        suggestedStageId={props.suggestedStageId}
-        allowNoAcquisition={Boolean(props.renewedFromId)}
-      />
+  if (step === "material") {
+    const months = durationFromDates(formProps.fields);
+    return months >= 1 && months <= MAX_CONTRACT_MONTHS ? (
+      <SemesterBooks {...formProps} material={material} />
+    ) : (
+      <p>Defina a vigência do contrato para selecionar os livros.</p>
     );
+  }
   if (step === "review")
     return (
       <SetupReview

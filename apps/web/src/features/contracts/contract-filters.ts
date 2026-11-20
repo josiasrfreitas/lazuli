@@ -13,11 +13,17 @@ const parsers = {
   beneficiario: parseAsString,
   vigenciaDe: parseAsString,
   vigenciaAte: parseAsString,
+  acompanhamento: parseAsString,
+  material: parseAsString,
+  modalidade: parseAsString,
   situacao: parseAsString,
   pagina: parseAsString,
 };
 type Params = { [K in keyof typeof parsers]: string | null };
 export type ContractFilters = {
+  materialState: "ACQUIRED" | "PLANNED" | undefined;
+  followUp: boolean;
+  scheduleType: "REGULAR" | "PERSONALIZED" | undefined;
   search: string;
   payerId: string | undefined;
   studentId: string | undefined;
@@ -44,6 +50,9 @@ export function useContractFilters(): ContractFilters {
   const startsFrom = valid(civilDateSchema, params.vigenciaDe);
   const endsTo = valid(civilDateSchema, params.vigenciaAte);
   const filters = {
+    materialState: z.enum(["ACQUIRED", "PLANNED"]).safeParse(params.material).data,
+    followUp: params.acompanhamento === "rematriculas-e-materiais",
+    scheduleType: z.enum(["REGULAR", "PERSONALIZED"]).safeParse(params.modalidade).data,
     search: (params.busca ?? "").slice(0, CONTRACT_SEARCH_MAX_LENGTH),
     payerId: valid(uuidSchema, params.pagador),
     studentId: valid(uuidSchema, params.beneficiario),

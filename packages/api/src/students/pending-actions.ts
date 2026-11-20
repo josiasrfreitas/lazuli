@@ -32,6 +32,7 @@ const pendingStudentSelect = {
     },
   },
   contracts: { where: { deletedAt: null }, select: { id: true }, take: 1 },
+  undatedIntake: { select: { stageId: true } },
   semesterPlacements: {
     take: 1,
     orderBy: { semester: { startDate: "asc" } },
@@ -70,6 +71,7 @@ type PendingResult = {
   enrollment: PendingStudent["enrollments"][number] | null;
   contract: PendingStudent["contracts"][number] | null;
   futurePlacement: PendingStudent["semesterPlacements"][number] | null;
+  undatedIntake: PendingStudent["undatedIntake"];
   lead: PendingLead | null;
 };
 
@@ -105,6 +107,7 @@ export async function studentsWithPendingRegistration(
       OR: [
         {
           enrollments: { none: intakeEnrollmentWhere(now) },
+          undatedIntake: null,
           semesterPlacements: {
             none: {
               deletedAt: null,
@@ -152,6 +155,7 @@ export async function readStudentPendingActions(
     enrollment: student.enrollments[0] ?? null,
     contract: student.contracts[0] ?? null,
     futurePlacement: student.semesterPlacements[0] ?? null,
+    undatedIntake: student.undatedIntake,
     lead: lead
       ? {
           id: lead.id,

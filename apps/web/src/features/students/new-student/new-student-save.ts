@@ -27,9 +27,10 @@ export function intakeSaveIssue({
   waitingPlacement: boolean;
 }): string | undefined {
   if (blockedLead) return "Confira o vínculo do lead antes de salvar o aluno.";
+  if (waitingPlacement) return "Conclua o nivelamento do lead antes de criar o aluno.";
   if (selectedId && (optionsFetching || !selected))
     return "Confira a turma na etapa pedagógica antes de salvar.";
-  if (entryPeriod === "CURRENT" && selected && (!stageId || waitingPlacement))
+  if (entryPeriod === "CURRENT" && selected && !stageId)
     return "Conclua o nivelamento antes de confirmar a turma.";
   return undefined;
 }
@@ -109,7 +110,8 @@ export function intakePendingItems({
 }
 
 function pendingClassLabel(entryPeriod: "CURRENT" | "NEXT", waitingPlacement: boolean): string {
-  if (entryPeriod === "NEXT") return "Definir a turma do próximo período na página do aluno.";
+  if (entryPeriod === "NEXT")
+    return "Escolher um encaixe na formação de turmas do próximo semestre.";
   return waitingPlacement
     ? "Concluir o nivelamento e escolher a turma."
     : "Definir a turma na página do aluno.";

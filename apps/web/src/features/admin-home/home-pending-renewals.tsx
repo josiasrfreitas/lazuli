@@ -69,14 +69,14 @@ function RenewalsCases({ group, today }: { group: HomeGroup; today: string }): R
               )}
               <span className={styles.action}>
                 <ArrowRight aria-hidden="true" />
-                <span className="sr-only">Renovar contrato</span>
+                <span className="sr-only">Rematricular</span>
               </span>
             </Link>
           </li>
         );
       })}
       {group.total === 0 && (
-        <li className={styles.feedback}>Nenhum contrato a renovar nos próximos 30 dias.</li>
+        <li className={styles.feedback}>Nenhum contrato para rematrícula nos próximos 60 dias.</li>
       )}
     </ul>
   );
@@ -114,7 +114,7 @@ function RenewalsPagination({
 }): ReactElement | null {
   if (total <= PAGE_SIZE) return null;
   return (
-    <nav className={styles.placementPagination} aria-label="Paginação de renovações">
+    <nav className={styles.placementPagination} aria-label="Paginação de rematrículas">
       <Button
         variant="ghost"
         size="sm"

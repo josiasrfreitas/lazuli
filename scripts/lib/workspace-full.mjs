@@ -234,7 +234,7 @@ async function readJournal(root) {
   }
 }
 
-export async function ensureDatabase({ root, workspace, output }) {
+export async function ensureDatabase({ root, workspace, output, seedEnvironment = {} }) {
   const journalPath = path.join(root, DATABASE_INITIALIZATION_PATH);
   let journal = await readJournal(root);
   let exists = databaseExists(root, workspace.resources.database);
@@ -286,7 +286,7 @@ export async function ensureDatabase({ root, workspace, output }) {
     run: runWorkspaceCommand,
   });
   if (journal?.status === "pending") {
-    await completeDatabaseInitialization({ root, workspace, journalPath, output });
+    await completeDatabaseInitialization({ root, workspace, journalPath, output, seedEnvironment });
   }
   return exists;
 }
@@ -295,7 +295,13 @@ function psqlArguments(database, command) {
   return ["exec", POSTGRES_CONTAINER, "psql", "-U", "lazuli", "-d", database, ...command];
 }
 
-async function completeDatabaseInitialization({ root, workspace, journalPath, output }) {
+async function completeDatabaseInitialization({
+  root,
+  workspace,
+  journalPath,
+  output,
+  seedEnvironment,
+}) {
   if (
     databaseInitializationCompleted({
       database: workspace.resources.database,
@@ -333,7 +339,10 @@ async function completeDatabaseInitialization({ root, workspace, journalPath, ou
         arguments_: ["-F", "@lazuli/db", "exec", "prisma", "db", "seed"],
         root,
         capability: "database initialization",
-        environment: { LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY },
+        environment: {
+          ...seedEnvironment,
+          LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY,
+        },
       });
     } catch (error_) {
       const error = new Error("database fixture loading failed and may have left partial data", {

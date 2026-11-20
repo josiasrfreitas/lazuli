@@ -7,6 +7,7 @@ import {
   Monitor,
   UsersRound,
   Pencil,
+  BookOpen,
 } from "lucide-react";
 import { Badge, DetailHeader } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
@@ -99,6 +100,9 @@ export function ClassOverview({
           </div>
         </div>
         <div className={styles.overviewItem}>
+          <ClassBooks detail={detail} />
+        </div>
+        <div className={styles.overviewItem}>
           <ClassOccupancy detail={detail} editCapacity={editCapacity} />
         </div>
         <div className={styles.overviewItem}>
@@ -112,6 +116,47 @@ export function ClassOverview({
         </div>
       </div>
     </section>
+  );
+}
+
+function ClassBooks({ detail }: { detail: Detail }): ReactElement {
+  const personalized = detail.scheduleType === "PERSONALIZED";
+  const current = detail.books?.current;
+  const next = detail.books?.next;
+  return (
+    <section className={styles.occupancy} aria-label="Livros da turma">
+      <h2 className="flex items-center gap-2 text-caption text-muted-foreground">
+        <BookOpen aria-hidden="true" className="size-4" /> Livro atual
+      </h2>
+      <p className={styles.bookValue}>
+        {personalized ? "Por aluno" : (current?.name ?? "Não definido")}
+      </p>
+      {personalized ? (
+        <p className="text-caption text-muted-foreground">Livros e avanços individuais</p>
+      ) : (
+        <NextClassBook next={next} hasCurrent={Boolean(current)} />
+      )}
+    </section>
+  );
+}
+
+function NextClassBook({
+  next,
+  hasCurrent,
+}: {
+  next: NonNullable<Detail["books"]>["next"] | undefined;
+  hasCurrent: boolean;
+}): ReactElement {
+  if (next)
+    return (
+      <p className={styles.nextBook} title="Próximo livro pela sequência do curso">
+        <span>Próximo</span> <strong>{next.name}</strong>
+      </p>
+    );
+  return (
+    <p className="text-caption text-muted-foreground">
+      {hasCurrent ? "Fim da trilha" : "Próximo a definir"}
+    </p>
   );
 }
 
