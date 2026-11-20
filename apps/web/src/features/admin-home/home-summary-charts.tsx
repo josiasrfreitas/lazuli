@@ -172,7 +172,7 @@ function ReceiptsPlot({
             width={30}
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "var(--brand)", fontSize: 11 }}
+            tick={{ fill: "var(--chart-gold)", fontSize: 11 }}
             tickCount={4}
             domain={[0, "auto"]}
           />
@@ -222,8 +222,7 @@ function receiptMarks(animate: boolean): ReactElement[] {
       yAxisId="contracts"
       dataKey="contracts"
       name="Contratos"
-      fill="var(--brand)"
-      fillOpacity={0.6}
+      fill="var(--chart-gold)"
       maxBarSize={8}
       radius={[2, 2, 0, 0]}
       isAnimationActive={animate}
@@ -235,8 +234,7 @@ function receiptMarks(animate: boolean): ReactElement[] {
       dataKey="expectedCents"
       name="Previsto"
       type="linear"
-      stroke="currentColor"
-      strokeOpacity={0.45}
+      stroke="var(--muted-foreground)"
       strokeDasharray="4 5"
       strokeWidth={1.5}
       dot={false}

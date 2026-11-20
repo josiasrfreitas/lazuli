@@ -63,7 +63,24 @@ function relativeLuminance(hex) {
   return red * redWeight + green * greenWeight + blue * blueWeight;
 }
 
-function contrastRatio(foreground, background) {
+/** Composite sRGB source channels over an opaque backdrop before measuring luminance. */
+export function compositeColor(source, { backdrop, opacity }) {
+  const radix = 16;
+  const channels = source
+    .slice(1)
+    .match(/../gu)
+    .map((channel, index) => {
+      const offset = 1 + index * 2;
+      const front = Number.parseInt(channel, radix);
+      const back = Number.parseInt(backdrop.slice(offset, offset + 2), radix);
+      return Math.round(front * opacity + back * (1 - opacity))
+        .toString(radix)
+        .padStart(2, "0");
+    });
+  return `#${channels.join("")}`;
+}
+
+export function contrastRatio(foreground, background) {
   const [lightest, darkest] = [
     relativeLuminance(foreground),
     relativeLuminance(background),

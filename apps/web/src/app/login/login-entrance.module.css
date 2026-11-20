@@ -126,7 +126,6 @@
 
 .access {
   --field: var(--navigation-active);
-  --input: var(--navigation-border);
   --foreground: var(--marquee-foreground);
   --muted-foreground: var(--marquee-muted);
   --ring: var(--brand);
