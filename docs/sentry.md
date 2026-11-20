@@ -27,12 +27,11 @@ Error messages retain their diagnostic text, with common identifying values reda
 
 ## Production configuration
 
-Set `SENTRY_WEB_DSN`, `SENTRY_WORKER_DSN` and `SENTRY_RELEASE` in the prod runtime configuration.
-The release is the deployed commit SHA. Set GitHub environment `app-prod` variable
-`SENTRY_WEB_DSN` and build-only secret `SENTRY_AUTH_TOKEN` for source-map upload. No production
-configuration or deployment is applied by adding these files alone.
+Set the GitHub environment `app-prod` variable `SENTRY_WEB_DSN` and build-only secret
+`SENTRY_AUTH_TOKEN` for source-map upload. The Docker build uses the public DSN and deployed
+commit SHA for the browser bundle and the Next.js server, which also serves the tRPC API.
+Set `SENTRY_WORKER_DSN` in the prod runtime configuration to enable worker reporting.
 
-The application Docker build passes the public browser DSN/environment/release as build args.
 The upload token is a BuildKit secret, never an ARG or image ENV. A prod application build fails
 if that secret is absent. `withSentryConfig` uploads the Next/Turbopack source maps, including
 workspace package sources, and removes browser maps after upload. Production deployment must
