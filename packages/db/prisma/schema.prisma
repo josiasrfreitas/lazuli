@@ -125,6 +125,7 @@ enum PaymentReversalKind {
 
 
 enum ArtifactKind {
+  TABLE_XLSX
   STUDENT_STATEMENT_PDF
   CLASS_ROSTER_PDF
   ATTENDANCE_SUMMARY_PDF
@@ -1233,6 +1234,7 @@ model PaymentReversalProof {
 }
 
 model GeneratedArtifact {
+  exportRequest Json? @map("export_request")
   id             String       @id @default(uuid()) @db.Uuid
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz

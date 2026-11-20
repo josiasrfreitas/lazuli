@@ -1,4 +1,5 @@
 "use client";
+import { TableExportButton } from "~/components/table-export-button";
 import { useSearchDraft } from "~/lib/use-search-draft";
 import { Plus, Search } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
@@ -102,6 +103,11 @@ function TeacherListControls(props: TeacherListControlsProps): ReactElement {
           void props.setParams({ atuacao: "all", acesso: "all" });
           props.pagination.setPage(1);
         }}
+      />
+      <TableExportButton
+        source={{ listing: "Professores", filters: teacherInput(props) }}
+        fields={props.fields}
+        search={props.params.busca}
       />
       <TeacherCoverage back="/professores" />
       <Button size="compact-responsive" onClick={() => props.setCreating(true)}>
@@ -208,16 +214,17 @@ function useTeacherFilters(): TeacherFilters {
   const filtered = Boolean(params.busca || params.atuacao !== "all" || params.acesso !== "all");
   return { params, setParams, pagination, fields, filtered };
 }
-function useTeacherListQuery({
-  params,
-  pagination,
-}: TeacherFilters): QueryResult<RouterOutputs["teachers"]["list"]> {
-  const query = trpc.teachers.list.useQuery({
+function teacherInput({ params, pagination }: Pick<TeacherFilters, "params" | "pagination">) {
+  return {
     search: params.busca,
     active: params.atuacao,
     access: params.acesso,
     page: pagination.page,
     pageSize: pagination.pageSize,
-  });
-  return query;
+  };
+}
+function useTeacherListQuery(
+  filters: TeacherFilters,
+): QueryResult<RouterOutputs["teachers"]["list"]> {
+  return trpc.teachers.list.useQuery(teacherInput(filters));
 }

@@ -161,6 +161,7 @@ function rosterMetricColumns(): DataTableColumn<RosterRow>[] {
     {
       id: "attendance",
       header: "Frequência",
+      centered: true,
       numeric: true,
       width: "narrow",
       cell: (row) => (

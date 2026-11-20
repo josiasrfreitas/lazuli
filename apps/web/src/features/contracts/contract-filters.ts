@@ -75,3 +75,20 @@ export function useContractFilters(): ContractFilters {
   );
   return { ...filters, setFilters, setPage };
 }
+
+export function contractListInput(filters: ContractFilters) {
+  const { page, search, payerId, studentId, startsFrom, endsTo, status } = filters;
+  return {
+    page,
+    grouped: true,
+    materialState: filters.materialState,
+    followUp: filters.followUp,
+    query: search.trim(),
+    scheduleType: filters.scheduleType,
+    payerId,
+    studentId,
+    startsFrom,
+    endsTo,
+    status,
+  };
+}

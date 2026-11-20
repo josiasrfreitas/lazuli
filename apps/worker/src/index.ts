@@ -1,3 +1,4 @@
+import { processTableExport } from "@lazuli/worker-handlers/exports";
 import { flush } from "./instrumentation.js";
 import { refreshStudentHealthPending } from "@lazuli/worker-handlers";
 import { processAssessmentFile } from "@lazuli/worker-handlers/assessment-files";
@@ -5,6 +6,8 @@ import { processStudentDocument } from "@lazuli/worker-handlers/student-document
 import { processCalendarReconciliation } from "@lazuli/worker-handlers/calendar";
 import { processSessionGeneration } from "@lazuli/worker-handlers/sessions";
 import {
+  TABLE_EXPORT_WORKFLOW,
+  tableExportPayloadSchema,
   STUDENT_HEALTH_REFRESH_WORKFLOW,
   studentHealthRefreshPayloadSchema,
   CALENDAR_RECONCILE_WORKFLOW,
@@ -96,10 +99,28 @@ async function createWorker(
         return { status: "COMPLETED" };
       }),
   });
+  const exports = hatchet.task<{ artifactId: string }, { status: string }>({
+    name: TABLE_EXPORT_WORKFLOW,
+    retries: 0,
+    executionTimeout: "5m",
+    scheduleTimeout: "10m",
+    fn: (payload) =>
+      runJob(TABLE_EXPORT_WORKFLOW, () =>
+        processTableExport(db, tableExportPayloadSchema.parse(payload).artifactId),
+      ),
+  });
   const worker = await hatchet.worker("school", {
     slots: 1,
     durableSlots: 1,
-    workflows: [sessions, files, documents, calendar, health, ...createPeriodicTasks(hatchet)],
+    workflows: [
+      exports,
+      sessions,
+      files,
+      documents,
+      calendar,
+      health,
+      ...createPeriodicTasks(hatchet),
+    ],
     handleKill: false,
   });
   return worker;

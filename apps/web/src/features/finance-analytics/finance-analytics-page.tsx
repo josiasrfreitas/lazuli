@@ -1,4 +1,5 @@
 "use client";
+import { TableExportButton } from "~/components/table-export-button";
 import { useState, type ReactElement } from "react";
 import { keepPreviousData } from "@tanstack/react-query";
 import Link from "next/link";
@@ -223,6 +224,12 @@ function MonthlyTable({ data }: { data: Analytics }): ReactElement {
             onRetry={() => {}}
             errorTitle="Não foi possível carregar os valores"
             empty={{ title: "Sem valores", description: "Nenhuma movimentação no período." }}
+            beforeTable={
+              <TableExportButton
+                source={{ listing: "Fluxo de caixa", filters: { year: data.year } }}
+                criteria={[["Ano", String(data.year)]]}
+              />
+            }
             label="Detalhamento financeiro mensal"
             columns={monthlyColumns(data)}
             state={{

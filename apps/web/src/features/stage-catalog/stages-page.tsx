@@ -1,4 +1,5 @@
 "use client";
+import { TableExportButton } from "~/components/table-export-button";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowUpDown, Check, Plus, Search } from "lucide-react";
@@ -38,7 +39,14 @@ export function StagesPage(): React.JSX.Element {
       <div className={styles.page}>
         <CatalogHeader data={data} tracks={tracks} open={setDialog} />
         <TableContainer>
-          <CatalogToolbar search={search} legacy={legacy} order={order} setOrder={setOrder} />
+          <div className="flex flex-wrap items-center gap-2">
+            <TableExportButton
+              source={{ listing: "Estágios", filters: { search, legacy } }}
+              search={search}
+              criteria={[["Incluir legados", legacy ? "Sim" : "Não"]]}
+            />
+            <CatalogToolbar search={search} legacy={legacy} order={order} setOrder={setOrder} />
+          </div>
           <span role="status" className="sr-only">
             {notice}
           </span>

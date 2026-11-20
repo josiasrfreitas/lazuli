@@ -9,7 +9,8 @@
     "./sessions": "./src/sessions/process-generation.ts",
     "./enrollment": "./src/enrollment/process-due-actions.ts",
     "./assessment-files": "./src/assessments/process-file.ts",
-    "./student-documents": "./src/documents/process.ts"
+    "./student-documents": "./src/documents/process.ts",
+    "./exports": "./src/exports/process.ts"
   },
   "scripts": {
     "lint": "lazuli-lint .",
@@ -25,7 +26,9 @@
     "@lazuli/integrations": "workspace:*",
     "@lazuli/job-contracts": "workspace:*",
     "@lazuli/validators": "workspace:*",
-    "@lazuli/logging": "workspace:*"
+    "@lazuli/logging": "workspace:*",
+    "write-excel-file": "2.3.10",
+    "@lazuli/api": "workspace:*"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

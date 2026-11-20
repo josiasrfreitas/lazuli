@@ -46,34 +46,20 @@ const COLUMNS = [
 const COLUMN_COUNT = COLUMNS.length + 1;
 const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
 
-function FactCell({ vm }: { vm: FactCellVm }): ReactElement {
-  const content = <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>;
-
-  if (vm.tone === "muted") {
-    return (
-      <TableCell className="text-muted-foreground" numeric>
-        {content}
-      </TableCell>
-    );
-  }
-
-  if (vm.tone === "success") {
-    return (
-      <TableCell className="text-success" numeric>
-        {content}
-      </TableCell>
-    );
-  }
-
-  if (vm.tone === "destructive") {
-    return (
-      <TableCell className="text-destructive" numeric>
-        {content}
-      </TableCell>
-    );
-  }
-
-  return <TableCell numeric>{content}</TableCell>;
+function FactCell({ vm, centered }: { vm: FactCellVm; centered?: boolean }): ReactElement {
+  return (
+    <TableCell
+      numeric
+      className={cn(
+        centered && "text-center",
+        vm.tone === "muted" && "text-muted-foreground",
+        vm.tone === "success" && "text-success",
+        vm.tone === "destructive" && "text-destructive",
+      )}
+    >
+      <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>
+    </TableCell>
+  );
 }
 
 function EnrollmentCell({ enrollment }: { enrollment: StudentListRow["enrollment"] }): ReactNode {
@@ -159,7 +145,7 @@ export function StudentsTableRow({
       <TableCell numeric>
         <StudentScore studentId={row.id} />
       </TableCell>
-      <FactCell vm={attendanceCellVm(row.attendance)} />
+      <FactCell centered vm={attendanceCellVm(row.attendance)} />
       <FactCell vm={financeCellVm(row.finance)} />
       <StudentActions row={row} onContinue={onContinue} />
     </TableRow>
@@ -253,7 +239,7 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
     }
     case "Frequência": {
       return (
-        <TableHead className="w-[10%]" numeric>
+        <TableHead className="w-[10%] text-center" numeric>
           {column.label}
         </TableHead>
       );

@@ -1,5 +1,6 @@
 "use client";
 
+import { TableExportButton } from "~/components/table-export-button";
 import { useEffect, useState, type ReactElement } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -32,6 +33,7 @@ import { useAnimationPreviewDelay } from "~/lib/animation-preview";
 
 import {
   useStudentFilterOptions,
+  studentListInput,
   useSelectedStudentFilterOptions,
   useStudentsFilters,
   useStudentsList,
@@ -234,6 +236,11 @@ export function StudentsControls({
             registeredTo: null,
           })
         }
+      />
+      <TableExportButton
+        source={{ listing: "Alunos", filters: studentListInput(filters) }}
+        fields={fields}
+        search={filters.search}
       />
       <Button onClick={onNewStudent} size="sm">
         <Plus aria-hidden="true" className="size-4" />

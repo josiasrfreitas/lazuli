@@ -1,3 +1,4 @@
+import { removeExpiredTableExports } from "@lazuli/worker-handlers/exports";
 import { db } from "@lazuli/db";
 import { ConcurrencyLimitStrategy, type getHatchetClient } from "@lazuli/integrations/hatchet";
 import { PERIODIC_WORKFLOWS } from "@lazuli/job-contracts";
@@ -24,6 +25,7 @@ export function createPeriodicTasks<Task>(hatchet: {
     recovery: async () => {
       await recoverAssessmentFiles(db);
       await recoverStudentDocuments(db);
+      await removeExpiredTableExports(db);
     },
     health: async () => {
       await refreshStudentHealthPending(db);

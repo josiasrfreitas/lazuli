@@ -1,5 +1,7 @@
 "use client";
 
+import { contractListInput } from "./contract-filters";
+import { TableExportButton } from "~/components/table-export-button";
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Plus, Search } from "lucide-react";
 import {
@@ -293,6 +295,11 @@ export function ContractsToolbar({
       className="scrollbar-subtle flex w-full min-w-0 items-center gap-2 overflow-x-auto py-1"
     >
       <div className="ml-auto flex min-w-max flex-1 items-center justify-end gap-2">
+        <TableExportButton
+          source={{ listing: "Contratos", filters: contractListInput(filters) }}
+          fields={fields}
+          search={filters.search}
+        />
         <ContractSearch filters={filters} />
         <TableFilters
           fields={visibleFields}

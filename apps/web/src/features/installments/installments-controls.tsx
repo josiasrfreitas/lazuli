@@ -1,5 +1,6 @@
 "use client";
 
+import { TableExportButton } from "~/components/table-export-button";
 import { type ReactElement } from "react";
 import { CircleCheck, Search, Tags } from "lucide-react";
 import { Input, TableFilters, type TableFilterField } from "@lazuli/ui";
@@ -7,6 +8,7 @@ import { orderKindSchema } from "@lazuli/validators";
 import { useSearchDraft } from "~/lib/use-search-draft";
 import { trpc } from "~/lib/trpc";
 import {
+  queryInput,
   INSTALLMENT_STATUSES,
   INSTALLMENT_STATUS_LABELS,
   SEARCH_MAX_LENGTH,
@@ -150,6 +152,11 @@ export function InstallmentsControls({
   ];
   return (
     <div className="flex flex-wrap items-center gap-2 2xl:gap-3">
+      <TableExportButton
+        source={{ listing: "Recebíveis", filters: queryInput(filters) }}
+        fields={filterFields}
+        search={search}
+      />
       <SearchField search={search} onSearch={onSearch} />
       <TableFilters
         fields={filterFields}

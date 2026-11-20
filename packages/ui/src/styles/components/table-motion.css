@@ -10,15 +10,21 @@
 
 /* Keep the sweep attached to the visible scroll frame, above the rows and
    below pagination. The placeholders keep their real column geometry. */
-[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]),
+[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], table[aria-busy="true"]),
 [data-slot="table-container"]
-  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]) {
+  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], table[aria-busy="true"]) {
   isolation: isolate;
 }
 
-[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after,
+[data-slot="table-scroll-area"]:has(
+    [data-slot="table-skeleton-row"],
+    table[aria-busy="true"]
+  )::after,
 [data-slot="table-container"]
-  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after {
+  > [data-slot="table-viewport"]:has(
+    [data-slot="table-skeleton-row"],
+    table[aria-busy="true"]
+  )::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -34,13 +40,16 @@
   animation: lz-table-sweep 1.8s ease-in-out infinite;
 }
 
-[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]) {
+[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], table[aria-busy="true"]) {
   overflow: hidden;
 }
 
 /* Native horizontal scroll remains available during background refreshes. */
 [data-slot="table-container"]
-  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after {
+  > [data-slot="table-viewport"]:has(
+    [data-slot="table-skeleton-row"],
+    table[aria-busy="true"]
+  )::after {
   transform: none;
   background-size: 300% 100%;
   animation-name: lz-table-native-sweep;

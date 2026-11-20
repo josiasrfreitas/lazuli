@@ -14,6 +14,7 @@ import { PendingPlacement } from "./home-pending-placement";
 import { PendingLessons } from "./home-pending-lessons";
 import { PendingCoverage } from "./home-pending-coverage";
 import { PendingPlanning } from "./home-pending-planning";
+import { PendingFormationRisk, useFormationRisk } from "./home-pending-formation-risk";
 import styles from "./home-pending.module.css";
 
 export function HomePending({
@@ -87,6 +88,7 @@ function PendingRows({
   lessons: PendingLessonState;
 }): ReactElement {
   const groups = pendingGroups(data);
+  const formationRisk = useFormationRisk(data?.today);
   const hasFinance = Boolean(data?.canViewFinance && business && business.overdueCents > 0);
   return (
     <>
@@ -97,11 +99,13 @@ function PendingRows({
         groups={groups}
         teachers={lessons.teachers}
       />
+      <PendingFormationRisk risk={formationRisk} />
       <PendingFeedback
         {...groups}
         hasFinance={hasFinance}
         lessons={lessons}
         loading={loading}
+        formationRiskVisible={formationRisk.plans.length > 0 || formationRisk.failed}
         financeUnavailable={Boolean(businessError && data?.canViewFinance)}
       />
     </>
@@ -178,6 +182,7 @@ type PendingFeedbackProps = PendingGroups & {
   hasFinance: boolean;
   lessons: PendingLessonState;
   loading: boolean;
+  formationRiskVisible: boolean;
   financeUnavailable: boolean;
 };
 
@@ -196,6 +201,7 @@ function PendingFeedback({
   health,
   lessons,
   loading,
+  formationRiskVisible,
   financeUnavailable,
 }: PendingFeedbackProps): ReactElement {
   const empty = pendingIsEmpty({
@@ -216,7 +222,7 @@ function PendingFeedback({
   return (
     <>
       <PendingLessonFeedback lessons={lessons} />
-      {empty && (
+      {empty && !formationRiskVisible && (
         <tr>
           <td className={styles.empty}>
             <Inbox aria-hidden="true" />

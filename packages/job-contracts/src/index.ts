@@ -253,3 +253,6 @@ export const PERIODIC_WORKFLOWS = {
   health: { name: "student-health-refresh", cron: "0 20 6 * * *", timeout: "10m" },
   calendar: { name: "calendar-reconcile", cron: "0 0 6 * * *", timeout: "10m" },
 } as const;
+
+export const TABLE_EXPORT_WORKFLOW = "table-export";
+export const tableExportPayloadSchema = z.object({ artifactId: z.string().uuid() }).strict();

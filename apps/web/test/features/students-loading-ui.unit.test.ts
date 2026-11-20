@@ -134,7 +134,7 @@ void test("first load keeps header and filter controls", () => {
       children: null,
     }),
   );
-  const controlsMarkup = renderToStaticMarkup(
+  const controlsMarkup = renderWithQueries(
     createElement(StudentsControls, {
       filters,
       onNewStudent: () => {},

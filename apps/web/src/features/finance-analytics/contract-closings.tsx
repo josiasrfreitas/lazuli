@@ -1,3 +1,4 @@
+import { TableExportButton } from "~/components/table-export-button";
 import { useState, type ReactElement } from "react";
 import {
   Button,
@@ -109,6 +110,12 @@ function ClosingVisualization({
     return (
       <div className="h-80">
         <DataTable
+          beforeTable={
+            <TableExportButton
+              source={{ listing: "Contratos fechados", filters: { year: data.year } }}
+              criteria={[["Ano", String(data.year)]]}
+            />
+          }
           label="Contratos fechados por mês"
           columns={columns}
           state={{

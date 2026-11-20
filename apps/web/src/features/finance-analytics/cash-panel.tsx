@@ -1,4 +1,5 @@
 "use client";
+import { TableExportButton } from "~/components/table-export-button";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import {
@@ -143,6 +144,12 @@ function CashVisualization({ data, view }: { data: Analytics; view: string }): R
   if (view === "table")
     return (
       <DataTable
+        beforeTable={
+          <TableExportButton
+            source={{ listing: "Fluxo de caixa", filters: { year: data.year } }}
+            criteria={[["Ano", String(data.year)]]}
+          />
+        }
         label="Detalhamento financeiro mensal"
         columns={columns}
         state={{

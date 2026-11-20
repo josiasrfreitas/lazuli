@@ -1,4 +1,5 @@
 "use client";
+import { TableExportButton } from "~/components/table-export-button";
 import { useSearchDraft } from "~/lib/use-search-draft";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
@@ -30,12 +31,13 @@ export function AdmissionsPage(): ReactElement {
     situacao: parseAsString.withDefault("WAITING"),
   });
   const pagination = useUrlPagination(studentPaginationPolicy);
-  const query = trpc.admissions.list.useQuery({
+  const input = {
     ...leadFilterInput(params),
     search: params.busca,
     page: pagination.page,
     pageSize: pagination.pageSize,
-  });
+  };
+  const query = trpc.admissions.list.useQuery(input);
   const [creating, setCreating] = useState(false);
   const fields = leadFilterFields(params, (values) => {
     void setParams(values);
@@ -48,19 +50,26 @@ export function AdmissionsPage(): ReactElement {
         pagination={pagination}
         filtered={Boolean(params.busca) || params.interesse !== "ALL" || params.situacao !== "ALL"}
         controls={
-          <AdmissionControls
-            search={params.busca}
-            fields={fields}
-            onClear={() => {
-              void setParams({ situacao: "ALL", interesse: "ALL" });
-              pagination.setPage(1);
-            }}
-            onCreate={() => setCreating(true)}
-            onSearch={(busca) => {
-              void setParams({ busca });
-              pagination.setPage(1);
-            }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <TableExportButton
+              source={{ listing: "Leads", filters: input }}
+              fields={fields}
+              search={params.busca}
+            />
+            <AdmissionControls
+              search={params.busca}
+              fields={fields}
+              onClear={() => {
+                void setParams({ situacao: "ALL", interesse: "ALL" });
+                pagination.setPage(1);
+              }}
+              onCreate={() => setCreating(true)}
+              onSearch={(busca) => {
+                void setParams({ busca });
+                pagination.setPage(1);
+              }}
+            />
+          </div>
         }
       />
       {creating && <LeadCaptureDialog onClose={() => setCreating(false)} />}

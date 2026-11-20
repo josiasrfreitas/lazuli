@@ -1,4 +1,5 @@
 "use client";
+import { TableExportButton } from "~/components/table-export-button";
 import { useState, type ReactElement, type ComponentProps } from "react";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -110,6 +111,11 @@ function ClassPageControls({
       >
         <CalendarDays /> Formação de turmas
       </Button>
+      <TableExportButton
+        source={{ listing: "Turmas", filters: classListQueryInput(params) }}
+        fields={fields}
+        search={params.busca}
+      />
       <ClassFilters params={params} fields={fields} change={change} create={create} />
     </div>
   );

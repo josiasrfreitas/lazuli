@@ -16,6 +16,7 @@ export type DataTableColumn<Row> = {
   header: ReactNode;
   cell: (row: Row) => ReactNode;
   numeric?: boolean;
+  centered?: boolean;
   width?: "wide" | "medium" | "standard" | "narrow" | "selection" | "actions";
 };
 
@@ -152,7 +153,11 @@ function DataRow<Row extends { id: string }>({
       }
     >
       {columns.map((column) => (
-        <TableCell key={column.id} numeric={column.numeric ?? false}>
+        <TableCell
+          key={column.id}
+          numeric={column.numeric ?? false}
+          className={column.centered ? "text-center" : undefined}
+        >
           {column.cell(row)}
         </TableCell>
       ))}
@@ -186,6 +191,7 @@ export function DataTable<Row extends { id: string }>(props: DataTableProps<Row>
             {columns.map((column) => (
               <TableHead
                 key={column.id}
+                className={column.centered ? "text-center" : undefined}
                 numeric={column.numeric ?? false}
                 style={{ width: COLUMN_WIDTHS[column.width ?? "standard"] }}
               >
