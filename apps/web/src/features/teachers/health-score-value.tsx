@@ -8,7 +8,11 @@ const bands = {
   INSUFFICIENT_DATA: { color: "text-muted-foreground", label: "Sem dados" },
 };
 
-export function HealthScoreValue({ value }: { value: number | null | undefined }) {
+export function HealthScoreValue({
+  value,
+}: {
+  value: number | null | undefined;
+}): React.JSX.Element {
   const band = bands[studentHealthLevel(value ?? null)];
   return (
     <span className={band.color} title={band.label}>

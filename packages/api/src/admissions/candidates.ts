@@ -63,7 +63,7 @@ export async function saveCandidate(input: {
   const { id, values } = input.input;
   await lockCandidate(database, id);
   await validateCandidateChanges({ database, id, values });
-  await checkLeadPhone(database, id, values.phone);
+  await checkLeadPhone(database, { id, phone: values.phone });
   const { contactName, source, sourceDetail, ...fields } = values;
   const data = {
     ...fields,

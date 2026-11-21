@@ -29,10 +29,11 @@ const TeacherRegistration = dynamic(
   { loading: TeacherRegistrationLoading },
 );
 
-const SECTIONS = ["visao-geral", "turmas", "alunos", "cadastro"] as const;
+const OVERVIEW_SECTION = "visao-geral";
+const SECTIONS = [OVERVIEW_SECTION, "turmas", "alunos", "cadastro"] as const;
 type TeacherSection = (typeof SECTIONS)[number];
 
-const sectionQuery = parseAsStringLiteral(SECTIONS).withDefault("visao-geral");
+const sectionQuery = parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION);
 
 export function TeacherSections({
   id,
@@ -51,20 +52,7 @@ export function TeacherSections({
   const [busy, setBusy] = useState(false);
   const switchSection = useSectionCarousel({ order: SECTIONS, scope: "recordCarousel" });
 
-  useEffect(() => {
-    // Bookmarks from the single-page record used fragments for the same sections.
-    function migrateFragment(): void {
-      const legacy = SECTIONS.find((value) => `#${value}` === window.location.hash);
-      if (!legacy) return;
-      const url = new URL(window.location.href);
-      url.hash = "";
-      window.history.replaceState(window.history.state, "", url);
-      void setSection(legacy);
-    }
-    migrateFragment();
-    window.addEventListener("hashchange", migrateFragment);
-    return () => window.removeEventListener("hashchange", migrateFragment);
-  }, [setSection]);
+  useLegacyTeacherSection(setSection);
 
   function navigate(next: TeacherSection): void {
     if (busy) return;
@@ -73,7 +61,7 @@ export function TeacherSections({
 
   const navigation = (
     <RecordTabsList label="Seções do docente">
-      <TabsTab value="visao-geral" disabled={busy}>
+      <TabsTab value={OVERVIEW_SECTION} disabled={busy}>
         <LayoutDashboard aria-hidden="true" /> Visão geral
       </TabsTab>
       <TabsTab value="turmas" disabled={busy}>
@@ -105,9 +93,9 @@ export function TeacherSections({
         <TabsPanel key={section} value={section}>
           <div
             className={styles.sectionContent}
-            data-overview={section === "visao-geral" || undefined}
+            data-overview={section === OVERVIEW_SECTION || undefined}
           >
-            {section === "visao-geral" && (
+            {section === OVERVIEW_SECTION && (
               <TeacherMetrics id={id} onStudents={() => navigate("alunos")} />
             )}
             {section === "turmas" && <TeacherClassesPanel id={id} back={back} />}
@@ -123,4 +111,23 @@ export function TeacherSections({
       </RecordTabs>
     </div>
   );
+}
+
+function useLegacyTeacherSection(
+  setSection: (section: TeacherSection) => Promise<URLSearchParams>,
+): void {
+  useEffect(() => {
+    // Bookmarks from the single-page record used fragments for the same sections.
+    function migrateFragment(): void {
+      const legacy = SECTIONS.find((value) => `#${value}` === globalThis.location.hash);
+      if (!legacy) return;
+      const url = new URL(globalThis.location.href);
+      url.hash = "";
+      globalThis.history.replaceState(globalThis.history.state, "", url);
+      void setSection(legacy);
+    }
+    migrateFragment();
+    globalThis.addEventListener("hashchange", migrateFragment);
+    return () => globalThis.removeEventListener("hashchange", migrateFragment);
+  }, [setSection]);
 }

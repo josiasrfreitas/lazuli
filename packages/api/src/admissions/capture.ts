@@ -63,7 +63,7 @@ async function captureFields(
   const today = saoPauloDateOnly(input.now);
   if (birthDate && birthDate > today) throw badRequest("O nascimento não pode estar no futuro.");
   if (englishExperience === "NONE") await assertInitialStage(input.database, stageId);
-  await checkLeadPhone(input.database, input.values.id, input.values.phone);
+  await checkLeadPhone(input.database, input.values);
   return normalizedLeadFields(input.values, previous);
 }
 

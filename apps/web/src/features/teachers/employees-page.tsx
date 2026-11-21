@@ -30,52 +30,11 @@ export function EmployeesPage(): ReactElement {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const pagination = useUrlPagination(studentPaginationPolicy);
-  const [areas, setAreas] = useState<(keyof typeof AREA_LABELS)[]>([]);
-  const [profile, setProfile] = useState<string[]>([]);
-  const fields: TableFilterField[] = [
-    {
-      id: "area",
-      label: "Área",
-      kind: "options",
-      options: Object.entries(AREA_LABELS).map(([id, label]) => ({ id, label })),
-      selected: areas,
-      onChange: (values) => {
-        setAreas(
-          values.filter((value): value is keyof typeof AREA_LABELS =>
-            Object.hasOwn(AREA_LABELS, value),
-          ),
-        );
-        pagination.setPage(1);
-      },
-      onClear: () => {
-        setAreas([]);
-        pagination.setPage(1);
-      },
-    },
-    {
-      id: "profile",
-      label: "Perfil docente",
-      kind: "options",
-      selectionMode: "single",
-      options: [
-        { id: "with", label: "Com perfil docente" },
-        { id: "without", label: "Sem perfil docente" },
-      ],
-      selected: profile,
-      onChange: (values) => {
-        setProfile(values);
-        pagination.setPage(1);
-      },
-      onClear: () => {
-        setProfile([]);
-        pagination.setPage(1);
-      },
-    },
-  ];
+  const { areas, profile, fields, clearFilters } = useEmployeeFilters(() => pagination.setPage(1));
   const query = trpc.employees.list.useQuery({
     search,
     areas,
-    hasTeacherProfile: profile.length ? profile[0] === "with" : undefined,
+    hasTeacherProfile: profile.length > 0 ? profile[0] === "with" : undefined,
     page: pagination.page,
     pageSize: pagination.pageSize,
   });
@@ -99,14 +58,7 @@ export function EmployeesPage(): ReactElement {
                 }}
               />
             </div>
-            <TableFilters
-              fields={fields}
-              onClearAll={() => {
-                setAreas([]);
-                setProfile([]);
-                pagination.setPage(1);
-              }}
-            />
+            <TableFilters fields={fields} onClearAll={clearFilters} />
             <Button size="compact-responsive" onClick={() => setSelected("new")}>
               <Plus />
               Novo colaborador
@@ -121,7 +73,7 @@ export function EmployeesPage(): ReactElement {
           onRowClick={(row) => setSelected(row.id)}
           state={employeeState({
             data,
-            filtered: Boolean(search || areas.length || profile.length),
+            filtered: Boolean(search || areas.length > 0 || profile.length > 0),
             isError: query.isError,
           })}
           empty={{
@@ -233,4 +185,62 @@ function EditEmployee({ id, close }: { id: string; close: () => void }): ReactEl
       </DialogPortal>
     </Dialog>
   );
+}
+
+type EmployeeFilters = {
+  areas: (keyof typeof AREA_LABELS)[];
+  profile: string[];
+  fields: TableFilterField[];
+  clearFilters: () => void;
+};
+function useEmployeeFilters(resetPage: () => void): EmployeeFilters {
+  const [areas, setAreas] = useState<(keyof typeof AREA_LABELS)[]>([]);
+  const [profile, setProfile] = useState<string[]>([]);
+  const fields: TableFilterField[] = [
+    {
+      id: "area",
+      label: "Área",
+      kind: "options",
+      options: Object.entries(AREA_LABELS).map(([id, label]) => ({ id, label })),
+      selected: areas,
+      onChange: (values) => {
+        setAreas(
+          values.filter((value): value is keyof typeof AREA_LABELS =>
+            Object.hasOwn(AREA_LABELS, value),
+          ),
+        );
+        resetPage();
+      },
+      onClear: () => {
+        setAreas([]);
+        resetPage();
+      },
+    },
+    {
+      id: "profile",
+      label: "Perfil docente",
+      kind: "options",
+      selectionMode: "single",
+      options: [
+        { id: "with", label: "Com perfil docente" },
+        { id: "without", label: "Sem perfil docente" },
+      ],
+      selected: profile,
+      onChange: (values) => {
+        setProfile(values);
+        resetPage();
+      },
+      onClear: () => {
+        setProfile([]);
+        resetPage();
+      },
+    },
+  ];
+
+  function clearFilters(): void {
+    setAreas([]);
+    setProfile([]);
+    resetPage();
+  }
+  return { areas, profile, fields, clearFilters };
 }

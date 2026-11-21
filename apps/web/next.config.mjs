@@ -3,9 +3,10 @@ import { networkInterfaces } from "node:os";
 import { sentryBuildSettings } from "./telemetry-build/env.mjs";
 import { copyFileSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
+import { URL } from "node:url";
 
 const require = createRequire(import.meta.url);
-const ocrDirectory = new URL("./public/receipt-ocr/", import.meta.url);
+const ocrDirectory = new URL("public/receipt-ocr/", import.meta.url);
 mkdirSync(ocrDirectory, { recursive: true });
 for (const asset of [
   "tesseract.js/dist/worker.min.js",

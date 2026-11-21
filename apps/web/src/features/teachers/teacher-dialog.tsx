@@ -98,18 +98,7 @@ export function TeacherDialog({ teacher, onClose }: TeacherDialogInput): ReactEl
               failure={failure}
             />
             {panelVisible && (
-              <div
-                id="registration-attachments"
-                ref={panel}
-                role="region"
-                aria-label="Anexos"
-                tabIndex={-1}
-                className={styles.panelMotion}
-                data-open={attachments}
-                inert={!attachments}
-              >
-                <TeacherDocumentPanel documents={documents} onClose={closeAttachments} />
-              </div>
+              <RegistrationAttachments {...{ panel, attachments, documents, closeAttachments }} />
             )}
           </div>
           <FormDialogFooter
@@ -432,5 +421,32 @@ function TeacherPhotoControl({
         onChange={onPhotoChange}
       />
     </>
+  );
+}
+
+function RegistrationAttachments({
+  panel,
+  attachments,
+  documents,
+  closeAttachments,
+}: {
+  panel: RefObject<HTMLDivElement | null>;
+  attachments: boolean;
+  documents: ReturnType<typeof useTeacherDocuments>;
+  closeAttachments: () => void;
+}): ReactElement {
+  return (
+    <div
+      id="registration-attachments"
+      ref={panel}
+      role="region"
+      aria-label="Anexos"
+      tabIndex={-1}
+      className={styles.panelMotion}
+      data-open={attachments}
+      inert={!attachments}
+    >
+      <TeacherDocumentPanel documents={documents} onClose={closeAttachments} />
+    </div>
   );
 }

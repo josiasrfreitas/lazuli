@@ -1,3 +1,4 @@
+import type { RouterOutputs } from "@lazuli/api";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Radar } from "lucide-react";
@@ -9,7 +10,13 @@ import { PendingDisclosure } from "./home-pending-disclosure";
 import { PendingIcon } from "./home-pending-icon";
 import styles from "./home-pending.module.css";
 
-export function useFormationRisk(today: string | undefined) {
+type FormationRisk = {
+  plans: RouterOutputs["semesterOrganization"]["detail"]["plans"];
+  semesterId: string;
+  failed: boolean;
+  retry: () => void;
+};
+export function useFormationRisk(today: string | undefined): FormationRisk {
   const periods = trpc.semesterOrganization.semesters.useQuery(undefined, {
     enabled: Boolean(today),
   });

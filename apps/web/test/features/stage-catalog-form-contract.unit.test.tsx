@@ -212,11 +212,11 @@ void it("opens free-text activities without requiring a book page", () => {
 
 void it("groups consecutive pages under one lesson and reopens the activity title", () => {
   const lesson = stage.lessons[0]!;
-  const pages = Array.from({ length: 5 }, (_, i) => ({
+  const pages = Array.from({ length: 5 }, (_unused, index) => ({
     ...lesson.pages[0]!,
-    id: "p" + i,
-    number: i + 1,
-    activities: i === 0 ? lesson.pages[0]!.activities : [],
+    id: "p" + index,
+    number: index + 1,
+    activities: index === 0 ? lesson.pages[0]!.activities : [],
   }));
   const html = renderWithQueries(
     <Dialog open>
@@ -239,7 +239,7 @@ void it("groups consecutive pages under one lesson and reopens the activity titl
       />
     </Dialog>,
   );
-  const text = html.replace(/<[^>]*>/g, "");
+  const text = html.replaceAll(/<[^>]*>/g, "");
   assert.match(text, /Lição 1 · Págs. 1–5/);
   assert.match(text, /Pág. 1 · Exercício 1/);
   assert.doesNotMatch(text, /Pág. 2/);

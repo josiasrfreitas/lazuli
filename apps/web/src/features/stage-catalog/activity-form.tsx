@@ -272,7 +272,7 @@ type PageFieldsProps = {
   setEnd: (value: string) => void;
 };
 function PageFields({ stage, start, setStart, end, setEnd }: PageFieldsProps): React.JSX.Element {
-  const matches = bookPageRange(stage.lessons, Number(start), Number(end || start));
+  const matches = bookPageRange(stage.lessons, { start: Number(start), end: Number(end || start) });
   return (
     <>
       <div className={styles.pages}>

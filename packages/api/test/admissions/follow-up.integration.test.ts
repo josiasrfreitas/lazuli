@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { after, before, beforeEach, it } from "node:test";
 import { createCaller } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import { TRPCError } from "@trpc/server";
 
 const prefix = "Lead follow-up 176 ";
 const adminId = "00000000-0000-0000-0000-000000000176";
@@ -178,7 +179,10 @@ void it("protects the phone across concurrent capture and save, edits and archiv
     scheduleType: "REGULAR" as const,
     format: "ONLINE" as const,
   };
-  const save = (phone: string | null, id: string = randomUUID()) =>
+  const save = (
+    phone: string | null,
+    id: string = randomUUID(),
+  ): ReturnType<ReturnType<typeof caller>["admissions"]["save"]> =>
     caller().admissions.save({
       id,
       values: { ...values, phone, email: "teste@example.com" },
@@ -189,7 +193,8 @@ void it("protects the phone across concurrent capture and save, edits and archiv
   );
   assert.equal(winners.length, 1);
   const failure = results.find((result) => result.status === "rejected");
-  assert.equal(failure?.reason.code, "CONFLICT");
+  assert.ok(failure?.reason instanceof TRPCError);
+  assert.equal(failure.reason.code, "CONFLICT");
   const winner = winners[0]!;
   await caller().admissions.save({ ...winner, values });
   await caller().admissions.setStatus({ ...winner, status: "ARCHIVED" });
@@ -226,7 +231,9 @@ void it("requires and stores the other source detail and clears it when selectin
     /Informe a origem/,
   );
   await caller().admissions.details({ ...fields, source: "OTHER", sourceDetail: "Evento" });
-  assert.equal((await caller().admissions.byId(lead)).sourceDetail, "Evento");
+  const detailed = await caller().admissions.byId(lead);
+  assert.equal(detailed.sourceDetail, "Evento");
   await caller().admissions.details({ ...fields, source: "GOOGLE", sourceDetail: "Evento" });
-  assert.equal((await caller().admissions.byId(lead)).sourceDetail, null);
+  const standard = await caller().admissions.byId(lead);
+  assert.equal(standard.sourceDetail, null);
 });

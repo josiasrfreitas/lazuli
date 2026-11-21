@@ -477,7 +477,10 @@ async function saveActivity(tx: Tx, input: ActivityCommand): Promise<void> {
       where: { stageId: input.stageId },
       select: bookLessonSelect,
     });
-    const matches = bookPageRange(book, input.pageStart, input.pageEnd ?? input.pageStart);
+    const matches = bookPageRange(book, {
+      start: input.pageStart,
+      end: input.pageEnd ?? input.pageStart,
+    });
     const lessons = matches.flatMap(({ lessonId, page }) =>
       (page.activities.length > 0 ? page.activities.map((activity) => activity.id) : [null]).map(
         (pageActivityId) => ({

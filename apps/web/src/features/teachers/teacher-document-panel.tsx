@@ -78,6 +78,8 @@ export function TeacherDocumentPanel({
   );
 }
 
+const MAX_ATTACHMENT_LABEL_LENGTH = 100;
+
 function AttachmentLoadError({ documents }: { documents: TeacherDocuments }): ReactElement {
   return (
     <ToastAlert variant="destructive">
@@ -131,27 +133,8 @@ function TeacherAttachmentList({
         <SavedAttachments documents={documents} hidePhoto={inRecord} onRemove={onRemove} />
         {extras.map((item, index) => row(item, `extra-${index}`))}
       </ul>
-      {!inRecord && !documents.files.length && !extras.length ? (
-        <AttachmentEmpty>
-          <FileUpload
-            compact
-            accept="image/jpeg,image/png,application/pdf"
-            acceptLabel="JPG, PNG ou PDF"
-            maxSize={5_242_880}
-            value={[]}
-            disabled={documents.busy}
-            onValueChange={(files) => {
-              const file = files[0];
-              if (file) void send({ id: "OTHER", label: file.name.slice(0, 100) }, file);
-            }}
-            renderTrigger={({ open, disabled }) => (
-              <Button type="button" size="sm" disabled={disabled} onClick={open}>
-                <Plus />
-                Adicionar primeiro anexo
-              </Button>
-            )}
-          />
-        </AttachmentEmpty>
+      {!inRecord && documents.files.length === 0 && extras.length === 0 ? (
+        <FirstAttachment busy={documents.busy} send={send} />
       ) : (
         <AttachmentAdd
           disabled={documents.busy}
@@ -165,6 +148,40 @@ function TeacherAttachmentList({
   );
 }
 
+function FirstAttachment({
+  busy,
+  send,
+}: {
+  busy: boolean;
+  send: ReturnType<typeof useAttachmentSend>["send"];
+}): ReactElement {
+  return (
+    <AttachmentEmpty>
+      <FileUpload
+        compact
+        accept="image/jpeg,image/png,application/pdf"
+        acceptLabel="JPG, PNG ou PDF"
+        maxSize={5_242_880}
+        value={[]}
+        disabled={busy}
+        onValueChange={(files) => {
+          const file = files[0];
+          if (file)
+            void send(
+              { id: "OTHER", label: file.name.slice(0, MAX_ATTACHMENT_LABEL_LENGTH) },
+              file,
+            );
+        }}
+        renderTrigger={({ open, disabled }) => (
+          <Button type="button" size="sm" disabled={disabled} onClick={open}>
+            <Plus />
+            Adicionar primeiro anexo
+          </Button>
+        )}
+      />
+    </AttachmentEmpty>
+  );
+}
 async function removeAttachment(
   documents: TeacherDocuments,
   {
@@ -300,71 +317,78 @@ function SavedAttachments({
       {documents.files
         .filter((file) => !hidePhoto || file.kind !== "PHOTO")
         .map((file) => {
-          const url = `/api/teacher-files/${file.id}`;
-          const image = file.contentType.startsWith("image/");
-          return (
-            <li key={file.id} className="border-b border-border py-2">
-              <details>
-                <summary className="flex cursor-pointer items-center gap-3 rounded-sm p-1 hover:bg-accent">
-                  {image ? (
-                    <img
-                      src={url}
-                      alt=""
-                      loading="lazy"
-                      className="size-10 rounded-sm object-cover"
-                    />
-                  ) : (
-                    <FileText aria-hidden="true" className="size-10 p-2" />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <strong className="block break-words">{file.label}</strong>
-                    <small className="text-muted-foreground">
-                      {image ? file.contentType.split("/")[1]?.toUpperCase() : "PDF"} ·{" "}
-                      {new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(
-                        new Date(file.createdAt),
-                      )}
-                    </small>
-                  </span>
-                  <ChevronDown aria-hidden="true" className="size-4" />
-                </summary>
-                <div className="grid gap-2 p-2 text-caption">
-                  {image && (
-                    <img
-                      src={url}
-                      alt={file.label}
-                      loading="lazy"
-                      className="max-h-56 max-w-full rounded-sm object-contain"
-                    />
-                  )}
-                  <p className="break-all">{file.fileName}</p>
-                  {file.subtitle && <p>{file.subtitle}</p>}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      nativeButton={false}
-                      render={<a href={url} download={file.fileName} />}
-                      size="sm"
-                      variant="secondary"
-                    >
-                      <Download />
-                      Baixar arquivo
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="ghost"
-                      disabled={documents.busy}
-                      aria-label={`Remover ${file.label}`}
-                      onClick={() => onRemove(file.id)}
-                    >
-                      <X />
-                    </Button>
-                  </div>
-                </div>
-              </details>
-            </li>
-          );
+          return <SavedAttachment key={file.id} {...{ file, onRemove }} busy={documents.busy} />;
         })}
     </>
+  );
+}
+
+function SavedAttachment({
+  file,
+  onRemove,
+  busy,
+}: {
+  file: TeacherDocuments["files"][number];
+  onRemove: (id: string) => void;
+  busy: boolean;
+}): ReactElement {
+  const url = `/api/teacher-files/${file.id}`;
+  const image = file.contentType.startsWith("image/");
+  return (
+    <li className="border-b border-border py-2">
+      <details>
+        <summary className="flex cursor-pointer items-center gap-3 rounded-sm p-1 hover:bg-accent">
+          {image ? (
+            <img src={url} alt="" loading="lazy" className="size-10 rounded-sm object-cover" />
+          ) : (
+            <FileText aria-hidden="true" className="size-10 p-2" />
+          )}
+          <span className="min-w-0 flex-1">
+            <strong className="block break-words">{file.label}</strong>
+            <small className="text-muted-foreground">
+              {image ? file.contentType.split("/")[1]?.toUpperCase() : "PDF"} ·{" "}
+              {new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(
+                new Date(file.createdAt),
+              )}
+            </small>
+          </span>
+          <ChevronDown aria-hidden="true" className="size-4" />
+        </summary>
+        <div className="grid gap-2 p-2 text-caption">
+          {image && (
+            <img
+              src={url}
+              alt={file.label}
+              loading="lazy"
+              className="max-h-56 max-w-full rounded-sm object-contain"
+            />
+          )}
+          <p className="break-all">{file.fileName}</p>
+          {file.subtitle && <p>{file.subtitle}</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              nativeButton={false}
+              render={<a href={url} download={file.fileName} />}
+              size="sm"
+              variant="secondary"
+            >
+              <Download />
+              Baixar arquivo
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              disabled={busy}
+              aria-label={`Remover ${file.label}`}
+              onClick={() => onRemove(file.id)}
+            >
+              <X />
+            </Button>
+          </div>
+        </div>
+      </details>
+    </li>
   );
 }
 
