@@ -61,10 +61,16 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: "Pedagógico",
     // students.* is adminProcedure; staffProcedure is deferred debt (PR #46).
     items: [
+      {
+        href: "/pedagogico/analytics",
+        label: "Analytics",
+        icon: ChartNoAxesCombined,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       { href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/professores",
-        label: "Professores",
+        label: "Docentes",
         icon: GraduationCap,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
@@ -90,8 +96,20 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: "comercial",
-    label: "Comercial",
+    label: "Comercial e Pessoas",
     items: [
+      {
+        href: "/comercial/analytics",
+        label: "Analytics",
+        icon: ChartNoAxesCombined,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+      {
+        href: "/colaboradores",
+        label: "Colaboradores",
+        icon: Users,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       {
         href: "/interessados",
         label: "Leads",
@@ -106,7 +124,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       {
         href: "/financeiro",
-        label: "Visão financeira",
+        label: "Analytics financeiro",
         icon: ChartNoAxesCombined,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
@@ -154,6 +172,12 @@ export function navSectionsFor(role: StaffRole): NavSection[] {
             roles: ["TEACHER"],
           },
           { href: "/professor/turmas", label: "Minhas turmas", icon: BookOpen, roles: ["TEACHER"] },
+          {
+            href: "/professor/analytics",
+            label: "Analytics",
+            icon: ChartNoAxesCombined,
+            roles: ["TEACHER"],
+          },
           { href: "/professor/alunos", label: "Meus alunos", icon: Users, roles: ["TEACHER"] },
           {
             href: "/professor/acompanhamento",
@@ -254,7 +278,7 @@ function returnDestination({
   if (!item) return null;
   const detailLabel: Record<string, string> = {
     "/alunos": "Aluno",
-    "/professores": "Professor",
+    "/professores": "Docente",
     "/turmas": "Turma",
   };
   return {

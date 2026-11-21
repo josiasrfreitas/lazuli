@@ -7,39 +7,26 @@ import {
   UserRoundX,
   type LucideIcon,
 } from "lucide-react";
-import { purposes } from "~/features/appointments/shared";
-import { stageIdentity, type CalendarLesson } from "./calendar-model";
-import { LessonFormat, lessonFormatLabel } from "./lesson-format";
+import type { CalendarLesson } from "./calendar-model";
+import { LessonFormat } from "./lesson-format";
 import { lessonPresenceLabel } from "./lesson-markers";
-import { lessonKind, lessonStatus } from "./weekly-block-details";
+import {
+  EVENT_LABELS,
+  primaryEventType,
+  lessonCardIdentity,
+  lessonFormatLabel,
+  lessonStatus,
+} from "./lesson-presentation";
 import styles from "./weekly-lesson-content.module.css";
 
-function cardIdentity(lesson: CalendarLesson): { title: string; context: string } {
-  return {
-    title:
-      lesson.experimental?.candidate.fullName ??
-      lesson.appointment?.student.name ??
-      stageIdentity(lesson).stage,
-    context: lessonContext(lesson),
-  };
-}
-
-function lessonContext(lesson: CalendarLesson): string {
-  if (lesson.experimental) {
-    return lesson.experimental.kind === "PLACEMENT" ? "Nivelamento" : "Experimental individual";
-  }
-  if (lesson.appointment) return purposes[lesson.appointment.purpose];
-  return lesson.className;
-}
-
 export function weeklyLessonLabel(lesson: CalendarLesson): string {
-  const { title, context } = cardIdentity(lesson);
+  const { title, context } = lessonCardIdentity(lesson);
   return [
-    lessonKind(lesson),
+    EVENT_LABELS[primaryEventType(lesson)],
     title,
     context,
     lessonFormatLabel(lesson),
-    lesson.teacher ?? "Professor a definir",
+    lesson.teacher ?? "Docente a definir",
     `${lesson.startTime}–${lesson.endTime}`,
     lessonStatus(lesson),
     !lesson.appointment && !lesson.experimental ? lessonPresenceLabel(lesson) : null,
@@ -51,7 +38,7 @@ export function weeklyLessonLabel(lesson: CalendarLesson): string {
 
 /** Weekly density follows the card's available area, independently of the daily layout. */
 export function WeeklyLessonContent({ lesson }: { lesson: CalendarLesson }): ReactJSX.Element {
-  const { title, context } = cardIdentity(lesson);
+  const { title, context } = lessonCardIdentity(lesson);
   return (
     <span className={styles.content} data-cancelled={lesson.state === "CANCELLED"}>
       <strong className={styles.title} data-calendar-detail>
@@ -77,7 +64,7 @@ export function WeeklyLessonContent({ lesson }: { lesson: CalendarLesson }): Rea
         </span>
       </span>
       <span className={styles.teacher} data-calendar-detail>
-        {lesson.teacher ?? "Professor a definir"}
+        {lesson.teacher ?? "Docente a definir"}
       </span>
       <span className={styles.context} data-calendar-detail>
         {context}

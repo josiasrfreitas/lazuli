@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./listing-reads": "./src/table-exports/listing-reads.ts"
   },
   "scripts": {
     "lint": "lazuli-lint .",

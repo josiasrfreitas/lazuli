@@ -37,7 +37,7 @@ export function HomeSummaryLoading({ audience = false }: { audience?: boolean })
 
 function ReceiptsLoading(): ReactElement {
   return (
-    <Card title="Receita e contratos" className={layout.receipts ?? ""}>
+    <Card title="Recebimentos e previsão" className={`${layout.receipts} ${layout.financialPanel}`}>
       <div className={styles.cash}>
         <div>
           <span className={styles.number} />

@@ -37,7 +37,10 @@ export async function getArtifact(input: {
     where: { id: input.id, deletedAt: null },
   });
 
-  if (artifact === null) {
+  if (
+    artifact === null ||
+    (artifact.kind === "TABLE_XLSX" && artifact.requestedById !== input.staffUser.id)
+  ) {
     reportNotFound("artifact");
   }
 

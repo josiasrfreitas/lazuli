@@ -63,7 +63,7 @@ async function recordTarget(
   if (!correcting) await requireCurrentEnrollment(context, row.studentId);
   assertRecordingDetails(row, { input, correcting });
   const teacher = appointmentTeacher(row);
-  if (!teacher) throw badRequest("O atendimento está sem professor responsável.");
+  if (!teacher) throw badRequest("O atendimento está sem docente responsável.");
   return { row, correcting, teacherId: teacher.id };
 }
 

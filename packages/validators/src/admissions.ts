@@ -1,3 +1,4 @@
+import { leadSourceSchema, sourceDetailSchema, validateLeadSource } from "./lead-source.js";
 import { z } from "zod";
 import { leadInterestSchema } from "./leads.js";
 import { civilDateSchema } from "./civil-date.js";
@@ -17,7 +18,8 @@ export const admissionIdSchema = z.object({ id: z.string().uuid() }).strict();
 export const admissionValuesSchema = z
   .object({
     contactName: contact.optional(),
-    source: contact.optional(),
+    source: leadSourceSchema.nullish(),
+    sourceDetail: sourceDetailSchema,
     fullName: z.string().trim().min(1, "Informe o nome.").max(MAX_NAME),
     phone: contact,
     email: z
@@ -30,6 +32,7 @@ export const admissionValuesSchema = z
     format: classFormatSchema,
   })
   .strict()
+  .superRefine(validateLeadSource)
   .superRefine((value, context) => {
     if (!value.phone && !value.email)
       context.addIssue({

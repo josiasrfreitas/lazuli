@@ -6,6 +6,10 @@ clusters and name the first-level folders under `packages/api/src` and `packages
 
 ## Areas
 
+**Employees and teachers**
+
+A **Colaborador** holds the shared registration, contact, employment and private documents for a staff member. A **Docente** is a collaborator with a teaching profile. Area and job title describe the employment relationship. The account role controls access independently. Use _docente_ in Portuguese product copy.
+
 **Students**:
 People who study at the school, with their guardians, contacts and addresses.
 
@@ -253,6 +257,11 @@ independent of the course modality and whether the meeting is online or in perso
 An enrollment opportunity for a prospective learner or an existing student seeking a new placement.
 The person contacted may be the learner or someone acting on their behalf.
 _Avoid_: Student (as a synonym), interested person, candidate (in product language)
+
+**Lead Source**:
+How the contact found the school. Staff select an optional, fixed category and describe the origin
+when they select “Outro”. Configurable options in Parâmetros remain outside this delivery.
+See [issue #309](https://github.com/josiasrfreitas/lazuli/issues/309).
 
 **Lead Contact**:
 The person with whom the school discusses an enrollment opportunity, such as the learner or a parent.

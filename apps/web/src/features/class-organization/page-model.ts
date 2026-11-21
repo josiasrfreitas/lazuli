@@ -125,7 +125,7 @@ function useSemesterData(selectedPeriod: string): SemesterData {
   return { periods, query, semesterId, today };
 }
 
-function resolveSemesterId({
+export function resolveSemesterId({
   selectedPeriod,
   periods,
   today,

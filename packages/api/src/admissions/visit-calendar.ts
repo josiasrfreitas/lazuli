@@ -54,7 +54,7 @@ export async function visitCalendar(
     meetings: availableMeetings(meetings, { input, now }),
     leadBusy: leadBusyIntervals(visits, input),
     teacherBusy: [
-      ...appointments.map((row) => ({ ...timedInterval(row), label: "Atendimento do professor" })),
+      ...appointments.map((row) => ({ ...timedInterval(row), label: "Atendimento do docente" })),
       ...introductions.map((row) => ({ ...timedInterval(row), label: "Experimental individual" })),
     ],
     closedDays: closed.map((row) => ({ date: dateOnly(row.date), reason: row.reason })),

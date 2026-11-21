@@ -24,7 +24,7 @@ function figureContent(work: WorkPriority): {
   if (timing?.kind === "departure")
     return {
       figure: total.toLocaleString("pt-BR"),
-      label: "Professores com turmas a reatribuir",
+      label: "Docentes com turmas a reatribuir",
       isDate: false,
       countLabel: "",
     };

@@ -6,38 +6,48 @@ should not branch on the theme to choose colors.
 
 ## Surfaces and emphasis
 
-| Role                                         | Use                                                                                    |
-| -------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `background`, `card`, `popover`              | Page canvas, working surface, and elevated panels                                      |
-| `field`                                      | Editable input surfaces, including selects and textareas                               |
-| `heading`, `foreground`, `muted-foreground`  | Headings, content, and supporting information                                          |
-| `navigation-*`                               | The theme-aware navigation surface and its readable labels, icons, and active items    |
-| `table-heading-*`                            | Light blue column headers with navy text in light mode; blue-gray headers in dark mode |
-| `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                          |
-| `primary`, `primary-foreground`              | The main action: navy in light mode and off-white in dark mode                         |
-| `accent`, `accent-foreground`                | Selected controls and contextual blue surfaces                                         |
-| `interactive`, `icon`                        | Links and supporting interface icons                                                   |
-| `brand`, `brand-rule`, `selection-indicator` | Gold identity details, restrained rules, and current-position markers                  |
+| Role                                         | Use                                                                          |
+| -------------------------------------------- | ---------------------------------------------------------------------------- |
+| `background`, `card`, `popover`              | Page canvas, working surface, and elevated panels                            |
+| `record-summary-surface`                     | Filled summaries on student and class records                                |
+| `field`                                      | Editable input surfaces, including selects and textareas                     |
+| `heading`, `foreground`, `muted-foreground`  | Headings, content, and supporting information                                |
+| `navigation-*`                               | Dark lateral navigation with pale icons, active markers and focus indicators |
+| `table-heading-*`                            | Column and calendar headings on tinted surfaces in both themes               |
+| `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                |
+| `primary`, `primary-foreground`              | The main action, blue in light mode and cobalt with pale text in dark mode   |
+| `accent`, `accent-foreground`                | Selected controls and contextual surfaces                                    |
+| `interactive`, `icon`                        | Links and supporting interface icons                                         |
+| `brand`, `brand-rule`, `selection-indicator` | Identity accent, quiet dividers and current-position markers                 |
 
-Keep most of the workspace neutral. The navigation uses a light surface with blue ink in light mode and navy in dark mode. Gold appears
-in the signature and selected navigation; light tables have a fine gold header rule, while
-dark tables use blue-gray surfaces and rules, scoped to the table frame. Dropdowns use ordinary borders without an inset frame.
-In dark mode, dialogs use the navigation blue with slightly lighter blue input surfaces;
-buttons use blue primary actions with white labels, blue-gray secondary surfaces, and matching
-hover and pressed states. These overrides are scoped to buttons; other controls retain the
-theme's default primary roles. Light-mode dialogs keep their white surface.
-Use explicit text or shape alongside selection color. Reserve status colors for operational
-meaning: a class modality, for example, uses accent or secondary surfaces rather than success.
+The light-theme trial uses blush paper (`#FCF5F3`) for reading surfaces, espresso
+(`#2E2727`) for text, and blue (`#305985`) for the primary action,
+links and selection. The light top bar shares the warm stone canvas, with navy reserved for the sidebar. Search and calendar headers use warm tints. Lesson types keep their own labeled colors.
 
-The header button switches directly between light and dark. The browser's preference supplies
-the initial theme; an explicit choice is stored on that browser and applied before the first
-paint. Login and access-restriction screens keep their navy entrance surface.
+On the light Home page, receipts and forecast share a paper plot. Blue connects
+the receipts total to its solid line, espresso connects the contract count to its bars, and
+the forecast keeps its dashed line. Conversion uses a deep blue surface with blush text.
+Pending tasks use individually tinted rows with explicit status indicators.
+
+The dark canvas (#0D1428), cards (#151F38), and floating surfaces (#1E2D4B) form a navy scale.
+Cobalt identifies the primary action. Lighter blues mark links, keyboard focus, and navigation
+selection. In finance, blue connects receipts to their line and lavender connects contracts to
+their bars. Ghost actions
+remain transparent. Use the destructive variants for destructive actions.
+
+Both staff contexts share the header theme button. A fresh browser starts in dark mode. An explicit
+choice is stored under `lazuli-theme` and applied in the document head before paint. With storage
+blocked, switching still works for the open document. Login, password recovery and the 403 retain
+their institutional dark surface. Projected attendance codes keep black modules on white with a
+four-module quiet zone. Finance charts retain labeled data, legends and the existing series roles.
+
+See the [color review and technical measurements](auditoria-visual/revisao-cores.html).
 
 ### Academic reading panels
 
-The class page retains its blue overview summary and uses shared dark reading panels for recent
-occurrences, performance, and lessons. These panel roles retain the same values in light and dark
-mode. The compact, responsive composition uses shared UI controls with their dark-theme variants.
+Filled record summaries use the paper card surface in light mode and the navy card surface in dark mode.
+The class page uses shared dark reading panels for recent occurrences, performance, and lessons.
+In dark mode they share the navy card surface.
 
 | Role                        | Use                                                                        |
 | --------------------------- | -------------------------------------------------------------------------- |

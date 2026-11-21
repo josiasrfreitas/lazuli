@@ -175,7 +175,7 @@ function SelectionDetails({
       <p>
         {ready
           ? "Confira as datas e horários para calcular os encontros."
-          : "Escolha professor, dias e intervalo para ver quanto essa seleção cobre."}
+          : "Escolha docente, dias e intervalo para ver quanto essa seleção cobre."}
       </p>
       <p>
         Para usar horários diferentes em cada dia, salve um dia por vez. As aulas se somam às que
@@ -239,7 +239,7 @@ function CapacityProjection({
       )}
       <span className={styles.selectionDetail}>
         <Check size={15} aria-hidden="true" />
-        Horários conferidos para professor e alunos.
+        Horários conferidos para docente e alunos.
       </span>
     </>
   );

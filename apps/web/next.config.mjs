@@ -1,6 +1,21 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import { networkInterfaces } from "node:os";
 import { sentryBuildSettings } from "./telemetry-build/env.mjs";
+import { copyFileSync, mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
+import { URL } from "node:url";
+
+const require = createRequire(import.meta.url);
+const ocrDirectory = new URL("public/receipt-ocr/", import.meta.url);
+mkdirSync(ocrDirectory, { recursive: true });
+for (const asset of [
+  "tesseract.js/dist/worker.min.js",
+  "tesseract.js-core/tesseract-core-lstm.wasm.js",
+  "@tesseract.js-data/por/4.0.0_best_int/por.traineddata.gz",
+]) {
+  copyFileSync(require.resolve(asset), new URL(asset.split("/").at(-1), ocrDirectory));
+}
+
 const DEFAULT_IMAGE_QUALITY = 75;
 const LOGIN_IMAGE_QUALITY = 90;
 const REFERRER_POLICY = "Referrer-Policy";

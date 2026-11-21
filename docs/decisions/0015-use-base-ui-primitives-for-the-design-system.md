@@ -4,7 +4,6 @@ Status: Accepted
 Decision date: 2026-08-05
 Supersedes: None
 Superseded by: None
-Legacy sources: None
 Implementation evidence: [`packages/ui/src/components/`](../../packages/ui/src/components/), [`pnpm-workspace.yaml`](../../pnpm-workspace.yaml) (`@base-ui/react` catalog entry)
 
 ## Context

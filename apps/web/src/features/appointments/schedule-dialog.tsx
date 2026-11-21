@@ -257,7 +257,7 @@ function DetailsNotes({ input, draft }: Pick<ScheduleModel, "input" | "draft">):
             draft.change("planned", planned);
             draft.validation.clear("plannedContent");
           }}
-          placeholder="Conteúdo, objetivo ou referência para o professor"
+          placeholder="Conteúdo, objetivo ou referência para o docente"
           error={draft.validation.errors.plannedContent}
         />
         <NarrativeField

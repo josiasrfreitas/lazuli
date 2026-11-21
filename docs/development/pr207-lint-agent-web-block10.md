@@ -25,7 +25,7 @@
   `/tmp/lazuli-pr207-block10-targeted.json`.
 - Lint direcionado final: 0 erros, 12 avisos
   (`/tmp/lazuli-pr207-block10-targeted-final.json`). O `pnpm format:check`
-  local encontra apenas dois JSONs ignorados pelo Git em `.impeccable/live`;
+  local encontra apenas dois JSONs ignorados pelo Git;
   ambos estão ausentes do checkout do CI. A checagem equivalente sobre 1.586
   arquivos versionados/novos passou (`/tmp/lazuli-pr207-block10-tracked-format.log`).
   Typecheck Web e testes Web 295/295 passaram, assim como

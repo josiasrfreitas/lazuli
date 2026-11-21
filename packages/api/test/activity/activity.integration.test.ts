@@ -39,7 +39,7 @@ void it("records the actor and server time once for an idempotent capture and su
     phone: "82999991234",
     email: null,
     contactName: null,
-    source: "Indicação",
+    source: "REFERRAL" as const,
   };
   await caller().admissions.capture({ lead: values });
   await caller().admissions.capture({ lead: values });
@@ -135,8 +135,8 @@ void it("keeps cursor order for simultaneous events while new activity arrives",
       lead: {
         id: randomUUID(),
         fullName: `${prefix}${name}`,
-        phone: "82999994567",
-        email: null,
+        phone: null,
+        email: `${name}@example.com`,
         contactName: null,
         source: null,
       },

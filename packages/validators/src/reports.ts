@@ -11,6 +11,7 @@ const MIN_MONTH = 1;
 const MAX_MONTH = 12;
 
 export const artifactKindSchema = z.enum([
+  "TABLE_XLSX",
   "STUDENT_STATEMENT_PDF",
   "CLASS_ROSTER_PDF",
   "ATTENDANCE_SUMMARY_PDF",

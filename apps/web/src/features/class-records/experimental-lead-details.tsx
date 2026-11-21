@@ -3,6 +3,7 @@ import { Mail, MessageCircle, Pencil, Phone } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { toWhatsAppUrl } from "~/lib/format";
 import {
+  leadSourceLabel,
   interestLabel,
   leadInterestLabels,
   statusLabels,
@@ -111,10 +112,10 @@ function LeadProfile({
             <dd>{statusLabels[lead.status]}</dd>
           </div>
         )}
-        {lead?.source?.trim() && (
+        {lead?.source && (
           <div>
             <dt>Origem</dt>
-            <dd>{lead.source}</dd>
+            <dd>{leadSourceLabel(lead)}</dd>
           </div>
         )}
       </dl>

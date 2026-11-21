@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { after, before, beforeEach, it } from "node:test";
 import { createCaller } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import { TRPCError } from "@trpc/server";
 
 const prefix = "Lead follow-up 176 ";
 const adminId = "00000000-0000-0000-0000-000000000176";
@@ -44,15 +45,15 @@ after(async () => {
   await db.user.delete({ where: { id: adminId } });
   await db.$disconnect();
 });
-async function capture(suffix: string): Promise<{ id: string }> {
+async function capture(suffix: string, phone = "82999991234"): Promise<{ id: string }> {
   return caller().admissions.capture({
     lead: {
       id: randomUUID(),
       fullName: `${prefix}${suffix}`,
-      phone: "82999991234",
+      phone,
       email: null,
       contactName: "Pessoa de contato",
-      source: "Indicação",
+      source: "REFERRAL" as const,
     },
   });
 }
@@ -64,12 +65,12 @@ void it("captures and edits contact details without requiring or fabricating ped
     phone: "82999994567",
     email: null,
     contactName: "Mãe do futuro aluno",
-    source: "Visita à escola",
+    source: "SCHOOL_VISIT",
   });
   const saved = await caller().admissions.byId(lead);
   assert.equal(saved.phone, "82999994567");
   assert.equal(saved.contactName, "Mãe do futuro aluno");
-  assert.equal(saved.source, "Visita à escola");
+  assert.equal(saved.source, "SCHOOL_VISIT");
   assert.deepEqual(
     [saved.scheduleType, saved.format, saved.studentId, saved.enrollmentId],
     [null, null, null, null],
@@ -84,15 +85,15 @@ void it("captures and edits contact details without requiring or fabricating ped
 // the ignored historical columns or erasing their persisted data.
 void it("filters captured leads by interest and lifecycle without including unrelated candidates", async () => {
   const high = await capture("High interest");
-  const archived = await capture("Archived");
-  const unknown = await capture("Unknown interest");
+  const archived = await capture("Archived", "82999991235");
+  const unknown = await capture("Unknown interest", "82999991236");
   const values = {
     id: high.id,
     fullName: `${prefix}High interest`,
     phone: "82999991234",
     email: null,
     contactName: "Pessoa de contato",
-    source: "Indicação",
+    source: "REFERRAL" as const,
     interest: "HIGH" as const,
   };
   await caller().admissions.details(values);
@@ -120,7 +121,7 @@ void it("keeps captured details and attributed activity readable after archiving
     phone: "82999994567",
     email: null,
     contactName: "Pessoa de contato",
-    source: "Indicação",
+    source: "REFERRAL" as const,
     notes: "Família pediu opções à tarde.",
   };
   await caller().admissions.details(details);
@@ -165,4 +166,74 @@ void it("rejects a future birth date using the school day without persisting a c
   assert.equal(captured.total, 0);
   const events = await caller().activity.list({ search: `${prefix}Future birth`, period: "ALL" });
   assert.equal(events.total, 0);
+});
+
+void it("protects the phone across concurrent capture and save, edits and archived leads", async () => {
+  const values = {
+    fullName: prefix + "Phone",
+    phone: "(82) 99999-1234",
+    email: null,
+    notes: null,
+    studentId: null,
+    stageId: null,
+    scheduleType: "REGULAR" as const,
+    format: "ONLINE" as const,
+  };
+  const save = (
+    phone: string | null,
+    id: string = randomUUID(),
+  ): ReturnType<ReturnType<typeof caller>["admissions"]["save"]> =>
+    caller().admissions.save({
+      id,
+      values: { ...values, phone, email: "teste@example.com" },
+    });
+  const results = await Promise.allSettled([capture("Concurrent"), save("+55 82 99999-1234")]);
+  const winners = results.flatMap((result) =>
+    result.status === "fulfilled" ? [result.value] : [],
+  );
+  assert.equal(winners.length, 1);
+  const failure = results.find((result) => result.status === "rejected");
+  assert.ok(failure?.reason instanceof TRPCError);
+  assert.equal(failure.reason.code, "CONFLICT");
+  const winner = winners[0]!;
+  await caller().admissions.save({ ...winner, values });
+  await caller().admissions.setStatus({ ...winner, status: "ARCHIVED" });
+  const other = await save("(81) 99999-1234");
+  await assert.rejects(save(values.phone, other.id), { code: "CONFLICT" });
+  await assert.rejects(
+    caller().admissions.details({
+      ...other,
+      fullName: prefix + "Other",
+      phone: values.phone,
+      email: null,
+      contactName: null,
+      source: null,
+    }),
+    { code: "CONFLICT", message: /Já existe um lead/ },
+  );
+  await save(null);
+  await save(null);
+  await save("+1 212 555 0123");
+  await save("(12) 12555-0123");
+});
+
+void it("requires and stores the other source detail and clears it when selecting a standard source", async () => {
+  const lead = await capture("Source");
+  const fields = {
+    ...lead,
+    fullName: prefix + "Source",
+    phone: null,
+    email: "teste@example.com",
+    contactName: null,
+  };
+  await assert.rejects(
+    caller().admissions.details({ ...fields, source: "OTHER" }),
+    /Informe a origem/,
+  );
+  await caller().admissions.details({ ...fields, source: "OTHER", sourceDetail: "Evento" });
+  const detailed = await caller().admissions.byId(lead);
+  assert.equal(detailed.sourceDetail, "Evento");
+  await caller().admissions.details({ ...fields, source: "GOOGLE", sourceDetail: "Evento" });
+  const standard = await caller().admissions.byId(lead);
+  assert.equal(standard.sourceDetail, null);
 });

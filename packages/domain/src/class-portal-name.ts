@@ -4,12 +4,11 @@ const WEEKDAY_LABELS = {
   WEDNESDAY: "QUA",
   THURSDAY: "QUI",
   FRIDAY: "SEX",
-  SATURDAY: "SÁB",
+  SATURDAY: "SAB",
   SUNDAY: "DOM",
 } as const;
 export type Weekday = keyof typeof WEEKDAY_LABELS;
 const weekdayOrder = Object.keys(WEEKDAY_LABELS) as Weekday[];
-const MAX_LABEL_LENGTH_WITH_TEACHER = 80;
 
 export type PortalClassNameSlot = {
   weekday: Weekday;
@@ -20,32 +19,39 @@ export type PortalClassNameSlot = {
 
 export type ClassNameInput = {
   scheduleType: "REGULAR" | "PERSONALIZED";
+  format: "IN_PERSON" | "ONLINE";
+  trackName?: string | null | undefined;
   stageInternalCode?: string | null | undefined;
   slots: readonly PortalClassNameSlot[];
   teacherName?: string | null | undefined;
 };
 
 export function generatePortalClassName(input: ClassNameInput, sequence = 1): string {
-  const { scheduleType, slots, stageInternalCode, teacherName } = input;
-  if (slots.length === 0) throw new Error("A class name requires at least one schedule slot.");
-
-  const ranges = new Map<string, Set<string>>();
+  const { scheduleType, format, slots } = input;
+  const personalized = scheduleType === "PERSONALIZED";
+  const prefix = classPrefix(input, personalized);
+  const times = new Map<string, Set<string>>();
   for (const slot of slots.toSorted(compareSlots)) {
-    const range = `${slot.startTime}-${slot.endTime}`;
-    const days = ranges.get(range) ?? new Set<string>();
+    const days = times.get(slot.startTime) ?? new Set<string>();
     days.add(WEEKDAY_LABELS[slot.weekday]);
-    ranges.set(range, days);
+    times.set(slot.startTime, days);
   }
-  const schedule = [...ranges].map(([range, days]) => [...days, range].join("/")).join(" + ");
-  const prefix = scheduleType === "REGULAR" ? ["REG", stageInternalCode] : ["PPT"];
-  const base = [...prefix, schedule].filter(Boolean).join(" ");
-  const suffix = sequence > 1 ? ` · ${sequence}` : "";
-  const teacher = teacherName?.trim();
-  if (teacher) {
-    const fullName = `${base} ${teacher}${suffix}`;
-    if ([...fullName].length <= MAX_LABEL_LENGTH_WITH_TEACHER) return fullName;
-  }
-  return base + suffix;
+  const shortHour = !personalized && format === "IN_PERSON" && slots.length === 1;
+  const schedule = [...times].map(([time, days]) => {
+    const start = shortHour ? time.replace(/:00$/u, "") : time;
+    return `${[...days].join("/")}-${start}`;
+  });
+  const label = [prefix, schedule.join("+")].filter(Boolean).join("-");
+  return sequence > 1 ? `${label} · ${sequence}` : label;
+}
+
+function classPrefix(input: ClassNameInput, personalized: boolean): string {
+  const { format } = input;
+  const code = input.stageInternalCode?.trim().toUpperCase() || "REG";
+  const book = input.trackName === "Teens Connect" && /^C\d+$/u.test(code) ? `T${code}` : code;
+  const teacher = input.teacherName?.trim().split(/\s+/u)[0]?.toLocaleUpperCase("pt-BR");
+  const qualifier = format === "ONLINE" ? "ON" : personalized && teacher;
+  return [personalized ? "PPT" : book, qualifier].filter(Boolean).join("/");
 }
 
 function compareSlots(left: PortalClassNameSlot, right: PortalClassNameSlot): number {

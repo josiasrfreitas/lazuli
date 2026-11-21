@@ -1,0 +1,65 @@
+{
+  "captured_utc": "2026-11-20T15:10:45.777705+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/403",
+  "snapshot": "- generic\n  - main\n    - heading \"Esta área é restrita.\" [level=1, ref=e139]\n    - button \"Voltar ao início\" [ref=e140]\n  - region \"Notificações\" [ref=e138]",
+  "metrics": {
+    "coarse": true,
+    "controls": [],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(168, 183, 206)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 78,
+        "line": "26px",
+        "role": null,
+        "size": "16px",
+        "tag": "p",
+        "text": "Você não tem permissão para abrir esta página. Se isso parece um engano, fale com a secretaria.",
+        "weight": "400",
+        "width": 342,
+        "x": 24,
+        "y": 399
+      }
+    ],
+    "docHeight": 844,
+    "docWidth": 390,
+    "fonts": [],
+    "frames": [],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 91,
+        "line": "45.6px",
+        "role": null,
+        "size": "48px",
+        "tag": "h1",
+        "text": "Esta área é restrita.",
+        "weight": "700",
+        "width": 342,
+        "x": 24,
+        "y": 279
+      }
+    ],
+    "height": 844,
+    "labels": [],
+    "main": {
+      "background": "rgb(15, 30, 61)",
+      "color": "rgb(233, 237, 246)",
+      "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+      "height": 844,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 390,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Acesso restrito | Lazuli",
+    "width": 390
+  }
+}

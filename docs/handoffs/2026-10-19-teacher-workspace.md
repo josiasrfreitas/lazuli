@@ -8,7 +8,7 @@ The final agenda follows the owner's correction: the teacher uses the same calen
 
 This is an ordinary extension of the incumbent visual system. Source comparison covered `docs/frontend/README.md`, `packages/ui/src/styles/globals.css`, teacher navigation, agenda and assessment attachments. The implementation consumes existing semantic surface, border, text and interaction tokens, shared controls and the shared calendar. Compact groups, responsive field grids, contextual dialogs and lower-emphasis secondary actions continue the existing operational language. No new visual world, token catalog or design-system rewrite is required. Incumbent system files are preserved by this documentation pass.
 
-The finish reviewer reported **ship** for ten captures in [the review directory](../../.impeccable/review/teacher-workspace/): agenda at 1440×900 and 390×844, plus mobile planning, proof attachments, follow-up, grades, diary, QR, placement and appointment views. No material fixes were requested within that captured scope. The reviewer did not independently exercise runtime; this is bounded visual evidence, not full acceptance of every state.
+The finish reviewer reported **ship** for ten captures: agenda at 1440×900 and 390×844, plus mobile planning, proof attachments, follow-up, grades, diary, QR, placement and appointment views. No material fixes were requested within that captured scope. The reviewer did not independently exercise runtime; this is bounded visual evidence, not full acceptance of every state.
 
 ## Implemented boundaries
 

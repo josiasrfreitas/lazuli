@@ -170,7 +170,7 @@ export async function loadReportSession(context: FollowUpContext, id: string): P
     where: { id, deletedAt: null, status: "SCHEDULED", class: { deletedAt: null } },
     include: sessionInclude,
   });
-  if (!row || !canReport(context, row)) invalid("Aula indisponível para este professor.");
+  if (!row || !canReport(context, row)) invalid("Aula indisponível para este docente.");
   if (!hasStarted(row, context.now)) invalid("Escolha uma aula em andamento ou que já aconteceu.");
   return row;
 }

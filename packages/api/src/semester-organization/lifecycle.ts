@@ -253,7 +253,7 @@ async function openClassPlan(
   context: OrganizationContext,
   { plan, semester }: { plan: ClassPlan; semester: Period },
 ): Promise<PlanStatus & { name: string }> {
-  if (!plan.teacherId) throw badRequest("Defina o professor antes de abrir a turma.");
+  if (!plan.teacherId) throw badRequest("Defina o docente antes de abrir a turma.");
   const from = [
     saoPauloDateOnly(context.now),
     dateOnly(semester.startDate),
@@ -338,6 +338,7 @@ async function reopenClassPlan(
   const portalClassName = collision
     ? await resolvePortalClassName(context.database, {
         scheduleType: plan.scheduleType,
+        format: plan.format,
         sharedStageId: plan.sharedStageId,
         teacherId,
         slots,

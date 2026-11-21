@@ -13,7 +13,7 @@
 }
 .heading h2 {
   font-family: var(--lz-font-display);
-  font-size: 1.125rem;
+  font-size: var(--lz-text-panel-title);
   font-weight: 600;
   color: var(--heading);
 }

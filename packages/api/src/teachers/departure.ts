@@ -41,15 +41,16 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
     select: {
+      employeeProfile: { select: { userId: true } },
       role: true,
       deletedAt: true,
       teacherProfile: { select: { departureDate: true, deletedAt: true } },
     },
   });
   if (!teacher || !hasTeacherIdentity(teacher) || teacher.deletedAt)
-    throw notFound("Professor não encontrado.");
+    throw notFound("Docente não encontrado.");
   if (teacher.teacherProfile?.departureDate)
-    throw badRequest("Saída já programada para este professor.");
+    throw badRequest("Saída já programada para este docente.");
   await assertNoPendingIntroduction(input);
   const semester = await input.database.period.findFirst({
     where: { deletedAt: null, endDate: { gte: new Date(input.effectiveDate) } },

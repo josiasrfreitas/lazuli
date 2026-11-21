@@ -43,8 +43,8 @@ void it("keeps individual risks on the same placement and deduplicates matching 
       formationBlocker.missingContract,
       "Escolha a nova turma para continuar.",
       formationBlocker.material,
-      "Professor pendente na data de entrada",
-      "Professor pendente na data de entrada",
+      "Docente pendente na data de entrada",
+      "Docente pendente na data de entrada",
     ],
   };
   const reasons = rosterAttentionReasons(row);
@@ -57,7 +57,7 @@ void it("keeps individual risks on the same placement and deduplicates matching 
       "missingAttendance",
       "lowHealth",
       "material",
-      "blocker:Professor pendente na data de entrada",
+      "blocker:Docente pendente na data de entrada",
     ],
   );
   assert.deepEqual(
@@ -66,7 +66,7 @@ void it("keeps individual risks on the same placement and deduplicates matching 
       "Mudança de turma",
       "Sem contrato vigente",
       formationBlocker.material,
-      "Professor pendente na data de entrada",
+      "Docente pendente na data de entrada",
     ],
   );
   assert.deepEqual(
@@ -75,7 +75,7 @@ void it("keeps individual risks on the same placement and deduplicates matching 
   );
   const options = rosterRiskOptions([{ reasons }, { reasons }]);
   assert.equal(
-    options.filter((item) => item.label === "Professor pendente na data de entrada").length,
+    options.filter((item) => item.label === "Docente pendente na data de entrada").length,
     1,
   );
   assert.ok(!options.some((item) => item.value === "other"));

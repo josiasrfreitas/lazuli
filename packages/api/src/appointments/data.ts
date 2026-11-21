@@ -90,7 +90,7 @@ export async function loadAppointment(
   if (!canReadAppointment(context, row))
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Este atendimento está disponível ao professor responsável.",
+      message: "Este atendimento está disponível ao docente responsável.",
     });
   return row;
 }

@@ -34,7 +34,7 @@ type CurrentPlan = Awaited<ReturnType<typeof readSemester>>["plans"][number];
 type BoardPlacement = Awaited<ReturnType<typeof readSemester>>["placements"][number];
 const PLAN_NOT_FOUND = "Turma planejada não encontrada.";
 const PLACEMENT_NOT_FOUND = "Proposta não encontrada.";
-const TEACHER_REQUIRED = "Defina um professor em atuação na data de entrada.";
+const TEACHER_REQUIRED = "Defina um docente em atuação na data de entrada.";
 
 export async function publishPlacements(
   context: OrganizationContext,

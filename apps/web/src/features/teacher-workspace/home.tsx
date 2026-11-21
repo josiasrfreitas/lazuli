@@ -1,5 +1,6 @@
 "use client";
 
+import { HomeAttendance } from "./home-attendance";
 import type { ReactElement } from "react";
 import {
   BookOpenCheck,
@@ -48,6 +49,7 @@ export function TeacherHome(): ReactElement {
           />
         )}
         <HomeFeedback {...state} />
+        <HomeAttendance />
         <HomeColumns {...state} />
         {state.home.data && <HomeSignoff />}
       </div>
@@ -58,18 +60,15 @@ export function TeacherHome(): ReactElement {
 
 function HomeWelcome({ name, today }: { name: string | undefined; today: string }): ReactElement {
   return (
-    <>
-      <header className={styles.header}>
-        <div>
-          <h1>{name ? `Olá, ${name}.` : "Seu início"}</h1>
-          <p>
-            <time dateTime={today}>{homeLongDate(today)}</time>
-          </p>
-        </div>
-        <AgendaLink />
-      </header>
-      <p className={styles.welcome}>Bom ter você por aqui. Vamos cuidar das próximas aulas?</p>
-    </>
+    <header className={styles.header}>
+      <div>
+        <h1>{name ? `Olá, ${name}.` : "Seu início"}</h1>
+        <p>
+          <time dateTime={today}>{homeLongDate(today)}</time>
+        </p>
+      </div>
+      <AgendaLink />
+    </header>
   );
 }
 

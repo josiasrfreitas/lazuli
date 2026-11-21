@@ -22,7 +22,7 @@ export async function readAttendanceProjection(
       },
     },
   });
-  if (!projection) throw badRequest("Projeção encerrada. Peça um novo acesso ao professor.");
+  if (!projection) throw badRequest("Projeção encerrada. Peça um novo acesso ao docente.");
   const session = projection.classSession;
   if (
     projection.expiresAt <= now ||
@@ -31,7 +31,7 @@ export async function readAttendanceProjection(
     session.status === "CANCELLED" ||
     session.attendanceConfirmedAt
   )
-    throw badRequest("Projeção encerrada. O professor pode registrar a presença manualmente.");
+    throw badRequest("Projeção encerrada. O docente pode registrar a presença manualmente.");
   return projectionLink({ now, token }, projection.window);
 }
 

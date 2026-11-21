@@ -33,8 +33,7 @@ Focused grade and placement dialog titles are 16 px. Mobile uses compact stacked
 secondary notices column. Loading groups follow the same compact hierarchy.
 
 No competing token system, raster assets, or visual-world replacement was introduced. Shared
-tokens remain under `packages/ui/src/styles/`, imported by `globals.css`. The direction contract
-is `apps/web/.impeccable/surfaces/apps-web-src-features-teacher-workspace-home-tsx.md`.
+tokens remain under `packages/ui/src/styles/`, imported by `globals.css`.
 
 ## Validation and limits
 
@@ -47,7 +46,6 @@ to an existing completed assessment appointment. No database mutations or saves 
 Both themes were inspected at 390 px and 1440 px; an additional 320 px overflow scan found none.
 Empty, populated future-notice/planning-lag, failure, and final loading presentations used labelled
 temporary query-cache simulations. Original data was restored and the QA marker removed.
-Captures: `.impeccable/review/teacher-home`.
 
 Finishing review identified oversized loading capsules; compact skeleton groups resolved that
 finding. The final “ship” verdict covers that reviewed correction, with no visible regression.
@@ -75,7 +73,7 @@ RECEIVED; worker completion was not verified. A synthetic class record remains s
 assessment linked to a PARTIAL planned step. Its planning view showed the expected tolerance band.
 These saves supersede the initial read-only validation described above.
 
-Final density captures are in `.impeccable/review/teacher-final`. Grade and placement dialogs were
+Grade and placement dialogs were
 inspected at 320, 390 and 1440 px, with no horizontal overflow and single-line action labels.
 Action icons were added across the teacher flows. The shared attachment dialog has an opt-in
 compact presentation for focused teacher uploads. The home notice rules were reviewed in source;
@@ -95,6 +93,4 @@ the form grid and fitting the three choices in one row. A Written recovery obser
 saved without a score, verified after a full reload, and then cleared through the UI.
 Existing grades were preserved. Unit switching retained the selected proof in its own unit;
 discarding removed the draft, and Oral had no upload controls. This pass did not send a new
-proof or repeat the teacher-home entry flow. Captures are the `row-dialog-*`, `written-modal-*`,
-`written-recovery-modal-320.png`, and `oral-modal-1440.png` files in
-`.impeccable/review/teacher-assessment-redesign/`.
+proof or repeat the teacher-home entry flow.

@@ -209,10 +209,10 @@ function TeacherSearch({
   return (
     <div className="w-48 min-w-0 shrink-0">
       <Field>
-        <Label>Professor</Label>
+        <Label>Docente</Label>
         <SearchSelect
           name="teacherId"
-          placeholder="Buscar professor"
+          placeholder="Buscar docente"
           showSearchIcon
           value={value}
           query={query}
@@ -223,7 +223,7 @@ function TeacherSearch({
             setQuery("");
           }}
           onClear={() => onChange(null)}
-          emptyMessage="Nenhum professor nas turmas disponíveis."
+          emptyMessage="Nenhum docente nas turmas disponíveis."
         />
       </Field>
     </div>

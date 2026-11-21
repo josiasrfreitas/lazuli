@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
-Legacy sources: [D-0025](../legacy/2026-07-27/MVP/decisions.md#d-0025-payer-as-a-first-class-entity), [D-0028](../legacy/2026-07-27/MVP/decisions.md#d-0028-finance-core-model--order), [D-0032](../legacy/2026-07-27/MVP/decisions.md#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments) (Accepted)
 Implementation evidence: [`packages/domain/src/finance-ledger.ts`](../../packages/domain/src/finance-ledger.ts), [`packages/db/prisma/schema.prisma`](../../packages/db/prisma/schema.prisma)
 
 ## Context

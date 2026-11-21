@@ -28,7 +28,7 @@ export function PlanningRecords({
       }
       empty={{
         title: "Nenhum conteúdo registrado",
-        description: "O relato do professor aparecerá aqui após o registro da aula.",
+        description: "O relato do docente aparecerá aqui após o registro da aula.",
       }}
       errorTitle="Não foi possível carregar os registros"
       onRetry={() => {}}

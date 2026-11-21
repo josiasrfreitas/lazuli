@@ -19,7 +19,6 @@ import {
 } from "./contract-closings-model";
 
 const BAR_CORNER_RADIUS = 3;
-const CURRENT_MONTH_OPACITY = 0.4;
 const YEAR_LENGTH = 4;
 const CHART_HEIGHT = 280;
 const CHART_MARGIN = { top: 16, right: 12, left: 0, bottom: 8 };
@@ -93,7 +92,7 @@ export function ContractClosingsChart({
               {rows.map((row) => (
                 <Cell
                   key={row.month}
-                  fillOpacity={row.month === currentMonth ? CURRENT_MONTH_OPACITY : 1}
+                  fill={row.month === currentMonth ? "var(--muted-foreground)" : "var(--info)"}
                 />
               ))}
             </Bar>

@@ -1,8 +1,16 @@
 /* Reference colors are private to the token layer. Components use the roles below. */
 :root {
+  --lz-ref-blush: #fcf5f3;
+  --lz-ref-espresso: #2e2727;
   --lz-ref-white: #ffffff;
-  --lz-ref-navy: #0f1e3d;
-  --lz-ref-gold: #d8ad4a;
+  --lz-ref-navy: #0f1b33;
+  --lz-ref-ink-light: #f1f5f9;
+  --lz-ref-canvas-light: #e8eef5;
+  --lz-ref-paper: #f6f8fa;
+  --lz-ref-canvas-dark: #0a1120;
+  --lz-ref-slate: #94a3b8;
+  --lz-ref-gold-light: #b38838;
+  --lz-ref-gold: #d4a349;
   --lz-ref-gold-ink: #846321;
   --lz-ref-neutral-50: #f5f6f7;
   --lz-ref-neutral-100: #edf0f3;
@@ -27,14 +35,11 @@
   --lz-ref-blue-800: #234266;
   --lz-ref-blue-900: #213149;
   --lz-ref-blue-950: #192638;
-  --lz-ref-blue-gray-800: #2c3c51;
-  --lz-ref-blue-gray-850: #1e2c3e;
-  --lz-ref-blue-gray-900: #182230;
 
   /* Academic reading panels retain their dark surface in either theme.
      Gold highlights data and interactions; headings and names remain neutral. */
-  --academic-panel-surface: var(--lz-ref-neutral-950);
-  --academic-panel-foreground: var(--lz-ref-white);
+  --academic-panel-surface: var(--lz-ref-canvas-dark);
+  --academic-panel-foreground: var(--lz-ref-ink-light);
   --academic-panel-muted: var(--lz-ref-neutral-300);
   --academic-panel-accent: var(--lz-ref-gold);
   --academic-panel-divider: var(--lz-ref-neutral-800);
@@ -45,33 +50,35 @@
   color-scheme: light;
 
   /* Surfaces: canvas → work surface → floating surface; fields stay identifiable. */
-  --background: var(--lz-ref-neutral-50);
-  --foreground: #27313f;
-  --heading: var(--lz-ref-navy);
-  --card: var(--lz-ref-white);
+  --background: #e7dedb;
+  --foreground: var(--lz-ref-espresso);
+  --heading: var(--foreground);
+  --card: var(--lz-ref-blush);
+  --record-summary-surface: var(--card);
   --card-foreground: var(--foreground);
-  --popover: var(--lz-ref-white);
+  --popover: #fffaf8;
   --popover-foreground: var(--foreground);
-  --field: var(--lz-ref-white);
-  --table-heading: var(--lz-ref-blue-50);
-  --table-heading-foreground: var(--lz-ref-navy);
-  --table-heading-border: var(--brand-rule);
-  --muted: var(--lz-ref-neutral-100);
-  --muted-foreground: var(--lz-ref-neutral-600);
+  --field: #fffaf8;
+  --table-heading: #d7cbc7;
+  --table-heading-foreground: var(--lz-ref-espresso);
+  --table-heading-border: var(--border);
+  --toolbar: color-mix(in oklch, var(--table-heading) 58%, var(--card));
+  --muted: #ece3e0;
+  --muted-foreground: #655853;
 
-  /* Actions and selection use blue. Gold is a signature, never a status. */
-  --primary: var(--lz-ref-navy);
+  /* Blue carries actions and selection. Warm surfaces anchor operational data. */
+  --primary: var(--lz-ref-blue-700);
   --primary-hover: var(--lz-ref-blue-800);
-  --primary-active: var(--lz-ref-blue-900);
-  --primary-foreground: var(--lz-ref-white);
-  --secondary: var(--lz-ref-neutral-100);
+  --primary-active: var(--lz-ref-navy);
+  --primary-foreground: var(--lz-ref-blush);
+  --secondary: #eee6e2;
   --secondary-foreground: var(--foreground);
-  --accent: var(--lz-ref-blue-50);
-  --accent-hover: var(--lz-ref-blue-100);
-  --accent-active: var(--lz-ref-blue-200);
+  --accent: var(--lz-ref-blue-100);
+  --accent-hover: #d4e1f0;
+  --accent-active: #cfdfed;
   --accent-foreground: var(--lz-ref-blue-800);
-  --lesson-regular-surface: var(--accent);
-  --lesson-regular-foreground: var(--accent-foreground);
+  --lesson-regular-surface: var(--lz-ref-blue-100);
+  --lesson-regular-foreground: var(--lz-ref-blue-800);
   --lesson-personalized-surface: #f3ebf8;
   --lesson-personalized-foreground: #763c98;
   --appointment-surface: #f6ece6;
@@ -81,34 +88,45 @@
   --experimental-surface: #e3f2ee;
   --experimental-foreground: #24665c;
   --interactive: var(--lz-ref-blue-700);
-  --interactive-hover: var(--lz-ref-blue-800);
-  --interactive-active: var(--lz-ref-navy);
-  --brand-link: var(--lz-ref-gold-ink);
-  --brand-link-hover: #6d5018;
-  --brand-link-active: #553d12;
+  --interactive-hover: var(--primary-hover);
+  --interactive-active: var(--primary-active);
+  --chart-gold: #79502c;
+  --brand-link: var(--lz-ref-blue-700);
+  --brand-link-hover: var(--primary-hover);
+  --brand-link-active: var(--primary-active);
   --ring: var(--lz-ref-blue-600);
 
   /* Nested separators are quieter than frames; control borders remain distinct. */
-  --border: var(--lz-ref-neutral-200);
-  --border-subtle: var(--lz-ref-neutral-100);
-  --border-strong: var(--lz-ref-neutral-300);
-  --input: var(--lz-ref-neutral-300);
-  --brand: var(--lz-ref-gold);
-  --brand-foreground: var(--lz-ref-navy);
-  --brand-rule: color-mix(in srgb, var(--lz-ref-gold) 60%, var(--border));
+  --border: #c8bab5;
+  --border-subtle: #e3d8d4;
+  --border-strong: #aa9993;
+  --input: #796861;
+  --brand: var(--lz-ref-blue-700);
+  --brand-foreground: var(--lz-ref-blush);
+  --brand-rule: var(--border);
   --icon: var(--lz-ref-blue-700);
-  --selection-indicator: var(--lz-ref-gold-ink);
+  --selection-indicator: var(--lz-ref-blue-700);
   --icon-active: var(--selection-indicator);
 
-  /* Light navigation shares the workspace's quiet surfaces and blue ink. */
-  --navigation: var(--lz-ref-white);
-  --navigation-foreground: var(--lz-ref-navy);
-  --navigation-muted: var(--lz-ref-neutral-600);
-  --navigation-active: var(--lz-ref-blue-50);
-  --navigation-border: var(--lz-ref-neutral-200);
-  --navigation-icon: var(--lz-ref-blue-700);
+  /* The top bar blends into the light canvas; the sidebar anchors navigation. */
+  --navigation: var(--primary);
+  --navigation-bar: var(--background);
+  --conversion-panel: var(--lz-ref-blue-800);
+  --pending-panel: var(--card);
+  --financial-panel: var(--card);
+  --financial-ink: var(--lz-ref-espresso);
+  --financial-muted: #4f6074;
+  --financial-received: var(--lz-ref-blue-700);
+  --financial-contracts: var(--lz-ref-espresso);
+  --navigation-foreground: var(--lz-ref-white);
+  --navigation-muted: var(--lz-ref-blue-50);
+  --navigation-active: var(--lz-ref-blue-800);
+  --navigation-border: var(--lz-ref-blue-900);
+  --navigation-icon: var(--lz-ref-ink-light);
+  --navigation-marker: var(--lz-ref-gold);
+  --navigation-focus: var(--lz-ref-blue-200);
 
-  --success: #296743;
+  --success: #205333;
   --success-muted: #e9f3ed;
   --warning: #805d16;
   --warning-muted: #faf1db;
@@ -122,7 +140,7 @@
   --over-capacity: #763c98;
   --over-capacity-muted: #f3ebf8;
 
-  --overlay: rgb(15 30 61 / 40%);
+  --overlay: rgb(46 39 39 / 40%);
   --scrollbar-track: transparent;
   --scrollbar-thumb: var(--lz-ref-neutral-300);
   --scrollbar-thumb-hover: var(--lz-ref-neutral-500);
@@ -135,7 +153,7 @@
 
   /* The public entrance keeps its navy cover in both application themes. */
   --marquee: var(--lz-ref-navy);
-  --marquee-foreground: #e9edf6;
+  --marquee-foreground: var(--lz-ref-ink-light);
   --marquee-muted: #a8b7ce;
   --marquee-border: #273957;
   --marquee-accent: var(--lz-ref-blue-200);
@@ -145,71 +163,87 @@
 .dark {
   color-scheme: dark;
 
-  --background: var(--lz-ref-neutral-950);
-  --foreground: #e9edf6;
+  --background: #0d1428;
+  --foreground: #e5ebfa;
+  --academic-panel-surface: var(--card);
+  --academic-panel-foreground: var(--foreground);
+  --academic-panel-accent: var(--brand);
   --heading: var(--foreground);
-  --card: var(--lz-ref-neutral-950);
+  --card: #151f38;
+  --record-summary-surface: var(--card);
   --card-foreground: var(--foreground);
-  --popover: var(--lz-ref-neutral-850);
+  --popover: #1e2d4b;
   --popover-foreground: var(--foreground);
-  --field: #171c24;
-  --table-heading: var(--lz-ref-neutral-850);
-  --table-heading-foreground: var(--muted-foreground);
+  --field: #101a30;
+  --table-heading: #202e4e;
+  --table-heading-foreground: var(--foreground);
   --table-heading-border: var(--border);
-  --muted: var(--lz-ref-neutral-850);
-  --muted-foreground: #a9b3c1;
-  --primary: var(--foreground);
-  --primary-hover: var(--lz-ref-white);
-  --primary-active: var(--lz-ref-neutral-200);
-  --primary-foreground: var(--lz-ref-navy);
-  --secondary: var(--lz-ref-neutral-850);
+  --toolbar: color-mix(in oklch, var(--table-heading) 58%, var(--card));
+  --muted: #1b2944;
+  --muted-foreground: #aebcda;
+  --primary: #295fc9;
+  --primary-hover: #3066ce;
+  --primary-active: #214fae;
+  --primary-foreground: #f4f7ff;
+  --secondary: #213253;
   --secondary-foreground: var(--foreground);
-  --accent: var(--lz-ref-blue-900);
-  --accent-hover: #2a3e59;
-  --accent-active: #344e6e;
+  --accent: #223761;
+  --accent-hover: #293e65;
+  --accent-active: #26395c;
   --accent-foreground: #d2e1f5;
-  --lesson-regular-surface: var(--accent);
+  --lesson-regular-surface: #1c2c40;
   --lesson-regular-foreground: var(--accent-foreground);
-  --lesson-personalized-surface: #34283f;
+  --lesson-personalized-surface: #2c2535;
   --lesson-personalized-foreground: #cdabe3;
-  --appointment-surface: #3e2d26;
+  --appointment-surface: #302824;
   --appointment-foreground: #e6b39a;
   --contract-surface: #432d1d;
-  --contract-foreground: #f3ad72;
-  --experimental-surface: #203b36;
+  --contract-foreground: #dcb596;
+  --experimental-surface: #1c302d;
   --experimental-foreground: #92d0c2;
-  --interactive: var(--lz-ref-blue-300);
-  --interactive-hover: var(--lz-ref-blue-200);
-  --interactive-active: var(--lz-ref-blue-100);
-  --brand-link: var(--lz-ref-gold);
-  --brand-link-hover: #e6c572;
-  --brand-link-active: #f0d798;
-  --ring: var(--lz-ref-blue-500);
-  --border: var(--lz-ref-neutral-800);
-  --border-subtle: var(--lz-ref-neutral-850);
-  --border-strong: #465364;
-  --input: #465364;
-  --brand: var(--lz-ref-gold);
+  --interactive: #95bdff;
+  --interactive-hover: #b4d1ff;
+  --interactive-active: #c7ddff;
+  --chart-gold: var(--brand);
+  --brand-link: var(--interactive);
+  --brand-link-hover: var(--interactive-hover);
+  --brand-link-active: var(--interactive-active);
+  --ring: #81a9ff;
+  --border: #31415f;
+  --border-subtle: #24324e;
+  --border-strong: #485d84;
+  --input: #788db4;
+  --brand: #d0b786;
   --brand-foreground: var(--lz-ref-navy);
-  --brand-rule: color-mix(in srgb, var(--lz-ref-gold) 48%, var(--border));
-  --icon: #91a7c3;
-  --selection-indicator: var(--lz-ref-gold);
+  --brand-rule: var(--border);
+  --icon: #a6bce5;
+  --selection-indicator: #83acff;
   --icon-active: var(--selection-indicator);
 
-  --navigation: var(--card);
-  --navigation-foreground: #e9edf6;
-  --navigation-muted: #b1bfd3;
-  --navigation-active: #243958;
-  --navigation-border: #2b3f5e;
-  --navigation-icon: var(--lz-ref-blue-300);
+  --navigation: #020619;
+  --navigation-bar: var(--background);
+  --conversion-panel: #213e7b;
+  --pending-panel: var(--card);
+  --financial-panel: var(--card);
+  --financial-ink: var(--foreground);
+  --financial-muted: var(--muted-foreground);
+  --financial-contracts: #bfadf3;
+  --financial-received: #80b3ff;
+  --navigation-marker: var(--selection-indicator);
+  --navigation-focus: var(--lz-ref-blue-200);
+  --navigation-foreground: var(--foreground);
+  --navigation-muted: var(--lz-ref-blue-100);
+  --navigation-active: #233c6b;
+  --navigation-border: var(--border-subtle);
+  --navigation-icon: var(--icon);
 
-  --success: #8ccca4;
+  --success: #a1c6b0;
   --success-muted: #20352b;
-  --warning: #dfbc6c;
+  --warning: #d6bf8e;
   --warning-muted: #3a3120;
-  --info: var(--lz-ref-blue-300);
-  --info-muted: var(--lz-ref-blue-950);
-  --destructive: #ee9aab;
+  --info: var(--interactive);
+  --info-muted: #192d50;
+  --destructive: #dfa2af;
   --destructive-hover: #f3b0bd;
   --destructive-active: #f7c5cf;
   --destructive-foreground: #351520;
@@ -217,50 +251,6 @@
   --over-capacity: #cdabe3;
   --over-capacity-muted: #34283f;
   --overlay: rgb(5 8 14 / 64%);
-  --scrollbar-thumb: #465364;
-  --scrollbar-thumb-hover: var(--lz-ref-neutral-400);
-}
-
-/* Dark dialogs echo the navigation, with lighter fields to distinguish inputs. */
-.dark [data-slot="dialog-content"] {
-  --popover: var(--navigation);
-  --field: var(--lz-ref-blue-950);
-}
-
-/* Dark tables use blue-gray surfaces to connect with the navy navigation. */
-.dark [data-slot="table-container"] {
-  --card: var(--lz-ref-blue-gray-900);
-  --table-heading: var(--lz-ref-blue-gray-850);
-  --table-heading-border: var(--border);
-  --muted: var(--lz-ref-blue-gray-850);
-  --border: var(--lz-ref-blue-gray-800);
-  --border-subtle: color-mix(in srgb, var(--border) 60%, var(--card));
-}
-
-/* Selected controls stay blue against dark fields instead of using a white fill. */
-.dark :is([data-slot="switch"], [data-slot="segmented-control"]) {
-  --primary: var(--lz-ref-blue-700);
-  --primary-hover: var(--lz-ref-blue-600);
-  --primary-active: var(--lz-ref-blue-800);
-  --primary-foreground: var(--lz-ref-blue-50);
-}
-
-/* Pill selection stays raised and blue on the segmented control's quiet track. */
-.dark [data-slot="segmented-control"] {
-  --muted: var(--lz-ref-blue-gray-900);
-  --card: var(--lz-ref-blue-700);
-  --card-foreground: var(--lz-ref-blue-50);
-}
-
-/* Dark buttons share the tables' blue-gray palette, with blue primary actions. */
-.dark [data-slot="button"] {
-  --primary: var(--lz-ref-blue-700);
-  --primary-hover: var(--lz-ref-blue-600);
-  --primary-active: var(--lz-ref-blue-800);
-  --primary-foreground: var(--lz-ref-white);
-  --card: var(--lz-ref-blue-gray-850);
-  --border-strong: var(--lz-ref-blue-gray-800);
-  --accent: var(--lz-ref-blue-gray-850);
-  --accent-hover: var(--lz-ref-blue-gray-800);
-  --accent-active: var(--lz-ref-blue-900);
+  --scrollbar-thumb: #465c80;
+  --scrollbar-thumb-hover: #7186ad;
 }

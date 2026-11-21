@@ -21,10 +21,10 @@ export function useTeacherDocuments(teacherId?: string): TeacherDocuments {
   const closeRef = useRef(close.mutate);
   closeRef.current = close.mutate;
   const { query, existing } = useTeacherQueries({ teacherId, session });
-  const uploadedPhotoId = query.data?.files.find((file) => file.kind === "PHOTO")?.id;
+  const sessionFiles = query.data?.files;
   useEffect(() => {
-    if (teacherId && uploadedPhotoId) void utils.teachers.files.invalidate({ id: teacherId });
-  }, [teacherId, uploadedPhotoId, utils]);
+    if (teacherId && sessionFiles) utils.teachers.files.setData({ id: teacherId }, sessionFiles);
+  }, [teacherId, sessionFiles, utils]);
   const sessionId = session?.id;
   useEffect(() => {
     if (sessionId) return () => closeRef.current({ id: sessionId });

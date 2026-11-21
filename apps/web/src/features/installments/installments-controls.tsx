@@ -1,12 +1,14 @@
 "use client";
 
+import { TableExportButton } from "~/components/table-export-button";
 import { type ReactElement } from "react";
-import { CircleCheck, Search, Tags } from "lucide-react";
-import { Input, TableFilters, type TableFilterField } from "@lazuli/ui";
+import { CircleCheck, Tags } from "lucide-react";
+import { TableFilters, type TableFilterField } from "@lazuli/ui";
 import { orderKindSchema } from "@lazuli/validators";
-import { useSearchDraft } from "~/lib/use-search-draft";
+import { TableSearch } from "~/components/table-search";
 import { trpc } from "~/lib/trpc";
 import {
+  queryInput,
   INSTALLMENT_STATUSES,
   INSTALLMENT_STATUS_LABELS,
   SEARCH_MAX_LENGTH,
@@ -23,24 +25,14 @@ function SearchField({
   search: string;
   onSearch: (value: string) => void;
 }): ReactElement {
-  const [value, setValue] = useSearchDraft(search, onSearch);
   return (
-    <div className="relative w-full sm:w-44 lg:w-64 2xl:w-80">
-      <Search
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
-      />
-      <Input
-        aria-label="Buscar por pagador ou beneficiário"
-        className="pl-8"
-        type="search"
+    <div className="w-full sm:w-44 lg:w-64 2xl:w-80">
+      <TableSearch
+        label="Buscar por pagador ou beneficiário"
         placeholder="Buscar por pagador ou beneficiário"
         maxLength={SEARCH_MAX_LENGTH}
-        size="sm"
-        value={value}
-        onChange={(event) => {
-          setValue(event.target.value);
-        }}
+        value={search}
+        onCommit={onSearch}
       />
     </div>
   );
@@ -150,6 +142,11 @@ export function InstallmentsControls({
   ];
   return (
     <div className="flex flex-wrap items-center gap-2 2xl:gap-3">
+      <TableExportButton
+        source={{ listing: "Recebíveis", filters: queryInput(filters) }}
+        fields={filterFields}
+        search={search}
+      />
       <SearchField search={search} onSearch={onSearch} />
       <TableFilters
         fields={filterFields}

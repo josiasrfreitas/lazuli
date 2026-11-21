@@ -16,8 +16,9 @@ export function TeacherNavigation(): ReactJSX.Element {
   ];
   return (
     <nav
-      aria-label="Navegação do professor"
-      className={`${styles.navigation} grid shrink-0 grid-cols-5 border-t border-border bg-card sm:hidden`}
+      data-navigation-surface=""
+      aria-label="Navegação do docente"
+      className={`${styles.navigation} grid shrink-0 grid-cols-5 border-t border-navigation-border bg-navigation sm:hidden`}
     >
       {links.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || (href !== "/professor" && pathname.startsWith(href));
@@ -26,7 +27,7 @@ export function TeacherNavigation(): ReactJSX.Element {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-14 flex-col items-center justify-center gap-1 text-micro ${active ? "font-semibold text-interactive" : "text-muted-foreground"}`}
+            className={`flex min-h-14 flex-col items-center justify-center gap-1 text-micro ${active ? "font-semibold text-icon-active" : "text-muted-foreground"}`}
           >
             <Icon className="size-5" aria-hidden="true" />
             {label}

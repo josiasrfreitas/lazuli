@@ -5,7 +5,6 @@ Decision date: 2026-09-24
 Acceptance date: 2026-09-24
 Supersedes: Frontend mutation scope in [0017](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) and [0019](0019-limit-mutation-to-unit-tests.md)
 Superseded by: [0023](0023-remove-mutation-testing.md) (mutation testing)
-Legacy sources: None
 
 Implementation evidence: `scripts/mutate-changed.mjs`, `apps/web/package.json`, `packages/ui/package.json`, `docs/testing/README.md`.
 

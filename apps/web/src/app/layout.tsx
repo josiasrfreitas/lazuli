@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { THEME_BOOTSTRAP } from "~/lib/theme";
 import { Providers } from "./providers";
 
 import "./globals.css";
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
     default: "Lazuli | Gestão escolar",
     template: "%s | Lazuli",
   },
-  description: "A rotina da escola em um só lugar: alunos, turmas, professores e financeiro.",
+  description: "A rotina da escola em um só lugar: alunos, turmas, docentes e financeiro.",
   icons: {
     icon: [
       {
@@ -31,7 +32,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
   return (
-    <html lang="pt-BR" className="dark" data-theme="dark">
+    <html lang="pt-BR" className="dark" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

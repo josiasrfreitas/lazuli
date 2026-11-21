@@ -1,14 +1,25 @@
 "use client";
+import { TableExportButton } from "~/components/table-export-button";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowUpDown, Check, Plus, Search } from "lucide-react";
-import { Button, Checkbox, DetailHeader, EmptyState, Input, Field, Label } from "@lazuli/ui";
+import {
+  Button,
+  Checkbox,
+  DetailHeader,
+  EmptyState,
+  Input,
+  Field,
+  Label,
+  TableContainer,
+} from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { CatalogDialog, type CatalogDialogState } from "./catalog-dialog";
 import { CatalogTrack } from "./catalog-list";
 import type { Directory, Track } from "./types";
-import { StageLoading } from "./loading";
-import styles from "./workspace.module.css";
+import { TrackListLoading } from "./loading";
+import styles from "./catalog.module.css";
+import workspace from "./workspace.module.css";
 
 export function StagesPage(): React.JSX.Element {
   const params = useSearchParams();
@@ -24,49 +35,51 @@ export function StagesPage(): React.JSX.Element {
   const expanded = params.get("track") ?? tracks[0]?.id;
   const data = query.data;
   return (
-    <section aria-label="Catálogo de estágios" className={styles.scroll}>
+    <section aria-label="Catálogo de estágios" className={workspace.scroll}>
       <div className={styles.page}>
         <CatalogHeader data={data} tracks={tracks} open={setDialog} />
-        <CatalogToolbar search={search} legacy={legacy} order={order} setOrder={setOrder} />
-        <span role="status" className="sr-only">
-          {notice}
-        </span>
-        {mutation.error && <p role="alert">{mutation.error.message}</p>}
-        <CatalogResults
-          pending={query.isPending}
-          error={query.isError}
-          retry={() => void query.refetch()}
-          empty={tracks.length === 0}
-          term={term}
-        >
-          <div className={styles.tracks}>
-            {tracks.map((track) => (
-              <CatalogTrack
-                key={term + "-" + track.id}
-                track={track}
-                tracks={tracks}
-                filtered={term.length > 0}
-                expanded={expanded === track.id}
-                toggle={() => change({ track: expanded === track.id ? "fechada" : track.id })}
-                reorder={order}
-                pending={mutation.isPending}
-                open={setDialog}
-                href={(id, trackId) => stageLink(params, { id, trackId })}
-                move={(command) =>
-                  mutation.mutate(
-                    { action: "move", ...command, showLegacy: legacy },
-                    {
-                      onSettled: () => {
-                        void query.refetch();
+        <TableContainer>
+          <CatalogToolbar search={search} legacy={legacy} order={order} setOrder={setOrder} />
+          <span role="status" className="sr-only">
+            {notice}
+          </span>
+          {mutation.error && <p role="alert">{mutation.error.message}</p>}
+          <CatalogResults
+            pending={query.isPending}
+            error={query.isError}
+            retry={() => void query.refetch()}
+            empty={tracks.length === 0}
+            term={term}
+          >
+            <div>
+              {tracks.map((track) => (
+                <CatalogTrack
+                  key={term + "-" + track.id}
+                  track={track}
+                  tracks={tracks}
+                  filtered={term.length > 0}
+                  expanded={expanded === track.id}
+                  toggle={() => change({ track: expanded === track.id ? "fechada" : track.id })}
+                  reorder={order}
+                  pending={mutation.isPending}
+                  open={setDialog}
+                  href={(id, trackId) => stageLink(params, { id, trackId })}
+                  move={(command) =>
+                    mutation.mutate(
+                      { action: "move", ...command, showLegacy: legacy },
+                      {
+                        onSettled: () => {
+                          void query.refetch();
+                        },
+                        onSuccess: () => setNotice("Ordem atualizada."),
                       },
-                      onSuccess: () => setNotice("Ordem atualizada."),
-                    },
-                  )
-                }
-              />
-            ))}
-          </div>
-        </CatalogResults>
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </CatalogResults>
+        </TableContainer>
         {dialog && (
           <CatalogDialog
             item={dialog}
@@ -121,15 +134,16 @@ function CatalogHeader({
   tracks: Track[];
   open: (item: CatalogDialogState) => void;
 }): React.JSX.Element {
+  const stageCount = tracks.reduce((sum, track) => sum + track.stages.length, 0);
   return (
     <DetailHeader
       title="Estágios"
       metadataPlacement="below"
       metadata={
         data && (
-          <span className={styles.meta}>
-            {tracks.length} tracks · {tracks.reduce((sum, track) => sum + track.stages.length, 0)}{" "}
-            estágios
+          <span className={workspace.meta}>
+            {tracks.length} {tracks.length === 1 ? "track" : "tracks"} · {stageCount}{" "}
+            {stageCount === 1 ? "estágio" : "estágios"}
           </span>
         )
       }
@@ -195,6 +209,11 @@ function CatalogToolbar({
         {order ? <Check /> : <ArrowUpDown />}
         {order ? "Concluir ordem" : "Reordenar"}
       </Button>
+      <TableExportButton
+        source={{ listing: "Estágios", filters: { search, legacy } }}
+        search={search}
+        criteria={[["Incluir legados", legacy ? "Sim" : "Não"]]}
+      />
     </div>
   );
 }
@@ -213,7 +232,7 @@ function CatalogResults({
   term: string;
   children: React.ReactNode;
 }): React.ReactNode {
-  if (pending) return <StageLoading />;
+  if (pending) return <TrackListLoading />;
   if (error)
     return (
       <EmptyState

@@ -9,8 +9,8 @@ import styles from "../students/profile/student-registration.module.css";
 import { useTeacherDocuments } from "./use-teacher-documents";
 import { TeacherDocumentPanel } from "./teacher-document-panel";
 import { EMPLOYMENT_LABELS } from "./teacher-employment-fields";
+import { AREA_LABELS, ROLE_LABELS } from "./employee-labels";
 const NOT_INFORMED = "Não informado";
-const ISO_DATE_LENGTH = 10;
 type Teacher = RouterOutputs["teachers"]["byId"];
 export function TeacherRegistration({
   teacher,
@@ -24,6 +24,7 @@ export function TeacherRegistration({
   const documents = useTeacherDocuments(teacher.id);
   useEffect(() => {
     onBusyChange(documents.busy);
+    return () => onBusyChange(false);
   }, [documents.busy, onBusyChange]);
   return (
     <div className={registration.layout}>
@@ -32,14 +33,10 @@ export function TeacherRegistration({
         <EmploymentDetails teacher={teacher} onEdit={onEdit} />
       </section>
       <div className={registration.documents}>
-        <TeacherDocumentPanel documents={documents} showGuidance hidePhoto />
+        <TeacherDocumentPanel documents={documents} inRecord />
       </div>
     </div>
   );
-}
-
-function dateLabel(value: Date): string {
-  return value.toISOString().slice(0, ISO_DATE_LENGTH).split("-").toReversed().join("/");
 }
 
 function PersonalDetails({
@@ -49,7 +46,7 @@ function PersonalDetails({
   teacher: Teacher;
   onEdit: () => void;
 }): ReactElement {
-  const profile = teacher.teacherProfile;
+  const profile = teacher.employeeProfile;
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeading}>
@@ -60,7 +57,6 @@ function PersonalDetails({
           <Pencil />
         </Button>
       </div>
-      <p className={styles.supporting}>Mantenha os dados de identificação e contato atualizados.</p>
       <dl className={registration.facts}>
         <div className={styles.fact}>
           <dt>Nome completo</dt>
@@ -69,8 +65,7 @@ function PersonalDetails({
         <div className={styles.fact}>
           <dt>CPF</dt>
           <dd>
-            {teacher.teacherProfile?.cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/u, "$1.$2.$3-$4") ??
-              NOT_INFORMED}
+            {profile?.cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/u, "$1.$2.$3-$4") ?? NOT_INFORMED}
           </dd>
         </div>
         <div className={styles.fact}>
@@ -93,7 +88,7 @@ function EmploymentDetails({
   teacher: Teacher;
   onEdit: () => void;
 }): ReactElement {
-  const profile = teacher.teacherProfile;
+  const profile = teacher.employeeProfile;
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeading}>
@@ -113,19 +108,23 @@ function EmploymentDetails({
               : NOT_INFORMED}
           </dd>
         </div>
-        {profile?.employmentType === "CLT" && (
-          <div className={styles.fact} data-wide>
-            <dt>Previsão de férias</dt>
-            <dd>
-              {profile.vacationStart && profile.vacationEnd
-                ? `${dateLabel(profile.vacationStart)} a ${dateLabel(profile.vacationEnd)}`
-                : "Não informada"}
-            </dd>
-          </div>
-        )}
+        <div className={styles.fact}>
+          <dt>Área</dt>
+          <dd>{profile?.area ? AREA_LABELS[profile.area] : "A preencher"}</dd>
+        </div>
+        <div className={styles.fact}>
+          <dt>Cargo</dt>
+          <dd>{profile?.jobTitle || NOT_INFORMED}</dd>
+        </div>
+        <div className={styles.fact}>
+          <dt>Papel de acesso</dt>
+          <dd>{ROLE_LABELS[teacher.role]}</dd>
+        </div>
         <div className={styles.fact} data-wide>
           <dt>Observações</dt>
-          <dd className="whitespace-pre-wrap">{profile?.notes || "Nenhuma observação"}</dd>
+          <dd className="whitespace-pre-wrap">
+            {teacher.teacherProfile?.notes || "Nenhuma observação"}
+          </dd>
         </div>
       </dl>
     </section>

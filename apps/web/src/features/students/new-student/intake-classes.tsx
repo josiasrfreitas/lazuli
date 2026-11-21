@@ -11,10 +11,8 @@ type Options = RouterOutputs["students"]["intakeOptions"];
 type ClassChoice = Pick<
   Options["classes"][number],
   "id" | "slots" | "scheduleType" | "format" | "stageName" | "teacherName"
-> & { name?: string } & (
-    | Pick<Options["classes"][number], "future" | "enrolled">
-    | { future?: never; enrolled?: never }
-  );
+> &
+  (Pick<Options["classes"][number], "future" | "enrolled"> | { future?: never; enrolled?: never });
 type Slot = ClassChoice["slots"][number];
 const GROUP_TONE_COUNT = 4;
 
@@ -47,7 +45,7 @@ function classOptionLabel(choice: ClassChoice, slot: Slot | undefined): string {
         .join("; ") || "Sem horário recorrente";
   const title = choice.scheduleType === "PERSONALIZED" ? "PPT" : choice.stageName;
   const format = choice.format === "ONLINE" ? "online" : "presencial";
-  return [choice.name, title, choice.teacherName, format, schedule, classCount(choice)]
+  return [title, choice.teacherName, format, schedule, classCount(choice)]
     .filter(Boolean)
     .join(", ");
 }
@@ -115,9 +113,7 @@ function ClassOption({
       </span>
       {!personalized && <span className={styles.classTeacher}>{choice.teacherName}</span>}
       <ClassSchedule choice={choice} slot={slot} />
-      {(choice.name || classCount(choice)) && (
-        <span className={styles.classCount}>{choice.name ?? classCount(choice)}</span>
-      )}
+      {classCount(choice) && <span className={styles.classCount}>{classCount(choice)}</span>}
     </button>
   );
 }

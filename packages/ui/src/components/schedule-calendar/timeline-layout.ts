@@ -1,7 +1,6 @@
 import { timeMinutes } from "./model";
 import type { CalendarEvent } from "./types";
 
-export const VISIBLE_LANES = 4;
 export type TimelineGroup = {
   id: string;
   start: number;
@@ -37,23 +36,4 @@ export function timelineGroups(lessons: CalendarEvent[]): TimelineGroup[] {
     group.lanes = ends.length;
   }
   return groups;
-}
-
-/** Count hidden lessons at every boundary, avoiding a misleading all-day overflow block. */
-export function timelineOverflow(
-  group: TimelineGroup,
-): { start: number; end: number; count: number }[] {
-  const hidden = group.placed.filter((item) => item.lane >= VISIBLE_LANES - 1);
-  const boundaries = [
-    ...new Set(
-      hidden.flatMap(({ lesson }) => [timeMinutes(lesson.startTime), timeMinutes(lesson.endTime)]),
-    ),
-  ].toSorted((left, right) => left - right);
-  return boundaries.slice(0, -1).flatMap((start, index) => {
-    const end = boundaries[index + 1]!;
-    const count = hidden.filter(
-      ({ lesson }) => timeMinutes(lesson.startTime) < end && timeMinutes(lesson.endTime) > start,
-    ).length;
-    return count > 0 ? [{ start, end, count }] : [];
-  });
 }

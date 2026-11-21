@@ -4,18 +4,24 @@ import type { ReactNode } from "react";
 import { cn } from "@lazuli/ui";
 
 /** Use the matching brand artwork without waiting for client theme hydration. */
-function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }): ReactNode {
+function BrandArtwork({
+  kind,
+  onNavy,
+}: {
+  kind: "symbol" | "symbol-small" | "wordmark";
+  onNavy: boolean;
+}): ReactNode {
   if (kind === "wordmark") {
     return (
       <svg aria-hidden="true" className="size-full text-brand" viewBox="0 0 330 100">
         <image
-          className="dark:hidden"
+          className={onNavy ? "hidden" : "dark:hidden"}
           height="100"
           href="/brand/lazuli-wordmark-light.svg"
           width="320"
         />
         <image
-          className="hidden dark:block"
+          className={onNavy ? undefined : "hidden dark:block"}
           height="100"
           href="/brand/lazuli-wordmark-dark.svg"
           width="320"
@@ -29,7 +35,7 @@ function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }
     <>
       <Image
         alt=""
-        className="size-full object-contain dark:hidden"
+        className={cn("size-full object-contain", onNavy ? "hidden" : "dark:hidden")}
         height={100}
         width={100}
         src={`/brand/lazuli-${kind}-light.svg`}
@@ -37,7 +43,7 @@ function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }
       />
       <Image
         alt=""
-        className="hidden size-full object-contain dark:block"
+        className={cn("size-full object-contain", !onNavy && "hidden dark:block")}
         height={100}
         width={100}
         src={`/brand/lazuli-${kind}-dark.svg`}
@@ -49,9 +55,11 @@ function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }
 
 export function BrandSignature({
   entry = false,
+  onNavy = false,
   expanded = false,
 }: {
   entry?: boolean;
+  onNavy?: boolean;
   expanded?: boolean;
 }): ReactNode {
   return (
@@ -61,7 +69,7 @@ export function BrandSignature({
         data-brand-symbol
         className={entry ? "size-16 shrink-0" : "size-8 shrink-0"}
       >
-        <BrandArtwork kind={entry ? "symbol" : "symbol-small"} />
+        <BrandArtwork onNavy={onNavy} kind={entry ? "symbol" : "symbol-small"} />
       </span>
       <span
         aria-hidden="true"
@@ -72,7 +80,7 @@ export function BrandSignature({
             "opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 group-has-[:focus-visible]/sidebar:opacity-100 group-has-[[data-popup-open]]/sidebar:opacity-100 motion-reduce:transition-none",
         )}
       >
-        <BrandArtwork kind="wordmark" />
+        <BrandArtwork onNavy={onNavy} kind="wordmark" />
       </span>
     </p>
   );

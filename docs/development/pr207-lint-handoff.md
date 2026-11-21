@@ -52,7 +52,7 @@ confere `pnpm lint` da raiz e o saldo combinado.
 
 ## Atenção à formatação
 
-`pnpm format:check` detectou dois JSONs de `.impeccable/live` que já estavam
+`pnpm format:check` detectou dois JSONs locais que já estavam
 sem alterações nesta worktree, além de arquivos alterados pelo lint. Prettier
 foi aplicado somente aos arquivos alterados. Ele removeu parênteses exigidos
 pela regra `unicorn/no-nested-ternary`, criando 21 regressões; os parênteses

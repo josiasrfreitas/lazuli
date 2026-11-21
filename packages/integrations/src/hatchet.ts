@@ -1,3 +1,4 @@
+import { TABLE_EXPORT_WORKFLOW } from "@lazuli/job-contracts";
 import { reportError } from "@lazuli/logging";
 import { z } from "zod";
 import { readHatchetEnvironment } from "./hatchet/env.js";
@@ -201,4 +202,11 @@ export function createHatchetStudentHealthRefreshQueue(): StudentHealthRefreshQu
       }
     },
   };
+}
+
+export async function dispatchTableExport(artifactId: string): Promise<void> {
+  await boundedDispatch(async () => {
+    const hatchet = await getHatchetClient();
+    await hatchet.runNoWait(TABLE_EXPORT_WORKFLOW, { artifactId });
+  });
 }

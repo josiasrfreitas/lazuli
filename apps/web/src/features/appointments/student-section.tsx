@@ -129,7 +129,7 @@ function AppointmentItem({ row }: { row: AppointmentRow }): ReactElement {
           <span className="font-numeric tabular-nums">
             {row.startTime}–{row.endTime}
           </span>{" "}
-          · <span className="break-words">{row.teacher?.name ?? "Professor a definir"}</span>
+          · <span className="break-words">{row.teacher?.name ?? "Docente a definir"}</span>
         </p>
       </div>
       <ArrowUpRight className="size-3.5 shrink-0 text-icon" aria-hidden="true" />

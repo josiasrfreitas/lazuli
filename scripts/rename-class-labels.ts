@@ -31,13 +31,15 @@ async function collectClassLabels(tx: TransactionClient): Promise<{
   unscheduledClasses: number;
 }> {
   const classes = await tx.class.findMany({
+    where: { deletedAt: null },
     select: {
       ...responsibilitySelect,
       id: true,
       status: true,
       scheduleType: true,
+      format: true,
       portalClassName: true,
-      sharedStage: { select: { internalCode: true } },
+      sharedStage: { select: { internalCode: true, track: { select: { name: true } } } },
       semester: { select: { startDate: true, endDate: true } },
       scheduleSlots: {
         where: { deletedAt: null },
@@ -47,16 +49,10 @@ async function collectClassLabels(tx: TransactionClient): Promise<{
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   const unscheduledClasses = classes.filter((row) => row.scheduleSlots.length === 0);
-  const occupied = new Set(
-    unscheduledClasses.filter((row) => row.status === "ACTIVE").map((row) => row.portalClassName),
-  );
+  const occupied = new Set<string>();
   const classNames = new Map<string, string>();
   const changedClasses = [];
   for (const row of classes) {
-    if (row.scheduleSlots.length === 0) {
-      classNames.set(row.id, row.portalClassName);
-      continue;
-    }
     const date = new Date(
       Math.min(
         row.semester.endDate.getTime(),
@@ -65,6 +61,8 @@ async function collectClassLabels(tx: TransactionClient): Promise<{
     );
     const details = {
       scheduleType: row.scheduleType,
+      format: row.format,
+      trackName: row.sharedStage?.track.name,
       stageInternalCode: row.sharedStage?.internalCode,
       slots: row.scheduleSlots.map(databaseSlotToCandidate),
       teacherName: usualTeacherOn(row, date)?.name,
@@ -87,13 +85,15 @@ async function collectPlanLabels(
   classNames: Map<string, string>,
 ): Promise<{ changedPlans: LabelChange[]; plans: number; unscheduledPlans: number }> {
   const plans = await tx.semesterClassPlan.findMany({
+    where: { deletedAt: null },
     select: {
       id: true,
       classId: true,
       name: true,
       scheduleType: true,
+      format: true,
       slots: true,
-      sharedStage: { select: { internalCode: true } },
+      sharedStage: { select: { internalCode: true, track: { select: { name: true } } } },
       teacher: { select: { name: true } },
     },
   });
@@ -103,11 +103,12 @@ async function collectPlanLabels(
     const slots = readSlots(plan.slots);
     if (slots.length === 0) unscheduledPlans++;
     const className = plan.classId ? classNames.get(plan.classId) : undefined;
-    if (!className && slots.length === 0) continue;
     const name =
       className ??
       generatePortalClassName({
         scheduleType: plan.scheduleType,
+        format: plan.format,
+        trackName: plan.sharedStage?.track.name,
         slots,
         stageInternalCode: plan.sharedStage?.internalCode,
         teacherName: plan.teacher?.name,

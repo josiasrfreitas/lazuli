@@ -86,7 +86,7 @@ function OccurrenceSearch({
         name="occurrence-search"
         size="sm"
         autoComplete="off"
-        placeholder="Busque por assunto, turma ou professor"
+        placeholder="Busque por assunto, turma ou docente"
         value={search}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {

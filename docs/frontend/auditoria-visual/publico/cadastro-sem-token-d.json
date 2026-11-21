@@ -1,0 +1,126 @@
+{
+  "captured_utc": "2026-11-20T15:10:29.328916+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/cadastrar-senha",
+  "snapshot": "- generic\n  - main\n    - sectionheader\n    - generic\n      - heading \"Mais tempo para o que transforma.\" [level=1, ref=e126]\n    - region \"Cadastre sua senha.\" [ref=e125]\n      - heading \"Cadastre sua senha.\" [level=2, ref=e127]\n      - button \"Solicitar novo link\" [ref=e128]\n  - alert\n  - generic\n    - region \"Notificações\" [ref=e124] clickable [onclick]",
+  "metrics": {
+    "coarse": false,
+    "controls": [
+      {
+        "background": "rgb(48, 89, 133)",
+        "color": "rgb(255, 255, 255)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 40,
+        "line": "16.875px",
+        "role": null,
+        "size": "13.5px",
+        "tag": "button",
+        "text": "Solicitar novo link",
+        "weight": "600",
+        "width": 356,
+        "x": 1004,
+        "y": 498
+      }
+    ],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 110,
+        "line": "24px",
+        "role": "img",
+        "size": "16px",
+        "tag": "p",
+        "text": "Lazuli",
+        "weight": "400",
+        "width": 440,
+        "x": 48,
+        "y": 27
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 27,
+        "line": "27.2px",
+        "role": null,
+        "size": "17px",
+        "tag": "p",
+        "text": "Uma gestão mais clara para quem faz a aprendizagem acontecer todos os dias.",
+        "weight": "400",
+        "width": 607,
+        "x": 48,
+        "y": 834
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(168, 183, 206)",
+        "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+        "height": 50,
+        "line": "24.8px",
+        "role": null,
+        "size": "16px",
+        "tag": "p",
+        "text": "Escolha uma senha para os próximos acessos à Lazuli.",
+        "weight": "400",
+        "width": 258,
+        "x": 1004,
+        "y": 425
+      }
+    ],
+    "docHeight": 900,
+    "docWidth": 1440,
+    "fonts": [],
+    "frames": [],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 185,
+        "line": "83.1168px",
+        "role": null,
+        "size": "79.92px",
+        "tag": "h1",
+        "text": "Mais tempo para o que transforma.",
+        "weight": "400",
+        "width": 607,
+        "x": 48,
+        "y": 627
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 45,
+        "line": "44.88px",
+        "role": null,
+        "size": "44px",
+        "tag": "h2",
+        "text": "Cadastre sua senha.",
+        "weight": "400",
+        "width": 356,
+        "x": 1004,
+        "y": 362
+      }
+    ],
+    "height": 900,
+    "labels": [],
+    "main": {
+      "background": "rgb(15, 30, 61)",
+      "color": "rgb(233, 237, 246)",
+      "font": "\"Helvetica Neue\", \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, Arial, sans-serif",
+      "height": 900,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Cadastrar senha | Lazuli",
+    "width": 1440
+  }
+}

@@ -1,8 +1,0 @@
-{
-  "optionId": "professores",
-  "steer": "",
-  "html": ".impeccable/mocks/decision/professores.html",
-  "comp": ".impeccable/mocks/decision/professores.png",
-  "buildPath": "code",
-  "buildPathFlipped": false
-}

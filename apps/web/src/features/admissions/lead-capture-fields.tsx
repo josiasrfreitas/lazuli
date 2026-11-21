@@ -3,6 +3,7 @@ import { MessageSquare } from "lucide-react";
 import { Field, FieldError, FormRow, FormSection, Label, Textarea } from "@lazuli/ui";
 import type { leadCaptureSchema, z } from "@lazuli/validators";
 import { maskDateBR, maskPhoneBR } from "~/lib/masks";
+import { LeadSourceFields } from "./lead-source-fields";
 import { TextControl } from "~/features/classes/form-controls";
 import { InterestChoice } from "./candidate-fields";
 export type Draft = Omit<z.infer<typeof leadCaptureSchema>, "id" | "birthDate"> & {
@@ -74,7 +75,12 @@ function LeadContactChannels({ draft, errors, change }: Props): ReactElement {
         placeholder="(11) 99999-9999"
         inputMode="tel"
         value={draft.phone ?? ""}
-        onChange={(value) => change("phone", maskPhoneBR(value))}
+        onChange={(value) =>
+          change(
+            "phone",
+            value.trimStart().startsWith("+") ? value.trimStart() : maskPhoneBR(value),
+          )
+        }
         error={errors.phone}
       />
       <TextControl
@@ -91,9 +97,8 @@ function LeadContactChannels({ draft, errors, change }: Props): ReactElement {
 }
 function LeadProfileFields({ draft, errors, change }: Props): ReactElement {
   return (
-    <>
-      {" "}
-      <div className="w-40">
+    <div className="grid items-start gap-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
+      <div className="max-w-40">
         <TextControl
           name="birthDate"
           label="Nascimento (opcional)"
@@ -104,14 +109,8 @@ function LeadProfileFields({ draft, errors, change }: Props): ReactElement {
           error={errors.birthDate}
         />
       </div>
-      <TextControl
-        name="source"
-        label="Como chegou à escola"
-        value={draft.source ?? ""}
-        onChange={(value) => change("source", value)}
-        placeholder="Indicação, Instagram…"
-      />
-    </>
+      <LeadSourceFields draft={draft} change={change} errors={errors} />
+    </div>
   );
 }
 export function LeadCaptureNotesField({

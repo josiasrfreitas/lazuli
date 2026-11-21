@@ -13,6 +13,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableActionRow,
   TableEmpty,
   TableHead,
   TableHeader,
@@ -38,7 +39,7 @@ import {
 const COLUMNS = [
   { label: "Aluno", numeric: false },
   { label: "Turma", numeric: false },
-  { label: "Professor", numeric: false },
+  { label: "Docente", numeric: false },
   { label: "Score", numeric: true },
   { label: "Frequência", numeric: true },
   { label: "Financeiro", numeric: true },
@@ -46,34 +47,20 @@ const COLUMNS = [
 const COLUMN_COUNT = COLUMNS.length + 1;
 const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
 
-function FactCell({ vm }: { vm: FactCellVm }): ReactElement {
-  const content = <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>;
-
-  if (vm.tone === "muted") {
-    return (
-      <TableCell className="text-muted-foreground" numeric>
-        {content}
-      </TableCell>
-    );
-  }
-
-  if (vm.tone === "success") {
-    return (
-      <TableCell className="text-success" numeric>
-        {content}
-      </TableCell>
-    );
-  }
-
-  if (vm.tone === "destructive") {
-    return (
-      <TableCell className="text-destructive" numeric>
-        {content}
-      </TableCell>
-    );
-  }
-
-  return <TableCell numeric>{content}</TableCell>;
+function FactCell({ vm, centered }: { vm: FactCellVm; centered?: boolean }): ReactElement {
+  return (
+    <TableCell
+      numeric
+      className={cn(
+        centered && "text-center",
+        vm.tone === "muted" && "text-muted-foreground",
+        vm.tone === "success" && "text-success",
+        vm.tone === "destructive" && "text-destructive",
+      )}
+    >
+      <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>
+    </TableCell>
+  );
 }
 
 function EnrollmentCell({ enrollment }: { enrollment: StudentListRow["enrollment"] }): ReactNode {
@@ -138,14 +125,7 @@ export function StudentsTableRow({
   onContinue?: ((id: string) => void) | undefined;
 }): ReactElement {
   return (
-    <TableRow
-      className="cursor-pointer focus-visible:outline-none focus-visible:shadow-focus"
-      onClick={() => onOpen(row.id)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" && event.target === event.currentTarget) onOpen(row.id);
-      }}
-      tabIndex={0}
-    >
+    <TableActionRow onActivate={() => onOpen(row.id)}>
       <TableCell>
         <div className="flex flex-wrap items-center gap-3">
           <StudentAvatar colorKey={row.id} name={row.fullName} size="sm" />
@@ -159,10 +139,10 @@ export function StudentsTableRow({
       <TableCell numeric>
         <StudentScore studentId={row.id} />
       </TableCell>
-      <FactCell vm={attendanceCellVm(row.attendance)} />
+      <FactCell centered vm={attendanceCellVm(row.attendance)} />
       <FactCell vm={financeCellVm(row.finance)} />
       <StudentActions row={row} onContinue={onContinue} />
-    </TableRow>
+    </TableActionRow>
   );
 }
 
@@ -241,7 +221,7 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
     case "Turma": {
       return <TableHead className="w-1/5">{column.label}</TableHead>;
     }
-    case "Professor": {
+    case "Docente": {
       return <TableHead className="w-[17%]">{column.label}</TableHead>;
     }
     case "Score": {
@@ -253,7 +233,7 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
     }
     case "Frequência": {
       return (
-        <TableHead className="w-[10%]" numeric>
+        <TableHead className="w-[10%] text-center" numeric>
           {column.label}
         </TableHead>
       );

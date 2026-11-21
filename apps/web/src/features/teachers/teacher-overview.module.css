@@ -107,7 +107,7 @@
   gap: 0.5rem;
   color: var(--heading);
   font-family: var(--lz-font-display);
-  font-size: 1.125rem;
+  font-size: var(--lz-text-panel-title);
   font-weight: 600;
 }
 .metricCard h2 svg {
@@ -297,39 +297,6 @@
   }
 }
 
-.navigation {
-  margin-left: auto;
-  flex-shrink: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-.teacherHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-width: 0;
-  padding-bottom: 0.5rem;
-}
-.teacherIdentity {
-  display: flex;
-  flex-shrink: 0;
-  max-width: 35%;
-  align-items: center;
-  gap: 1.25rem;
-  padding-inline-end: 0.5rem;
-  min-width: 0;
-}
-.teacherIdentity h1 {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--lz-font-display);
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--heading);
-}
 .teacherActions {
   display: flex;
   flex-shrink: 0;
@@ -348,9 +315,6 @@
   display: none;
 }
 @media (min-width: 901px) and (max-width: 1200px) {
-  .teacherHeader {
-    gap: 0.375rem;
-  }
   .email > svg {
     display: block;
     width: 1rem;
@@ -367,22 +331,6 @@
     clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
-  }
-  .teacherIdentity h1 {
-    font-size: 1.125rem;
-  }
-}
-@media (max-width: 900px) {
-  .teacherHeader {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .teacherIdentity {
-    max-width: none;
-  }
-  .teacherHeader > .navigation {
-    grid-column: 1 / -1;
-    justify-self: end;
   }
 }
 .access {
@@ -412,9 +360,6 @@
 }
 .healthBands [data-level="PRIORITY"] strong {
   color: var(--destructive);
-}
-.metricCard[data-attention] {
-  background: color-mix(in srgb, var(--warning-muted) 18%, var(--card));
 }
 .cardHeading {
   display: flex;
@@ -474,11 +419,7 @@
   color: var(--warning);
 }
 .occurrenceCard {
-  background: var(--academic-panel-surface);
   container-type: inline-size;
-}
-.metricCard.occurrenceCard[data-attention] {
-  background: var(--academic-panel-surface);
 }
 .occurrenceSlide {
   display: flex;
@@ -546,7 +487,7 @@
   color: var(--heading);
   font-family: var(--lz-font-display);
   font-weight: 500;
-  font-size: 1.125rem;
+  font-size: var(--lz-text-panel-title);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -813,18 +754,19 @@
     font-size: var(--lz-text-micro);
   }
   .sectionContent[data-overview] {
-    height: 100%;
+    display: grid;
+    min-height: 100%;
   }
-  .overview:not([data-expanded]) {
-    height: 100%;
-    grid-template-rows: minmax(0, 1fr);
+  .overview[data-expanded] {
+    grid-template-rows: auto 1fr;
   }
   .overviewGrid {
-    grid-template-rows: minmax(18rem, 1fr) max-content;
-    min-height: 0;
+    grid-template-rows: minmax(min-content, 7fr) minmax(min-content, 3fr);
   }
-  .overview[data-expanded] .overviewGrid {
-    grid-template-rows: 22rem auto;
+  .occurrenceCard {
+    /* Keep rotating reports within the row sized by the health summary. */
+    container-type: size;
+    min-height: 18rem;
   }
 }
 @media (max-width: 900px), (max-height: 699px) {
@@ -880,8 +822,5 @@
   }
   .metricCard[data-health] .cardAction {
     padding-top: 0;
-  }
-  .metricCard[data-health] .healthCoverage {
-    display: none;
   }
 }

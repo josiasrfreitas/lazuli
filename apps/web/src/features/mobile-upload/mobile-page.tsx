@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
-import { ArrowLeft, Check, FileText } from "lucide-react";
+import { ArrowLeft, Check, FileText, Plus } from "lucide-react";
 import { Button, ToastAlert } from "@lazuli/ui";
-import { BrandSignature } from "~/components/app-shell/brand-signature";
+import { AttachmentEmpty } from "./attachment-empty";
+import { CapturePageFrame } from "~/features/mobile-upload/capture-page-frame";
 import { MobileFileEditor, type UploadCategory, type MobileFileInput } from "./file-editor";
-import styles from "./mobile-upload.module.css";
 export type MobileUploadReceipt = { id: string; label: string; fileName: string };
 type CaptureSession = { endpoint: string; token: string };
 const SESSION_GONE = 410;
@@ -54,15 +54,18 @@ export function MobileUploadPage({
   const model = useMobileUpload(endpoint);
   const { selected, error } = model;
   return (
-    <main className={styles.mobile}>
-      <BrandSignature expanded />
+    <CapturePageFrame>
       <header className="grid gap-2">
         <h1>{selected?.label ?? "Enviar documentos"}</h1>
-        <p>Os arquivos aparecem no cadastro aberto no computador.</p>
+        <p>
+          {model.token
+            ? "Os arquivos aparecem no cadastro aberto no computador."
+            : "Abra esta página pelo QR code do cadastro."}
+        </p>
       </header>
       {error && <ToastAlert variant="warning">{error}</ToastAlert>}
-      <MobileUploadContent model={model} categories={categories} />
-    </main>
+      {model.token && <MobileUploadContent model={model} categories={categories} />}
+    </CapturePageFrame>
   );
 }
 
@@ -134,7 +137,6 @@ function MobileUploadContent({
     setBusy,
     setReceived,
   } = model;
-  if (!token) return <p>Abra esta página pelo QR code do cadastro.</p>;
   if (!files)
     return (
       <p role="status">{error ? "Confira o link ou gere um novo QR code." : "Abrindo sessão…"}</p>
@@ -185,6 +187,7 @@ function MobileUploadList({
   categories: UploadCategory[];
   onSelect: (category: UploadCategory) => void;
 }): ReactElement {
+  const [choosing, setChoosing] = useState(false);
   return (
     <>
       {received && (
@@ -192,18 +195,27 @@ function MobileUploadList({
           <Check /> Arquivo recebido no cadastro.
         </p>
       )}
-      <div className="grid gap-2">
-        {categories.map((category) => (
-          <Button key={category.id} variant="secondary" onClick={() => onSelect(category)}>
-            <FileText />
-            {category.label}
+      {!choosing && files.length === 0 ? (
+        <AttachmentEmpty>
+          <Button onClick={() => setChoosing(true)}>
+            <Plus />
+            Adicionar primeiro anexo
           </Button>
-        ))}
-      </div>
+        </AttachmentEmpty>
+      ) : (
+        <div className="grid gap-2">
+          {categories.map((category) => (
+            <Button key={category.id} variant="secondary" onClick={() => onSelect(category)}>
+              <FileText />
+              {category.label}
+            </Button>
+          ))}
+        </div>
+      )}
       {files.length > 0 && (
         <section className="grid gap-2">
-          <h2 className="text-h3">Enviados por este celular</h2>
-          <ul className="divide-y">
+          <h2 className="text-h3">Arquivos no cadastro</h2>
+          <ul className="max-h-80 divide-y overflow-y-auto overscroll-contain scrollbar-subtle">
             {files.map((file) => (
               <li key={file.id} className="break-words py-3 text-body">
                 <span>{file.label}</span>

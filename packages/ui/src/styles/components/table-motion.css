@@ -10,15 +10,21 @@
 
 /* Keep the sweep attached to the visible scroll frame, above the rows and
    below pagination. The placeholders keep their real column geometry. */
-[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]),
+[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], table[aria-busy="true"]),
 [data-slot="table-container"]
-  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]) {
+  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], table[aria-busy="true"]) {
   isolation: isolate;
 }
 
-[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after,
+[data-slot="table-scroll-area"]:has(
+    [data-slot="table-skeleton-row"],
+    table[aria-busy="true"]
+  )::after,
 [data-slot="table-container"]
-  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after {
+  > [data-slot="table-viewport"]:has(
+    [data-slot="table-skeleton-row"],
+    table[aria-busy="true"]
+  )::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -34,13 +40,16 @@
   animation: lz-table-sweep 1.8s ease-in-out infinite;
 }
 
-[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], [aria-busy="true"]) {
+[data-slot="table-scroll-area"]:has([data-slot="table-skeleton-row"], table[aria-busy="true"]) {
   overflow: hidden;
 }
 
 /* Native horizontal scroll remains available during background refreshes. */
 [data-slot="table-container"]
-  > [data-slot="table-viewport"]:has([data-slot="table-skeleton-row"], [aria-busy="true"])::after {
+  > [data-slot="table-viewport"]:has(
+    [data-slot="table-skeleton-row"],
+    table[aria-busy="true"]
+  )::after {
   transform: none;
   background-size: 300% 100%;
   animation-name: lz-table-native-sweep;
@@ -161,5 +170,22 @@
 @media (prefers-reduced-motion: reduce) {
   [data-slot="table-skeleton-bar"] {
     animation: none;
+  }
+}
+
+/* Base UI tracks both edges as columns and viewport size change. */
+@media (max-width: 40rem) {
+  [data-slot="table-scroll-area"][data-overflow-x-end]::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 0.875rem;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+      to left,
+      color-mix(in srgb, var(--border-strong) 75%, transparent),
+      transparent
+    );
   }
 }

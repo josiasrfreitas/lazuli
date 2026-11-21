@@ -22,7 +22,6 @@ Use the assigned work item for current scope, completion checks, dependencies, a
 - `packages/` — API, auth, database, domain, job contracts, integrations, worker handlers, UI, and validators.
 - `infra/` — infrastructure placeholders and local support.
 - [`docs/decisions/`](docs/decisions/README.md) — accepted durable engineering constraints.
-- [`docs/legacy/`](docs/legacy/README.md) — frozen historical material; not current guidance.
 
 ## Setup
 
@@ -166,11 +165,13 @@ Payments use the application's finance service, including punctuality-discount a
 Birthdays, the current academic semester, sessions and contract dates derive from the current
 business date in `America/Sao_Paulo`; no seed year needs to be updated manually.
 
-Class and formation plan names use the modality, shared stage code for regular classes, and
-the complete weekly schedule, for example `REG MWR TER/QUI/14:00-15:30 Rafael Mendes` or
-`PPT SEG/QUA/19:00-20:00`. Equal time ranges share a weekday list. Distinct ranges use
-`+`. The teacher’s full name is included when the resulting label fits in 80 characters.
-A numeric suffix is reserved for otherwise identical active class names.
+Class and formation plan names are generated from their structured fields. Regular classes use the
+book code, meeting days and start time, such as `TC1-QUA-19` or `TC1-SEG/QUA-19:00`.
+Online classes use `/ON` (for example `TC1/ON-QUA-19:00` or `PPT/ON-SAB-08:00`).
+In-person personalized classes use the teacher’s first name, as in `PPT/IAGO-SEG-19:00`.
+Days with the same start time are grouped and distinct starts are joined with `+`.
+An active-name collision gets a numeric suffix. Tables with dedicated stage, teacher and schedule
+fields show those fields directly. Use the generated name for standalone references and selectors.
 To preview updates to existing records, run `node --env-file=.env --import tsx scripts/rename-class-labels.ts`.
 Add `--apply` to update the labels in place.
 

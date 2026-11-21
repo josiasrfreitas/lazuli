@@ -87,7 +87,7 @@ export async function readPendingLessons(database: Database, now: Date): Promise
     const teacherId = teacher?.id ?? null;
     const group: TeacherLessons = teachers.get(teacherId) ?? {
       teacherId,
-      teacherName: teacher?.name ?? "Professor não atribuído",
+      teacherName: teacher?.name ?? "Docente não atribuído",
       high: 0,
       low: 0,
       lessons: [],

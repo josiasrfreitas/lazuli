@@ -109,7 +109,7 @@ export function assertTeacherAccess(
   if (staff.role === "TEACHER" && usualTeacherOn(classRow, date)?.id !== staff.id)
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Somente o professor responsável por este percurso pode acessar as avaliações.",
+      message: "Somente o docente responsável por este percurso pode acessar as avaliações.",
     });
 }
 

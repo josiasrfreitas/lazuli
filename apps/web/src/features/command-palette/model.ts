@@ -67,6 +67,7 @@ const PEDAGOGY = new Set([
 const ENTITY: Record<string, CommandKind> = {
   aluno: "student",
   aluna: "student",
+  docente: "teacher",
   professor: "teacher",
   professora: "teacher",
   turma: "class",

@@ -41,6 +41,7 @@ function historyColumns(today: string, studentId: string): DataTableColumn<Stude
     {
       id: "attendance",
       header: "Frequência",
+      centered: true,
       numeric: true,
       width: "narrow",
       cell: (row) => formatAttendancePercent(row.attendance.percent),

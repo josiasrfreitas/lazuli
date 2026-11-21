@@ -12,10 +12,9 @@ import {
   type SetStateAction,
 } from "react";
 
-import { Button, toastManager } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
 
 import { submitLogin } from "./login-actions";
-import { showLoginError } from "./login-error-toast";
 import { LoginForm, type LoginMode } from "./login-form";
 import styles from "./login-entrance.module.css";
 
@@ -181,14 +180,6 @@ function useLoginCard({
 
 export function LoginCard(props: LoginCardInput): ReactNode {
   const view = useLoginCard(props);
-  useEffect(() => {
-    const message = view.invalidReset
-      ? "Link inválido ou expirado. Solicite um novo para definir sua senha."
-      : view.error;
-    if (!message) return;
-    const id = showLoginError(message);
-    return () => toastManager.close(id);
-  }, [view.error, view.invalidReset]);
   return <LoginCardView {...view} />;
 }
 
@@ -230,7 +221,12 @@ function LoginCardView({
       data-login-reveal="form"
       data-mode-change={modeDirection ?? undefined}
     >
-      <LoginCardHeading mode={mode} complete={complete} definingPassword={definingPassword} />
+      <LoginCardHeading
+        mode={mode}
+        complete={complete}
+        definingPassword={definingPassword}
+        invalidReset={invalidReset}
+      />
       {complete ? (
         <LoginComplete mode={mode} email={email} onBack={() => changeMode("password")} />
       ) : (
@@ -256,13 +252,15 @@ function LoginCardView({
 function LoginCardHeading({
   mode,
   complete,
+  invalidReset,
   definingPassword,
 }: {
   mode: LoginMode;
   complete: boolean;
+  invalidReset: boolean;
   definingPassword: boolean;
 }): ReactNode {
-  let heading = title(mode);
+  let heading = invalidReset ? "Solicite um novo link." : title(mode);
   if (complete) heading = definingPassword ? "Senha salva." : "Confira seu email.";
   return (
     <h2
@@ -303,13 +301,24 @@ function LoginCardMethods({
 }: LoginMethodsProps): ReactNode {
   return (
     <>
-      <p key={`description-${mode}`} className={styles.accessDescription}>
-        {DESCRIPTION[mode]}
+      <p
+        key={`description-${mode}`}
+        className={
+          invalidReset ? "mt-3 text-body text-marquee-foreground" : styles.accessDescription
+        }
+        role={invalidReset ? "alert" : undefined}
+      >
+        {invalidReset ? "Este link é inválido ou expirou." : DESCRIPTION[mode]}
       </p>
+      {error && (
+        <p role="alert" className="mt-3 text-body text-marquee-foreground">
+          {error}
+        </p>
+      )}
       <div key={`methods-${mode}`} className={styles.methods}>
         <div className={styles.controlStack}>
           {invalidReset ? (
-            <InvalidResetNotice onRequest={() => changeMode(requestMode)} />
+            <Button onClick={() => changeMode(requestMode)}>Solicitar novo link</Button>
           ) : (
             <LoginForm
               key={mode}
@@ -322,7 +331,7 @@ function LoginCardMethods({
               className={styles.emailForm}
             />
           )}
-          {definingPassword && error && (
+          {!invalidReset && definingPassword && error && (
             <Button variant="secondary" onClick={() => changeMode(requestMode)}>
               Solicitar novo link
             </Button>
@@ -331,10 +340,6 @@ function LoginCardMethods({
       </div>
     </>
   );
-}
-
-function InvalidResetNotice({ onRequest }: { onRequest: () => void }): ReactNode {
-  return <Button onClick={onRequest}>Solicitar novo link</Button>;
 }
 
 function title(mode: LoginMode): ReactNode {

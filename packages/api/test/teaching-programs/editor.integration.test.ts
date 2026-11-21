@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, it } from "node:test";
 import { db } from "@lazuli/db";
 import { createCaller } from "@lazuli/api";
+import { readActivityContexts } from "../../src/teaching-programs/labels.js";
 import {
   ADMIN,
   caller,
@@ -37,15 +38,23 @@ after(async () => {
     await db.stagePlanItem.deleteMany({ where: { planId } });
     await db.stagePlan.delete({ where: { id: planId } });
   }
-  const programs = await db.teachingProgram.findMany({ where: { stageId }, select: { id: true } });
+  const stages = { in: [stageId, nextStageId] };
+  const programs = await db.teachingProgram.findMany({
+    where: { stageId: stages },
+    select: { id: true },
+  });
   const programId = { in: programs.map((program) => program.id) };
   await db.programActivityLesson.deleteMany({ where: { activity: { programId } } });
   await db.programActivity.deleteMany({ where: { programId } });
   await db.teachingHour.deleteMany({ where: { programId } });
   await db.programAssessment.deleteMany({ where: { programId } });
   await db.programUnit.deleteMany({ where: { programId } });
-  await db.teachingProgram.deleteMany({ where: { stageId } });
-  await db.bookLesson.deleteMany({ where: { stageId } });
+  await db.teachingProgram.deleteMany({ where: { stageId: stages } });
+  const part = { lesson: { stageId: stages } };
+  await db.bookPageActivity.deleteMany({ where: { page: { lesson: { stageId: stages } } } });
+  await db.bookLessonPage.deleteMany({ where: { lesson: { stageId: stages } } });
+  await db.bookLessonPart.deleteMany({ where: part });
+  await db.bookLesson.deleteMany({ where: { stageId: stages } });
   await cleanClassDatabase();
   await db.$disconnect();
 });
@@ -116,6 +125,197 @@ void it("opens empty tracks, protects duplicate codes and serializes two moves o
     (event) => event instanceof Error && "code" in event && event.code === "FORBIDDEN",
   );
 });
+void it("links whole and partial book passages in either program and rejects a mismatched hierarchy atomically", async () => {
+  const bookStage = { stageId: nextStageId };
+  const foreign = await catalog.editCatalog({ action: "lesson", stageId, title: "Outro livro" });
+  const lesson = await catalog.editCatalog({ action: "lesson", ...bookStage, title: "Lição 3" });
+  const parent = { ...bookStage, lessonId: lesson.id };
+  const partA = await catalog.editCatalog({ action: "part", ...parent, title: "Parte A" });
+  const partB = await catalog.editCatalog({ action: "part", ...parent, title: "Parte B" });
+  await assert.rejects(
+    catalog.editCatalog({ action: "part", ...parent, title: "parte a" }),
+    /já tem uma parte/,
+  );
+  await assert.rejects(
+    catalog.editCatalog({ action: "page", ...parent, stageId, partId: partA.id, number: 18 }),
+    /lição deste livro/,
+  );
+  const page = await catalog.editCatalog({
+    action: "page",
+    ...parent,
+    partId: partA.id,
+    number: 18,
+  });
+  await catalog.editCatalog({ action: "page", ...parent, partId: partA.id, number: 19 });
+  const otherPage = await catalog.editCatalog({
+    action: "page",
+    ...parent,
+    partId: partB.id,
+    number: 18,
+  });
+  await assert.rejects(
+    catalog.editCatalog({ action: "page", ...parent, partId: partA.id, number: 18 }),
+    /já existe/,
+  );
+  const onPage = { ...parent, partId: partA.id, pageId: page.id };
+  const one = await catalog.editCatalog({
+    action: "pageActivity",
+    ...onPage,
+    title: "Exercício 1",
+  });
+  const two = await catalog.editCatalog({
+    action: "pageActivity",
+    ...onPage,
+    title: "Exercício 2",
+  });
+  await assert.rejects(
+    catalog.editCatalog({
+      action: "pageActivity",
+      ...onPage,
+      partId: partB.id,
+      title: "Incompatível",
+    }),
+    /página desta parte/,
+  );
+  for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
+    const program = await catalog.editProgram({
+      action: "start",
+      ...bookStage,
+      scheduleType,
+      unitTitle: "Unidade 1",
+      assessmentTitle: "Prova",
+    });
+    const unit = (await catalog.detail({ id: nextStageId }))!.programs.find(
+      (entry) => entry.id === program.id,
+    )!.units[0]!;
+    await catalog.editProgram({
+      action: "hour",
+      ...parent,
+      programId: program.id,
+      unitId: unit.id,
+      title: "Leitura",
+    });
+  }
+  const read = (): ReturnType<typeof catalog.detail> => catalog.detail({ id: nextStageId });
+  const book = await read();
+  assert.deepEqual(
+    book?.lessons[0]?.parts.map((item) => [
+      item.title,
+      item.pages.map((row) => [row.number, row.activities.map((activity) => activity.title)]),
+    ]),
+    [
+      [
+        "Parte A",
+        [
+          [18, ["Exercício 1", "Exercício 2"]],
+          [19, []],
+        ],
+      ],
+      ["Parte B", [[18, []]]],
+    ],
+  );
+  const base = { id: lesson.id, part: "" };
+  const full = { ...base, partId: partA.id, pageId: page.id, pageActivityId: two.id };
+  for (const program of book.programs) {
+    const hour = program.units[0]!.teachingHours[0]!;
+    const insert = {
+      action: "activity" as const,
+      ...bookStage,
+      programId: program.id,
+      hourId: hour.id,
+      activityId: null,
+      position: 0,
+      expectedChange: hour.lastChange,
+      kind: "LESSON" as const,
+      title: "Prática",
+      durationMinutes: 15,
+      pageStart: null,
+      pageEnd: null,
+      others: [{ id: hour.activities[0]!.id, minutes: 45 }],
+    };
+    for (const [reference, reason] of [
+      [{ ...full, id: foreign.id }, /lição deste livro/],
+      [{ ...full, partId: partB.id }, /página desta parte/],
+      [{ ...full, partId: partB.id, pageId: otherPage.id }, /atividade desta página/],
+      [{ ...base, pageId: foreign.id }, /página/],
+    ] as const)
+      await assert.rejects(catalog.editProgram({ ...insert, lessons: [reference] }), reason);
+    await assert.rejects(catalog.editProgram({ ...insert, lessons: [full, full] }), /repetida/);
+    const untouched = (await read())!.programs.find((entry) => entry.id === program.id)!.units[0]!
+      .teachingHours[0]!;
+    assert.deepEqual(
+      [
+        untouched.lastChange,
+        untouched.activities.map((item) => [item.bookTitle, item.durationMinutes]),
+      ],
+      [hour.lastChange, [["Leitura", 60]]],
+    );
+    await catalog.editProgram({
+      ...insert,
+      lessons: [
+        base,
+        { ...base, partId: partB.id },
+        { ...base, partId: partA.id, pageId: page.id },
+        { ...full, pageActivityId: one.id },
+        full,
+        { ...base, part: "Parte livre" },
+      ],
+    });
+    await assert.rejects(catalog.editProgram({ ...insert, lessons: [full] }), /mudou/);
+  }
+  await catalog.editCatalog({
+    action: "pageActivity",
+    ...onPage,
+    pageActivityId: two.id,
+    title: "Diálogo",
+  });
+  await catalog.editCatalog({
+    action: "page",
+    ...parent,
+    partId: partA.id,
+    pageId: page.id,
+    number: 20,
+  });
+  const updated = await read();
+  assert.deepEqual(updated!.programs.map((entry) => entry.scheduleType).toSorted(), [
+    "PERSONALIZED",
+    "REGULAR",
+  ]);
+  for (const program of updated!.programs) {
+    const activities = program.units[0]!.teachingHours[0]!.activities;
+    assert.deepEqual(
+      activities.map((item) => [item.bookTitle, item.durationMinutes]),
+      [
+        ["Prática", 15],
+        ["Leitura", 45],
+      ],
+    );
+    const references = activities[0]!.lessons
+      .map((row) =>
+        [row.title, row.bookPart?.title ?? row.part, row.bookPage?.number, row.pageActivity?.title]
+          .filter(Boolean)
+          .join(" / "),
+      )
+      .toSorted();
+    assert.deepEqual(references, [
+      "Lição 3",
+      "Lição 3 / Parte A / 20",
+      "Lição 3 / Parte A / 20 / Diálogo",
+      "Lição 3 / Parte A / 20 / Exercício 1",
+      "Lição 3 / Parte B",
+      "Lição 3 / Parte livre",
+    ]);
+    const context = await readActivityContexts(db, [activities[0]!.id]);
+    assert.deepEqual(
+      context
+        .get(activities[0]!.id)
+        ?.lessons.map((row) => row.part)
+        .toSorted(),
+      ["", "Parte A", "Parte B", "Parte livre"],
+    );
+  }
+});
+
 void it("writes lesson references, pages and a full 60-minute distribution atomically and preserves historical plan items", async () => {
   const lesson = await catalog.editCatalog({ action: "lesson", stageId, title: "Greetings" });
   const program = await catalog.editProgram({
@@ -126,14 +326,19 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     assessmentTitle: "Prova escrita",
   });
   type Program = NonNullable<Awaited<ReturnType<typeof catalog.detail>>>["programs"][number];
-  const load = async (): Promise<Program> => {
+  const loadProgram = async (): Promise<Program> => {
     const stage = await catalog.detail({ id: stageId });
-    const record = stage?.programs.find((candidate) => candidate.id === program.id);
+    assert.ok(stage);
+    const record = stage.programs.find((candidate) => candidate.id === program.id);
     assert.ok(record);
     return record;
   };
+  const load = async (): Promise<Program["units"][number]> => {
+    const current = await loadProgram();
+    return current.units[0]!;
+  };
   const currentProgram = await load();
-  const unitId = currentProgram.units[0]!.id;
+  const unitId = currentProgram.id;
   const common = { stageId, programId: program.id, unitId };
   await catalog.editProgram({ action: "hour", ...common, lessonId: lesson.id, title: "Leitura" });
   await catalog.editCatalog({
@@ -143,9 +348,9 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     title: "Greetings and introductions",
   });
   const withLesson = await load();
-  let hour = withLesson.units[0]!.teachingHours[0]!;
+  let hour = withLesson.teachingHours[0]!;
   const first = hour.activities[0]!;
-  assert.equal(first.lessons[0]?.title, "Greetings and introductions");
+  assert.equal(first.lessons[0]!.title, "Greetings and introductions");
   const add = {
     action: "activity",
     stageId,
@@ -164,7 +369,7 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
   } as const;
   await catalog.editProgram({ ...add, lessons: [], others: [...add.others] });
   const withTwoActivities = await load();
-  hour = withTwoActivities.units[0]!.teachingHours[0]!;
+  hour = withTwoActivities.teachingHours[0]!;
   const last = hour.activities[1]!;
   const insert = {
     ...add,
@@ -183,15 +388,13 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
   await assert.rejects(catalog.editProgram({ ...insert, durationMinutes: 9 }), /60 minutos/);
   const afterRejectedInsert = await load();
   assert.deepEqual(
-    afterRejectedInsert.units[0]!.teachingHours[0]!.activities.map(
-      (activity) => activity.durationMinutes,
-    ),
+    afterRejectedInsert.teachingHours[0]!.activities.map((activity) => activity.durationMinutes),
     [30, 30],
   );
   await catalog.editProgram(insert);
   await assert.rejects(catalog.editProgram(insert), /mudou/);
   const withThreeActivities = await load();
-  hour = withThreeActivities.units[0]!.teachingHours[0]!;
+  hour = withThreeActivities.teachingHours[0]!;
   assert.deepEqual(
     hour.activities.map((activity) => [
       activity.bookTitle,
@@ -206,6 +409,65 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     ],
   );
   const saved = hour.activities[1]!;
+  const page = await catalog.editCatalog({
+    action: "page",
+    stageId,
+    lessonId: lesson.id,
+    number: 22,
+  });
+  for (let attempt = 0; attempt < 2; attempt++)
+    await catalog.editCatalog({ action: "pages", stageId, lessonId: lesson.id, start: 1, end: 15 });
+  assert.equal(
+    await db.bookLessonPage.count({ where: { lessonId: lesson.id, number: { gte: 1, lte: 15 } } }),
+    15,
+  );
+  await assert.rejects(
+    catalog.editCatalog({ action: "pages", stageId, lessonId: lesson.id, start: 15, end: 1 }),
+    /final/,
+  );
+  const exercise = await catalog.editCatalog({
+    action: "pageActivity",
+    stageId,
+    lessonId: lesson.id,
+    pageId: page.id,
+    title: "Exercício oral",
+  });
+  await catalog.editProgram({
+    ...add,
+    activityId: last.id,
+    position: 2,
+    resolvePages: true,
+    lessons: [],
+    expectedChange: hour.lastChange,
+    others: [
+      { id: first.id, minutes: 20 },
+      { id: saved.id, minutes: 10 },
+    ],
+  });
+  const resolvedPages = await load();
+  hour = resolvedPages.teachingHours[0]!;
+  assert.equal(hour.activities[2]!.lessons[0]!.pageActivity!.id, exercise.id);
+  const move = {
+    action: "moveActivity" as const,
+    stageId,
+    programId: program.id,
+    hourId: hour.id,
+    activityId: last.id,
+    expectedChange: hour.lastChange,
+    position: 0,
+  };
+  await catalog.editProgram(move);
+  await assert.rejects(catalog.editProgram(move), /mudou/);
+  const reordered = await load();
+  hour = reordered.teachingHours[0]!;
+  assert.deepEqual(
+    hour.activities.map((row) => [row.id, row.durationMinutes]),
+    [
+      [last.id, 30],
+      [first.id, 20],
+      [saved.id, 10],
+    ],
+  );
   const classes = createCaller(
     contextWithQueue({ queue: recordingSessionsGenerateQueue("catalog-editor") }),
   ).classes;
@@ -244,10 +506,47 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     ...insert,
     activityId: saved.id,
     title: "Leitura revisada",
+    instructions: "Trabalhar em duplas.",
     pageStart: 24,
     pageEnd: null,
     expectedChange: hour.lastChange,
   });
+  const edited = await load();
+  hour = edited.teachingHours[0]!;
+  assert.equal(
+    hour.activities.find((row) => row.id === saved.id)?.instructions,
+    "Trabalhar em duplas.",
+  );
+  const remove = {
+    action: "deleteActivity" as const,
+    stageId,
+    programId: program.id,
+    hourId: hour.id,
+    activityId: saved.id,
+    expectedChange: hour.lastChange,
+    others: [
+      { id: first.id, minutes: 35 },
+      { id: last.id, minutes: 25 },
+    ],
+  };
+  await assert.rejects(
+    catalog.editProgram({
+      ...remove,
+      others: remove.others.map((row) => ({ ...row, minutes: 10 })),
+    }),
+    /60 minutos/,
+  );
+  await catalog.editProgram(remove);
+  await assert.rejects(catalog.editProgram(remove), /mudou/);
+  const deleted = await load();
+  hour = deleted.teachingHours[0]!;
+  assert.deepEqual(
+    hour.activities.map((row) => [row.id, row.durationMinutes]),
+    [
+      [last.id, 25],
+      [first.id, 35],
+    ],
+  );
   const savedPlan = await admin.planning.detail({ classId: group.id });
   assert.equal(savedPlan.plan?.items[0]?.title, "Leitura em dupla");
   assert.deepEqual(
@@ -269,7 +568,7 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     lessonId: null,
     title: "Continuação da prova escrita",
   });
-  const withExamContinuation = await load();
+  const withExamContinuation = await loadProgram();
   const units = withExamContinuation.units;
   assert.deepEqual(
     units.map((unit) => unit.teachingHours.map((teachingHour) => teachingHour.sequence)),

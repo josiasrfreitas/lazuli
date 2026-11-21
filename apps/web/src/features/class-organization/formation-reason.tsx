@@ -45,7 +45,7 @@ const riskIcons = {
 } satisfies Record<Risk, LucideIcon>;
 
 const placementIcons = new Map<string, LucideIcon>([
-  ["Professor pendente na data de entrada", Users],
+  ["Docente pendente na data de entrada", Users],
   ["Turma de destino indisponível", Signpost],
   ["Cadastro do aluno não está ativo", UserRoundX],
   ["Defina o estágio de destino", Layers],

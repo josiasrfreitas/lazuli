@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
-Legacy sources: [D-0030](../legacy/2026-07-27/MVP/decisions.md#d-0030-course-catalog--track-and-stage) (Accepted)
 Implementation evidence: [`packages/db/prisma/schema.prisma`](../../packages/db/prisma/schema.prisma), [`packages/db/src/seed-course-catalog.ts`](../../packages/db/src/seed-course-catalog.ts)
 
 ## Context

@@ -1,15 +1,14 @@
 "use client";
-import { useSearchDraft } from "~/lib/use-search-draft";
-import { Plus, Search } from "lucide-react";
-import type { RouterOutputs } from "@lazuli/api";
+import { TableExportButton } from "~/components/table-export-button";
+import { TableSearch } from "~/components/table-search";
+import type { RouterInputs, RouterOutputs } from "@lazuli/api";
 import { type UrlPagination, useUrlPagination } from "~/lib/pagination";
-import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
+import { type ReactElement } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import { Button, DataTablePage, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
+import { DataTablePage, TableFilters, type TableFilterField } from "@lazuli/ui";
 import { studentPaginationPolicy } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
-import { TeacherDialog } from "./teacher-dialog";
 import { TeacherTable } from "./teacher-table";
 import { TeacherCoverage } from "./teacher-coverage";
 
@@ -20,7 +19,6 @@ export function TeachersPage(): ReactElement {
   const { params, setParams, pagination, fields, filtered } = filters;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [creating, setCreating] = useState(false);
   const query = useTeacherListQuery(filters);
   const href = (id: string): string =>
     `/professores/${id}?voltar=${encodeURIComponent(`/professores?${searchParams.toString()}`)}`;
@@ -28,15 +26,14 @@ export function TeachersPage(): ReactElement {
   return (
     <>
       <DataTablePage
-        title="Professores"
-        summary={query.data ? `${query.data.total} professores` : undefined}
+        title="Docentes"
+        summary={query.data ? `${query.data.total} docentes` : undefined}
         controls={
           <TeacherListControls
             params={params}
             setParams={setParams}
             pagination={pagination}
             fields={fields}
-            setCreating={setCreating}
           />
         }
       >
@@ -51,7 +48,6 @@ export function TeachersPage(): ReactElement {
           queryRefetch={() => void query.refetch()}
         />
       </DataTablePage>
-      {creating && <TeacherDialog onClose={() => setCreating(false)} />}
     </>
   );
 }
@@ -71,29 +67,20 @@ type TeacherListControlsProps = {
   ) => Promise<URLSearchParams>;
   pagination: UrlPagination;
   fields: TableFilterField[];
-  setCreating: Dispatch<SetStateAction<boolean>>;
 };
 function TeacherListControls(props: TeacherListControlsProps): ReactElement {
-  const [search, setSearch] = useSearchDraft(props.params.busca, (busca) => {
-    void props.setParams({ busca });
-    props.pagination.setPage(1);
-  });
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative w-full sm:w-56">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
-        />
-        <Input
-          className="pl-9"
+      <div className="w-full sm:w-56">
+        <TableSearch
           name="teacher-search"
-          aria-label="Buscar professor"
+          label="Buscar docente"
           placeholder="Buscar por nome"
-          autoComplete="off"
-          size="compact-responsive"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          value={props.params.busca}
+          onCommit={(busca) => {
+            void props.setParams({ busca });
+            props.pagination.setPage(1);
+          }}
         />
       </div>
       <TableFilters
@@ -103,11 +90,12 @@ function TeacherListControls(props: TeacherListControlsProps): ReactElement {
           props.pagination.setPage(1);
         }}
       />
+      <TableExportButton
+        source={{ listing: "Docentes", filters: teacherInput(props) }}
+        fields={props.fields}
+        search={props.params.busca}
+      />
       <TeacherCoverage back="/professores" />
-      <Button size="compact-responsive" onClick={() => props.setCreating(true)}>
-        <Plus aria-hidden="true" />
-        Novo professor
-      </Button>
     </div>
   );
 }
@@ -208,16 +196,20 @@ function useTeacherFilters(): TeacherFilters {
   const filtered = Boolean(params.busca || params.atuacao !== "all" || params.acesso !== "all");
   return { params, setParams, pagination, fields, filtered };
 }
-function useTeacherListQuery({
+function teacherInput({
   params,
   pagination,
-}: TeacherFilters): QueryResult<RouterOutputs["teachers"]["list"]> {
-  const query = trpc.teachers.list.useQuery({
+}: Pick<TeacherFilters, "params" | "pagination">): RouterInputs["teachers"]["list"] {
+  return {
     search: params.busca,
     active: params.atuacao,
     access: params.acesso,
     page: pagination.page,
     pageSize: pagination.pageSize,
-  });
-  return query;
+  };
+}
+function useTeacherListQuery(
+  filters: TeacherFilters,
+): QueryResult<RouterOutputs["teachers"]["list"]> {
+  return trpc.teachers.list.useQuery(teacherInput(filters));
 }

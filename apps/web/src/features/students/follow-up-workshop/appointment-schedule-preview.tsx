@@ -95,7 +95,7 @@ function makeAppointment({ date, start, end, purpose, note }: ScheduleDraft): Pr
     day: `${day} ${month}`,
     time: `${start}–${end}`,
     purpose: purposes[purpose],
-    teacher: "Professor a definir",
+    teacher: "Docente a definir",
     note: note.trim(),
     status: "SCHEDULED",
   };

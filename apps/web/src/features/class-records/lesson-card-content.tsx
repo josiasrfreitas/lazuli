@@ -1,8 +1,7 @@
 import type { JSX as ReactJSX } from "react";
 import { LessonFormat } from "./lesson-format";
-import { stageIdentity, type CalendarLesson } from "./calendar-model";
-import { lessonStatus } from "./weekly-block-details";
-import { purposes } from "~/features/appointments/shared";
+import type { CalendarLesson } from "./calendar-model";
+import { lessonStatus, lessonCardIdentity } from "./lesson-presentation";
 import styles from "./lesson-card-content.module.css";
 
 /** The agenda keeps the same reading order in daily, weekly and expanded cards. */
@@ -13,8 +12,11 @@ export function LessonCardContent({
   lesson: CalendarLesson;
   personal?: boolean;
 }): ReactJSX.Element {
-  const title = lessonCardTitle(lesson, personal);
-  const context = lessonCardContext(lesson);
+  const { title: fullTitle, context } = lessonCardIdentity(lesson);
+  const title =
+    lesson.appointment && !personal
+      ? fullTitle.trim().split(/\s+/u).slice(0, 2).join(" ")
+      : fullTitle;
   return (
     <span
       className={styles.content}
@@ -42,28 +44,11 @@ export function LessonCardContent({
         </span>
       </strong>
       <span className={styles.teacher} data-calendar-detail>
-        {lesson.teacher ?? "Professor a definir"}
+        {lesson.teacher ?? "Docente a definir"}
       </span>
       <span className={styles.context} data-calendar-detail>
         {context}
       </span>
     </span>
   );
-}
-
-function lessonCardTitle(lesson: CalendarLesson, personal: boolean): string {
-  if (lesson.experimental) return lesson.experimental.candidate.fullName;
-  if (lesson.appointment) {
-    const name = lesson.appointment.student.name;
-    return personal ? name : name.trim().split(/\s+/u).slice(0, 2).join(" ");
-  }
-  return stageIdentity(lesson).stage;
-}
-
-function lessonCardContext(lesson: CalendarLesson): string {
-  if (lesson.experimental) {
-    return lesson.experimental.kind === "PLACEMENT" ? "Nivelamento" : "Experimental individual";
-  }
-  if (lesson.appointment) return purposes[lesson.appointment.purpose];
-  return lesson.className;
 }

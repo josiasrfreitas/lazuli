@@ -1,5 +1,6 @@
 "use client";
 
+import type { RouterInputs } from "@lazuli/api";
 import { useCallback } from "react";
 import { parseAsString, useQueryStates } from "nuqs";
 import { civilDateSchema, z } from "@lazuli/validators";
@@ -74,4 +75,23 @@ export function useContractFilters(): ContractFilters {
     [setParams],
   );
   return { ...filters, setFilters, setPage };
+}
+
+export function contractListInput(
+  filters: ContractFilters,
+): RouterInputs["finance"]["listContracts"] {
+  const { page, search, payerId, studentId, startsFrom, endsTo, status } = filters;
+  return {
+    page,
+    grouped: true,
+    materialState: filters.materialState,
+    followUp: filters.followUp,
+    query: search.trim(),
+    scheduleType: filters.scheduleType,
+    payerId,
+    studentId,
+    startsFrom,
+    endsTo,
+    status,
+  };
 }

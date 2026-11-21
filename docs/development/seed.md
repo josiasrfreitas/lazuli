@@ -424,9 +424,6 @@ semestres anteriores nem cancelamentos contratuais sem operação de domínio im
 Planejamento não preenche automaticamente a execução de conteúdo em aula. A frequência histórica
 anterior ao recorte V4 não recebe relato fabricado apenas para parecer uma baixa completa.
 
-A distribuição dos fechamentos e os efeitos nos totais estão detalhados em
-[Fechamentos comerciais](../../.design/pedagogical/analytics/SEED-CLOSINGS.md).
-
 As expectativas de distribuição, unicidade, contatos, conflitos de horário e datas estão nos testes
 unitários de seed do pacote `db`. O teste financeiro de integração cobre os contratos, pagadores
 compartilhados, pagamentos futuros ausentes, saldo parcial e juros de atrasos quitados. Esses

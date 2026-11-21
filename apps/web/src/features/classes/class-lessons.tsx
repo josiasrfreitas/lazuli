@@ -292,7 +292,7 @@ function MissingLessonRecord(): ReactJSX.Element {
 }
 
 function sessionDescription(session: LessonDetail["session"]): string {
-  const teacher = session.teacher ?? "Professor a definir";
+  const teacher = session.teacher ?? "Docente a definir";
   const format = session.format === "ONLINE" ? "Online" : "Presencial";
   const usualTeacher =
     session.usualTeacher && session.usualTeacher !== session.teacher

@@ -48,3 +48,4 @@ export { receiveTeacherFile, teacherFileResource } from "./teachers/files.js";
 
 export { teacherMobileCapture } from "./teachers/upload-sessions.js";
 export { schoolMapResponse } from "./addresses/map.js";
+export { downloadTableExport } from "./table-exports/request.js";

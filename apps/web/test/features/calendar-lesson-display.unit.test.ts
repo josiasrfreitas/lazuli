@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { lessonDisplay } from "../../src/features/class-records/calendar-lesson.js";
+import { lessonDisplay } from "../../src/features/class-records/lesson-presentation.js";
 import type { CalendarLesson } from "../../src/features/class-records/calendar-model.js";
 
 const regular: CalendarLesson = {

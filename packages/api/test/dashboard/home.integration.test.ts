@@ -85,7 +85,7 @@ void it("keeps one departure item until every affected class has a successor", a
   const pending = await caller(ADMIN, NOW).dashboard.pending({ kind: "coverage", page: 1 });
   const item = pending.items.find((row) => row.id === `teacher:${TEACHER.id}`);
   assert.ok(item);
-  assert.equal(item.detail, "2 turmas precisam de professor");
+  assert.equal(item.detail, "2 turmas precisam de docente");
   assert.equal(item.date, "2084-03-25");
   assert.deepEqual(item.action, {
     kind: "link",
@@ -113,7 +113,7 @@ void it("keeps one departure item until every affected class has a successor", a
   });
   assert.equal(
     partial.items.find((row) => row.id === `teacher:${TEACHER.id}`)?.detail,
-    "1 turma precisa de professor",
+    "1 turma precisa de docente",
   );
   await db.classTeacherAssignment.create({
     data: { classId: second, teacherId: OTHER_TEACHER.id, effectiveDate: new Date("2084-03-25") },

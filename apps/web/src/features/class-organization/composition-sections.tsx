@@ -80,7 +80,7 @@ function CompositionMenuItems({
           disabled={ended}
           onClick={() => onAction({ kind: "plan", plan })}
         >
-          <Pencil /> Editar horário e professor
+          <Pencil /> Editar horário e docente
         </Button>
       )}
       <Button

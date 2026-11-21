@@ -19,7 +19,7 @@ import {
 import { trpc } from "~/lib/trpc";
 import { abbreviatedPersonName } from "~/lib/format";
 import { paymentPlanLabel } from "./contract-form-model";
-import type { ContractFilters } from "./contract-filters";
+import { contractListInput, type ContractFilters } from "./contract-filters";
 
 const PAGE_SIZE = 25;
 const MILLISECONDS_PER_DAY = 86_400_000;
@@ -384,20 +384,8 @@ function ContractMaterial({
 }
 
 export function ContractsTable({ filters }: { filters: ContractFilters }): ReactElement {
-  const { page, search, payerId, studentId, startsFrom, endsTo, status } = filters;
-  const list = trpc.finance.listContracts.useQuery({
-    page,
-    grouped: true,
-    materialState: filters.materialState,
-    followUp: filters.followUp,
-    query: search.trim(),
-    scheduleType: filters.scheduleType,
-    payerId,
-    studentId,
-    startsFrom,
-    endsTo,
-    status,
-  });
+  const { search, payerId, studentId, startsFrom, endsTo, status } = filters;
+  const list = trpc.finance.listContracts.useQuery(contractListInput(filters));
   const filtered = [
     filters.followUp,
     filters.materialState,
@@ -438,7 +426,7 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
       }}
       onRetry={() => void list.refetch()}
       pagination={{
-        page,
+        page: filters.page,
         pageSize: PAGE_SIZE,
         onPageChange: filters.setPage,
         itemLabel: { singular: "aluno", plural: "alunos" },

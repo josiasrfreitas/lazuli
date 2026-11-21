@@ -16,6 +16,7 @@ import { activityRouter } from "./activity/router.js";
 import { attendanceRouter } from "./attendance/router.js";
 import { calendarRouter } from "./calendar/router.js";
 import { admissionsRouter } from "./admissions/router.js";
+import { employeesRouter } from "./employees/router.js";
 import { teachersRouter } from "./teachers/router.js";
 import { classesRouter } from "./classes/router.js";
 import { dashboardRouter } from "./dashboard/router.js";
@@ -41,6 +42,7 @@ export const appRouter = router({
   me: protectedProcedure.query(({ ctx }) => ctx.staffUser),
   students: studentsRouter,
   classes: classesRouter,
+  employees: employeesRouter,
   teachers: teachersRouter,
   admissions: admissionsRouter,
   calendar: calendarRouter,

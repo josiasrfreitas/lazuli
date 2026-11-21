@@ -20,6 +20,7 @@ export type SegmentedControlProps = Omit<
   /** Marks the group invalid and exposes its state to assistive technologies. */
   invalid?: boolean;
   size?: SegmentedControlSize;
+  contrast?: "default" | "high";
   /** Wrap labelled choices in narrow forms. */
   wrap?: boolean;
 };
@@ -31,7 +32,16 @@ export type SegmentedControlProps = Omit<
  */
 export const SegmentedControl = forwardRef<HTMLDivElement, SegmentedControlProps>(
   (
-    { className, invalid = false, onValueChange, size = "md", value, wrap = false, ...props },
+    {
+      className,
+      contrast = "default",
+      invalid = false,
+      onValueChange,
+      size = "md",
+      value,
+      wrap = false,
+      ...props
+    },
     ref,
   ) => (
     <ToggleGroupPrimitive
@@ -43,11 +53,13 @@ export const SegmentedControl = forwardRef<HTMLDivElement, SegmentedControlProps
           "transition-colors duration-fast ease-standard motion-reduce:transition-none",
           "aria-invalid:border-destructive",
           "data-disabled:cursor-not-allowed data-disabled:opacity-disabled",
+          contrast === "high" && "border-border-strong bg-background",
           controlSize(size, wrap),
           wrap && "flex-wrap rounded-2xl",
         ],
         className,
       )}
+      data-contrast={contrast}
       data-invalid={invalid || undefined}
       data-size={size}
       data-slot="segmented-control"
@@ -76,7 +88,7 @@ export const SegmentedControlItem = forwardRef<HTMLButtonElement, SegmentedContr
           "text-caption font-medium text-muted-foreground outline-none",
           "transition-[background-color,color,box-shadow] duration-fast ease-standard motion-reduce:transition-none",
           "hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-          "data-pressed:bg-card data-pressed:text-card-foreground data-pressed:shadow-sm",
+          "data-pressed:bg-accent data-pressed:font-semibold data-pressed:text-accent-foreground data-pressed:inset-ring data-pressed:inset-ring-interactive",
           "data-disabled:pointer-events-none",
           "group-data-[size=sm]/segmented:min-h-6 group-data-[size=md]/segmented:min-h-8",
           "group-data-[size=md]/segmented:px-4",

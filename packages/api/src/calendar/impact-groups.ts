@@ -130,7 +130,7 @@ function teacherGroup(
   if (current) return current;
   const group = {
     teacherId: teacher?.id ?? null,
-    name: teacher?.name ?? "Sem professor definido",
+    name: teacher?.name ?? "Sem docente definido",
     classes: new Map<string, ImpactClassSummary>(),
   };
   groups.set(key, group);

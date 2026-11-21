@@ -49,9 +49,12 @@ function contactDetails(
   };
 }
 
-function contactMetadata(candidate: Candidate | undefined): Pick<Draft, "source" | "notes"> {
+function contactMetadata(
+  candidate: Candidate | undefined,
+): Pick<Draft, "source" | "sourceDetail" | "notes"> {
   return {
-    source: candidate?.source ?? "",
+    source: candidate?.source ?? null,
+    sourceDetail: candidate?.sourceDetail ?? null,
     notes: candidate?.notes ?? "",
   };
 }
@@ -494,7 +497,7 @@ function ExperienceFields({ props, state, actions }: CaptureViewProps): ReactJSX
           {props.candidate
             ? "O nivelamento define o estágio."
             : "Na próxima etapa, agende a prova presencial ou online."}{" "}
-          O agendamento não exige professor.
+          O agendamento não exige docente.
         </p>
       )}
     </>

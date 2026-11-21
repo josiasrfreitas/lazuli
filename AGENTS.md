@@ -65,7 +65,7 @@ does not need DB, email, or Hatchet fixtures. `docker compose down -v` deletes l
 A work item owns scope and acceptance; accepted records in `docs/decisions/` own durable engineering
 constraints; code/config/tests show current enforcement. If they conflict or required behavior is
 missing, stop and ask the owner. Use work items for changing requirements, decision records for
-lasting choices, local READMEs for local operation, and `docs/legacy/` only for investigation.
+lasting choices, and local READMEs for local operation.
 
 ## ai-memory
 

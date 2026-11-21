@@ -6,6 +6,7 @@ import { trpc, type QueryResult } from "~/lib/trpc";
 import { parseDateBR } from "~/lib/masks";
 import { businessDate } from "../view-model";
 import { usePaymentConfirmation } from "./use-payment-confirmation";
+import { withReceiptFields } from "./with-receipt-fields";
 import type { PaymentProofDrafts } from "./payment-proof";
 import {
   paymentDateLabel,
@@ -18,6 +19,7 @@ import {
   type PreviewRow,
 } from "./draft";
 
+const RECEIPT_READ_TIMEOUT_MS = 45_000;
 export type PaymentFormState = {
   methods: RouterOutputs["finance"]["paymentMethods"];
   methodsLoading: boolean;
@@ -46,13 +48,15 @@ type PaymentFormInput = {
   onRegistered: () => void;
 };
 export function usePaymentForm(input: PaymentFormInput): PaymentFormState {
-  const [draft, dispatch] = useReducer(paymentDraftReducer, input.rows, seedDraft);
+  const [manualDraft, dispatch] = useReducer(paymentDraftReducer, input.rows, seedDraft);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
-  const query = usePaymentPreview(draft);
+
   const methods = trpc.finance.paymentMethods.useQuery();
   const confirmation = usePaymentConfirmation(input.onRegistered);
   const proofEditor = usePaymentProofEditor(confirmation.locked, setError);
+  const draft = withReceiptFields(manualDraft, proofEditor.proofs);
+  const query = usePaymentPreview(draft);
   useIncomingRows({ rows: input.rows, dispatch, locked: confirmation.locked });
   const change = paymentDraftDispatch({ locked: confirmation.locked, setError, dispatch });
   const submit = createPaymentSubmit({
@@ -168,21 +172,52 @@ function usePaymentProofEditor(
   setError: (error: string | null) => void,
 ): Pick<PaymentFormState, "proofs" | "setProof" | "setProofError"> {
   const [proofs, setProofs] = useState<PaymentProofDrafts>({});
+  const readers = useRef(new Map<string, AbortController>());
+  useEffect(() => {
+    const active = readers.current;
+    return () => {
+      for (const reader of active.values()) reader.abort();
+    };
+  }, []);
   return {
     proofs,
     setProof: (receiptId, file) => {
       if (locked) return;
       setError(null);
-      setProofs((current) => ({
-        ...current,
-        [receiptId]: { id: crypto.randomUUID(), file, error: "" },
-      }));
+      readers.current.get(receiptId)?.abort();
+      const id = crypto.randomUUID();
+      setProofs((current) => ({ ...current, [receiptId]: { id, file, error: "" } }));
+      if (!file) return;
+      const reader = new AbortController();
+      readers.current.set(receiptId, reader);
+      const finish = (fields: import("./receipt-fields").ReceiptFields): void => {
+        setProofs((current) => {
+          const proof = current[receiptId];
+          return proof?.id === id ? { ...current, [receiptId]: { ...proof, fields } } : current;
+        });
+      };
+      const timer = globalThis.setTimeout(() => {
+        reader.abort();
+        readers.current.delete(receiptId);
+        finish({});
+      }, RECEIPT_READ_TIMEOUT_MS);
+      reader.signal.addEventListener("abort", () => globalThis.clearTimeout(timer), { once: true });
+      void import("./read-receipt")
+        .then((module) => module.readReceipt(file, reader.signal))
+        .catch(() => ({}))
+        .then((fields) => {
+          if (reader.signal.aborted) return;
+          readers.current.delete(receiptId);
+          globalThis.clearTimeout(timer);
+          finish(fields);
+        });
     },
     setProofError: (receiptId, message) => {
       if (locked) return;
       setProofs((current) => ({
         ...current,
         [receiptId]: {
+          ...current[receiptId],
           id: current[receiptId]?.id ?? crypto.randomUUID(),
           file: current[receiptId]?.file,
           error: message,
@@ -225,6 +260,8 @@ function paymentSubmitProblem({
   confirmation,
 }: PaymentSubmitParams): string | null {
   if (confirmation.uncertain || confirmation.registered) return null;
+  if (draft.items.some((item) => proofs[item.receiptId]?.file && !proofs[item.receiptId]?.fields))
+    return "Aguarde a leitura do comprovante.";
   const methodError = methods.some((method) => method.code === draft.method)
     ? null
     : "Selecione uma forma de pagamento disponível.";

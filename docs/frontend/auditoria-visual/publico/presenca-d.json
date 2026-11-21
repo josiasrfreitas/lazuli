@@ -1,0 +1,49 @@
+{
+  "captured_utc": "2026-11-20T15:11:33.590775+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/presenca",
+  "snapshot": "- generic\n  - main\n    - sectionheader\n    - generic\n      - heading \"Confirme sua presença\" [level=1, ref=e409]\n  - region \"Notificações\" [ref=e408]",
+  "metrics": {
+    "coarse": false,
+    "controls": [],
+    "copy": [],
+    "docHeight": 900,
+    "docWidth": 1440,
+    "fonts": [],
+    "frames": [],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 30,
+        "line": "30px",
+        "role": null,
+        "size": "24px",
+        "tag": "h1",
+        "text": "Confirme sua presença",
+        "weight": "600",
+        "width": 448,
+        "x": 496,
+        "y": 427
+      }
+    ],
+    "height": 900,
+    "labels": [],
+    "main": {
+      "background": "rgb(18, 21, 29)",
+      "color": "rgb(233, 237, 246)",
+      "font": "Cambria, Georgia, \"Times New Roman\", serif",
+      "height": 900,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Presença | Lazuli",
+    "width": 1440
+  }
+}

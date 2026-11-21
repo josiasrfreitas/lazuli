@@ -1,3 +1,4 @@
+import { leadSourceSchema, sourceDetailSchema, validateLeadSource } from "./lead-source.js";
 import { z } from "zod";
 import { placementScheduleSchema } from "./placement.js";
 import { civilDateSchema } from "./civil-date.js";
@@ -16,7 +17,8 @@ export const leadCaptureSchema = z
     phone: optionalText,
     email: z.union([z.string().trim().email(), z.literal("")]).nullable(),
     contactName: optionalText,
-    source: optionalText,
+    source: leadSourceSchema.nullable(),
+    sourceDetail: sourceDetailSchema,
     notes: z
       .string()
       .trim()
@@ -33,6 +35,7 @@ export const leadCaptureSchema = z
     scheduleType: classScheduleTypeSchema.nullable().default(null),
   })
   .strict()
+  .superRefine(validateLeadSource)
   .superRefine((value, context) => {
     if (
       (value.contactRole === "GUARDIAN" || value.contactOwner === "GUARDIAN") &&

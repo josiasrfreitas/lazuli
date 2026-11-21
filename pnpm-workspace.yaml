@@ -13,6 +13,7 @@ allowBuilds:
   prisma: true
   protobufjs: false
   sharp: true
+  tesseract.js: false
   unrs-resolver: true
 
 overrides:

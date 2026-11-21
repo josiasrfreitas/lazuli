@@ -58,3 +58,9 @@ instead of replacing the frame with a spinner. Reduced-motion preferences retain
 placeholders, and background refreshes preserve readable rows and pagination.
 
 Use `width: "actions"` for a column containing a single 32px icon button: its 72px budget includes standard cell padding. `selection` is reserved for selection controls and is too narrow for row action buttons.
+
+For a composed table with its own column geometry or payer grouping, use `TableActionRow`
+with `onActivate` on each actionable data row. It shares the pointer, focus, Enter, and
+nested-control behavior of `DataTable`. Keep header and state rows as `TableRow`.
+`TableSearch` in the web app keeps a local search draft and commits it to the listing's URL.
+The caller owns the label, query limits, filter state and page reset.

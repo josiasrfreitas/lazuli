@@ -33,7 +33,7 @@ void it("separates the family response, readiness, and publication", () => {
   assert.equal(reviewStatus({ ...draft, mode: "ENTRY" }, false).label, "Entrada a confirmar");
   assert.equal(reviewStatus(staying, false).label, "Transferência a confirmar");
   assert.equal(
-    reviewStatus({ ...staying, confirmation: "BLOCKED", blockers: ["Professor pendente"] }, false)
+    reviewStatus({ ...staying, confirmation: "BLOCKED", blockers: ["Docente pendente"] }, false)
       .label,
     "Continuidade bloqueada",
   );
@@ -74,10 +74,10 @@ void it("shows the publication's civil date and keeps distinct actual blockers",
       blockers: [
         "Escolha a nova turma para continuar.",
         "Escolha uma turma planejada",
-        "Professor pendente na data de entrada",
+        "Docente pendente na data de entrada",
       ],
     }),
-    ["Definir a turma de destino", "Professor pendente na data de entrada"],
+    ["Definir a turma de destino", "Docente pendente na data de entrada"],
   );
 });
 
@@ -226,7 +226,7 @@ void it("counts readiness separately from the family response and published or d
     placement("staying-blocked", {
       continuity: "STAY",
       confirmation: "BLOCKED",
-      blockers: ["Professor pendente"],
+      blockers: ["Docente pendente"],
     }),
     placement("no-destination", { planId: null }),
     placement("change", changeRequest),
@@ -255,7 +255,7 @@ void it("keeps allocation and readiness independent from presumed continuity", (
       placement("staying-blocked", {
         continuity: "STAY",
         confirmation: "BLOCKED",
-        blockers: ["Professor pendente"],
+        blockers: ["Docente pendente"],
       }),
       placement("enrolled", {
         publishedAt: recordedOn,

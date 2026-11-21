@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   lessonStage,
+  agendaDate,
+  lessonCalendarEvents,
   type CalendarLesson,
 } from "../../src/features/class-records/calendar-model.js";
-import { lessonCalendarEvents } from "../../src/features/class-records/weekly-calendar.js";
 
 function lesson(
   id: string,
@@ -89,4 +90,18 @@ void test("pedagogical identity distinguishes shared, individual and missing sta
     "Estágios individuais",
   );
   assert.equal(lessonStage({ ...lesson("missing"), stageName: null }), "Estágio não informado");
+});
+
+void test("agenda links select their explicit day or week and reject impossible dates", () => {
+  assert.equal(agendaDate("2026-10-16", { day: "2026-10-20", week: "2026-10-12" }), "2026-10-20");
+  assert.equal(agendaDate("2026-10-16", { day: null, week: "2026-10-19" }), "2026-10-19");
+  assert.equal(agendaDate("2026-10-16", { day: null, week: "2026-10-12" }), "2026-10-16");
+  assert.equal(agendaDate("2026-10-16", { day: "2026-02-30", week: "invalid" }), "2026-10-16");
+});
+
+void test("unassigned teachers remain explicit", () => {
+  const events = lessonCalendarEvents([
+    { ...lesson("unassigned"), teacherId: null, teacher: null },
+  ]);
+  assert.equal(events[0]!.subtitle, "Docente a definir");
 });

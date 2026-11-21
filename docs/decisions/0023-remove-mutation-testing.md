@@ -5,7 +5,6 @@ Decision date: 2026-09-29
 Acceptance date: 2026-09-29
 Supersedes: Mutation testing requirements in [0017](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md), [0019](0019-limit-mutation-to-unit-tests.md), and [0021](0021-exclude-frontend-from-mutation.md)
 Superseded by: None
-Legacy sources: None
 
 Implementation evidence: `.github/workflows/ci.yml`, `package.json`, `docs/testing/README.md`.
 

@@ -1,9 +1,9 @@
-import { BriefcaseBusiness, CalendarDays } from "lucide-react";
+import { BriefcaseBusiness } from "lucide-react";
 import type { ReactElement } from "react";
 import {
   Field,
   FieldError,
-  FormRow,
+  Switch,
   FormSection,
   Input,
   Label,
@@ -11,7 +11,8 @@ import {
   SegmentedControlItem,
   Textarea,
 } from "@lazuli/ui";
-import { maskDateBR } from "~/lib/masks";
+import { SelectControl } from "../classes/form-controls";
+import { AREA_LABELS } from "./employee-labels";
 import styles from "./teacher-form.module.css";
 import type { TeacherDraft, TeacherFieldProps } from "./teacher-form";
 
@@ -25,7 +26,8 @@ export function TeacherEmploymentFields({
   draft,
   errors,
   change,
-}: TeacherFieldProps): ReactElement {
+  existingTeacher = false,
+}: TeacherFieldProps & { existingTeacher?: boolean }): ReactElement {
   return (
     <FormSection
       title={
@@ -35,6 +37,7 @@ export function TeacherEmploymentFields({
         </span>
       }
     >
+      <AreaAndJobFields draft={draft} change={change} errors={errors} />
       <div className={styles.contractRow}>
         <Field>
           <Label id="teacher-employment-label">Tipo de vínculo</Label>
@@ -57,64 +60,66 @@ export function TeacherEmploymentFields({
           {errors.employmentType && <FieldError match>{errors.employmentType}</FieldError>}
         </Field>
       </div>
-      {draft.employmentType === "CLT" && (
-        <VacationFields draft={draft} errors={errors} change={change} />
-      )}
-      <Field>
-        <Label htmlFor="teacher-notes">Observações</Label>
-        <Textarea
-          size="sm"
-          invalid={Boolean(errors.notes)}
-          id="teacher-notes"
-          name="notes"
-          autoComplete="off"
-          placeholder="Informações adicionais sobre o professor"
-          rows={2}
-          maxLength={5000}
-          value={draft.notes}
-          onChange={(event) => change("notes", event.target.value)}
+      <Field className="flex items-center gap-2">
+        <Switch
+          id="teaches"
+          name="teaches"
+          checked={draft.teaches}
+          disabled={existingTeacher}
+          onCheckedChange={(value) => change("teaches", value)}
         />
-        {errors.notes && <FieldError match>{errors.notes}</FieldError>}
+        <Label htmlFor="teaches">
+          {existingTeacher ? "Perfil docente vinculado" : "Atua como docente"}
+        </Label>
       </Field>
+      {draft.teaches && (
+        <Field>
+          <Label htmlFor="teacher-notes">Observações</Label>
+          <Textarea
+            size="sm"
+            invalid={Boolean(errors.notes)}
+            id="teacher-notes"
+            name="notes"
+            autoComplete="off"
+            placeholder="Informações adicionais sobre o docente"
+            rows={2}
+            maxLength={5000}
+            value={draft.notes}
+            onChange={(event) => change("notes", event.target.value)}
+          />
+          {errors.notes && <FieldError match>{errors.notes}</FieldError>}
+        </Field>
+      )}
     </FormSection>
   );
 }
 
-function VacationFields({ draft, errors, change }: TeacherFieldProps): ReactElement {
+function AreaAndJobFields({ draft, change, errors }: TeacherFieldProps): ReactElement {
   return (
-    <FormSection
-      title={
-        <span className="flex items-center gap-2">
-          <CalendarDays className="size-4" aria-hidden="true" />
-          Previsão de férias
-        </span>
-      }
-      description="Opcional. O período informado não altera a agenda de aulas."
-    >
-      <FormRow columns={2}>
-        {(
-          [
-            ["vacationStart", "Início"],
-            ["vacationEnd", "Fim"],
-          ] as const
-        ).map(([key, label]) => (
-          <Field key={key}>
-            <Label htmlFor={`teacher-${key}`}>{label}</Label>
-            <Input
-              id={`teacher-${key}`}
-              name={key}
-              size="compact-responsive"
-              autoComplete="off"
-              placeholder="dd/mm/aaaa"
-              inputMode="numeric"
-              value={draft[key]}
-              invalid={Boolean(errors[key])}
-              onChange={(event) => change(key, maskDateBR(event.target.value))}
-            />
-            {errors[key] && <FieldError match>{errors[key]}</FieldError>}
-          </Field>
-        ))}
-      </FormRow>
-    </FormSection>
+    <div className={styles.personalRow}>
+      <SelectControl
+        name="area"
+        label="Área"
+        choices={Object.entries(AREA_LABELS).map(([value, label]) => ({ value, label }))}
+        value={draft.area ?? ""}
+        error={errors.area}
+        onChange={(value) => change("area", value as TeacherDraft["area"])}
+      />
+      <Field>
+        <Label htmlFor="jobTitle">Cargo</Label>
+        <Input
+          id="jobTitle"
+          name="jobTitle"
+          size="compact-responsive"
+          maxLength={120}
+          placeholder="Ex.: Assistente de secretaria"
+          autoComplete="off"
+          value={draft.jobTitle}
+          invalid={Boolean(errors.jobTitle)}
+          onChange={(event) => change("jobTitle", event.target.value)}
+        />
+        {errors.jobTitle && <FieldError match>{errors.jobTitle}</FieldError>}
+      </Field>
+    </div>
   );
 }

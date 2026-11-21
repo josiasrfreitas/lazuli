@@ -71,6 +71,7 @@ export async function cloneClassForNextPeriod(
   const portalClassName = await resolvePortalClassName(input.database, {
     scheduleType: source.scheduleType,
     sharedStageId: successorStageId,
+    format: source.format,
     teacherId: source.teacherId,
     slots: source.scheduleSlots.map(databaseSlotToCandidate),
   });
@@ -208,7 +209,7 @@ async function assignCloneTeacher(
   const teacher = usualTeacherOn(responsibility, targetSemester.startDate);
   if (!teacher)
     throw badRequest(
-      "A turma está sem professor no próximo período. Atribua um docente antes de clonar.",
+      "A turma está sem docente no próximo período. Atribua um docente antes de clonar.",
     );
   source.teacherId = teacher.id;
   await assertClassTeacherAvailable({

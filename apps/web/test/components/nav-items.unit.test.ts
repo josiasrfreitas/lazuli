@@ -27,6 +27,7 @@ const TEACHER_PATHS = [
   "/professor",
   "/professor/agenda",
   "/professor/turmas",
+  "/professor/analytics",
   "/professor/alunos",
   "/professor/acompanhamento",
   ASSESSMENTS_PATH,
@@ -48,11 +49,14 @@ void describe("role-aware navigation", () => {
       navItemsFor("ADMIN").map((item) => item.href),
       [
         "/",
+        "/pedagogico/analytics",
         STUDENTS_PATH,
         TEACHERS_PATH,
         CLASSES_PATH,
         CLASS_RECORDS_PATH,
         MATERIALS_PATH,
+        "/comercial/analytics",
+        "/colaboradores",
         LEADS_PATH,
         ANALYTICS_PATH,
         CONTRACTS_PATH,
@@ -72,10 +76,10 @@ void describe("role-aware navigation", () => {
       { label: null, items: ["Início"] },
       {
         label: PEDAGOGICAL_LABEL,
-        items: [STUDENTS_LABEL, "Professores", "Turmas", "Agenda", "Estágios"],
+        items: ["Analytics", STUDENTS_LABEL, "Docentes", "Turmas", "Agenda", "Estágios"],
       },
-      { label: "Comercial", items: ["Leads"] },
-      { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
+      { label: "Comercial e Pessoas", items: ["Analytics", "Colaboradores", "Leads"] },
+      { label: "Financeiro", items: ["Analytics financeiro", "Contratos", "Recebíveis"] },
       { label: "Sistema", items: ["Log de atividades", "Ajustes"] },
     ]);
     assert.deepEqual(
@@ -134,11 +138,14 @@ void it("keeps school location under Ajustes for administrators without a separa
     navItemsFor("SYSTEM_ADMIN").map((item) => item.href),
     [
       "/",
+      "/pedagogico/analytics",
       STUDENTS_PATH,
       TEACHERS_PATH,
       CLASSES_PATH,
       CLASS_RECORDS_PATH,
       MATERIALS_PATH,
+      "/comercial/analytics",
+      "/colaboradores",
       LEADS_PATH,
       ANALYTICS_PATH,
       CONTRACTS_PATH,
@@ -183,7 +190,7 @@ void it("returns child pages to their authorized source and ignores foreign dest
       role: "ADMIN",
       back: "/professores/a-teacher?secao=turmas",
     }),
-    { href: "/professores/a-teacher?secao=turmas", label: "Professor" },
+    { href: "/professores/a-teacher?secao=turmas", label: "Docente" },
   );
   assert.deepEqual(
     navReturnFor({

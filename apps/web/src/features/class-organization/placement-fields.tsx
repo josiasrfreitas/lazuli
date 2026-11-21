@@ -106,7 +106,9 @@ function PlacementSourceControls({
     ...Object.fromEntries(
       data.progress.map((item) => [
         item.id,
-        `${item.enrollment.class.portalClassName} · ${item.stage.name} · ${item.enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}`,
+        item.enrollment.class.scheduleType === "PERSONALIZED"
+          ? `${item.enrollment.class.portalClassName} · ${item.stage.name}`
+          : item.enrollment.class.portalClassName,
       ]),
     ),
     new: "Nova turma",
@@ -166,7 +168,7 @@ function PlacementDestinationControls({
                 id: plan.id,
                 name: plan.name,
                 stageName: plan.stageName ?? plan.name,
-                teacherName: plan.teacherName ?? "Professor a definir",
+                teacherName: plan.teacherName ?? "Docente a definir",
                 scheduleType: plan.scheduleType,
                 format: plan.format,
                 slots: plan.slots,

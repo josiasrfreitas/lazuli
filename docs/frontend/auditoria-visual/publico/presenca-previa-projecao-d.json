@@ -1,0 +1,80 @@
+{
+  "captured_utc": "2026-11-20T15:11:43.254992+00:00",
+  "url": "https://staging.lazuli.fisklagarto.com.br/presenca/previa/projecao",
+  "snapshot": "- generic\n  - main\n    - heading \"Confirme sua presença\" [level=1, ref=e414]\n  - region \"Notificações\" [ref=e415]",
+  "metrics": {
+    "coarse": false,
+    "controls": [],
+    "copy": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 24,
+        "line": "24px",
+        "role": null,
+        "size": "16px",
+        "tag": "p",
+        "text": "Aponte a câmera, encontre seu nome e confirme.",
+        "weight": "400",
+        "width": 383,
+        "x": 528,
+        "y": 616
+      },
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(169, 179, 193)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 18,
+        "line": "18.005px",
+        "role": null,
+        "size": "13px",
+        "tag": "p",
+        "text": "Prévia com dados fictícios. Nenhuma presença real será registrada.",
+        "weight": "400",
+        "width": 383,
+        "x": 528,
+        "y": 664
+      }
+    ],
+    "docHeight": 900,
+    "docWidth": 1440,
+    "fonts": [],
+    "frames": [],
+    "headings": [
+      {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(233, 237, 246)",
+        "font": "Cambria, Georgia, \"Times New Roman\", serif",
+        "height": 30,
+        "line": "30px",
+        "role": null,
+        "size": "24px",
+        "tag": "h1",
+        "text": "Confirme sua presença",
+        "weight": "600",
+        "width": 383,
+        "x": 528,
+        "y": 218
+      }
+    ],
+    "height": 900,
+    "labels": [],
+    "main": {
+      "background": "rgb(18, 21, 29)",
+      "color": "rgb(233, 237, 246)",
+      "font": "Cambria, Georgia, \"Times New Roman\", serif",
+      "height": 900,
+      "line": "24px",
+      "size": "16px",
+      "weight": "400",
+      "width": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "overflow": [],
+    "pixelRatio": 1,
+    "title": "Prévia · Projeção do QR | Lazuli",
+    "width": 1440
+  }
+}

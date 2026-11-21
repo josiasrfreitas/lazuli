@@ -15,7 +15,7 @@ type FormOptions = RouterOutputs["classes"]["formOptions"];
 const FILTER_CONFIG = {
   tipo: { label: "Modalidade", icon: UsersRound, promoted: true },
   formato: { label: "Formato", icon: Monitor, promoted: true },
-  professor: { label: "Professor", icon: GraduationCap, promoted: true },
+  professor: { label: "Docente", icon: GraduationCap, promoted: true },
   estagio: { label: "Estágio", icon: BookOpen, presentation: "dropdown" },
   semestre: { label: "Período", icon: CalendarDays },
   estado: { label: "Estado", icon: CircleCheck },

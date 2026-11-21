@@ -83,7 +83,7 @@ function CoverageFeedback({
     return (
       <tr>
         <td className={styles.feedback} role="status">
-          Carregando turmas sem professor…
+          Carregando turmas sem docente…
         </td>
       </tr>
     );
@@ -109,7 +109,7 @@ function CoverageRow({ item, today }: { item: HomeItem; today: string }): ReactE
         <Link className={styles.item} href={item.action.href}>
           <PendingIcon icon={UsersRound} className={styles.coverageIcon} missing />
           <span className={styles.identity}>
-            <strong className={styles.title}>Turma sem professor</strong>
+            <strong className={styles.title}>Turma sem docente</strong>
             <span className={styles.context}>
               <span>{item.title}</span>
               <span>{item.detail}</span>
@@ -142,12 +142,9 @@ export function CoveragePagination({
 }): ReactElement | null {
   if (total <= PAGE_SIZE) return null;
   return (
-    <nav className={styles.placementPagination} aria-label="Paginação de turmas sem professor">
+    <nav className={styles.placementPagination} aria-label="Paginação de turmas sem docente">
       <span>
-        {total}{" "}
-        {total === 1
-          ? "professor com turmas sem professor"
-          : "professores com turmas sem professor"}{" "}
+        {total} {total === 1 ? "docente com turmas sem docente" : "docentes com turmas sem docente"}{" "}
         · Página {page} de {Math.ceil(total / PAGE_SIZE)}
       </span>
       <Button

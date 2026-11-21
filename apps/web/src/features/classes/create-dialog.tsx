@@ -1,4 +1,5 @@
 "use client";
+import { FormDialogFooter } from "~/components/form-dialog-footer";
 import { useRef, useState, type FormEvent, type ReactElement, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -8,7 +9,6 @@ import {
   DialogBody,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogPortal,
   DialogTitle,
@@ -135,23 +135,14 @@ function CreateBody({ state, open }: { state: State; open: boolean }): ReactElem
           {state.formError}
         </p>
       )}
-      <DialogFooter>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={state.create.isPending}
-          onClick={() => state.close()}
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          form="create-class-form"
-          disabled={!options.data || state.create.isPending}
-        >
-          {state.create.isPending ? "Criando…" : "Criar turma"}
-        </Button>
-      </DialogFooter>
+      <FormDialogFooter
+        form="create-class-form"
+        label="Criar turma"
+        pendingLabel="Criando…"
+        pending={state.create.isPending}
+        disabled={!options.data}
+        onCancel={state.close}
+      />
     </>
   );
 }
@@ -167,7 +158,7 @@ function CreateContent({ state, open }: { state: State; open: boolean }): ReactE
       <DialogHeader>
         <DialogTitle>Nova turma</DialogTitle>
         <DialogDescription>
-          Defina a modalidade, o professor e os horários da turma.
+          Defina a modalidade, o docente e os horários da turma.
         </DialogDescription>
       </DialogHeader>
       <CreateBody state={state} open={open} />

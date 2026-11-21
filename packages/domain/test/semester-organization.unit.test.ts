@@ -33,7 +33,7 @@ void it("accepts a pedagogically confirmed next stage without time preferences",
 void it("blocks missing teacher and unconfirmed academic progression independently", () => {
   assert.deepEqual(
     semesterPlacementBlockers({ ...eligible, plan: { ...eligible.plan!, teacherReady: false } }),
-    ["Professor pendente na data de entrada"],
+    ["Docente pendente na data de entrada"],
   );
   assert.deepEqual(
     semesterPlacementBlockers({ ...eligible, source: { ...eligible.source!, confirmed: false } }),

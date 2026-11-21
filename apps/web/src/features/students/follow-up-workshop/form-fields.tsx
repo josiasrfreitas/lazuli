@@ -68,9 +68,9 @@ export function WorkshopTextField({
 export function TeacherField({ values }: { values: FormValues }): ReactElement {
   return (
     <Field>
-      <Label>Professor responsável</Label>
+      <Label>Docente responsável</Label>
       <SegmentedControl
-        aria-label="Professor responsável"
+        aria-label="Docente responsável"
         value={values.draft.teacher}
         onValueChange={(value) => {
           if (value) values.change("teacher", value);

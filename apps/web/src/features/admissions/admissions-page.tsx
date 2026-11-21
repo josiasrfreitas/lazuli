@@ -1,5 +1,6 @@
 "use client";
-import { useSearchDraft } from "~/lib/use-search-draft";
+import { TableExportButton } from "~/components/table-export-button";
+import { TableSearch } from "~/components/table-search";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { useRouter } from "next/navigation";
@@ -9,7 +10,6 @@ import {
   Button,
   DataTable,
   DataTablePage,
-  Input,
   TableFilters,
   type TableFilterField,
   type DataTableState,
@@ -30,12 +30,13 @@ export function AdmissionsPage(): ReactElement {
     situacao: parseAsString.withDefault("WAITING"),
   });
   const pagination = useUrlPagination(studentPaginationPolicy);
-  const query = trpc.admissions.list.useQuery({
+  const input = {
     ...leadFilterInput(params),
     search: params.busca,
     page: pagination.page,
     pageSize: pagination.pageSize,
-  });
+  };
+  const query = trpc.admissions.list.useQuery(input);
   const [creating, setCreating] = useState(false);
   const fields = leadFilterFields(params, (values) => {
     void setParams(values);
@@ -48,19 +49,26 @@ export function AdmissionsPage(): ReactElement {
         pagination={pagination}
         filtered={Boolean(params.busca) || params.interesse !== "ALL" || params.situacao !== "ALL"}
         controls={
-          <AdmissionControls
-            search={params.busca}
-            fields={fields}
-            onClear={() => {
-              void setParams({ situacao: "ALL", interesse: "ALL" });
-              pagination.setPage(1);
-            }}
-            onCreate={() => setCreating(true)}
-            onSearch={(busca) => {
-              void setParams({ busca });
-              pagination.setPage(1);
-            }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <TableExportButton
+              source={{ listing: "Leads", filters: input }}
+              fields={fields}
+              search={params.busca}
+            />
+            <AdmissionControls
+              search={params.busca}
+              fields={fields}
+              onClear={() => {
+                void setParams({ situacao: "ALL", interesse: "ALL" });
+                pagination.setPage(1);
+              }}
+              onCreate={() => setCreating(true)}
+              onSearch={(busca) => {
+                void setParams({ busca });
+                pagination.setPage(1);
+              }}
+            />
+          </div>
         }
       />
       {creating && <LeadCaptureDialog onClose={() => setCreating(false)} />}
@@ -120,18 +128,15 @@ function AdmissionControls({
   fields: TableFilterField[];
   onClear: () => void;
 }): ReactElement {
-  const [draft, setDraft] = useSearchDraft(search, onSearch);
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-full sm:w-56">
-        <Input
+        <TableSearch
           name="candidate-search"
-          aria-label="Buscar lead"
+          label="Buscar lead"
           placeholder="Nome, telefone ou e-mail"
-          autoComplete="off"
-          size="compact-responsive"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          value={search}
+          onCommit={onSearch}
         />
       </div>
       <TableFilters fields={fields} onClearAll={onClear} />

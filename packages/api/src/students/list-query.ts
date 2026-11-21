@@ -1,11 +1,9 @@
 import { currentScholarshipContractWhere } from "./scholarship.js";
 import { searchIds } from "../search.js";
-import type { Prisma } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
 import type { Weekday } from "@lazuli/domain";
 import { effectiveTeacherId, saoPauloDateOnly, saoPauloMidnightToInstant } from "@lazuli/domain";
 import type { StudentListInput, StudentListStatusFilter } from "@lazuli/validators";
-
-import type { Context } from "../trpc/context.js";
 
 /**
  * Query shapes for `students.list`: the status/search filter, the page read
@@ -13,7 +11,7 @@ import type { Context } from "../trpc/context.js";
  * apart from list.ts so the orchestration there stays readable.
  */
 
-export type StudentListDatabase = Context["db"];
+export type StudentListDatabase = TransactionClient;
 
 export type ScheduleSlot = { weekday: Weekday; startTime: Date };
 
@@ -309,7 +307,7 @@ async function withCurrentTeachers(input: {
         class: {
           portalClassName: enrollment.class.portalClassName,
           scheduleSlots: enrollment.class.scheduleSlots,
-          teacherName: id === null ? "Sem professor" : (byId.get(id)?.name ?? "Sem professor"),
+          teacherName: id === null ? "Sem docente" : (byId.get(id)?.name ?? "Sem docente"),
         },
       };
     }),

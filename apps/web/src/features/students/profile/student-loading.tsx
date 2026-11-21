@@ -12,7 +12,7 @@ export function EnrollmentLoading(): ReactElement {
     <article
       aria-label="Carregando matrícula"
       aria-busy="true"
-      className={`min-w-0 border border-border bg-accent ${styles.surface}`}
+      className={`min-w-0 border border-border bg-record-summary-surface ${styles.surface}`}
     >
       <div className="grid gap-5 px-5 py-4 lg:grid-cols-2 lg:gap-8">
         <div className={`grid content-start gap-3 ${styles.intro}`}>

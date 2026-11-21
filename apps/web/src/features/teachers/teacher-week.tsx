@@ -24,7 +24,7 @@ export function TeacherWeek({
 }): ReactElement {
   const schedule = trpc.teachers.agenda.useQuery({ id });
   return (
-    <section className="grid gap-4" aria-label="Agenda do professor">
+    <section className="grid gap-4" aria-label="Agenda do docente">
       <WeekHeader
         minutes={schedule.data?.minutes}
         isError={schedule.isError}
@@ -67,7 +67,7 @@ function WeekHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="grid gap-1">
-        <h2 className="text-h3 font-semibold">Agenda do professor</h2>
+        <h2 className="text-h3 font-semibold">Agenda do docente</h2>
         <p className="text-caption text-muted-foreground">
           Horários recorrentes das turmas vigentes
         </p>
@@ -80,7 +80,7 @@ function WeekHeader({
         )}
         <p
           className="flex items-baseline gap-1.5 text-caption text-muted-foreground"
-          title="Alunos com matrícula vigente nas turmas atuais deste professor, sem duplicação."
+          title="Alunos com matrícula vigente nas turmas atuais deste docente, sem duplicação."
         >
           <span className="font-numeric text-h2 font-semibold text-foreground tabular-nums">
             {studentCount ?? <InlineSkeleton className="h-6 w-8" />}

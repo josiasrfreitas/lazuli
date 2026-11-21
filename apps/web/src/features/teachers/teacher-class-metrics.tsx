@@ -24,6 +24,7 @@ import {
   type TeacherClassDirection,
   type TeacherMetricClass,
 } from "./teacher-class-order";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-class-metrics.module.css";
 
 type Metrics = RouterOutputs["teachers"]["metrics"];
@@ -192,7 +193,7 @@ function ClassDirectoryRows({
   return (
     <EmptyState
       title="Nenhuma turma atual"
-      description="As estatísticas aparecem quando houver uma turma sob responsabilidade deste professor no semestre atual. Vínculos anteriores e programados continuam disponíveis abaixo."
+      description="As estatísticas aparecem quando houver uma turma sob responsabilidade deste docente no semestre atual. Vínculos anteriores e programados continuam disponíveis abaixo."
     />
   );
 }
@@ -244,7 +245,7 @@ function ClassReadings({
           Score médio
         </dt>
         <dd data-empty={row.score === null || undefined}>
-          {row.score === null ? "Sem score" : metricNumber(row.score)}
+          {row.score === null ? "Sem score" : <HealthScoreValue value={row.score} />}
         </dd>
         <dd className={styles.evidence}>
           {covered} de {row.studentCount} com dados
@@ -293,7 +294,7 @@ function ClassDirectoryHeading({
           <span aria-live="polite"> {filtered ? `${count} de ${data.classes.length}` : count}</span>
         )}
       </h2>
-      <p>Notas e faltas no período de atuação do professor.</p>
+      <p>Notas e faltas no período de atuação do docente.</p>
     </header>
   );
 }

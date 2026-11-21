@@ -49,7 +49,7 @@ export const studentListInputSchema = z
     { path: ["registeredTo"], message: "O fim deve ser igual ou posterior ao início." },
   );
 
-/** The most recent open enrollment, flattened for the "Turma"/"Professor" columns. */
+/** The most recent open enrollment, flattened for the "Turma"/"Docente" columns. */
 export const studentListEnrollmentSchema = z
   .object({
     enrollmentId: z.string().uuid(),

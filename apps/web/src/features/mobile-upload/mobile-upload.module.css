@@ -37,11 +37,33 @@
   display: grid;
   gap: 1.5rem;
 }
+.mobile header {
+  display: grid;
+  gap: 0.5rem;
+}
 .mobile h1 {
+  font-family: var(--lz-font-display);
+  line-height: var(--lz-leading-h2);
   font-size: var(--lz-text-h2);
   font-weight: 600;
 }
 .mobile p {
   font-size: var(--lz-text-body);
   color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .qr svg {
+    animation: revealQr var(--lz-duration-base) var(--lz-ease-standard);
+  }
+  @keyframes revealQr {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }

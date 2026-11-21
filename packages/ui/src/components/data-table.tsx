@@ -2,10 +2,9 @@
 
 import type { ReactElement, ReactNode } from "react";
 import { SearchX } from "lucide-react";
-import { cn } from "../lib/utils";
 import { Button } from "./button";
 import { EmptyState } from "./empty-state";
-import { Table, TableBody, TableContainer, TableHeader, TableRow } from "./table";
+import { Table, TableActionRow, TableBody, TableContainer, TableHeader, TableRow } from "./table";
 import { TableCell, TableEmpty, TableHead } from "./table-cells";
 import { TablePagination, type TablePaginationConfig } from "./table-pagination";
 import { TableSkeleton } from "./table-skeleton";
@@ -16,6 +15,7 @@ export type DataTableColumn<Row> = {
   header: ReactNode;
   cell: (row: Row) => ReactNode;
   numeric?: boolean;
+  centered?: boolean;
   width?: "wide" | "medium" | "standard" | "narrow" | "selection" | "actions";
 };
 
@@ -102,15 +102,6 @@ function StateRows<Row extends { id: string }>({
   );
 }
 
-function isRowControl(target: EventTarget): boolean {
-  return (
-    target instanceof Element &&
-    Boolean(
-      target.closest("a, button, input, select, textarea, [role='button'], [role='checkbox']"),
-    )
-  );
-}
-
 function DataRow<Row extends { id: string }>({
   row,
   columns,
@@ -123,40 +114,17 @@ function DataRow<Row extends { id: string }>({
   onRowClick: DataTableProps<Row>["onRowClick"];
 }): ReactElement {
   return (
-    <TableRow
-      interactive={Boolean(onRowClick)}
-      selected={selected}
-      className={cn(
-        selected && "outline outline-1 -outline-offset-1 outline-border-strong",
-        onRowClick &&
-          "cursor-pointer hover:bg-muted/60 focus-within:bg-muted/60 data-[selected]:focus-within:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
-      )}
-      tabIndex={onRowClick ? 0 : undefined}
-      onClick={
-        onRowClick
-          ? (event) => {
-              if (event.defaultPrevented || isRowControl(event.target)) return;
-              onRowClick(row);
-            }
-          : undefined
-      }
-      onKeyDown={
-        onRowClick
-          ? (event) => {
-              if (event.key === "Enter" && !isRowControl(event.target)) {
-                event.preventDefault();
-                onRowClick(row);
-              }
-            }
-          : undefined
-      }
-    >
+    <TableActionRow selected={selected} onActivate={onRowClick && (() => onRowClick(row))}>
       {columns.map((column) => (
-        <TableCell key={column.id} numeric={column.numeric ?? false}>
+        <TableCell
+          key={column.id}
+          numeric={column.numeric ?? false}
+          className={column.centered ? "text-center" : undefined}
+        >
           {column.cell(row)}
         </TableCell>
       ))}
-    </TableRow>
+    </TableActionRow>
   );
 }
 
@@ -186,6 +154,7 @@ export function DataTable<Row extends { id: string }>(props: DataTableProps<Row>
             {columns.map((column) => (
               <TableHead
                 key={column.id}
+                className={column.centered ? "text-center" : undefined}
                 numeric={column.numeric ?? false}
                 style={{ width: COLUMN_WIDTHS[column.width ?? "standard"] }}
               >

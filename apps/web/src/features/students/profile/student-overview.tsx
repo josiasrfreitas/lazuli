@@ -184,12 +184,12 @@ function CurrentSummary({
           {row.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}
         </Badge>
       </div>
-      <EnrollmentFacts row={row} back={back} />
       <p className={styles.enrollmentPeriod}>
         {row.class.semester} · {row.class.format === "IN_PERSON" ? "Presencial" : "Online"} · Desde{" "}
         {formatDateOnlyBR(row.entryDate)}
         {row.exitDate && ` · Saída em ${formatDateOnlyBR(row.exitDate)}`}
       </p>
+      <EnrollmentFacts row={row} back={back} />
     </article>
   );
 }
@@ -199,7 +199,7 @@ function EnrollmentFacts({ row, back }: { row: StudentEnrollment; back: string }
     <dl className={styles.enrollmentFacts}>
       <div>
         <dt>
-          <GraduationCap aria-hidden="true" /> Professor
+          <GraduationCap aria-hidden="true" /> Docente
         </dt>
         <dd>
           {row.class.teacher ? (
@@ -253,10 +253,13 @@ function EnrollmentSummaryLoading(): ReactElement {
         <InlineSkeleton shape="block" className="h-7 w-48 max-w-full" />
         <InlineSkeleton shape="block" className="h-5 w-16" />
       </div>
+      <p className={styles.enrollmentPeriod}>
+        <InlineSkeleton className="w-72 max-w-full" />
+      </p>
       <dl className={styles.enrollmentFacts}>
         <div>
           <dt>
-            <GraduationCap aria-hidden="true" /> Professor
+            <GraduationCap aria-hidden="true" /> Docente
           </dt>
           <dd>
             <InlineSkeleton className="h-3 w-32 max-w-full" />
@@ -271,9 +274,6 @@ function EnrollmentSummaryLoading(): ReactElement {
           </dd>
         </div>
       </dl>
-      <p className={styles.enrollmentPeriod}>
-        <InlineSkeleton className="w-72 max-w-full" />
-      </p>
     </div>
   );
 }

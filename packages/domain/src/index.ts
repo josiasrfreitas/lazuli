@@ -6,6 +6,7 @@
 export const DOMAIN_PACKAGE = "@lazuli/domain" as const;
 export {
   calculateStudentHealth,
+  studentHealthLevel,
   STUDENT_HEALTH_WEIGHTS,
   type StudentHealthIndicator,
   type StudentHealthInput,
@@ -208,3 +209,5 @@ export {
   MISSING_ENTRY_CONTRACT,
   type FormationContractStatus,
 } from "./formation.js";
+
+export { bookPageRange } from "./book-page-range.js";

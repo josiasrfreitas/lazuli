@@ -125,6 +125,7 @@ enum PaymentReversalKind {
 
 
 enum ArtifactKind {
+  TABLE_XLSX
   STUDENT_STATEMENT_PDF
   CLASS_ROSTER_PDF
   ATTENDANCE_SUMMARY_PDF
@@ -155,6 +156,7 @@ model User {
   sessions                      Session[]
   classesTaught                 Class[]                 @relation("ClassTeacher")
   usualSessions                 ClassSession[] @relation("SessionUsualTeacher")
+  employeeProfile EmployeeProfile?
   teacherProfile                TeacherProfile?
   teacherDeparturesRecorded     TeacherProfile[] @relation("TeacherDepartureRecorder")
   datedClassesTaught            ClassTeacherAssignment[] @relation("DatedClassTeacher")
@@ -670,20 +672,37 @@ model PedagogicalProgress {
   semesterPlacements SemesterPlacement[]
 }
 
+enum EmployeeArea {
+  SECRETARIAT
+  MANAGEMENT
+  PEDAGOGY
+  COMMERCIAL
+}
+
+model EmployeeProfile {
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  userId String @id @map("user_id") @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  area EmployeeArea?
+  jobTitle String? @map("job_title") @db.VarChar(120)
+  cpf           String?   @unique @db.VarChar(11)
+  phone String?
+  employmentType String? @map("employment_type") @db.VarChar(20)
+  files TeacherFile[]
+  uploadSessions TeacherUploadSession[]
+}
+
 model TeacherProfile {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   userId        String    @id @map("user_id") @db.Uuid
-  cpf           String?   @unique @db.VarChar(11)
-  phone String?
-  employmentType String? @map("employment_type") @db.VarChar(20)
   weeklyHours Float? @map("weekly_hours")
   notes String?
   vacationStart DateTime? @map("vacation_start") @db.Date
   vacationEnd DateTime? @map("vacation_end") @db.Date
-  files TeacherFile[]
-  uploadSessions TeacherUploadSession[]
   departureDate DateTime? @map("departure_date") @db.Date
   departureRecordedAt DateTime? @map("departure_recorded_at") @db.Timestamptz
   departureRecordedById String? @map("departure_recorded_by_id") @db.Uuid
@@ -1233,6 +1252,7 @@ model PaymentReversalProof {
 }
 
 model GeneratedArtifact {
+  exportRequest Json? @map("export_request")
   id             String       @id @default(uuid()) @db.Uuid
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
@@ -1543,6 +1563,16 @@ enum EntryVisitStatus {
   CANCELLED
 }
 
+enum LeadSource {
+  REFERRAL
+  INSTAGRAM
+  WHATSAPP
+  WEBSITE
+  SCHOOL_VISIT
+  GOOGLE
+  OTHER
+}
+
 model AdmissionCandidate {
   allocationPendingAt DateTime? @map("allocation_pending_at") @db.Timestamptz
   allocationPendingReason String? @map("allocation_pending_reason")
@@ -1558,7 +1588,8 @@ model AdmissionCandidate {
   contactOwner String @default("STUDENT") @map("contact_owner")
   birthDate DateTime? @map("birth_date") @db.Date
   englishExperience String @default("UNKNOWN") @map("english_experience")
-  source String?
+  source LeadSource?
+  sourceDetail String? @map("source_detail")
   ownerId String? @map("owner_id") @db.Uuid @ignore
   nextAction String? @map("next_action") @ignore
   nextActionOn DateTime? @map("next_action_on") @db.Date @ignore
@@ -2251,8 +2282,56 @@ model BookLesson {
   title String
   stage Stage @relation(fields: [stageId], references: [id], onDelete: Restrict)
   activityLessons ProgramActivityLesson[]
+  pages BookLessonPage[]
+  parts BookLessonPart[]
   @@unique([stageId, sourceKey])
   @@unique([stageId, sequence])
+}
+
+model BookLessonPart {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  lessonId String @map("lesson_id") @db.Uuid
+  sequence Int
+  title String
+  lesson BookLesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  pages BookLessonPage[]
+  references ProgramActivityLesson[]
+  @@unique([lessonId, sequence])
+  @@unique([lessonId, id])
+}
+
+model BookLessonPage {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  lessonId String @map("lesson_id") @db.Uuid
+  lesson BookLesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  partId String? @map("part_id") @db.Uuid
+  number Int
+  part BookLessonPart? @relation(fields: [partId], references: [id], onDelete: Restrict)
+  activities BookPageActivity[]
+  references ProgramActivityLesson[]
+  @@unique([partId, id])
+  @@unique([lessonId, id])
+  // The migration enforces one active page number per part.
+}
+
+model BookPageActivity {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  pageId String @map("page_id") @db.Uuid
+  sequence Int
+  title String
+  page BookLessonPage @relation(fields: [pageId], references: [id], onDelete: Restrict)
+  references ProgramActivityLesson[]
+  @@unique([pageId, sequence])
+  @@unique([pageId, id])
 }
 
 model TeachingProgram {
@@ -2331,6 +2410,7 @@ model ProgramAssessment {
 }
 
 model ProgramActivity {
+  instructions String?
   pageStart Int? @map("page_start")
   pageEnd Int? @map("page_end")
   id String @id @default(uuid()) @db.Uuid
@@ -2368,9 +2448,16 @@ model ProgramActivityLesson {
   activityId String @map("activity_id") @db.Uuid
   lessonId String @map("lesson_id") @db.Uuid
   part String @default("")
+  partId String? @map("part_id") @db.Uuid
+  pageId String? @map("page_id") @db.Uuid
+  pageActivityId String? @map("page_activity_id") @db.Uuid
   activity ProgramActivity @relation(fields: [activityId], references: [id], onDelete: Restrict)
   lesson BookLesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
-  @@unique([activityId, lessonId, part])
+  bookPart BookLessonPart? @relation(fields: [lessonId, partId], references: [lessonId, id], onDelete: Restrict)
+  bookPage BookLessonPage? @relation(fields: [lessonId, pageId], references: [lessonId, id], onDelete: Restrict)
+  pageActivity BookPageActivity? @relation(fields: [pageId, pageActivityId], references: [pageId, id], onDelete: Restrict)
+  // NULLS NOT DISTINCT preserves uniqueness at each depth, including legacy free-text references.
+  @@unique([activityId, lessonId, part, partId, pageId, pageActivityId], map: "ProgramActivityLesson_reference_key")
   @@index([lessonId])
 }
 
@@ -2452,7 +2539,7 @@ model TeacherFile {
   byteLength Int @map("byte_length")
   bucket String
   key String @unique
-  teacher TeacherProfile? @relation(fields: [teacherId], references: [userId], onDelete: Restrict)
+  teacher EmployeeProfile? @relation(fields: [teacherId], references: [userId], onDelete: Restrict)
   @@index([teacherId, deletedAt])
 }
 
@@ -2464,7 +2551,7 @@ model TeacherUploadSession {
   tokenHash String @unique @map("token_hash")
   createdById String @map("created_by_id") @db.Uuid
   teacherId String? @map("teacher_id") @db.Uuid
-  teacher TeacherProfile? @relation(fields: [teacherId], references: [userId], onDelete: Restrict)
+  teacher EmployeeProfile? @relation(fields: [teacherId], references: [userId], onDelete: Restrict)
   expiresAt DateTime @map("expires_at") @db.Timestamptz
   closedAt DateTime? @map("closed_at") @db.Timestamptz
   files TeacherFile[]

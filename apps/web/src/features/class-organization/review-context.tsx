@@ -116,7 +116,7 @@ export function ReviewPending({
               {!historical &&
                 plan &&
                 row.continuity !== "LEAVING" &&
-                reason === "Professor pendente na data de entrada" &&
+                reason === "Docente pendente na data de entrada" &&
                 (plan.classId ? (
                   <Button
                     size="compact-responsive"
@@ -124,7 +124,7 @@ export function ReviewPending({
                     nativeButton={false}
                     render={<Link href={`/turmas/${plan.classId}?acao=professor`} />}
                   >
-                    Atribuir professor <ArrowUpRight />
+                    Atribuir docente <ArrowUpRight />
                   </Button>
                 ) : (
                   <Button
@@ -132,7 +132,7 @@ export function ReviewPending({
                     variant="link"
                     onClick={() => onAction({ kind: "plan", plan })}
                   >
-                    Editar professor da turma
+                    Editar docente da turma
                   </Button>
                 ))}
             </li>

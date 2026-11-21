@@ -42,8 +42,8 @@ export const WORK_COPY: Record<
   },
   coverage: {
     action: "Ver turmas",
-    outcome: "Defina outro professor para cada turma afetada pela saída.",
-    scope: "Saídas de professores com turmas a reatribuir",
+    outcome: "Defina outro docente para cada turma afetada pela saída.",
+    scope: "Saídas de docentes com turmas a reatribuir",
   },
   planning: {
     action: "Ver planejamento",
@@ -52,7 +52,7 @@ export const WORK_COPY: Record<
   },
   lessons: {
     action: "Conferir registros de aula",
-    outcome: "Confira presença e conteúdo e acompanhe a conclusão com os professores responsáveis.",
+    outcome: "Confira presença e conteúdo e acompanhe a conclusão com os docentes responsáveis.",
     scope: "Aulas encerradas nos últimos 7 dias",
   },
   appointments: {
@@ -162,7 +162,7 @@ function relativeDay(offset: number, date: string): string {
   return formatWorkDate(date);
 }
 const HEADLINES: Partial<Record<HomeGroup["kind"], string>> = {
-  coverage: "Turma sem professor",
+  coverage: "Turma sem docente",
   lessons: "Acompanhe os registros de aula",
   appointments: "Conclua os atendimentos realizados",
   placement: "Defina o estágio de entrada",
@@ -184,7 +184,7 @@ function departurePriority(
     state: departureState(days),
     tone: days < 0 ? "destructive" : "warning",
     label: departureDayLabel(snapshot.today, timing.date),
-    evidence: `Saída de professor: ${departureDayLabel(snapshot.today, timing.date).toLowerCase()}`,
+    evidence: `Saída de docente: ${departureDayLabel(snapshot.today, timing.date).toLowerCase()}`,
   };
 }
 function departureRank(days: number): number {

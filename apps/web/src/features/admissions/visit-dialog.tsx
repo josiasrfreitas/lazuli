@@ -46,7 +46,7 @@ function initialVisitKind(previous: PreviousVisit, candidate: Candidate): VisitK
 
 function initialVisitTeacher(previous: PreviousVisit): SearchSelectOption | null {
   return previous?.teacherId
-    ? { id: previous.teacherId, label: previous.teacherName ?? "Professor" }
+    ? { id: previous.teacherId, label: previous.teacherName ?? "Docente" }
     : null;
 }
 
@@ -181,7 +181,7 @@ function visitBlocked(query: VisitQuery, kind: VisitKind): CalendarBlockedInterv
           ...(query.data?.teacherBusy ?? []),
           ...(query.data?.meetings ?? []).map((row) => ({
             ...row,
-            label: `Aula do professor · ${row.className}`,
+            label: `Aula do docente · ${row.className}`,
           })),
         ]
       : []),
@@ -279,7 +279,7 @@ function introductionEvents(calendar: VisitCalendarData): CalendarEvent[] {
     ...calendar.meetings.map((row) => ({
       ...row,
       title: row.className,
-      subtitle: "Aula do professor",
+      subtitle: "Aula do docente",
       disabled: true,
     })),
     ...(calendar.query.data.teacherBusy ?? []).map((row) => ({

@@ -13,7 +13,7 @@ const draft: Draft = {
   phone: "",
   email: "",
   contactName: "",
-  source: "",
+  source: "OTHER",
   notes: "",
   contactRole: "STUDENT",
   contactOwner: "STUDENT",
@@ -42,13 +42,14 @@ function verifyContactFields(contactRole: "STUDENT" | "GUARDIAN"): void {
     "phone",
     "email",
     "birthDate",
-    "source",
+    "sourceDetail",
     ...(contactRole === "GUARDIAN" ? ["contactName"] : []),
   ]) {
     const input = markup.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`))?.[0] ?? "";
     assert.match(input, /placeholder="[^"]+"/u);
     assert.match(input, /autoComplete="off"/iu);
   }
+  assert.match(markup, /Qual origem\?/u);
   assert.match(markup.match(/<input[^>]*name="phone"[^>]*>/u)?.[0] ?? "", /aria-invalid="true"/u);
   assert.match(markup, /Informe telefone ou e-mail para contato\./u);
   assert.match(

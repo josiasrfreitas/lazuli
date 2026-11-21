@@ -102,7 +102,7 @@ function EditorNotes({ editor }: { editor: RecordEditor }): ReactElement {
         <NarrativeField
           name="reason"
           label="Motivo da correção"
-          placeholder="Ex.: corrigir a presença após conferência com o professor"
+          placeholder="Ex.: corrigir a presença após conferência com o docente"
           value={editor.reason}
           onChange={(value) => {
             editor.setReason(value);

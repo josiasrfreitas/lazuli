@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  averageContractCents,
   closingGrowth,
   closingRows,
   closingSummary,
@@ -72,4 +73,10 @@ void test("a completed historical year includes December when comparing its last
     rate: -1,
   });
   assert.equal(closingSummary(data).totals.projectedCents, 80_000);
+});
+
+void test("ticket uses the volume and complete contracts within the same cutoff", () => {
+  assert.equal(averageContractCents(closingSummary(analytics()).totals, 1), 43_333);
+  assert.equal(averageContractCents(closingSummary(analytics("2026-02-15")).totals, 0), 25_000);
+  assert.equal(averageContractCents(closingSummary(analytics("2026-01-31")).totals, 0), null);
 });

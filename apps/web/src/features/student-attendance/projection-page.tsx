@@ -1,13 +1,11 @@
 "use client";
 import { useEffect, useState, type ReactElement } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { ProjectionCode } from "./projection-code";
 import { Alert, ToastAlert } from "@lazuli/ui";
 import { attendanceTokenSchema } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { attendanceTime } from "./location";
 const PROJECTION_POLL_MS = 3000;
-const QR_SIZE = 320;
-const QUIET_ZONE = 4;
 export function AttendanceProjectionPage(): ReactElement {
   const [token, setToken] = useState("");
   useEffect(() => {
@@ -23,10 +21,10 @@ export function AttendanceProjectionPage(): ReactElement {
       {attendanceTokenSchema.safeParse({ token }).success ? (
         <ProjectionContent key={token} token={token} />
       ) : (
-        <Alert>Abra o acesso de projeção compartilhado pelo professor.</Alert>
+        <Alert>Abra o acesso de projeção compartilhado pelo docente.</Alert>
       )}
       <p className="text-caption text-muted-foreground">
-        O professor revisará a chamada. Se precisar de ajuda, fale com ele.
+        O docente revisará a chamada. Se precisar de ajuda, fale com ele.
       </p>
     </main>
   );
@@ -44,21 +42,13 @@ function ProjectionContent({ token }: { token: string }): ReactElement {
   if (!query.data?.token || !query.data.expiresAt)
     return (
       <p role="status" className="text-lg">
-        Aguardando o professor abrir um novo QR…
+        Aguardando o docente abrir um novo QR…
       </p>
     );
   const link = `${globalThis.location.origin}/presenca#${query.data.token}`;
   return (
     <>
-      <div className="mx-auto w-fit">
-        <QRCodeSVG
-          value={link}
-          size={QR_SIZE}
-          marginSize={QUIET_ZONE}
-          title="Leia com o celular para confirmar sua presença"
-        />
-      </div>
-      <p className="text-lg">Aponte a câmera, encontre seu nome e confirme.</p>
+      <ProjectionCode url={link} title="Leia com o celular para confirmar sua presença" />
       <p className="text-muted-foreground">
         Válido até {attendanceTime(query.data.expiresAt)} · Confirme somente seu próprio nome.
       </p>

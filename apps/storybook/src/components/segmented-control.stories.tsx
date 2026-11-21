@@ -12,6 +12,7 @@ const meta = {
   component: SegmentedControl,
   tags: ["autodocs"],
   argTypes: {
+    contrast: { control: "select", options: ["default", "high"] },
     wrap: { control: "boolean" },
     size: { control: "select", options: ["sm", "md"] },
     invalid: { control: "boolean" },
@@ -32,12 +33,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 function DocumentTypeExample({
+  contrast = "default",
   disabled = false,
   invalid = false,
   size,
   wrap = false,
   initialValue = null,
 }: {
+  contrast?: "default" | "high";
   disabled?: boolean;
   invalid?: boolean;
   size?: "sm" | "md";
@@ -48,6 +51,7 @@ function DocumentTypeExample({
 
   return (
     <SegmentedControl
+      contrast={contrast}
       aria-label={GROUP_LABEL}
       disabled={disabled}
       invalid={invalid}
@@ -66,6 +70,7 @@ export const Playground: Story = {
   args: { value: null, onValueChange: () => {} },
   render: (args) => (
     <DocumentTypeExample
+      contrast={args.contrast ?? "default"}
       size={args.size ?? "md"}
       disabled={args.disabled ?? false}
       invalid={args.invalid ?? false}

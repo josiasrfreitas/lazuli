@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
+import type { ReactElement } from "react";
 import {
   ScheduleCalendar,
   type CalendarEvent,
@@ -7,11 +7,16 @@ import {
   type CalendarBackgroundInterval,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { agendaEvents, type CalendarLesson } from "~/features/class-records/calendar-model";
-import { CalendarDialogs } from "~/features/class-records/calendar-view";
-import { CalendarLessonButton } from "~/features/class-records/calendar-lesson";
-import { CalendarLinkedLesson } from "~/features/class-records/calendar-linked-lesson";
-import { lessonCalendarEvents } from "~/features/class-records/weekly-calendar";
+import {
+  agendaEvents,
+  lessonCalendarEvents,
+  type CalendarLesson,
+} from "~/features/class-records/calendar-model";
+import { CalendarDialogs, CalendarDayLesson } from "~/features/class-records/calendar-view";
+import {
+  useCalendarSelection,
+  type CalendarSelection,
+} from "~/features/class-records/use-calendar-selection";
 import type { AcademicYear } from "./model";
 import styles from "./workshop.module.css";
 
@@ -53,18 +58,9 @@ type DayData = {
   error: boolean;
   retry: () => void;
 };
-type DayDialogs = {
-  lessonId: string | null;
-  appointmentId: string | null;
-  experimentId: string | null;
-  setLessonId: Dispatch<SetStateAction<string | null>>;
-  setAppointmentId: Dispatch<SetStateAction<string | null>>;
-  setExperimentId: Dispatch<SetStateAction<string | null>>;
-  open: (lesson: CalendarLesson) => void;
-};
 export function AcademicDayAgenda(props: DayAgendaProps): ReactElement {
   const data = useDayData(props);
-  const dialogs = useDayDialogs();
+  const dialogs = useCalendarSelection();
   return <DayAgendaView props={props} data={data} dialogs={dialogs} />;
 }
 function useDayData({ date, data }: DayAgendaProps): DayData {
@@ -93,25 +89,6 @@ function useDayData({ date, data }: DayAgendaProps): DayData {
     },
   };
 }
-function useDayDialogs(): DayDialogs {
-  const [lessonId, setLessonId] = useState<string | null>(null);
-  const [appointmentId, setAppointmentId] = useState<string | null>(null);
-  const [experimentId, setExperimentId] = useState<string | null>(null);
-  function open(lesson: CalendarLesson): void {
-    if (lesson.appointment) setAppointmentId(lesson.appointment.id);
-    else if (lesson.experimental) setExperimentId(lesson.experimental.id);
-    else setLessonId(lesson.id);
-  }
-  return {
-    lessonId,
-    appointmentId,
-    experimentId,
-    setLessonId,
-    setAppointmentId,
-    setExperimentId,
-    open,
-  };
-}
 function DayAgendaView({
   props: { date, onDateChange, onEditEvent, suspension },
   data: { lessons, events, pending, error, retry },
@@ -119,17 +96,8 @@ function DayAgendaView({
 }: {
   props: DayAgendaProps;
   data: DayData;
-  dialogs: DayDialogs;
+  dialogs: CalendarSelection;
 }): ReactElement {
-  const {
-    lessonId,
-    appointmentId,
-    experimentId,
-    setLessonId,
-    setAppointmentId,
-    setExperimentId,
-    open,
-  } = dialogs;
   return (
     <>
       <div className={styles.agendaGrid}>
@@ -153,9 +121,9 @@ function DayAgendaView({
           status={agendaStatus({ error, pending })}
           errorMessage="Não foi possível carregar as atividades deste dia."
           onRetry={retry}
-          keepExpanded={Boolean(lessonId || appointmentId || experimentId)}
+          keepExpanded={Boolean(dialogs.target)}
           onEventActivate={(event) => {
-            if (event.lesson) open(event.lesson);
+            if (event.lesson) dialogs.openLesson(event.lesson);
             else if (event.academicId) onEditEvent?.(event.academicId);
           }}
           renderEvent={(event, context) => renderDayEvent({ event, context, dialogs })}
@@ -163,12 +131,8 @@ function DayAgendaView({
       </div>
       <CalendarDialogs
         lessons={lessons}
-        lessonId={lessonId}
-        appointmentId={appointmentId}
-        experimentId={experimentId}
-        setLessonId={setLessonId}
-        setAppointmentId={setAppointmentId}
-        setExperimentId={setExperimentId}
+        target={dialogs.target}
+        setTarget={dialogs.setTarget}
         admin
       />
     </>
@@ -178,27 +142,21 @@ function DayAgendaView({
 function renderDayEvent({
   event,
   context,
-  dialogs: { appointmentId, open, setAppointmentId, setExperimentId },
+  dialogs,
 }: {
   event: AcademicDayEvent;
   context: CalendarEventRenderContext;
-  dialogs: DayDialogs;
+  dialogs: CalendarSelection;
 }): ReactElement {
-  if (event.lesson?.appointments?.length || event.lesson?.leadGuests?.length)
+  if (event.lesson)
     return (
-      <CalendarLinkedLesson
+      <CalendarDayLesson
         lesson={event.lesson}
+        context={context}
+        selection={dialogs}
         expanded={context.expanded}
-        appointmentId={appointmentId}
-        onToggle={context.toggleExpanded}
-        onOpen={open}
-        onOpenAppointment={setAppointmentId}
-        onOpenExperimental={setExperimentId}
-        personal={false}
       />
     );
-  if (event.lesson)
-    return <CalendarLessonButton lesson={event.lesson} onOpen={open} expanded={context.expanded} />;
   return (
     <button
       type="button"

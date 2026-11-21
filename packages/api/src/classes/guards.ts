@@ -18,6 +18,7 @@ export async function assertTeacherIsActive(input: {
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
     select: {
+      employeeProfile: { select: { userId: true } },
       role: true,
       deletedAt: true,
       teacherProfile: { select: { userId: true, deletedAt: true } },

@@ -1,3 +1,4 @@
+import { requestTableExport, tableExportStatus } from "../table-exports/request.js";
 import type { ArtifactKind } from "@lazuli/validators";
 import {
   getArtifactInputSchema,
@@ -13,6 +14,8 @@ import { getArtifact, assertClassRosterScope } from "./get-artifact.js";
 import { requestReportArtifact, resolveReportGenerateQueue } from "./request-artifact.js";
 
 export const reportsRouter = router({
+  requestTableExport,
+  tableExportStatus,
   requestStudentStatement: adminProcedure
     .input(requestStudentStatementInputSchema)
     .mutation(({ ctx, input }) =>

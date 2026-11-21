@@ -44,7 +44,7 @@ export async function resolveAppointmentMeeting(
   if (input.meeting.kind === "CLASS" && (!session || session.status === "CANCELLED"))
     throw badRequest("A aula de destino não está disponível.");
   const values = appointmentValues(session, input.meeting);
-  if (!values?.teacherId) throw badRequest("Defina um professor responsável pelo atendimento.");
+  if (!values?.teacherId) throw badRequest("Defina um docente responsável pelo atendimento.");
   if (sessionEndInstant({ date: values.date, endTime: values.startTime }) <= now)
     throw badRequest("Escolha um horário que ainda não começou.");
   const date = dateOnly(values.date);

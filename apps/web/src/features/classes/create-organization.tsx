@@ -64,10 +64,10 @@ function TeacherSearch({ draft, change, options, errors }: ClassFieldsProps): Re
     .map((teacher) => ({ id: teacher.id, label: teacher.name }));
   return (
     <Field name="teacherId">
-      <Label>Professor</Label>
+      <Label>Docente</Label>
       <SearchSelect
         name="teacherId"
-        placeholder="Buscar professor"
+        placeholder="Buscar docente"
         showSearchIcon
         query={query}
         value={selected ? { id: selected.id, label: selected.name } : null}
@@ -83,7 +83,7 @@ function TeacherSearch({ draft, change, options, errors }: ClassFieldsProps): Re
         }}
         invalid={Boolean(errors.teacherId)}
         openOnFocus
-        emptyMessage="Nenhum professor encontrado."
+        emptyMessage="Nenhum docente encontrado."
       />
       <FieldError match={Boolean(errors.teacherId)}>{errors.teacherId}</FieldError>
     </Field>

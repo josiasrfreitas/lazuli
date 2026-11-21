@@ -5,7 +5,16 @@ import { procedureOutcomeLabel } from "../trpc/procedure-labels.js";
 import { ACTIVITY_ACTIONS, type ActivityAction } from "./catalog.js";
 
 export type ActivitySubject = {
-  type: "student" | "class" | "teacher" | "lead" | "contract" | "receivable" | "payer" | "school";
+  type:
+    | "student"
+    | "class"
+    | "employee"
+    | "teacher"
+    | "lead"
+    | "contract"
+    | "receivable"
+    | "payer"
+    | "school";
   id?: string | undefined;
   name: string;
 };

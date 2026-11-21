@@ -219,6 +219,59 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
 
 TableRow.displayName = "TableRow";
 
+function isRowControl(target: EventTarget): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest("a, button, input, select, textarea, [role='button'], [role='checkbox']"),
+    )
+  );
+}
+
+/** A data row may open a record while links and selection controls keep their native behavior. */
+export function TableActionRow({
+  selected = false,
+  onActivate,
+  children,
+}: {
+  selected?: boolean;
+  onActivate?: (() => void) | undefined;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <TableRow
+      interactive={Boolean(onActivate)}
+      selected={selected}
+      className={cn(
+        selected && "outline outline-1 -outline-offset-1 outline-interactive",
+        onActivate &&
+          "cursor-pointer hover:bg-muted/60 focus-within:bg-muted/60 data-[selected]:focus-within:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+      )}
+      tabIndex={onActivate ? 0 : undefined}
+      onClick={
+        onActivate
+          ? (event) => {
+              if (event.defaultPrevented || isRowControl(event.target)) return;
+              onActivate();
+            }
+          : undefined
+      }
+      onKeyDown={
+        onActivate
+          ? (event) => {
+              if (!event.defaultPrevented && event.key === "Enter" && !isRowControl(event.target)) {
+                event.preventDefault();
+                onActivate();
+              }
+            }
+          : undefined
+      }
+    >
+      {children}
+    </TableRow>
+  );
+}
+
 export type TableCaptionProps = ComponentProps<"caption">;
 
 export const TableCaption = forwardRef<HTMLTableCaptionElement, TableCaptionProps>(

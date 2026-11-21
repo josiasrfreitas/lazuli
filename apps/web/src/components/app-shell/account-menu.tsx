@@ -73,7 +73,7 @@ function AccountTrigger({
 }): ReactJSX.Element {
   return (
     <PopoverTrigger
-      aria-label={`Conta de ${identity.name} · ${identity.role === "TEACHER" ? "Professor" : "Administração"}`}
+      aria-label={`Conta de ${identity.name} · ${identity.role === "TEACHER" ? "Docente" : "Administração"}`}
       title="Conta e perfis"
       data-keyboard={keyboard}
       data-account-trigger
@@ -83,7 +83,7 @@ function AccountTrigger({
       render={<Button variant="ghost" size="icon-compact-responsive" />}
     >
       <span className={styles.avatar}>
-        <Avatar colorKey={identity.id} name={identity.name} />
+        <Avatar className="bg-navigation-active text-navigation-foreground" name={identity.name} />
         <span className={styles.chevron} aria-hidden="true">
           <ChevronDown className="size-3" />
         </span>
@@ -160,7 +160,7 @@ function AccountRoles({
           ) : (
             <Shield aria-hidden="true" />
           )}
-          {role === "TEACHER" ? "Professor" : "Administração"}
+          {role === "TEACHER" ? "Docente" : "Administração"}
           <Check className={styles.check} aria-hidden="true" />
         </Button>
       ))}

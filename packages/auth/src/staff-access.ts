@@ -34,6 +34,7 @@ export type StaffAccessUser = {
   role: StaffRole;
   isEnabled: boolean;
   deletedAt?: Date | null;
+  employeeProfile?: object | null;
   teacherProfile?: { departureDate: Date | null; deletedAt?: Date | null } | null;
 };
 
@@ -111,6 +112,21 @@ export const STAFF_ROLE_COOKIE = "lazuli.staff-role";
 /** The administrative role and teaching profile coexist on the same staff identity. */
 export function availableStaffRoles(user: StaffAccessUser, now = new Date()): StaffRole[] {
   const roles: StaffRole[] = user.role === "TEACHER" ? [] : [user.role];
+  if (canTeach(user, now)) roles.push("TEACHER");
+  return roles.filter((role) => ENABLED_ROLES.has(role));
+}
+
+function canTeach(user: StaffAccessUser, now: Date): boolean {
+  const profile = user.teacherProfile;
+  if (!profile) return user.role === "TEACHER" && !user.employeeProfile;
+  if (profile.deletedAt) return false;
+  return (
+    !profile.departureDate ||
+    profile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > localDate(now)
+  );
+}
+
+function localDate(now: Date): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
@@ -118,17 +134,7 @@ export function availableStaffRoles(user: StaffAccessUser, now = new Date()): St
     day: "2-digit",
   }).formatToParts(now);
   const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
-  const today = `${part("year")}-${part("month")}-${part("day")}`;
-  const departed = user.teacherProfile?.departureDate
-    ? user.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) <= today
-    : false;
-  if (
-    (user.role === "TEACHER" || user.teacherProfile) &&
-    !departed &&
-    !user.teacherProfile?.deletedAt
-  )
-    roles.push("TEACHER");
-  return roles.filter((role) => ENABLED_ROLES.has(role));
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 export function staffRoleFromHeaders(headers?: Headers): string | undefined {

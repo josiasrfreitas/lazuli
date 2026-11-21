@@ -161,12 +161,17 @@
 
 .chartLegend i {
   width: 1rem;
-  border-top: 2px solid currentColor;
+  border-top: 2px solid var(--success);
+}
+
+.chartLegend span:first-child i {
+  color: var(--financial-received);
 }
 
 .chartLegend span:nth-child(2) i {
+  border-color: var(--info);
   border-top-style: dashed;
-  opacity: 0.5;
+  color: var(--financial-muted);
 }
 
 .linePlot {
@@ -455,7 +460,7 @@
   vertical-align: middle;
 }
 .contractLegend {
-  color: var(--brand);
+  color: var(--chart-gold);
 }
 .contractLegend b {
   display: block;
@@ -463,9 +468,38 @@
   height: 0.75rem;
   border-radius: 1px;
   background: currentColor;
-  opacity: 0.6;
 }
 .cashFigures {
   flex-wrap: wrap;
   gap: 0.75rem 1.5rem;
+}
+
+.composition .financialPanel {
+  background: var(--financial-panel);
+  color: var(--financial-ink);
+  border-color: color-mix(in oklch, var(--financial-panel) 78%, var(--financial-muted));
+  --chart-gold: var(--financial-contracts);
+  --brand-link-hover: var(--financial-contracts);
+  --ring: var(--financial-muted);
+}
+
+.financialPanel .cashFigures > div:first-child dd,
+.financialPanel .storyHeading a {
+  color: var(--financial-received);
+}
+
+.financialPanel .cashFigures > div:last-child dd {
+  color: var(--financial-contracts);
+}
+
+.financialPanel .cashFigures dt {
+  color: var(--financial-muted);
+}
+
+.composition > .conversion {
+  background: var(--conversion-panel);
+  border-color: var(--conversion-panel);
+  color: var(--primary-foreground);
+  --brand-link-hover: var(--primary-foreground);
+  --ring: var(--primary-foreground);
 }

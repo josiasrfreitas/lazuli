@@ -158,7 +158,7 @@ function SchoolContext(): ReactElement {
           <dd>Connect 1</dd>
         </div>
         <div>
-          <dt>Professora</dt>
+          <dt>Docente</dt>
           <dd>Beatriz Albuquerque</dd>
         </div>
         <div>

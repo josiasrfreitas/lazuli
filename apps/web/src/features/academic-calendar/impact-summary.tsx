@@ -75,12 +75,12 @@ export function TeacherImpacts({ preview }: { preview: ImpactPreview }): ReactEl
   );
   const risks = [...classes.values()].filter((row) => (row.deficitMinutes ?? 0) > 0);
   return (
-    <section className={styles.teachers} aria-label="Turmas afetadas por professor">
+    <section className={styles.teachers} aria-label="Turmas afetadas por docente">
       <div className={styles.sectionHeading}>
         <h3>Turmas afetadas</h3>
         <span>
           {classes.size} {classes.size === 1 ? "turma" : "turmas"} · {preview.teachers.length}{" "}
-          {preview.teachers.length === 1 ? "professor" : "professores"}
+          {preview.teachers.length === 1 ? "docente" : "docentes"}
         </span>
       </div>
       {risks.length > 0 && (

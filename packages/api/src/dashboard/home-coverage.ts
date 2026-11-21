@@ -54,7 +54,7 @@ export async function readCoverage(
       linkItem({
         id: `teacher:${profile.userId}`,
         title: profile.user.name,
-        detail: `${affected.length} ${affected.length === 1 ? "turma precisa" : "turmas precisam"} de professor`,
+        detail: `${affected.length} ${affected.length === 1 ? "turma precisa" : "turmas precisam"} de docente`,
         href: `/turmas?professor=${profile.userId}&estado=ACTIVE`,
         date: departure,
         timing: { kind: "departure", date: departure },

@@ -1,11 +1,17 @@
 import { randomUUID } from "node:crypto";
-import type { DatabaseClient, Prisma } from "@lazuli/db";
+import type { DatabaseClient, Prisma, TransactionClient } from "@lazuli/db";
+import { saoPauloDateOnly } from "@lazuli/domain";
 import { z } from "@lazuli/validators";
 import { lockProgramStage } from "./import.js";
 import { badRequest, notFound } from "../trpc/errors.js";
+import { readStageUsage, type StageUsage } from "./catalog-usage.js";
+import { saveBookContent } from "./book-content.js";
 
 const MAX_TITLE_LENGTH = 180;
 const MAX_CODE_LENGTH = 40;
+export const MAX_PART_LENGTH = 80;
+const MAX_PAGE_NUMBER = 2_147_483_647;
+export const bookPageNumber = z.number().int().positive().max(MAX_PAGE_NUMBER);
 export const id = z.string().uuid();
 export const title = z.string().trim().min(1, "Informe um nome.").max(MAX_TITLE_LENGTH);
 const code = z.string().trim().min(1, "Informe o código.").max(MAX_CODE_LENGTH);
@@ -29,9 +35,44 @@ export const catalogCommand = z.discriminatedUnion("action", [
     showLegacy: z.boolean(),
   }),
   z.object({ action: z.literal("lesson"), stageId: id, lessonId: id.optional(), title }),
+  z.object({
+    action: z.literal("part"),
+    stageId: id,
+    lessonId: id,
+    partId: id.optional(),
+    title: title.max(MAX_PART_LENGTH),
+  }),
+  z.object({
+    action: z.literal("pages"),
+    stageId: id,
+    lessonId: id,
+    start: bookPageNumber,
+    end: bookPageNumber,
+  }),
+  z.object({
+    action: z.literal("page"),
+    stageId: id,
+    lessonId: id,
+    partId: id.optional(),
+    pageId: id.optional(),
+    number: bookPageNumber,
+  }),
+  z.object({
+    action: z.literal("pageActivity"),
+    stageId: id,
+    lessonId: id,
+    partId: id.optional(),
+    pageId: id,
+    pageActivityId: id.optional(),
+    title,
+  }),
 ]);
 
 type Command = z.infer<typeof catalogCommand>;
+export type BookContentCommand = Extract<
+  Command,
+  { action: "part" | "pages" | "page" | "pageActivity" }
+>;
 type Tx = Prisma.TransactionClient;
 const activeTrack = { deletedAt: null, productLine: { deletedAt: null } };
 const directoryQuery = {
@@ -53,24 +94,47 @@ const directoryQuery = {
         status: true,
         bookLessonCount: true,
         sequence: true,
+        teachingPrograms: {
+          where: { deletedAt: null, retiredAt: null },
+          orderBy: [{ scheduleType: "asc" }, { modality: { weeklyMinutes: "asc" } }],
+          select: {
+            id: true,
+            scheduleType: true,
+            modality: { select: { weeklyMinutes: true } },
+            _count: { select: { teachingHours: { where: { deletedAt: null } } } },
+          },
+        },
       },
     },
   },
 } satisfies Prisma.TrackFindManyArgs;
+type DirectoryTrack = Prisma.TrackGetPayload<typeof directoryQuery>;
 type Directory = {
-  tracks: Prisma.TrackGetPayload<typeof directoryQuery>[];
+  tracks: (Omit<DirectoryTrack, "stages"> & {
+    stages: (DirectoryTrack["stages"][number] & StageUsage)[];
+  })[];
   productLines: { id: string; name: string }[];
 };
-export async function catalogDirectory(db: Tx): Promise<Directory> {
-  const [tracks, productLines] = await Promise.all([
+export async function catalogDirectory(db: TransactionClient, now: Date): Promise<Directory> {
+  const [tracks, productLines, usage] = await Promise.all([
     db.track.findMany(directoryQuery),
     db.productLine.findMany({
       where: { deletedAt: null, status: "ACTIVE" },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    readStageUsage(db, new Date(saoPauloDateOnly(now))),
   ]);
-  return { tracks, productLines };
+  return {
+    productLines,
+    tracks: tracks.map((track) => ({
+      ...track,
+      stages: track.stages.map((stage) => ({
+        ...stage,
+        ...(usage.get(stage.id) ?? { classCount: 0, studentCount: 0 }),
+      })),
+    })),
+  };
 }
 export function editCatalog(db: DatabaseClient, input: Command): Promise<{ id: string }> {
   return db.$transaction(async (tx) => {
@@ -87,18 +151,25 @@ export function editCatalog(db: DatabaseClient, input: Command): Promise<{ id: s
         return move(tx, input);
       }
       case "legacy": {
-        const where = { id: input.id, deletedAt: null };
-        const data = { status: "LEGACY" as const };
-        return input.target === "track"
-          ? tx.track.update({ where, data, select: { id: true } })
-          : tx.stage.update({ where, data, select: { id: true } });
+        return archive(tx, input);
       }
       case "lesson": {
         return saveLesson(tx, input);
       }
+      default: {
+        return saveBookContent(tx, input);
+      }
     }
   });
 }
+function archive(tx: Tx, input: Extract<Command, { action: "legacy" }>): Promise<{ id: string }> {
+  const where = { id: input.id, deletedAt: null };
+  const data = { status: "LEGACY" as const };
+  return input.target === "track"
+    ? tx.track.update({ where, data, select: { id: true } })
+    : tx.stage.update({ where, data, select: { id: true } });
+}
+
 async function move(tx: Tx, input: Extract<Command, { action: "move" }>): Promise<{ id: string }> {
   const visibility = input.showLegacy ? {} : { status: "ACTIVE" as const };
   const delta = input.direction === "up" ? -1 : 1;

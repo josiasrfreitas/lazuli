@@ -1,18 +1,25 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseClient, Prisma } from "@lazuli/db";
 import { z } from "@lazuli/validators";
-import { DEFAULT_TEACHING_MODALITY, TEACHING_HOUR_MINUTES } from "@lazuli/domain";
+import { bookPageRange, DEFAULT_TEACHING_MODALITY, TEACHING_HOUR_MINUTES } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { lockProgramStage } from "./import.js";
-import { id, title } from "./catalog-editor.js";
+import { bookPageNumber, id, MAX_PART_LENGTH, title } from "./catalog-editor.js";
+import { bookLessonSelect } from "./book-content.js";
 
-const POSTGRES_MAX_INTEGER = 2_147_483_647;
+const MAX_INSTRUCTIONS_LENGTH = 5000;
 const EDIT_TIMEOUT_MS = 15_000;
-const MAX_PART_LENGTH = 80;
 type Tx = Prisma.TransactionClient;
 const newUnit = { unitTitle: title, assessmentTitle: title };
 const minute = z.number().int().min(1).max(TEACHING_HOUR_MINUTES);
-const page = z.number().int().positive().max(POSTGRES_MAX_INTEGER).nullable();
+const page = bookPageNumber.nullable();
+const lessonReference = z.object({
+  id,
+  part: z.string().trim().max(MAX_PART_LENGTH),
+  partId: id.nullish(),
+  pageId: id.nullish(),
+  pageActivityId: id.nullish(),
+});
 const kinds = z.enum(["LESSON", "VIDEO", "REVIEW", "INTRODUCTION", "ACTIVITY", "ASSESSMENT"]);
 export const programCommand = z.discriminatedUnion("action", [
   z.object({
@@ -32,7 +39,27 @@ export const programCommand = z.discriminatedUnion("action", [
     title,
   }),
   z.object({
+    action: z.literal("deleteActivity"),
+    stageId: id,
+    programId: id,
+    hourId: id,
+    activityId: id,
+    expectedChange: z.string(),
+    others: z.array(z.object({ id, minutes: minute })).max(TEACHING_HOUR_MINUTES),
+  }),
+  z.object({
+    action: z.literal("moveActivity"),
+    stageId: id,
+    programId: id,
+    hourId: id,
+    activityId: id,
+    position: z.number().int().nonnegative(),
+    expectedChange: z.string(),
+  }),
+  z.object({
     action: z.literal("activity"),
+    resolvePages: z.boolean().optional(),
+    instructions: z.string().trim().max(MAX_INSTRUCTIONS_LENGTH).nullable().optional(),
     stageId: id,
     programId: id,
     hourId: id,
@@ -44,7 +71,7 @@ export const programCommand = z.discriminatedUnion("action", [
     durationMinutes: minute,
     pageStart: page,
     pageEnd: page,
-    lessons: z.array(z.object({ id, part: z.string().trim().max(MAX_PART_LENGTH) })),
+    lessons: z.array(lessonReference),
     others: z.array(z.object({ id, minutes: minute })).max(TEACHING_HOUR_MINUTES),
   }),
 ]);
@@ -72,6 +99,8 @@ export function editProgram(db: DatabaseClient, input: Command): Promise<{ id: s
         });
       if (input.action === "unit") await addUnit(tx, { ...input, programId: program.id });
       if (input.action === "hour") await addHour(tx, input);
+      if (input.action === "deleteActivity") await deleteActivity(tx, input);
+      if (input.action === "moveActivity") await moveActivity(tx, input);
       if (input.action === "activity") await saveActivity(tx, input);
       return { id: program.id };
     },
@@ -220,8 +249,47 @@ function validateActivityReferences(input: ActivityCommand): void {
     throw badRequest("A página final precisa ser igual ou posterior à inicial.");
   if ((kind === "LESSON") !== lessons.length > 0)
     throw badRequest("Associe as lições do livro ao conteúdo de lição.");
-  if (new Set(lessons.map((lesson) => lesson.id + ":" + lesson.part)).size !== lessons.length)
+  const paths = lessons.map((link) => [
+    link.id,
+    link.part,
+    link.partId,
+    link.pageId,
+    link.pageActivityId,
+  ]);
+  if (new Set(paths.map((path) => JSON.stringify(path))).size !== lessons.length)
     throw badRequest("Referência de lição repetida.");
+}
+
+async function assertBookReferences(tx: Tx, { stageId, lessons }: ActivityCommand): Promise<void> {
+  if (lessons.length === 0) return;
+  const book = await tx.bookLesson.findMany({
+    where: { stageId, id: { in: lessons.map((link) => link.id) } },
+    select: bookLessonSelect,
+  });
+  for (const link of lessons) {
+    const lesson = book.find((entry) => entry.id === link.id);
+    if (!lesson) throw badRequest("Escolha uma lição deste livro.");
+    validateBookPath(lesson, link);
+  }
+}
+
+type CatalogLesson = Prisma.BookLessonGetPayload<{ select: typeof bookLessonSelect }>;
+
+function validateBookPath(lesson: CatalogLesson, link: ActivityCommand["lessons"][number]): void {
+  const page = referencedPages(lesson, link).find((entry) => entry.id === link.pageId);
+  if (link.pageId && !page) throw badRequest("Escolha uma página desta parte.");
+  if (link.pageActivityId && !page?.activities.some((entry) => entry.id === link.pageActivityId))
+    throw badRequest("Escolha uma atividade desta página.");
+}
+
+function referencedPages(
+  lesson: CatalogLesson,
+  link: ActivityCommand["lessons"][number],
+): CatalogLesson["pages"] {
+  if (!link.partId) return lesson.pages;
+  const part = lesson.parts.find((entry) => entry.id === link.partId);
+  if (!part || link.part) throw badRequest("Escolha uma parte desta lição.");
+  return part.pages;
 }
 
 function activitySlot(rows: HourActivity[], input: ActivityCommand): ActivitySlot {
@@ -238,7 +306,7 @@ function activitySlot(rows: HourActivity[], input: ActivityCommand): ActivitySlo
 
 function durationChanges(
   rows: HourActivity[],
-  input: ActivityCommand,
+  input: Pick<ActivityCommand, "activityId" | "others" | "durationMinutes">,
 ): { id: string; minutes: number }[] {
   const siblings = rows.filter((row) => row.id !== input.activityId);
   const changes = new Map(input.others.map((row) => [row.id, row.minutes]));
@@ -291,6 +359,7 @@ async function writeActivity(
       : null;
   const data = {
     title: input.title,
+    ...(input.instructions === undefined ? {} : { instructions: input.instructions || null }),
     kind,
     durationMinutes: input.durationMinutes,
     pageStart,
@@ -318,6 +387,83 @@ async function writeActivity(
   return added.id;
 }
 
+async function deleteActivity(
+  tx: Tx,
+  input: Extract<Command, { action: "deleteActivity" }>,
+): Promise<void> {
+  const hour = await tx.teachingHour.findFirst({
+    where: { id: input.hourId, programId: input.programId },
+    include: { activities: { where: { deletedAt: null } } },
+  });
+  if (!hour || hour.updatedAt.toISOString() !== input.expectedChange)
+    throw badRequest("Esta hora-aula mudou. Reabra a edição.");
+  const item = hour.activities.find((row) => row.id === input.activityId);
+  if (!item) throw notFound("Atividade indisponível.");
+  if (hour.activities.length === 1)
+    throw badRequest("Adicione outra atividade antes de excluir a única atividade da hora.");
+  if (
+    item.kind === "ASSESSMENT" &&
+    !(await tx.programActivity.count({
+      where: { unitId: item.unitId, kind: "ASSESSMENT", id: { not: item.id } },
+    }))
+  )
+    throw badRequest("A unidade precisa manter sua prova de encerramento.");
+  const changes = durationChanges(hour.activities, { ...input, durationMinutes: 0 });
+  for (const change of changes)
+    await tx.programActivity.update({
+      where: { id: change.id },
+      data: { durationMinutes: change.minutes },
+    });
+  await tx.programActivity.update({ where: { id: item.id }, data: { deletedAt: new Date() } });
+  await tx.teachingHour.update({
+    where: { id: hour.id },
+    data: { updatedAt: new Date(Math.max(Date.now(), hour.updatedAt.getTime() + 1)) },
+  });
+}
+async function moveActivity(
+  tx: Tx,
+  input: Extract<Command, { action: "moveActivity" }>,
+): Promise<void> {
+  const hour = await tx.teachingHour.findFirst({
+    where: { id: input.hourId, programId: input.programId },
+    include: { activities: { where: { deletedAt: null }, orderBy: { sequence: "asc" } } },
+  });
+  if (!hour || hour.updatedAt.toISOString() !== input.expectedChange)
+    throw badRequest("A hora mudou. Confira a ordem atual.");
+  const rows = hour.activities;
+  const from = rows.findIndex((row) => row.id === input.activityId);
+  if (from === -1 || input.position >= rows.length)
+    throw badRequest("Posição inválida nesta hora.");
+  if (from === input.position) return;
+  const ordered = [...rows];
+  ordered.splice(input.position, 0, ordered.splice(from, 1)[0]!);
+  assertAssessmentOrder(ordered);
+  const max = await tx.programActivity.aggregate({
+    where: { programId: input.programId, deletedAt: {} },
+    _max: { sequence: true },
+  });
+  const changed = ordered.filter((row, index) => row.id !== rows[index]!.id);
+  await tx.programActivity.updateMany({
+    where: { id: { in: changed.map((row) => row.id) } },
+    data: { sequence: { increment: (max._max.sequence ?? 0) + 1 } },
+  });
+  for (const [index, row] of ordered.entries())
+    if (row.id !== rows[index]!.id)
+      await tx.programActivity.update({
+        where: { id: row.id },
+        data: { sequence: rows[index]!.sequence },
+      });
+  await tx.teachingHour.update({
+    where: { id: hour.id },
+    data: { updatedAt: new Date(Math.max(Date.now(), hour.updatedAt.getTime() + 1)) },
+  });
+}
+function assertAssessmentOrder(ordered: ReadonlyArray<{ kind: string }>): void {
+  const exam = ordered.findIndex((row) => row.kind === "ASSESSMENT");
+  if (exam !== -1 && ordered.slice(exam).some((row) => row.kind !== "ASSESSMENT"))
+    throw badRequest("A prova precisa encerrar a unidade.");
+}
+
 async function saveActivity(tx: Tx, input: ActivityCommand): Promise<void> {
   const hour = await tx.teachingHour.findFirst({
     where: { id: input.hourId, programId: input.programId },
@@ -326,18 +472,45 @@ async function saveActivity(tx: Tx, input: ActivityCommand): Promise<void> {
   if (!hour) throw notFound("Hora-aula indisponível.");
   if (hour.updatedAt.toISOString() !== input.expectedChange)
     throw badRequest("Esta hora-aula mudou. Reabra a edição para conferir os dados.");
+  if (input.resolvePages && input.pageStart !== null) {
+    const book = await tx.bookLesson.findMany({
+      where: { stageId: input.stageId },
+      select: bookLessonSelect,
+    });
+    const matches = bookPageRange(book, {
+      start: input.pageStart,
+      end: input.pageEnd ?? input.pageStart,
+    });
+    const lessons = matches.flatMap(({ lessonId, page }) =>
+      (page.activities.length > 0 ? page.activities.map((activity) => activity.id) : [null]).map(
+        (pageActivityId) => ({
+          id: lessonId,
+          part: "",
+          partId: null,
+          pageId: page.id,
+          pageActivityId,
+        }),
+      ),
+    );
+    if (input.kind !== "ASSESSMENT")
+      input = { ...input, kind: lessons.length > 0 ? "LESSON" : "ACTIVITY", lessons };
+  }
   validateActivityReferences(input);
   const slot = activitySlot(hour.activities, input);
   const changes = durationChanges(hour.activities, input);
-  await assertLessons(tx, {
-    stageId: input.stageId,
-    ids: input.lessons.map((lesson) => lesson.id),
-  });
+  await assertBookReferences(tx, input);
   await assertClosingAssessment(tx, { slot, input });
   const activityId = await writeActivity(tx, { slot, input });
   if (input.lessons.length > 0)
     await tx.programActivityLesson.createMany({
-      data: input.lessons.map((lesson) => ({ activityId, lessonId: lesson.id, part: lesson.part })),
+      data: input.lessons.map(({ id: lessonId, part, partId, pageId, pageActivityId }) => ({
+        activityId,
+        lessonId,
+        part,
+        partId: partId ?? null,
+        pageId: pageId ?? null,
+        pageActivityId: pageActivityId ?? null,
+      })),
     });
   for (const change of changes)
     await tx.programActivity.update({

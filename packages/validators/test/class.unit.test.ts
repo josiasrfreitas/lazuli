@@ -12,6 +12,7 @@ import {
   timeOfDaySchema,
   weekdaySchema,
 } from "../src/class.js";
+import { semesterPlanSchema } from "../src/semester-organization.js";
 
 const CLASS_ID = "11111111-1111-4111-8111-111111111111";
 const TEACHER_ID = "22222222-2222-4222-8222-222222222222";
@@ -49,7 +50,7 @@ void describe("class schedule input", () => {
     });
 
     assert.equal(parsed.sharedStageId, STAGE_ID);
-    assert.equal(parsed.portalClassName, undefined);
+    assert.equal("portalClassName" in parsed, false);
     assert.equal(parsed.slots.length, 2);
   });
 
@@ -79,18 +80,52 @@ void describe("class schedule input", () => {
   });
 });
 
+void it("rejects names supplied by the client on creation, cloning and planning", () => {
+  const manual = { portalClassName: "Manual" };
+  assert.equal(
+    classCreateInputSchema.safeParse({ ...REGULAR_CLASS_INPUT, ...manual }).success,
+    false,
+  );
+  assert.equal(
+    classCreateInputSchema.safeParse({
+      ...REGULAR_CLASS_INPUT,
+      scheduleType: "PERSONALIZED",
+      sharedStageId: null,
+      ...manual,
+    }).success,
+    false,
+  );
+  assert.equal(
+    classCloneForNextPeriodInputSchema.safeParse({
+      id: CLASS_ID,
+      semesterId: SEMESTER_ID,
+      ...manual,
+    }).success,
+    false,
+  );
+  const plan = {
+    semesterId: SEMESTER_ID,
+    format: "IN_PERSON",
+    scheduleType: "REGULAR",
+    sharedStageId: STAGE_ID,
+    teacherId: null,
+    slots: REGULAR_CLASS_INPUT.slots,
+  };
+  assert.ok(semesterPlanSchema.safeParse(plan).success);
+  assert.equal(semesterPlanSchema.safeParse({ ...plan, name: "Manual" }).success, false);
+});
+
 void describe("regular class placement input", () => {
   void it("requires regular classes to use shared catalog placement", () => {
     const result = classCreateInputSchema.safeParse({
       ...REGULAR_CLASS_INPUT,
       sharedStageId: undefined,
       semesterId: undefined,
-      portalClassName: "Manual",
     });
 
     assert.deepEqual(
       result.error?.issues.map((issue) => issue.path.join(".")),
-      ["portalClassName", "sharedStageId", "semesterId"],
+      ["sharedStageId", "semesterId"],
     );
   });
 
@@ -125,23 +160,22 @@ void describe("personalized class placement input", () => {
 
     assert.equal(parsed.scheduleType, "PERSONALIZED");
     assert.equal(parsed.sharedStageId, null);
-    assert.equal(parsed.portalClassName, undefined);
+    assert.equal("portalClassName" in parsed, false);
     assert.equal(omittedStage.sharedStageId, undefined);
   });
 
-  void it("rejects a manual name and shared stage for personalized classes", () => {
+  void it("rejects a shared stage and missing semester for personalized classes", () => {
     const result = classCreateInputSchema.safeParse({
       ...REGULAR_CLASS_INPUT,
       scheduleType: "PERSONALIZED",
       format: "ONLINE",
       sharedStageId: STAGE_ID,
       semesterId: undefined,
-      portalClassName: "Manual",
     });
 
     assert.deepEqual(
       result.error?.issues.map((issue) => issue.path.join(".")),
-      ["sharedStageId", "portalClassName", "semesterId"],
+      ["sharedStageId", "semesterId"],
     );
   });
 

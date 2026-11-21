@@ -10,13 +10,13 @@ import { cn } from "../lib/utils";
 
 export const checkboxVariants = cva(
   [
-    "group/checkbox flex shrink-0 items-center justify-center border border-input bg-field p-0 text-primary-foreground",
+    "group/checkbox flex shrink-0 items-center justify-center border border-input bg-field p-0 text-field aria-invalid:text-destructive-foreground",
     "outline-none transition-[background-color,border-color,box-shadow] duration-fast ease-standard",
     "hover:border-interactive hover:bg-accent",
     "focus-visible:border-ring focus-visible:shadow-focus",
-    "data-checked:border-primary data-checked:bg-primary data-indeterminate:border-primary data-indeterminate:bg-primary",
-    "data-checked:hover:border-primary-hover data-checked:hover:bg-primary-hover",
-    "data-indeterminate:hover:border-primary-hover data-indeterminate:hover:bg-primary-hover",
+    "data-checked:border-interactive data-checked:bg-interactive data-indeterminate:border-interactive data-indeterminate:bg-interactive",
+    "data-checked:hover:border-interactive-hover data-checked:hover:bg-interactive-hover",
+    "data-indeterminate:hover:border-interactive-hover data-indeterminate:hover:bg-interactive-hover",
     "aria-invalid:border-destructive aria-invalid:data-checked:border-destructive aria-invalid:data-checked:bg-destructive",
     "aria-invalid:data-indeterminate:border-destructive aria-invalid:data-indeterminate:bg-destructive",
     "aria-invalid:hover:border-destructive-hover aria-invalid:hover:bg-destructive-muted",

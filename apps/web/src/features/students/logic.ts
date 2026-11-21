@@ -304,24 +304,25 @@ export function useStudentsList(
   filters: StudentsListQueryInput,
   initial?: { data: StudentListOutput; updatedAt: number },
 ): StudentsListQuery {
-  return trpc.students.list.useQuery(
-    {
-      page: filters.page,
-      pageSize: filters.pageSize,
-      status: "all",
-      scheduleType: filters.scheduleType,
-      search: filters.search === "" ? undefined : filters.search,
-      ...(filters.situations.length > 0 ? { situations: filters.situations } : {}),
-      ...(filters.scholarship.length > 0 ? { scholarship: filters.scholarship } : {}),
-      ...(filters.ageRanges.length > 0 ? { ageRanges: filters.ageRanges } : {}),
-      ...(filters.classIds.length > 0 ? { classIds: filters.classIds } : {}),
-      ...(filters.teacherIds.length > 0 ? { teacherIds: filters.teacherIds } : {}),
-      ...(filters.registeredFrom ? { registeredFrom: filters.registeredFrom } : {}),
-      ...(filters.registeredTo ? { registeredTo: filters.registeredTo } : {}),
-    },
-    {
-      placeholderData: keepPreviousData,
-      ...(initial ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt } : {}),
-    },
-  );
+  return trpc.students.list.useQuery(studentListInput(filters), {
+    placeholderData: keepPreviousData,
+    ...(initial ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt } : {}),
+  });
+}
+
+export function studentListInput(filters: StudentsListQueryInput): StudentListInput {
+  return {
+    page: filters.page,
+    pageSize: filters.pageSize,
+    status: "all",
+    scheduleType: filters.scheduleType,
+    search: filters.search === "" ? undefined : filters.search,
+    ...(filters.situations.length > 0 ? { situations: filters.situations } : {}),
+    ...(filters.scholarship.length > 0 ? { scholarship: filters.scholarship } : {}),
+    ...(filters.ageRanges.length > 0 ? { ageRanges: filters.ageRanges } : {}),
+    ...(filters.classIds.length > 0 ? { classIds: filters.classIds } : {}),
+    ...(filters.teacherIds.length > 0 ? { teacherIds: filters.teacherIds } : {}),
+    ...(filters.registeredFrom ? { registeredFrom: filters.registeredFrom } : {}),
+    ...(filters.registeredTo ? { registeredTo: filters.registeredTo } : {}),
+  };
 }

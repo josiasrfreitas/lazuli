@@ -37,6 +37,7 @@ export type SeedContext = {
   closedDates: Set<string>;
   resolveClassName: (input: {
     scheduleType: NonNullable<DevClassSeed["scheduleType"]>;
+    format: NonNullable<DevClassSeed["format"]>;
     slots: DevClassSeed["slots"];
     sharedStageId: string | null;
     teacherId: string;

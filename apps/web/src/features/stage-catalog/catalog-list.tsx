@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
+import { TEACHING_HOUR_MINUTES } from "@lazuli/domain";
 import {
   Archive,
   ArrowDown,
@@ -7,7 +8,9 @@ import {
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
+  Pencil,
   Plus,
+  type LucideIcon,
 } from "lucide-react";
 import {
   Badge,
@@ -24,14 +27,14 @@ import {
 } from "@lazuli/ui";
 import type { Stage, Track } from "./types";
 import type { CatalogDialogState } from "./catalog-dialog";
-import styles from "./workspace.module.css";
+import styles from "./catalog.module.css";
 
 export function ActionsMenu({
   name,
   actions,
 }: {
   name: string;
-  actions: { label: string; onClick: () => void }[];
+  actions: { label: string; icon: LucideIcon; onClick: () => void }[];
 }): React.JSX.Element | null {
   const [open, setOpen] = useState(false);
   if (actions.length === 0) return null;
@@ -44,17 +47,19 @@ export function ActionsMenu({
       </PopoverTrigger>
       <PopoverContent size="menu" align="end" showArrow={false}>
         <div className="grid">
-          {actions.map((action) => (
+          {actions.map(({ label, icon: Icon, onClick }) => (
             <Button
-              key={action.label}
+              key={label}
+              className="justify-end"
               size="sm"
               variant="ghost"
               onClick={() => {
                 setOpen(false);
-                action.onClick();
+                onClick();
               }}
             >
-              {action.label}
+              {label}
+              <Icon aria-hidden="true" />
             </Button>
           ))}
         </div>
@@ -70,23 +75,23 @@ type Move = (command: {
 }) => void;
 function OrderButtons({
   list,
-  id,
+  item,
   target,
   move,
   pending,
 }: {
   list: { id: string }[];
-  id: string;
+  item: { id: string; name: string };
   target: "track" | "stage";
   move: Move;
   pending: boolean;
 }): React.JSX.Element {
-  const index = list.findIndex((item) => item.id === id);
+  const index = list.findIndex((entry) => entry.id === item.id);
   return (
-    <div className="flex">
+    <div className="flex justify-end">
       {(["up", "down"] as const).map((direction) => {
         const neighbor = list[index + (direction === "up" ? -1 : 1)];
-        const label = direction === "up" ? "Mover para cima" : "Mover para baixo";
+        const label = "Mover " + item.name + (direction === "up" ? " para cima" : " para baixo");
         return (
           <Button
             key={direction}
@@ -96,7 +101,9 @@ function OrderButtons({
             disabled={!neighbor || pending}
             aria-label={label}
             title={label}
-            onClick={() => neighbor && move({ target, id, neighborId: neighbor.id, direction })}
+            onClick={() =>
+              neighbor && move({ target, id: item.id, neighborId: neighbor.id, direction })
+            }
           >
             {direction === "up" ? <ArrowUp /> : <ArrowDown />}
           </Button>
@@ -187,19 +194,28 @@ export function CatalogTrack({
 type StageTableProps = Pick<Props, "track" | "reorder" | "pending" | "move" | "open" | "href">;
 function StageTable(props: StageTableProps): React.JSX.Element {
   const { track } = props;
+  // Keep the table semantics when narrow rows switch to a two-line CSS grid.
   return (
-    <Table className="min-w-0" aria-label={"Estágios de " + track.name}>
-      <TableHeader>
+    <Table
+      role="table"
+      className="min-w-0"
+      density="compact"
+      aria-label={"Estágios de " + track.name}
+      data-reordering={props.reorder || undefined}
+    >
+      <colgroup>
+        <col />
+        <col />
+        <col />
+      </colgroup>
+      <TableHeader className="sr-only">
         <TableRow interactive={false}>
           <TableHead>Estágio</TableHead>
-          <TableHead>Código</TableHead>
-          <TableHead>Lições</TableHead>
-          <TableHead>
-            <span className="sr-only">Ações</span>
-          </TableHead>
+          <TableHead>Programação, turmas e alunos</TableHead>
+          <TableHead>Ações</TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody>
+      <TableBody role="rowgroup">
         {track.stages.map((stage) => (
           <StageRow key={stage.id} {...props} stage={stage} />
         ))}
@@ -218,24 +234,35 @@ function StageRow({
 }: StageTableProps & { stage: Stage }): React.JSX.Element {
   const legacy = track.status === "LEGACY";
   return (
-    <TableRow interactive={false}>
-      <TableCell>
-        <div className={styles.stageCell}>
-          <span className={styles.ordinal}>{stage.sequence.toString().padStart(2, "0")}</span>
-          <Link id={"stage-" + stage.id} href={href(stage.id, track.id)}>
-            {stage.name}
-          </Link>
-          {(legacy || stage.status === "LEGACY") && <Badge variant="neutral">Legacy</Badge>}
+    <TableRow role="row" interactive={false}>
+      <TableCell role="cell">
+        <StageIdentity
+          stage={stage}
+          href={href(stage.id, track.id)}
+          legacy={legacy || stage.status === "LEGACY"}
+        />
+      </TableCell>
+      <TableCell role="cell">
+        <div className={styles.stageOverview}>
+          <ProgramSummary programs={stage.teachingPrograms} />
+          <span className={styles.stageUsage}>
+            <span>
+              <span className={styles.quantity}>{stage.classCount}</span>{" "}
+              {stage.classCount === 1 ? "turma" : "turmas"}
+            </span>
+            <span>
+              <span className={styles.quantity}>{stage.studentCount}</span>{" "}
+              {stage.studentCount === 1 ? "aluno" : "alunos"}
+            </span>
+          </span>
         </div>
       </TableCell>
-      <TableCell>{stage.internalCode}</TableCell>
-      <TableCell>{stage.bookLessonCount ?? "—"}</TableCell>
-      <TableCell>
+      <TableCell role="cell">
         {reorder ? (
           <OrderButtons
             target="stage"
             list={track.stages}
-            id={stage.id}
+            item={stage}
             move={move}
             pending={pending}
           />
@@ -245,12 +272,14 @@ function StageRow({
             actions={[
               {
                 label: "Editar identificação",
+                icon: Pencil,
                 onClick: () => open({ action: "editStage", ...stage }),
               },
               ...(!legacy && stage.status === "ACTIVE"
                 ? [
                     {
                       label: "Marcar como Legacy",
+                      icon: Archive,
                       onClick: () =>
                         open({
                           action: "legacy",
@@ -269,6 +298,74 @@ function StageRow({
   );
 }
 
+function StageIdentity({
+  stage,
+  href,
+  legacy,
+}: {
+  stage: Stage;
+  href: string;
+  legacy: boolean;
+}): React.JSX.Element {
+  const nameId = "stage-name-" + stage.id;
+  const metaId = "stage-meta-" + stage.id;
+  return (
+    <Link
+      id={"stage-" + stage.id}
+      href={href}
+      className={styles.stageLink}
+      aria-labelledby={nameId}
+      aria-describedby={legacy ? metaId + " " + nameId + "-status" : metaId}
+    >
+      <span className={styles.ordinal}>{stage.sequence.toString().padStart(2, "0")}</span>
+      <span className={styles.stageIdentity}>
+        <span className={styles.stageName}>
+          <span id={nameId}>{stage.name}</span>
+          {legacy && (
+            <Badge id={nameId + "-status"} variant="neutral">
+              Legacy
+            </Badge>
+          )}
+        </span>
+        <span className={styles.stageMeta} id={metaId}>
+          {stage.internalCode} ·{" "}
+          {stage.bookLessonCount === null
+            ? "Lições não informadas"
+            : stage.bookLessonCount + (stage.bookLessonCount === 1 ? " lição" : " lições")}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function ProgramSummary({ programs }: { programs: Stage["teachingPrograms"] }): React.JSX.Element {
+  if (programs.length === 0) return <span className={styles.stageMeta}>Sem programação</span>;
+  return (
+    <ul className={styles.stagePrograms}>
+      {programs.map((program) => {
+        const mode = program.scheduleType === "REGULAR" ? "Regular" : "PPT";
+        const hasOtherLoads = programs.some(
+          (other) =>
+            other.scheduleType === program.scheduleType &&
+            other.modality.weeklyMinutes !== program.modality.weeklyMinutes,
+        );
+        const weeklyHours = program.modality.weeklyMinutes / TEACHING_HOUR_MINUTES;
+        return (
+          <li key={program.id}>
+            {mode} <span className={styles.hours}>{program._count.teachingHours} h</span>
+            {hasOtherLoads && (
+              <span className={styles.weeklyLoad}>
+                {" "}
+                · {weeklyHours.toLocaleString("pt-BR")} h/sem.
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function TrackHeading({
   track,
   tracks,
@@ -281,30 +378,45 @@ function TrackHeading({
   add,
   open,
 }: Omit<Props, "filtered" | "href"> & { legacy: boolean; add: () => void }): React.JSX.Element {
+  const nameId = "track-name-" + track.id;
+  const factsId = "track-facts-" + track.id;
   return (
-    <header className={styles.trackHead}>
-      <button
-        type="button"
-        className={styles.trackToggle}
-        onClick={toggle}
-        aria-expanded={expanded}
-        aria-controls={"stages-" + track.id}
-      >
-        {expanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
-        <span>
-          <strong>{track.name}</strong>
-          <small>
-            {track.productLine.name} ·{" "}
-            {track.ageGroup === "CHILD" ? "Público infantil" : "Público adulto"}
-          </small>
-        </span>
-      </button>
-      {legacy && <Badge variant="neutral">Legacy</Badge>}
-      <span className={styles.count}>
-        {track.stages.length} {track.stages.length === 1 ? "estágio" : "estágios"}
-      </span>
+    <header className={styles.trackHead} data-expanded={expanded || undefined}>
+      <h2 className={styles.trackHeading}>
+        <button
+          type="button"
+          className={styles.trackToggle}
+          onClick={toggle}
+          aria-labelledby={nameId}
+          aria-describedby={legacy ? factsId + " " + nameId + "-status" : factsId}
+          aria-expanded={expanded}
+          aria-controls={expanded ? "stages-" + track.id : undefined}
+        >
+          <TrackChevron expanded={expanded} />
+          <span className={styles.trackIdentity}>
+            <span className={styles.trackName}>
+              <span id={nameId}>{track.name}</span>
+              {legacy && (
+                <Badge id={nameId + "-status"} variant="neutral">
+                  Legacy
+                </Badge>
+              )}
+            </span>
+            <span className={styles.trackFacts} id={factsId}>
+              <span>
+                {track.productLine.name} ·{" "}
+                {track.ageGroup === "CHILD" ? "Público infantil" : "Público adulto"}
+              </span>
+              <span className={styles.count}>
+                <span className={styles.quantity}>{track.stages.length}</span>{" "}
+                {track.stages.length === 1 ? "estágio" : "estágios"}
+              </span>
+            </span>
+          </span>
+        </button>
+      </h2>
       {reorder ? (
-        <OrderButtons target="track" list={tracks} id={track.id} move={move} pending={pending} />
+        <OrderButtons target="track" list={tracks} item={track} move={move} pending={pending} />
       ) : (
         <ActionsMenu
           name={track.name}
@@ -312,9 +424,10 @@ function TrackHeading({
             legacy
               ? []
               : [
-                  { label: "Adicionar estágio", onClick: add },
+                  { label: "Adicionar estágio", icon: Plus, onClick: add },
                   {
                     label: "Marcar como Legacy",
+                    icon: Archive,
                     onClick: () =>
                       open({ action: "legacy", target: "track", id: track.id, name: track.name }),
                   },
@@ -324,4 +437,9 @@ function TrackHeading({
       )}
     </header>
   );
+}
+
+function TrackChevron({ expanded }: { expanded: boolean }): React.JSX.Element {
+  const Icon = expanded ? ChevronDown : ChevronRight;
+  return <Icon size={16} aria-hidden="true" />;
 }

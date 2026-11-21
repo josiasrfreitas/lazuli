@@ -71,7 +71,7 @@ export function TeacherHealthInfo({ data }: { data: Metrics | undefined }): Reac
               <HealthMethods data={data} />
               <p className={styles.interpretation}>
                 Uma média alta pode esconder dificuldades individuais. O score orienta o
-                acompanhamento; não é uma avaliação do professor.
+                acompanhamento; não é uma avaliação do docente.
               </p>
             </div>
           </DialogBody>
@@ -139,12 +139,12 @@ function HealthMethods({ data }: { data: Metrics | undefined }): ReactElement {
         <p>
           Usamos o mesmo score da página do aluno: matrículas nos semestres atuais, registros até
           hoje e os respectivos períodos de vínculo. Esse histórico pode incluir aulas de outros
-          professores.
+          docentes.
         </p>
         <p>
           As ocorrências fora de aula aparecem em Acompanhamento, mas ainda não compõem o score
-          individual. As notas e faltas da visão geral do professor têm um recorte próprio, limitado
-          à sua atuação.
+          individual. As notas e faltas da visão geral do docente têm um recorte próprio, limitado à
+          sua atuação.
         </p>
       </details>
     </div>

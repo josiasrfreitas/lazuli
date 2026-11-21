@@ -1,0 +1,110 @@
+{
+  "branch": "refactor/padroes-de-interface",
+  "base_checkout": "1841bd0f8b4c38f504532d240d25ee264b7f63b7",
+  "base_componentizada": "11ef682ef95e26f5a754130f1e498a90a623255b",
+  "staging_das_capturas_fornecidas": "c4d3a9247e049c34a2ba3c55def30fd3837b4782",
+  "verificacao_http_utc": "2026-11-20T18:13:49.594509+00:00",
+  "servidor": "Next dev local, /proc/19135/cwd corresponde a apps/web deste checkout. Base + alterações locais.",
+  "http_local": {
+    "/login": {
+      "http": 200,
+      "bootstrap_no_head_sha256": "5deba350617dfe6d0803d91d1fa7df635e57fd0d0f030762c7c0ce06ddd32cca"
+    },
+    "/403": {
+      "http": 200,
+      "bootstrap_no_head_sha256": "5deba350617dfe6d0803d91d1fa7df635e57fd0d0f030762c7c0ce06ddd32cca"
+    },
+    "/presenca/previa/projecao": {
+      "http": 200,
+      "bootstrap_no_head_sha256": "5deba350617dfe6d0803d91d1fa7df635e57fd0d0f030762c7c0ce06ddd32cca"
+    }
+  },
+  "css_servido": "/_next/static/chunks/apps_web_src_app_globals_1wvyn-h.css",
+  "css_servido_sha256": "81e92e0afa8ff99b1e1d0538838a9106d4a38558d2205a8fe432f722542bcc14",
+  "tokens_do_checkout_sha256": "1445bc7f3d308bd85b6e918d05b6a0534bed8c2ab281d009fdec4e1dc8f0a91e",
+  "pdf_sha256": {
+    "paleta_dark_mode.pdf": "3edcd1cdc4f4d6becab24abadee9228386e732f233531d5152e4988f6fc316bb",
+    "paleta_light_mode.pdf": "b4d277ee3bbd19d7548d712a9297f6e400f6aee97a0e54f968e9bd0d580ce28f"
+  },
+  "png_identicos": 43,
+  "json_equivalentes": 44,
+  "png_publicos_sha256": {
+    "acesso-negado-d.png": "7c6e8d24ea8f7259610d368de9170933ff1bd0e6564237c2c82b4dd433f74511",
+    "acesso-negado-m.png": "cbe8b4c7263d1304689e994648cd2dc50e291990ee5b465a9e203bc1e8f07043",
+    "cadastro-sem-token-d.png": "fc608920027281859743f935692ce84e883ab954903debfedb650ef27c94593e",
+    "cadastro-sem-token-fundo-assentado-d.png": "f73a7bfd0f2e34b846b3b6bbb7271ad4fa65fefb2377094913bb9cad6ffbb9e1",
+    "cadastro-sem-token-fundo-assentado-m.png": "eb0ad1e170c2553bdd7c81c14c0d87959f9efe99acd92ccd45cc12c3d64110c4",
+    "cadastro-sem-token-m.png": "eb0ad1e170c2553bdd7c81c14c0d87959f9efe99acd92ccd45cc12c3d64110c4",
+    "cadastro-solicitar-fundo-assentado-m.png": "6081c1c42e847c1a1c8e252231c7c618c5a053f3789a40d5ba80605db0ea653a",
+    "cadastro-solicitar-novo-link-d.png": "7482a3f14b3d07527c586a80fb9ef9d720a0f2fb2314b3e3615473df589c12ea",
+    "cadastro-solicitar-novo-link-m.png": "6081c1c42e847c1a1c8e252231c7c618c5a053f3789a40d5ba80605db0ea653a",
+    "documentos-professor-sem-link-d.png": "1a8ae4c042237a1e151432e14b0ab00b26d214df6e456a0e0d41bff57420921c",
+    "documentos-professor-sem-link-m.png": "eaeb49bb68c50cf80d8e85344b5745cffec7e69b386334c9070c6b6244185f71",
+    "documentos-sem-link-d.png": "f2e12f55b2bd63df3a0df6be839910282789f69879a074baaf1f0899d71d8266",
+    "documentos-sem-link-m.png": "dc18f9f53a7696286daf7562dd9d147ad4ecf7484916b375641255bf75aed149",
+    "login-cadastro-solicitar-d.png": "a04acc9b14018b0150ba71b56e6d74c828e4e80b8ba21d0a3676de112e3380bd",
+    "login-cadastro-solicitar-m.png": "e588c85095175df27d869a2154fac21b21f5ace82434fb3e41c2dca69493fed7",
+    "login-d.png": "9d6c1f22051d9d5cf7d74423a092f25d683265f2c7e24eda02af47dc63e0aaf8",
+    "login-fundo-assentado-m.png": "aafc56cac5ab71fa007cafe480bd18a676ff5d59667de689e78e2ea1dbad3c37",
+    "login-m.png": "f4b08f95940363d22a6154dd13e6d6a8e0555deb5334c72e8a608627864f2a66",
+    "login-magic-link-d.png": "49d31f993de9d6cc76b6838469b4238b59ada7c156c2b9a8fdc7dea95de39eb3",
+    "login-magic-link-m.png": "4899cb72f4af0b5bee316e32eb32c89696a5806d1c9f8f04b3fc17235cfb8b9c",
+    "login-mostrar-senha-d.png": "8c77f9e47426c95785da48bc04ec784efbf1611972a2e9e97e496de9f43cd94f",
+    "login-mostrar-senha-m.png": "46a66e3e95ceef73fa45df38b6f0abdb9f543cd766eecfc8ad362d5818059423",
+    "login-recuperar-d.png": "5c1b5ac01d0274eafc70465a26de452d879722a0a797220fef9cc88b93c4ff64",
+    "login-recuperar-m.png": "7a35f323a3853569ce690083821f26c025c6477fb8de890f389aa520cc106f0b",
+    "login-validacao-vazia-d.png": "bf0894d6b24d24fabd30d6ccd37caa6538ae1471dd07bdd35a25ab7c05d86b54",
+    "login-validacao-vazia-m.png": "4d0d1dc4e787313937de91129e2eadbf09c4685e756608d5b73a27ad8b861750",
+    "presenca-d.png": "3c6672edb7fe4bfca82de29d99f10b550d19dad14656cd356171dc91b50cb03f",
+    "presenca-m.png": "be5ecbc69c8a663b71062754825e1936c66a8e61418b425a56ca5cb49a01bbec",
+    "presenca-previa-abaixo-minimo-d.png": "d448e2b564eef23e1c0929a8dec6773ea79f71c5b9b5f3c1cc6537caa5d60d5e",
+    "presenca-previa-abaixo-minimo-m.png": "246ff2b3cbcb2b85e1e8ab21713d2e1ff88ae52519a1151f640712f9a3a22d22",
+    "presenca-previa-apos-clique-d.png": "6e571a48acf5b3fdcb3a0b4f56ee50e8eabcfa55696755d261729dc676138340",
+    "presenca-previa-apos-clique-m.png": "b5090f969122b1bccf194885ef110be7289c0b0ffffb63d28b1257feec79d43d",
+    "presenca-previa-d.png": "8c85de943ed48e095d5433615f6a7271f0f59c361c2b762c71d0b761c04c3a1a",
+    "presenca-previa-m.png": "e52955f6a3b05ae402e93197edb45ed1242c8dcb8b3c10b84738c854fa263657",
+    "presenca-previa-projecao-d.png": "57a3a60d7fed862ca662bf5310e0d3e1bd7e179b98c013ff721fc1a05ce10f49",
+    "presenca-previa-projecao-m.png": "4bc3c13cbb6472eb8749f0bcbb866a8f75f0559831beb3dac4aa4c7f8f8bbd6d",
+    "presenca-previa-resultado-d.png": "6e571a48acf5b3fdcb3a0b4f56ee50e8eabcfa55696755d261729dc676138340",
+    "presenca-previa-resultado-m.png": "bd674614f2bc35c78aff74c01a00672698a95d3a7e6eaef36f6f62cbc1cb9dd0",
+    "presenca-previa-sem-resultados-d.png": "5802c04f097c099b1fbb1254407741b69b77d1a04a69e8e8d652097dc94a6aaa",
+    "presenca-previa-sem-resultados-m.png": "5cfe7b43b366a851fd66155815c34498550a32b67feebc075253d9affe5885a0",
+    "presenca-projecao-d.png": "e5c113519343f40e4cea671a6bf57d98c8ed86d651c7c6ef3ca77c38e3d6e6cc",
+    "presenca-projecao-m.png": "07bdf1d332d743fad43f671463f7884828c74d1176911c28ba44531733b5713f",
+    "recuperar-fundo-assentado-m.png": "169cd5621081288edfbb53801690cead716de23cbdbd51eab41e5984893d5ff8"
+  },
+  "fixtures": {
+    "data": "2026-11-20",
+    "alunos": 252,
+    "professores": 7,
+    "turmas_periodo": 23,
+    "matriculas": 222,
+    "registros_aula": 673,
+    "aulas_futuras": 360,
+    "contratos": 220,
+    "inadimplentes": 22,
+    "semana_2026_11_23": {
+      "aulas_regulares": 39,
+      "aulas_personalizadas": 6,
+      "atendimentos_agendados": 6,
+      "visitas_individuais_introduction": 8
+    }
+  },
+  "orca": "orca-ide skills get orca-cli --json: /bin/bash: line 1: orca-ide: command not found (127)",
+  "capturas_novas": 0,
+  "metodo": "Impeccable 4.5.2, colorize, modo Operate; context --target packages/ui/src/styles/tokens/color.css e referência colorize.md.",
+  "checagens": {
+    "pnpm test:styles": "passou; compila os estilos web e Storybook, verifica a paleta, os papéis e os contrastes contextuais",
+    "pnpm -F @lazuli/web exec node --import tsx --import ./test/setup.mjs --test test/lib/theme.unit.test.ts test/components/color-controls.unit.test.tsx": "10 passaram",
+    "node --import tsx --test packages/ui/test/components/data-table.unit.test.ts packages/ui/test/components/schedule-calendar.unit.test.ts": "11 passaram",
+    "pnpm -F @lazuli/web typecheck": "passou",
+    "pnpm -F @lazuli/ui typecheck": "passou",
+    "pnpm test:component-lines": "passou",
+    "pnpm seed:status": "passou após reinício do contêiner Postgres compartilhado pelo pnpm dev",
+    "detector_impeccable": "nenhum apontamento na inspeção mecânica",
+    "lint_dos_arquivos_alterados": "0 erros; 1 aviso em text-caption na linha já existente de contract-closings-chart.tsx",
+    "inspecao_http": "três respostas 200, com script no head idêntico ao do checkout; papéis de cor conferidos contra o CSS servido",
+    "git diff --check": "passou",
+    "verificacao_visual": "pendente nos dois modos, nas duas larguras e nos dois contextos. Avaliação humana reservada à escola."
+  }
+}

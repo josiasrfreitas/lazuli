@@ -28,10 +28,10 @@ export function ClassTeacher({
       <div className={styles.missingTeacher}>
         <div>
           <UserRoundX aria-hidden="true" />
-          <strong>Sem professor</strong>
+          <strong>Sem docente</strong>
         </div>
         <Button size="inline" variant="link" onClick={onAssign}>
-          Definir professor <ArrowRight aria-hidden="true" />
+          Definir docente <ArrowRight aria-hidden="true" />
         </Button>
       </div>
     );
@@ -39,12 +39,12 @@ export function ClassTeacher({
     <Popover>
       <PopoverTrigger render={<Button variant="link" size="inline" />}>
         <span className="min-w-0 whitespace-normal break-words text-left">
-          {detail.currentTeacher?.name ?? "Sem professor"}
+          {detail.currentTeacher?.name ?? "Sem docente"}
         </span>
         <ChevronDown aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent>
-        <PopoverTitle>Professor responsável</PopoverTitle>
+        <PopoverTitle>Docente responsável</PopoverTitle>
         <div className="grid gap-3 pt-3">
           {detail.currentTeacher && (
             <Link
@@ -55,7 +55,7 @@ export function ClassTeacher({
             </Link>
           )}
           <PopoverClose render={<Button size="sm" variant="secondary" onClick={onAssign} />}>
-            {detail.currentTeacher ? "Trocar professor" : "Atribuir professor"}
+            {detail.currentTeacher ? "Trocar docente" : "Atribuir docente"}
           </PopoverClose>
           <TeacherAssignmentHistory assignments={detail.teacherAssignments} />
         </div>

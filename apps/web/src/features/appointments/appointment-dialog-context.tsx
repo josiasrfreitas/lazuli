@@ -73,7 +73,7 @@ function AppointmentFacts({
       <div>
         <dt>
           <UserRound aria-hidden="true" />
-          Professor
+          Docente
         </dt>
         <dd>{row.teacher?.name ?? "A definir"}</dd>
       </div>

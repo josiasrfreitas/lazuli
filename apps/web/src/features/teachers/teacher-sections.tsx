@@ -1,23 +1,21 @@
 "use client";
+
 import { useEffect, useState, type ReactElement } from "react";
 import dynamic from "next/dynamic";
-import type { RouterOutputs } from "@lazuli/api";
 import { BookOpen, LayoutDashboard, UserRound, Users } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { Tabs, TabsList, TabsPanel, TabsTab } from "@lazuli/ui";
+import type { RouterOutputs } from "@lazuli/api";
+import { TabsPanel, TabsTab } from "@lazuli/ui";
+import { RecordTabs, RecordTabsList } from "~/components/record-tabs";
+import frame from "~/components/record-tabs.module.css";
 import { useSectionCarousel } from "~/lib/use-section-carousel";
-import { TeacherHeaderLoading } from "./teacher-loading";
 import { TeacherHeader } from "./teacher-header";
-import { TeacherStudentsLoading } from "./teacher-students-loading";
+import { TeacherHeaderLoading } from "./teacher-loading";
 import { TeacherMetrics } from "./teacher-metrics";
-import { TeacherRegistrationLoading, TeacherClassesPanelLoading } from "./teacher-section-loading";
-import profile from "../students/profile/student-profile.module.css";
+import { TeacherClassesPanelLoading, TeacherRegistrationLoading } from "./teacher-section-loading";
+import { TeacherStudentsLoading } from "./teacher-students-loading";
 import styles from "./teacher-overview.module.css";
 
-const TeacherRegistration = dynamic(
-  () => import("./teacher-registration").then((module) => module.TeacherRegistration),
-  { loading: TeacherRegistrationLoading },
-);
 const TeacherClassesPanel = dynamic(
   () => import("./teacher-classes-panel").then((module) => module.TeacherClassesPanel),
   { loading: TeacherClassesPanelLoading },
@@ -26,8 +24,17 @@ const TeacherStudents = dynamic(
   () => import("./teacher-students").then((module) => module.TeacherStudents),
   { loading: TeacherStudentsLoading },
 );
+const TeacherRegistration = dynamic(
+  () => import("./teacher-registration").then((module) => module.TeacherRegistration),
+  { loading: TeacherRegistrationLoading },
+);
+
 const OVERVIEW_SECTION = "visao-geral";
 const SECTIONS = [OVERVIEW_SECTION, "turmas", "alunos", "cadastro"] as const;
+type TeacherSection = (typeof SECTIONS)[number];
+
+const sectionQuery = parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION);
+
 export function TeacherSections({
   id,
   teacher,
@@ -41,106 +48,86 @@ export function TeacherSections({
   onDepart: () => void;
   back: string;
 }): ReactElement {
-  const [section, setSection] = useQueryState(
-    "secao",
-    parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION),
-  );
+  const [section, setSection] = useQueryState("secao", sectionQuery);
   const [busy, setBusy] = useState(false);
-  const [activeTab, setActiveTab] = useState(section);
-  useEffect(() => {
-    setActiveTab(section);
-  }, [section]);
-  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "studentCarousel" });
-  const navigation = <TeacherNavigation disabled={busy || !teacher} />;
+  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "recordCarousel" });
+
+  useLegacyTeacherSection(setSection);
+
+  function navigate(next: TeacherSection): void {
+    if (busy) return;
+    switchSection(section, { next, update: () => void setSection(next, { history: "push" }) });
+  }
+
+  const navigation = (
+    <RecordTabsList label="Seções do docente">
+      <TabsTab value={OVERVIEW_SECTION} disabled={busy}>
+        <LayoutDashboard aria-hidden="true" /> Visão geral
+      </TabsTab>
+      <TabsTab value="turmas" disabled={busy}>
+        <BookOpen aria-hidden="true" /> Turmas
+      </TabsTab>
+      <TabsTab value="alunos" disabled={busy}>
+        <Users aria-hidden="true" /> Alunos
+      </TabsTab>
+      <TabsTab value="cadastro" disabled={busy}>
+        <UserRound aria-hidden="true" /> Cadastro
+      </TabsTab>
+    </RecordTabsList>
+  );
+
   return (
-    <div className={profile.sections}>
-      <Tabs
-        value={activeTab}
-        variant="underline"
-        size="sm"
+    <div className={frame.person}>
+      <RecordTabs
+        value={section}
         onValueChange={(value) => {
           const next = SECTIONS.find((item) => item === value);
-          if (next && !busy) {
-            setActiveTab(next);
-            switchSection(section, { next, update: () => void setSection(next) });
-          }
+          if (next) navigate(next);
         }}
       >
-        <TeacherSectionHeader {...{ teacher, onEdit, onDepart, navigation }} />
-        <TabsPanel key={section} value={activeTab}>
+        {teacher ? (
+          <TeacherHeader {...{ teacher, onEdit, onDepart, navigation }} />
+        ) : (
+          <TeacherHeaderLoading navigation={navigation} />
+        )}
+        <TabsPanel key={section} value={section}>
           <div
             className={styles.sectionContent}
             data-overview={section === OVERVIEW_SECTION || undefined}
           >
             {section === OVERVIEW_SECTION && (
-              <TeacherMetrics
-                id={id}
-                onStudents={() => {
-                  setActiveTab("alunos");
-                  switchSection(section, {
-                    next: "alunos",
-                    update: () => void setSection("alunos"),
-                  });
-                }}
-              />
+              <TeacherMetrics id={id} onStudents={() => navigate("alunos")} />
             )}
-            {section === "alunos" && <TeacherStudents id={id} />}
             {section === "turmas" && <TeacherClassesPanel id={id} back={back} />}
-            {section === "cadastro" && (
-              <TeacherRegistrationContent {...{ teacher, onEdit, setBusy }} />
-            )}
+            {section === "alunos" && <TeacherStudents id={id} />}
+            {section === "cadastro" &&
+              (teacher ? (
+                <TeacherRegistration teacher={teacher} onEdit={onEdit} onBusyChange={setBusy} />
+              ) : (
+                <TeacherRegistrationLoading />
+              ))}
           </div>
         </TabsPanel>
-      </Tabs>
+      </RecordTabs>
     </div>
   );
 }
 
-function TeacherNavigation({ disabled }: { disabled: boolean }): ReactElement {
-  return (
-    <TabsList aria-label="Seções do professor">
-      <TabsTab disabled={disabled} value={OVERVIEW_SECTION}>
-        <LayoutDashboard aria-hidden="true" />
-        Visão geral
-      </TabsTab>
-      <TabsTab disabled={disabled} value="turmas">
-        <BookOpen aria-hidden="true" />
-        Turmas
-      </TabsTab>
-      <TabsTab disabled={disabled} value="alunos">
-        <Users aria-hidden="true" />
-        Alunos
-      </TabsTab>
-      <TabsTab disabled={disabled} value="cadastro">
-        <UserRound aria-hidden="true" />
-        Cadastro
-      </TabsTab>
-    </TabsList>
-  );
-}
-
-function TeacherRegistrationContent({
-  teacher,
-  onEdit,
-  setBusy,
-}: {
-  teacher: RouterOutputs["teachers"]["byId"] | undefined;
-  onEdit: () => void;
-  setBusy: (busy: boolean) => void;
-}): ReactElement {
-  if (!teacher) return <TeacherRegistrationLoading />;
-  return <TeacherRegistration teacher={teacher} onEdit={onEdit} onBusyChange={setBusy} />;
-}
-
-function TeacherSectionHeader({
-  teacher,
-  ...props
-}: {
-  teacher: RouterOutputs["teachers"]["byId"] | undefined;
-  onEdit: () => void;
-  onDepart: () => void;
-  navigation: ReactElement;
-}): ReactElement {
-  if (!teacher) return <TeacherHeaderLoading navigation={props.navigation} />;
-  return <TeacherHeader teacher={teacher} {...props} />;
+function useLegacyTeacherSection(
+  setSection: (section: TeacherSection) => Promise<URLSearchParams>,
+): void {
+  useEffect(() => {
+    // Bookmarks from the single-page record used fragments for the same sections.
+    function migrateFragment(): void {
+      const legacy = SECTIONS.find((value) => `#${value}` === globalThis.location.hash);
+      if (!legacy) return;
+      const url = new URL(globalThis.location.href);
+      url.hash = "";
+      globalThis.history.replaceState(globalThis.history.state, "", url);
+      void setSection(legacy);
+    }
+    migrateFragment();
+    globalThis.addEventListener("hashchange", migrateFragment);
+    return () => globalThis.removeEventListener("hashchange", migrateFragment);
+  }, [setSection]);
 }

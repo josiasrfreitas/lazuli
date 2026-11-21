@@ -29,7 +29,10 @@ function sendIfEligible<T extends { email: string }>(
   return async (delivery) => {
     const user = await database.user.findUnique({
       where: { email: delivery.email },
-      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+      include: {
+        employeeProfile: { select: { userId: true } },
+        teacherProfile: { select: { departureDate: true, deletedAt: true } },
+      },
     });
     if (evaluateStaffAccess(user).allowed) await sender(delivery);
   };
@@ -49,7 +52,10 @@ function resetPasswordGuard(database: StaffDatabase): ReturnType<typeof createAu
     if (!verification) return;
     const user = await database.user.findUnique({
       where: { id: verification.value },
-      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+      include: {
+        employeeProfile: { select: { userId: true } },
+        teacherProfile: { select: { departureDate: true, deletedAt: true } },
+      },
     });
     if (!evaluateStaffAccess(user).allowed) {
       await database.verification.deleteMany({ where: { identifier: `reset-password:${token}` } });
@@ -93,7 +99,10 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
           before: async (session) => {
             const user = await database.user.findUnique({
               where: { id: session.userId },
-              include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+              include: {
+                employeeProfile: { select: { userId: true } },
+                teacherProfile: { select: { departureDate: true, deletedAt: true } },
+              },
             });
             assertStaffAccess(user);
           },

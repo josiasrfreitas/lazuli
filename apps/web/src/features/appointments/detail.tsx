@@ -154,7 +154,7 @@ function AppointmentDetailHeader({
           {embedded ? purposes[row.purpose] : row.student.name}
         </Heading>
         <p className="text-sm text-muted-foreground">
-          {purposes[row.purpose]} · {row.teacher?.name ?? "Professor a definir"}
+          {purposes[row.purpose]} · {row.teacher?.name ?? "Docente a definir"}
         </p>
       </div>
       <AppointmentDetailActions

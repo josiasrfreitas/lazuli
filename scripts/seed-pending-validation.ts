@@ -203,7 +203,11 @@ async function createNightClass(
     startTime: "19:00",
     endTime: "20:30",
   }));
-  const portalClassName = await resolvePortalClassName(tx, { ...fields, slots });
+  const portalClassName = await resolvePortalClassName(tx, {
+    ...fields,
+    slots,
+    format: "IN_PERSON",
+  });
   return tx.class.create({
     data: {
       ...fields,
@@ -334,7 +338,7 @@ async function seedLeads(
       format: "IN_PERSON",
       studentId: input.ana.id,
       recordedById: input.adminId,
-      source: "Indicação",
+      source: "REFERRAL" as const,
     },
   });
   await tx.admissionCandidate.create({
@@ -350,7 +354,7 @@ async function seedLeads(
       allocationPendingAt: new Date(`${days(today, -1)}T14:00:00.000Z`),
       allocationPendingReason: "Precisa de turma no período da manhã.",
       recordedById: input.adminId,
-      source: "Site",
+      source: "WEBSITE",
     },
   });
   return lead.id;
@@ -380,7 +384,7 @@ async function seedFuturePlan(
     data: {
       ...fields,
       semesterId: input.next.id,
-      name: await plannedClassName(tx, fields),
+      name: await plannedClassName(tx, { ...fields, format: "IN_PERSON" }),
       format: "IN_PERSON",
       recordedById: input.adminId,
     },

@@ -138,11 +138,11 @@ function MeetingReplacement(props: MeetingReplacementProps): ReactElement {
       description="A escolha vale para todo o intervalo deste encontro."
     >
       <Field>
-        <Label>Professor que irá assumir</Label>
+        <Label>Docente que irá assumir</Label>
         <SearchSelect
           size="compact-responsive"
           name="substituteTeacher"
-          placeholder="Buscar professor por nome"
+          placeholder="Buscar docente por nome"
           query={props.search}
           value={props.selected}
           options={(props.options.data ?? [])
@@ -242,7 +242,7 @@ function submitSubstitution(
   event.preventDefault();
   if (save.isPending || !canChange) return;
   if (!selected) {
-    setError("Escolha o professor que irá assumir este encontro.");
+    setError("Escolha o docente que irá assumir este encontro.");
     popup.current?.querySelector<HTMLInputElement>("input")?.focus();
     return;
   }
@@ -280,7 +280,7 @@ function MeetingResponsibility(props: MeetingResponsibilityProps): ReactElement 
     <dl className="grid gap-3 border-b border-border pb-4 text-control">
       <div>
         <dt className="text-caption text-muted-foreground">Docente da turma</dt>
-        <dd>{props.meeting.usualTeacherName ?? "Sem professor nesta data"}</dd>
+        <dd>{props.meeting.usualTeacherName ?? "Sem docente nesta data"}</dd>
       </div>
       {props.meeting.substituteTeacherName &&
         props.meeting.substituteTeacherId !== props.meeting.usualTeacherId && (

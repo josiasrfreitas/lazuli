@@ -173,6 +173,7 @@ export {
   type PaymentOperationInput,
 } from "./payment-operation.js";
 export {
+  employeeFields,
   teacherCreateInputSchema,
   teacherFileUploadSchema,
   teacherUpdateInputSchema,
@@ -222,6 +223,7 @@ export {
   type AssessmentSave,
   type AssessmentConfirm,
 } from "./assessment.js";
+export { leadSourceLabels, leadSourceSchema } from "./lead-source.js";
 export { leadCaptureSchema, leadInterestSchema, leadRegistrationSchema } from "./leads.js";
 export { MAX_UPLOAD_FILE_MB, MAX_UPLOAD_FILE_BYTES } from "./file-upload.js";
 export {
@@ -276,3 +278,4 @@ export * from "./contract-renegotiation.js";
 export * from "./payment-proof.js";
 export { teachingProgramImportSchema, trackAgeGroupSchema } from "./teaching-program.js";
 export * from "./formation-case.js";
+export { tableExportSchema, type TableExportRequest } from "./table-export.js";

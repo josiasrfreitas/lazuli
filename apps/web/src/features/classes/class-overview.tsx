@@ -42,7 +42,7 @@ export function ClassIdentityHeader({
           {detail.status === "ARCHIVED" && <Badge>Arquivada</Badge>}
           <div className="flex items-center gap-2 text-sm">
             <GraduationCap aria-hidden="true" className="size-4 shrink-0 text-icon" />
-            <span className="sr-only">Professor responsável:</span>
+            <span className="sr-only">Docente responsável:</span>
             <ClassTeacher detail={detail} onAssign={onAssign} />
           </div>
           <ClassIdentityFacts detail={detail} />

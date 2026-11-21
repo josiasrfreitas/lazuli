@@ -95,26 +95,14 @@ export function EnrollmentChart({
   );
 }
 
-export function ReceiptsChart({
-  months,
-  contracts,
-}: {
-  months: BusinessData["months"];
-  contracts: Series;
-}): ReactElement {
-  const animate = useChartEntrance();
-  const series = months.map((month) => ({
-    ...month,
-    contracts: contracts.find((item) => item.month === month.month)?.value ?? null,
-  }));
+export function ReceiptsChart({ months }: { months: BusinessData["months"] }): ReactElement {
   return (
     <div className={styles.receiptsChart}>
       <ReceiptsLegend />
-      <ReceiptsPlot series={series} months={months} animate={animate} />
+      <ReceiptsPlot months={months} />
     </div>
   );
 }
-
 function ReceiptsLegend(): ReactElement {
   return (
     <div className={styles.chartLegend}>
@@ -126,30 +114,16 @@ function ReceiptsLegend(): ReactElement {
         <i />
         Previsto
       </span>
-      <span className={styles.contractLegend}>
-        <b />
-        Contratos
-      </span>
     </div>
   );
 }
 
-type ReceiptPoint = BusinessData["months"][number] & { contracts: number | null };
-
-function ReceiptsPlot({
-  series,
-  months,
-  animate,
-}: {
-  series: ReceiptPoint[];
-  months: BusinessData["months"];
-  animate: boolean;
-}): ReactElement {
+function ReceiptsPlot({ months }: { months: BusinessData["months"] }): ReactElement {
   return (
     <div className={styles.linePlot}>
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <ComposedChart
-          data={series}
+          data={months}
           accessibilityLayer
           margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
         >
@@ -165,19 +139,8 @@ function ReceiptsPlot({
             tickCount={3}
             domain={[0, "auto"]}
           />
-          <YAxis
-            yAxisId="contracts"
-            orientation="right"
-            allowDecimals={false}
-            width={30}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: "var(--brand)", fontSize: 11 }}
-            tickCount={4}
-            domain={[0, "auto"]}
-          />
           {receiptTooltip(months)}
-          {receiptMarks(animate)}
+          {receiptMarks()}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -195,10 +158,7 @@ function receiptTooltip(months: BusinessData["months"]): ReactElement {
             <strong>{monthLabel(String(label))}</strong>
             {payload.map((item) => (
               <p key={String(item.dataKey)}>
-                {item.name}:{" "}
-                {item.dataKey === "contracts"
-                  ? Number(item.value).toLocaleString("pt-BR")
-                  : money.format(Number(item.value) / CENTS_PER_REAL)}
+                {item.name}: {money.format(Number(item.value) / CENTS_PER_REAL)}
               </p>
             ))}
             <p>
@@ -215,28 +175,15 @@ function receiptTooltip(months: BusinessData["months"]): ReactElement {
   );
 }
 
-function receiptMarks(animate: boolean): ReactElement[] {
+function receiptMarks(): ReactElement[] {
   return [
-    <Bar
-      key="contracts"
-      yAxisId="contracts"
-      dataKey="contracts"
-      name="Contratos"
-      fill="var(--brand)"
-      fillOpacity={0.6}
-      maxBarSize={8}
-      radius={[2, 2, 0, 0]}
-      isAnimationActive={animate}
-      animationDuration={650}
-    />,
     <Line
       key="expected"
       yAxisId="revenue"
       dataKey="expectedCents"
       name="Previsto"
       type="linear"
-      stroke="currentColor"
-      strokeOpacity={0.45}
+      stroke="var(--financial-muted)"
       strokeDasharray="4 5"
       strokeWidth={1.5}
       dot={false}
@@ -248,10 +195,10 @@ function receiptMarks(animate: boolean): ReactElement[] {
       dataKey="receivedCents"
       name="Recebido"
       type="monotone"
-      stroke="currentColor"
+      stroke="var(--financial-received)"
       strokeWidth={2.5}
-      dot={{ ["r"]: 3, fill: "currentColor", strokeWidth: 0 }}
-      activeDot={{ ["r"]: 5 }}
+      dot={{ ["r"]: 3, fill: "var(--financial-received)", strokeWidth: 0 }}
+      activeDot={{ ["r"]: 5, fill: "var(--financial-received)", stroke: "var(--financial-panel)" }}
       isAnimationActive={false}
     />,
   ];

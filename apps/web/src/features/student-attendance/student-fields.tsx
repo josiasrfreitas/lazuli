@@ -62,7 +62,7 @@ export function StudentNameChoices({
   if (matches.options.length === 0)
     return (
       <p role="status" className="text-sm text-muted-foreground">
-        Seu nome não apareceu nesta turma. Confira o nome e o link com o professor.
+        Seu nome não apareceu nesta turma. Confira o nome e o link com o docente.
       </p>
     );
   return (
@@ -115,7 +115,7 @@ function StudentNameChoice({
       </Button>
       {person.manualRequired && (
         <p className="text-caption text-muted-foreground">
-          Há cadastros iguais. Peça ao professor para identificar e registrar sua presença.
+          Há cadastros iguais. Peça ao docente para identificar e registrar sua presença.
         </p>
       )}
     </div>

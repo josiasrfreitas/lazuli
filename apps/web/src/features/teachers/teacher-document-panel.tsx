@@ -1,14 +1,15 @@
 "use client";
 import { useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ChevronDown, Download, FileText, Plus, X } from "lucide-react";
 import {
   AttachmentPanel,
-  AttachmentRow,
+  FileUpload,
   AttachmentUploadRow,
   AttachmentAdd,
   Button,
   ToastAlert,
 } from "@lazuli/ui";
+import { AttachmentEmpty } from "~/features/mobile-upload/attachment-empty";
 import { MobileUploadLink } from "~/features/mobile-upload/session-link";
 import { type UploadCategory } from "~/features/mobile-upload/file-editor";
 import type { TeacherDocuments } from "./use-teacher-documents";
@@ -18,31 +19,25 @@ import { TeacherAttachmentsLoading } from "./teacher-section-loading";
 export function TeacherDocumentPanel({
   documents,
   onClose,
-  showGuidance = false,
-  hidePhoto = false,
+  inRecord = false,
 }: {
   documents: TeacherDocuments;
   onClose?: () => void;
-  showGuidance?: boolean;
-  hidePhoto?: boolean;
+  inRecord?: boolean;
 }): ReactElement {
   const { qr, setQr, error, setError, preparing, openQr } = useCapturePreparation(documents);
   const [extras, setExtras] = useState<UploadCategory[]>([]);
   const [removing, setRemoving] = useState<string | null>(null);
   const visibleError = error || documents.error;
   if (documents.loading) return <TeacherAttachmentsLoading />;
+  if (documents.loadError) return <AttachmentLoadError documents={documents} />;
   return (
     <AttachmentPanel
-      title={qr ? "Enviar pelo celular" : "Anexos do professor"}
+      variant="card"
+      title={qr ? "Enviar pelo celular" : "Anexos"}
       busy={documents.busy}
       onClose={onClose}
-      onBack={
-        qr
-          ? () => {
-              setQr(false);
-            }
-          : undefined
-      }
+      onBack={qr ? () => setQr(false) : undefined}
       onMobile={() => void openQr()}
     >
       {qr ? (
@@ -50,14 +45,14 @@ export function TeacherDocumentPanel({
           documents={documents}
           preparing={preparing}
           error={error}
-          hidePhoto={hidePhoto}
+          hidePhoto={inRecord}
           onRetry={() => void openQr()}
         />
       ) : (
         <>
-          <AttachmentGuidance show={showGuidance} />
+          <AttachmentGuidance show={inRecord} />
           <TeacherAttachmentList
-            hidePhoto={hidePhoto}
+            inRecord={inRecord}
             extras={extras}
             setExtras={setExtras}
             documents={documents}
@@ -83,23 +78,33 @@ export function TeacherDocumentPanel({
   );
 }
 
+const MAX_ATTACHMENT_LABEL_LENGTH = 100;
+
+function AttachmentLoadError({ documents }: { documents: TeacherDocuments }): ReactElement {
+  return (
+    <ToastAlert variant="destructive">
+      Não foi possível carregar os anexos.{" "}
+      <Button variant="secondary" onClick={() => void documents.refresh()}>
+        Tentar novamente
+      </Button>
+    </ToastAlert>
+  );
+}
+
 function TeacherAttachmentList({
-  hidePhoto,
+  inRecord,
   documents,
   onRemove,
   extras,
   setExtras,
 }: {
-  hidePhoto: boolean;
+  inRecord: boolean;
   extras: UploadCategory[];
   setExtras: import("react").Dispatch<import("react").SetStateAction<UploadCategory[]>>;
   documents: TeacherDocuments;
   onRemove: (id: string) => void;
 }): ReactElement {
   const { error, send } = useAttachmentSend(documents);
-  const categories = TEACHER_UPLOAD_CATEGORIES.filter(
-    (category) => category.id !== "OTHER" && (!hidePhoto || category.id !== "PHOTO"),
-  );
   const row = (category: UploadCategory, key: string): ReactElement => (
     <AttachmentUploadRow
       key={key}
@@ -109,43 +114,74 @@ function TeacherAttachmentList({
       accept={category.photo ? "image/jpeg,image/png" : "image/jpeg,image/png,application/pdf"}
       acceptLabel={category.photo ? "JPG ou PNG" : "JPG, PNG ou PDF"}
       maxSize={5_242_880}
-      onFile={(file) => void send(category, file)}
+      onFile={(file) =>
+        void send(category, file).then((saved) => {
+          if (saved) setExtras((previous) => previous.filter((item) => item !== category));
+        })
+      }
     />
   );
   return (
     <>
-      <ul>
-        {categories.map((category) =>
-          row(
-            {
-              ...category,
-              subtitle: categorySubtitle(category),
-            },
-            category.id,
-          ),
-        )}
-        <SavedAttachments documents={documents} hidePhoto={hidePhoto} onRemove={onRemove} />
-        {extras
-          .filter(
-            (item) =>
-              !documents.files.some(
-                (file) =>
-                  file.label === item.label && (file.subtitle ?? "") === (item.subtitle ?? ""),
-              ),
-          )
-          .map((item, index) => row(item, `extra-${index}`))}
+      <ul className="max-h-80 overflow-y-auto overscroll-contain scrollbar-subtle empty:hidden">
+        {inRecord &&
+          TEACHER_UPLOAD_CATEGORIES.filter(
+            (category) =>
+              (category.id === "ID" || category.id === "CONTRACT") &&
+              !documents.files.some((file) => file.kind === category.id),
+          ).map((category) => row(category, category.id))}
+        <SavedAttachments documents={documents} hidePhoto={inRecord} onRemove={onRemove} />
+        {extras.map((item, index) => row(item, `extra-${index}`))}
       </ul>
-      <AttachmentAdd
-        disabled={documents.busy}
-        onAdd={({ title, subtitle }) =>
-          setExtras((previous) => [...previous, { id: "OTHER", label: title, subtitle }])
-        }
-      />
+      {!inRecord && documents.files.length === 0 && extras.length === 0 ? (
+        <FirstAttachment busy={documents.busy} send={send} />
+      ) : (
+        <AttachmentAdd
+          disabled={documents.busy}
+          onAdd={({ title, subtitle }) =>
+            setExtras((previous) => [...previous, { id: "OTHER", label: title, subtitle }])
+          }
+        />
+      )}
       {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
     </>
   );
 }
 
+function FirstAttachment({
+  busy,
+  send,
+}: {
+  busy: boolean;
+  send: ReturnType<typeof useAttachmentSend>["send"];
+}): ReactElement {
+  return (
+    <AttachmentEmpty>
+      <FileUpload
+        compact
+        accept="image/jpeg,image/png,application/pdf"
+        acceptLabel="JPG, PNG ou PDF"
+        maxSize={5_242_880}
+        value={[]}
+        disabled={busy}
+        onValueChange={(files) => {
+          const file = files[0];
+          if (file)
+            void send(
+              { id: "OTHER", label: file.name.slice(0, MAX_ATTACHMENT_LABEL_LENGTH) },
+              file,
+            );
+        }}
+        renderTrigger={({ open, disabled }) => (
+          <Button type="button" size="sm" disabled={disabled} onClick={open}>
+            <Plus />
+            Adicionar primeiro anexo
+          </Button>
+        )}
+      />
+    </AttachmentEmpty>
+  );
+}
 async function removeAttachment(
   documents: TeacherDocuments,
   {
@@ -244,10 +280,10 @@ function CaptureLink({ documents, preparing, error, onRetry }: CaptureProps): Re
 
 function useAttachmentSend(documents: TeacherDocuments): {
   error: string;
-  send: (category: UploadCategory, file: File) => Promise<void>;
+  send: (category: UploadCategory, file: File) => Promise<boolean>;
 } {
   const [error, setError] = useState("");
-  async function send(category: UploadCategory, file: File): Promise<void> {
+  async function send(category: UploadCategory, file: File): Promise<boolean> {
     documents.setBusy(true);
     setError("");
     try {
@@ -257,8 +293,10 @@ function useAttachmentSend(documents: TeacherDocuments): {
         ...(category.subtitle ? { subtitle: category.subtitle } : {}),
         file,
       });
+      return true;
     } catch (error_) {
       setError(error_ instanceof Error ? error_.message : "Não foi possível enviar.");
+      return false;
     } finally {
       documents.setBusy(false);
     }
@@ -276,31 +314,81 @@ function SavedAttachments({
 }): ReactElement {
   return (
     <>
-      {" "}
       {documents.files
         .filter((file) => !hidePhoto || file.kind !== "PHOTO")
-        .map((file) => (
-          <AttachmentRow key={file.id} title={file.label} subtitle={file.subtitle ?? file.fileName}>
-            <a
-              href={`/api/teacher-files/${file.id}`}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Abrir ${file.label}`}
+        .map((file) => {
+          return <SavedAttachment key={file.id} {...{ file, onRemove }} busy={documents.busy} />;
+        })}
+    </>
+  );
+}
+
+function SavedAttachment({
+  file,
+  onRemove,
+  busy,
+}: {
+  file: TeacherDocuments["files"][number];
+  onRemove: (id: string) => void;
+  busy: boolean;
+}): ReactElement {
+  const url = `/api/teacher-files/${file.id}`;
+  const image = file.contentType.startsWith("image/");
+  return (
+    <li className="border-b border-border py-2">
+      <details>
+        <summary className="flex cursor-pointer items-center gap-3 rounded-sm p-1 hover:bg-accent">
+          {image ? (
+            <img src={url} alt="" loading="lazy" className="size-10 rounded-sm object-cover" />
+          ) : (
+            <FileText aria-hidden="true" className="size-10 p-2" />
+          )}
+          <span className="min-w-0 flex-1">
+            <strong className="block break-words">{file.label}</strong>
+            <small className="text-muted-foreground">
+              {image ? file.contentType.split("/")[1]?.toUpperCase() : "PDF"} ·{" "}
+              {new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(
+                new Date(file.createdAt),
+              )}
+            </small>
+          </span>
+          <ChevronDown aria-hidden="true" className="size-4" />
+        </summary>
+        <div className="grid gap-2 p-2 text-caption">
+          {image && (
+            <img
+              src={url}
+              alt={file.label}
+              loading="lazy"
+              className="max-h-56 max-w-full rounded-sm object-contain"
+            />
+          )}
+          <p className="break-all">{file.fileName}</p>
+          {file.subtitle && <p>{file.subtitle}</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              nativeButton={false}
+              render={<a href={url} download={file.fileName} />}
+              size="sm"
+              variant="secondary"
             >
-              <ExternalLink className="size-4" />
-            </a>
+              <Download />
+              Baixar arquivo
+            </Button>
             <Button
               type="button"
               size="icon-sm"
               variant="ghost"
+              disabled={busy}
               aria-label={`Remover ${file.label}`}
               onClick={() => onRemove(file.id)}
             >
               <X />
             </Button>
-          </AttachmentRow>
-        ))}
-    </>
+          </div>
+        </div>
+      </details>
+    </li>
   );
 }
 
@@ -318,6 +406,7 @@ function useCapturePreparation(documents: TeacherDocuments): {
   async function openQr(): Promise<void> {
     setQr(true);
     setPreparing(true);
+    documents.setBusy(true);
     setError("");
     try {
       await documents.ensureSession();
@@ -325,22 +414,17 @@ function useCapturePreparation(documents: TeacherDocuments): {
       setError("Não foi possível gerar o QR code. Tente novamente.");
     } finally {
       setPreparing(false);
+      documents.setBusy(false);
     }
   }
   return { qr, setQr, error, setError, preparing, openQr };
-}
-
-function categorySubtitle(category: UploadCategory): string {
-  if (category.photo) return "Uma foto de rosto, nítida e bem iluminada";
-  return category.id === "ID" ? "RG ou CIN · frente e verso" : "Documento do vínculo com a escola";
 }
 
 function AttachmentGuidance({ show }: { show: boolean }): ReactElement | null {
   if (!show) return null;
   return (
     <p className="text-caption text-muted-foreground">
-      Envie os arquivos abaixo ou use o QR code para enviar pelo celular. Para outros documentos,
-      escolha “Adicionar anexo”.
+      Adicione um documento ou envie pelo celular usando o QR code.
     </p>
   );
 }

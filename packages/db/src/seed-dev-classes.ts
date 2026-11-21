@@ -39,8 +39,10 @@ export async function seedClass(context: SeedContext, classSeed: DevClassSeed): 
   const classId = stableUuid(["class", classSeed.key]);
   const scheduleType = classSeed.scheduleType ?? "REGULAR";
   const sharedStageId = scheduleType === "REGULAR" ? stage.id : null;
+  const format = classSeed.format ?? "IN_PERSON";
   const portalClassName = await context.resolveClassName({
     scheduleType,
+    format,
     slots: classSeed.slots,
     sharedStageId,
     teacherId,
@@ -51,7 +53,7 @@ export async function seedClass(context: SeedContext, classSeed: DevClassSeed): 
       internalCode: `${context.semester.name}-${classSeed.key}`,
       teacherId,
       scheduleType,
-      format: classSeed.format ?? "IN_PERSON",
+      format,
       sharedStageId,
       semesterId: context.semester.id,
       year: context.semester.year,

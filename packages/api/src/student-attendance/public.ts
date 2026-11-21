@@ -23,7 +23,7 @@ const windowInclude = {
 } satisfies Prisma.AttendanceWindowInclude;
 type Window = Prisma.AttendanceWindowGetPayload<{ include: typeof windowInclude }>;
 const ENDED_LINK =
-  "Este link está encerrado ou venceu. Peça ao professor para registrar sua presença ou abrir um novo link.";
+  "Este link está encerrado ou venceu. Peça ao docente para registrar sua presença ou abrir um novo link.";
 async function activeWindow(context: PublicContext, token: string): Promise<Window> {
   const window = await context.database.attendanceWindow.findUnique({
     where: { tokenHash: tokenHash(token) },
@@ -95,7 +95,7 @@ export async function submitAttendanceDeclaration(
   );
   if (!person)
     throw badRequest(
-      "Confira o nome e selecione seu cadastro. Se houver dúvida, peça o registro manual ao professor.",
+      "Confira o nome e selecione seu cadastro. Se houver dúvida, peça o registro manual ao docente.",
     );
   assertDeclarationLocation(window, { location: input.location, now: current.now });
   const declaration = await createDeclaration(current, {
@@ -118,7 +118,7 @@ async function previousDeclaration(
   if (used) {
     if (used.enrollmentId !== input.enrollmentId)
       throw badRequest(
-        "Este navegador já confirmou uma pessoa nesta aula. Peça ao professor para registrar sua presença manualmente.",
+        "Este navegador já confirmou uma pessoa nesta aula. Peça ao docente para registrar sua presença manualmente.",
       );
     return {
       submittedAt: used.submittedAt,
@@ -136,7 +136,7 @@ async function previousDeclaration(
   });
   if (existing)
     throw badRequest(
-      "Este nome já enviou uma declaração nesta aula. Confira com o professor. A tentativa não consumiu a confirmação deste navegador.",
+      "Este nome já enviou uma declaração nesta aula. Confira com o docente. A tentativa não consumiu a confirmação deste navegador.",
     );
   return null;
 }
@@ -147,7 +147,7 @@ function assertDeclarationLocation(
   const { location, now } = input;
   if (window.format === "IN_PERSON" && !location)
     throw badRequest(
-      "Compartilhe sua localização para enviar a presença presencial. O professor também pode registrar manualmente.",
+      "Compartilhe sua localização para enviar a presença presencial. O docente também pode registrar manualmente.",
     );
   if (window.format === "ONLINE" && location)
     throw badRequest("Aulas online não utilizam localização.");
@@ -175,7 +175,7 @@ function assertCampusLocation(window: Window, location: AttendanceLocation): voi
     );
   if (attendanceDistance(location, { latitude, longitude }) > radiusMeters)
     throw badRequest(
-      "Sua localização está fora da área da escola. Peça ao professor a chamada manual.",
+      "Sua localização está fora da área da escola. Peça ao docente a chamada manual.",
     );
 }
 async function createDeclaration(

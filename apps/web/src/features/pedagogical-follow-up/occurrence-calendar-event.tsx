@@ -19,7 +19,7 @@ export function OccurrenceLessonCard({
   context: CalendarEventRenderContext;
 }): ReactJSX.Element {
   const detailed = context.view === "day" || context.expanded;
-  const teacher = `${event.teacherName ?? "Professor a definir"}${event.substitute ? " · substituto" : ""}`;
+  const teacher = `${event.teacherName ?? "Docente a definir"}${event.substitute ? " · substituto" : ""}`;
   const stage =
     event.scheduleType === "PERSONALIZED"
       ? "Estágios individuais"

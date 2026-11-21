@@ -66,6 +66,21 @@ void describe("pre-provisioned staff access denials", () => {
     });
   });
 
+  void it("requires a teaching profile to enter teaching mode for a registered employee", () => {
+    const user = {
+      email: "employee@example.test",
+      role: "TEACHER" as const,
+      isEnabled: true,
+      employeeProfile: { userId: "employee" },
+      teacherProfile: null,
+    };
+    assert.equal(evaluateStaffAccess(user).allowed, false);
+    assert.equal(
+      evaluateStaffAccess({ ...user, teacherProfile: { departureDate: null } }).allowed,
+      true,
+    );
+  });
+
   void it("rejects deferred roles until they are enabled after MVP", () => {
     const result = evaluateStaffAccess({
       email: "finance@example.com",

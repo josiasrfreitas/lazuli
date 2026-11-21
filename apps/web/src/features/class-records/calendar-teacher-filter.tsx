@@ -25,10 +25,10 @@ export function CalendarTeacherFilter({
     <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">
       <div className="w-full sm:w-56">
         <Field name="agendaTeacher">
-          <Label className="sr-only">Filtrar por professor</Label>
+          <Label className="sr-only">Filtrar por docente</Label>
           <SearchSelect
             name="agendaTeacher"
-            placeholder="Buscar professor…"
+            placeholder="Buscar docente…"
             showSearchIcon
             openOnFocus
             value={null}
@@ -42,7 +42,7 @@ export function CalendarTeacherFilter({
               onQueryChange("");
             }}
             onClear={() => onQueryChange("")}
-            emptyMessage="Nenhum outro professor encontrado."
+            emptyMessage="Nenhum outro docente encontrado."
           />
         </Field>
       </div>
@@ -65,7 +65,7 @@ function availableTeachers({
     ...new Map(
       lessons.map((lesson) => {
         const id = lesson.teacherId ?? "unassigned";
-        return [id, { id, label: lesson.teacher ?? "Professor a definir" }] as const;
+        return [id, { id, label: lesson.teacher ?? "Docente a definir" }] as const;
       }),
     ).values(),
   ]
@@ -86,11 +86,7 @@ function SelectedTeachers({
 }): ReactJSX.Element | null {
   if (selected.length === 0) return null;
   return (
-    <div
-      className="flex min-w-0 flex-wrap gap-1"
-      role="group"
-      aria-label="Professores selecionados"
-    >
+    <div className="flex min-w-0 flex-wrap gap-1" role="group" aria-label="Docentes selecionados">
       {selected.map((teacher) => (
         <Button
           key={teacher.id}

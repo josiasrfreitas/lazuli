@@ -5,7 +5,6 @@ Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
-Legacy sources: [accepted legacy stack](../legacy/2026-07-27/MVP/decisions.md#current-stack)
 Implementation evidence: [`packages/db/prisma/schema.prisma`](../../packages/db/prisma/schema.prisma), [`packages/db/prisma/migrations/`](../../packages/db/prisma/migrations/), [`packages/db/prisma/migrations/README.md`](../../packages/db/prisma/migrations/README.md)
 
 ## Context

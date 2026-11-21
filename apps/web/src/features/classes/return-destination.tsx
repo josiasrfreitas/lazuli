@@ -24,7 +24,7 @@ export function ReturnDestination({
       <Label>Turma de destino</Label>
       <SearchSelect
         name="targetClassId"
-        placeholder="Buscar turma ou professor"
+        placeholder="Buscar turma ou docente"
         showSearchIcon
         query={search}
         value={

@@ -21,7 +21,7 @@ export function ClassPlanForm(props: ClassPlanProps): ReactJSX.Element {
       description={
         props.initialStageId
           ? "A turma será criada vazia. Depois, confirme a escolha para o aluno."
-          : "Horário, professor e composição podem ser preparados aos poucos."
+          : "Horário, docente e composição podem ser preparados aos poucos."
       }
       formId="semester-plan"
       firstField="plan-kind"
@@ -63,7 +63,7 @@ function PlanLoading({
       compactHeader
       actionSize="sm"
       title={plan ? "Editar turma" : "Nova turma"}
-      description="Horário, estágio e professor."
+      description="Horário, estágio e docente."
       formId="plan-loading"
       firstField=""
       submitLabel="Salvar turma"
@@ -71,7 +71,7 @@ function PlanLoading({
       pending={false}
       onClose={onClose}
     >
-      <FormationProgress label="Buscando professores e estágios" />
+      <FormationProgress label="Buscando docentes e estágios" />
     </TaskDialog>
   );
 }

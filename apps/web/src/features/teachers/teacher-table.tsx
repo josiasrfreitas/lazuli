@@ -1,13 +1,17 @@
 "use client";
 import type { ReactElement } from "react";
+import { trpc } from "~/lib/trpc";
+
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, DataTable, type DataTableColumn, type DataTableState } from "@lazuli/ui";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
 import { hoursLabel } from "./format";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-table.module.css";
 import { TeacherStatus } from "./teacher-status";
 
+const SCORE_STALE_MS = 60_000;
 const ISO_DATE_LENGTH = 10;
 const MONTH_START = 5;
 const MONTH_END = 7;
@@ -23,27 +27,45 @@ export function TeacherTable({
   onOpen,
   onRetry,
 }: TeacherTableInput): ReactElement {
+  const ids = data?.rows.map((row) => row.id) ?? [];
+  const scores = trpc.teachers.listScores.useQuery(
+    { ids },
+    { enabled: ids.length > 0, staleTime: SCORE_STALE_MS },
+  );
   return (
     <DataTable
-      label="Professores"
+      label="Docentes"
       loadingRows={pagination.pageSize}
-      columns={teacherColumns({ href, today: data?.today ?? "" })}
+      columns={teacherColumns({
+        href,
+        today: data?.today ?? "",
+        score: (id) => scoreLabel(scores, id),
+      })}
       state={teacherTableState({ data, isError, filtered })}
       onRowClick={(row) => onOpen(row.id)}
       onRetry={onRetry}
       updating={isFetching}
-      errorTitle="Não foi possível carregar os professores"
+      errorTitle="Não foi possível carregar os docentes"
       empty={{
-        title: "Nenhum professor cadastrado",
-        description:
-          "Cadastre um professor para começar a organizar as turmas. O acesso ao sistema é opcional.",
+        title: "Nenhum docente cadastrado",
+        description: "Em Colaboradores, marque “Atua como docente” no cadastro da pessoa.",
       }}
       pagination={{
         ...tablePaginationPropsFor(pagination, data),
-        itemLabel: { singular: "professor", plural: "professores" },
+        itemLabel: { singular: "docente", plural: "docentes" },
       }}
     />
   );
+}
+
+function scoreLabel(
+  query: { isError: boolean; data: Record<string, number | null> | undefined },
+  id: string,
+): ReactElement | string {
+  if (query.isError) return "Indisponível";
+  if (!query.data) return "…";
+  const value = query.data[id];
+  return typeof value === "number" ? <HealthScoreValue value={value} /> : "Sem dados";
 }
 
 type TeacherRow = RouterOutputs["teachers"]["list"]["rows"][number];
@@ -57,11 +79,32 @@ function teacherTableState({
   if (data.rows.length > 0) return { kind: "data", rows: data.rows };
   return { kind: filtered ? "noResults" : "empty" };
 }
-function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<TeacherRow>[] {
+const appointmentHoursColumn: DataTableColumn<TeacherRow> = {
+  id: "appointmentHours",
+  header: <span className="whitespace-normal">Horas de atendimento</span>,
+  width: "standard",
+  cell: (row) => (
+    <div
+      className="grid gap-1"
+      title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
+    >
+      <span className="font-numeric tabular-nums">
+        {hoursLabel(row.appointmentHours.completedMinutes)} /{" "}
+        {hoursLabel(row.appointmentHours.plannedMinutes)} h
+      </span>
+    </div>
+  ),
+};
+
+function teacherColumns({
+  href,
+  today,
+  score,
+}: TeacherColumnsInput): DataTableColumn<TeacherRow>[] {
   return [
     {
       id: "name",
-      header: "Professor",
+      header: "Docente",
       width: "medium",
       cell: (row) => (
         <Link
@@ -76,7 +119,7 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
     {
       id: "email",
       header: "E-mail",
-      width: "wide",
+      width: "medium",
       cell: (row) => (
         <span title={row.email} className="block truncate text-muted-foreground">
           {row.email}
@@ -91,29 +134,21 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
       cell: (row) => (
         <span
           className="font-numeric tabular-nums"
-          title="Turmas atuais sob responsabilidade do professor"
+          title="Turmas atuais sob responsabilidade do docente"
         >
           {row.classCount}
         </span>
       ),
     },
-    monthlyHoursColumn(today),
     {
-      id: "appointmentHours",
-      header: <span className="whitespace-nowrap">Horas de atendimento</span>,
-      width: "wide",
-      cell: (row) => (
-        <div
-          className="grid gap-1"
-          title="Horas realizadas com registro concluído / previstas no mês. 1 hora-aula = 60 minutos."
-        >
-          <span className="font-numeric tabular-nums">
-            {hoursLabel(row.appointmentHours.completedMinutes)} /{" "}
-            {hoursLabel(row.appointmentHours.plannedMinutes)} h
-          </span>
-        </div>
-      ),
+      id: "score",
+      header: <span className="whitespace-normal">Score médio</span>,
+      width: "standard",
+      numeric: true,
+      cell: (row) => score(row.id),
     },
+    monthlyHoursColumn(today),
+    appointmentHoursColumn,
     {
       id: "activity",
       header: "Atuação",
@@ -122,8 +157,8 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
     },
     {
       id: "access",
-      header: "Acesso ao sistema",
-      width: "medium",
+      header: <span className="whitespace-normal">Acesso ao sistema</span>,
+      width: "standard",
       cell: (row) => <TeacherAccess row={row} today={today} />,
     },
   ];
@@ -131,7 +166,9 @@ function teacherColumns({ href, today }: TeacherColumnsInput): DataTableColumn<T
 function TeacherAccess({ row, today }: TeacherAccessInput): ReactElement {
   const enabled =
     row.isEnabled &&
-    (!row.teacherProfile?.departureDate ||
+    (row.role === "ADMIN" ||
+      row.role === "SYSTEM_ADMIN" ||
+      !row.teacherProfile?.departureDate ||
       row.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > today);
   return (
     <Badge variant={enabled ? "success" : "neutral"}>
@@ -156,6 +193,7 @@ type TeacherTableStateInput = {
   filtered: boolean;
 };
 type TeacherColumnsInput = {
+  score: (id: string) => ReactElement | string;
   href: (id: string) => string;
   today: string;
 };

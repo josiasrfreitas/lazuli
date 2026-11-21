@@ -25,8 +25,7 @@ constantes de período. O lint direcionado passou após cada bloco. Os dois
 avisos de segurança introduzidos no Web foram removidos usando pares de
 métricas e associação das séries pelo mês.
 
-`pnpm format:check` passou após remover o cache local
-`.impeccable/hook.cache.json`, ignorado pelo Git. `pnpm typecheck` passou
+`pnpm format:check` passou após remover o cache local ignorado pelo Git. `pnpm typecheck` passou
 14/14, `pnpm lint` 16/16, `pnpm build` 3/3 e o gate de qualidade dos testes
 com 0 erros e 0 avisos. `pnpm test` passou na etapa de scripts, mas a etapa
 paralela de pacotes falhou por tempo na inicialização da API e interrompeu

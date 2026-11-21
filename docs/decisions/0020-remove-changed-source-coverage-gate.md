@@ -5,7 +5,6 @@ Decision date: 2026-09-15
 Acceptance date: 2026-09-15
 Supersedes: Changed-source execution requirements in [0017](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) and [0019](0019-limit-mutation-to-unit-tests.md)
 Superseded by: None
-Legacy sources: None
 
 Implementation evidence: `.github/workflows/ci.yml`, `package.json`, `docs/testing/README.md`.
 

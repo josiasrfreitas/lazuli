@@ -1,25 +1,27 @@
 "use client";
 import { useState } from "react";
-import { BookOpen, Pencil, Plus } from "lucide-react";
+import { Archive, BookOpen, Pencil, Plus } from "lucide-react";
 import {
   Badge,
   Button,
-  DetailHeader,
   EmptyState,
   SegmentedControl,
   SegmentedControlItem,
+  TableContainer,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { BookEditor } from "./book-editor";
 import { ProgramMap } from "./program-map";
 import { StageLoading } from "./loading";
 import { ActionsMenu } from "./catalog-list";
 import { CatalogDialog, type CatalogDialogState } from "./catalog-dialog";
-import { Choice } from "./editor-form";
+
 import { ProgramDialog, type ProgramDialogState } from "./program-dialog";
 import styles from "./workspace.module.css";
 
 import type { StageDetail, TeachingProgram } from "./types";
-import { DEFAULT_TEACHING_MODALITY, TEACHING_HOUR_MINUTES } from "@lazuli/domain";
+import { formatWeeklyHours, programLabel, stageContext } from "./labels";
+import { DEFAULT_TEACHING_MODALITY } from "@lazuli/domain";
 type StageActions = { stage: StageDetail; openCatalog: (item: CatalogDialogState) => void };
 type ProgramActions = { stage: StageDetail; openProgram: (item: ProgramDialogState) => void };
 export function StageEditor({ id }: { id: string }): React.JSX.Element {
@@ -40,12 +42,12 @@ export function StageEditor({ id }: { id: string }): React.JSX.Element {
     );
   return (
     <section className={styles.scroll}>
-      <div className={styles.page}>{content}</div>
+      <div className={styles.detailPage}>{content}</div>
     </section>
   );
 }
 function StageWorkspace({ stage }: { stage: StageDetail }): React.JSX.Element {
-  const [section, setSection] = useState("program");
+  const [section, setSection] = useState<StageSection>("program");
   const [programId, setProgram] = useState<string | null>(null);
   const [catalogDialog, openCatalog] = useState<CatalogDialogState | null>(null);
   const [programDialog, openProgram] = useState<ProgramDialogState | null>(null);
@@ -56,41 +58,48 @@ function StageWorkspace({ stage }: { stage: StageDetail }): React.JSX.Element {
     programs.find((candidate) => candidate.id === programId) ??
     programs.find((candidate) => candidate.scheduleType === "REGULAR") ??
     programs[0];
-  let content: React.JSX.Element;
-  if (section === "lessons") content = <Lessons stage={stage} openCatalog={openCatalog} />;
-  else if (program)
-    content = (
-      <ProgramWorkspace
-        key={program.id}
-        stage={stage}
-        program={program}
-        setProgram={setProgram}
-        openProgram={openProgram}
-      />
-    );
-  else content = <StartProgram stage={stage} openProgram={openProgram} openCatalog={openCatalog} />;
   return (
     <>
-      <StageHeader stage={stage} openCatalog={openCatalog} />
-      <nav className={styles.tabs} aria-label="Conteúdo do estágio">
-        {[
-          ["program", "Programação"],
-          ["lessons", "Lições do livro"],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            aria-current={section === key ? "page" : undefined}
-            onClick={() => setSection(key!)}
-          >
-            {label}
-            {key === "lessons" && <span>{stage.lessonCount ?? stage.lessons.length}</span>}
-          </button>
-        ))}
-      </nav>
-      {content}
+      <StageHeader
+        stage={stage}
+        openCatalog={openCatalog}
+        section={section}
+        setSection={setSection}
+      />
+      <TableContainer>
+        <div className={styles.detailSurface}>
+          <div hidden={section !== "program"}>
+            {program ? (
+              <ProgramMap
+                key={program.id}
+                stage={stage}
+                program={program}
+                open={openProgram}
+                programSelector={
+                  <ProgramSelector
+                    stage={stage}
+                    program={program}
+                    setProgram={setProgram}
+                    openProgram={openProgram}
+                  />
+                }
+              />
+            ) : (
+              <StartProgram stage={stage} openProgram={openProgram} openCatalog={openCatalog} />
+            )}
+            {program && (
+              <footer className={styles.source}>Fonte: {program.source.reference}</footer>
+            )}
+          </div>
+          <div hidden={section !== "lessons"}>
+            <BookEditor stage={stage} announce={setNotice} />
+          </div>
+        </div>
+      </TableContainer>
       {catalogDialog && (
         <CatalogDialog
           item={catalogDialog}
+          stageLabel={stageContext(stage)}
           onClose={() => openCatalog(null)}
           afterSave={() => setNotice("Alteração salva.")}
         />
@@ -112,78 +121,69 @@ function StageWorkspace({ stage }: { stage: StageDetail }): React.JSX.Element {
     </>
   );
 }
-function StageHeader({ stage, openCatalog }: StageActions): React.JSX.Element {
+type StageSection = "program" | "lessons";
+function StageHeader({
+  stage,
+  openCatalog,
+  section,
+  setSection,
+}: StageActions & {
+  section: StageSection;
+  setSection: (value: StageSection) => void;
+}): React.JSX.Element {
   return (
-    <DetailHeader
-      title={stage.name}
-      metadataPlacement="below"
-      metadata={
+    <header className={styles.detailHeading}>
+      <div className={styles.detailIdentity}>
+        <h1>{stage.name}</h1>
         <span className={styles.meta}>
           {stage.track.name} · {stage.internalCode}{" "}
           {(stage.status === "LEGACY" || stage.track.status === "LEGACY") && (
             <Badge variant="neutral">Legacy</Badge>
           )}
         </span>
-      }
-      actions={
-        <ActionsMenu
-          name={stage.name}
-          actions={[
-            {
-              label: "Editar identificação",
-              onClick: () => openCatalog({ action: "editStage", ...stage }),
-            },
-            ...(stage.status === "ACTIVE" && stage.track.status === "ACTIVE"
-              ? [
-                  {
-                    label: "Marcar como Legacy",
-                    onClick: () =>
-                      openCatalog({
-                        action: "legacy",
-                        target: "stage",
-                        id: stage.id,
-                        name: stage.name,
-                      }),
-                  },
-                ]
-              : []),
-          ]}
-        />
-      }
-    />
-  );
-}
-function Lessons({ stage, openCatalog }: StageActions): React.JSX.Element {
-  return (
-    <section>
-      <header className={styles.unitTitle}>
-        <h2>Lições do livro</h2>
-        <Button size="sm" onClick={() => openCatalog({ action: "lesson", stageId: stage.id })}>
-          <Plus />
-          Adicionar lição
-        </Button>
-      </header>
-      {stage.lessons.length === 0 ? (
-        <EmptyState title="O livro ainda não tem lições cadastradas" />
-      ) : (
-        <ol className={styles.lessons}>
-          {stage.lessons.map((lesson) => (
-            <li key={lesson.id}>
-              <span className={styles.ordinal}>{String(lesson.sequence).padStart(2, "0")}</span>
-              <strong>{lesson.title}</strong>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={"Editar " + lesson.title}
-                onClick={() => openCatalog({ action: "lesson", stageId: stage.id, lesson: lesson })}
-              >
-                <Pencil />
-              </Button>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
+      </div>
+      <nav className={styles.tabs} aria-label="Conteúdo do estágio">
+        <button
+          type="button"
+          aria-current={section === "program" ? "page" : undefined}
+          onClick={() => setSection("program")}
+        >
+          Programação
+        </button>
+        <button
+          type="button"
+          aria-current={section === "lessons" ? "page" : undefined}
+          onClick={() => setSection("lessons")}
+        >
+          Lições do livro <span>{stage.lessonCount ?? stage.lessons.length}</span>
+        </button>
+      </nav>
+      <ActionsMenu
+        name={stage.name}
+        actions={[
+          {
+            label: "Editar identificação",
+            icon: Pencil,
+            onClick: () => openCatalog({ action: "editStage", ...stage }),
+          },
+          ...(stage.status === "ACTIVE" && stage.track.status === "ACTIVE"
+            ? [
+                {
+                  label: "Marcar como Legacy",
+                  icon: Archive,
+                  onClick: () =>
+                    openCatalog({
+                      action: "legacy",
+                      target: "stage",
+                      id: stage.id,
+                      name: stage.name,
+                    }),
+                },
+              ]
+            : []),
+        ]}
+      />
+    </header>
   );
 }
 function StartProgram({
@@ -216,7 +216,7 @@ function StartProgram({
     />
   );
 }
-function ProgramWorkspace({
+function ProgramSelector({
   stage,
   program,
   setProgram,
@@ -226,74 +226,43 @@ function ProgramWorkspace({
   setProgram: (id: string) => void;
 }): React.JSX.Element {
   const { programs } = stage;
-  const [exams, setExams] = useState(false);
   return (
-    <>
-      <div className={styles.programBar}>
-        <div>
-          {programs.length > 1 ? (
-            <Choice
-              label="Programação do livro"
-              options={programs.map((candidate) => programOption(candidate))}
-              value={program.id}
-              onChange={setProgram}
-            />
-          ) : (
-            <strong>
-              {program.scheduleType === "REGULAR" ? "Regular" : "PPT"} · {program.teachingHourCount}{" "}
-              horas-aula · {program.modality.weeklyMinutes / TEACHING_HOUR_MINUTES}h/sem.
-            </strong>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SegmentedControl
-            aria-label="Conteúdo da programação"
-            size="sm"
-            value={exams ? "exams" : "all"}
-            onValueChange={(value) => {
-              if (value) setExams(value === "exams");
-            }}
-          >
-            <SegmentedControlItem value="all">Tudo</SegmentedControlItem>
-            <SegmentedControlItem value="exams">
-              Provas ({program.assessmentCount})
+    <div className={styles.programSelection}>
+      {programs.length > 1 ? (
+        <SegmentedControl
+          aria-label="Programação do livro"
+          size="sm"
+          contrast="high"
+          wrap
+          value={program.id}
+          onValueChange={(id) => {
+            if (id) setProgram(id);
+          }}
+        >
+          {programs.map((option) => (
+            <SegmentedControlItem key={option.id} value={option.id}>
+              {programLabel(option, programs)}
             </SegmentedControlItem>
-          </SegmentedControl>
-          {!["REGULAR", "PERSONALIZED"].every((mode) =>
-            programs.some(
-              (candidate) =>
-                candidate.scheduleType === mode &&
-                candidate.modality.weeklyMinutes === DEFAULT_TEACHING_MODALITY.weeklyMinutes,
-            ),
-          ) && (
-            <Button size="sm" variant="ghost" onClick={() => openProgram({ action: "start" })}>
-              <Plus />
-              Adicionar programação
-            </Button>
-          )}
-        </div>
-      </div>
-      <ProgramMap
-        key={program.id}
-        stage={stage}
-        program={program}
-        exams={exams}
-        open={openProgram}
-      />
-      <footer className={styles.source}>Fonte: {program.source.reference}</footer>
-    </>
+          ))}
+        </SegmentedControl>
+      ) : (
+        <strong>{programLabel(program, programs)}</strong>
+      )}
+      <span className={styles.programLoad}>
+        {program.teachingHourCount} h · {formatWeeklyHours(program)} h/sem.
+      </span>
+      {!["REGULAR", "PERSONALIZED"].every((mode) =>
+        programs.some(
+          (candidate) =>
+            candidate.scheduleType === mode &&
+            candidate.modality.weeklyMinutes === DEFAULT_TEACHING_MODALITY.weeklyMinutes,
+        ),
+      ) && (
+        <Button size="sm" variant="ghost" onClick={() => openProgram({ action: "start" })}>
+          <Plus />
+          Adicionar programação
+        </Button>
+      )}
+    </div>
   );
-}
-
-function programOption(candidate: TeachingProgram): { label: string; value: string } {
-  return {
-    value: candidate.id,
-    label:
-      (candidate.scheduleType === "REGULAR" ? "Regular" : "PPT") +
-      " · " +
-      candidate.teachingHourCount +
-      "h · " +
-      candidate.modality.weeklyMinutes / TEACHING_HOUR_MINUTES +
-      "h/sem.",
-  };
 }

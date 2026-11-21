@@ -1,0 +1,24 @@
+/* Apply to the pedagogical analytics container. Shared roles resolve in both themes. */
+.pedagogical-analytics {
+  /* Pair each count with its labeled mark and a lightly tinted summary surface. */
+  --analytics-retained: var(--success);
+  --analytics-retained-surface: var(--success-muted);
+  --analytics-exits: var(--chart-gold);
+  --analytics-renewals: var(--contract-foreground);
+  --analytics-renewals-surface: var(--contract-surface);
+
+  /* Group comparisons share one ink. Sort or select by group independently of color. */
+  --analytics-indicator: var(--info);
+  --analytics-indicator-surface: var(--info-muted);
+  --analytics-comparison: var(--muted-foreground);
+
+  /* Reuse the modality colors students and staff see in the school calendar. */
+  --analytics-regular: var(--lesson-regular-foreground);
+  --analytics-regular-surface: var(--lesson-regular-surface);
+  --analytics-ppt: var(--lesson-personalized-foreground);
+  --analytics-ppt-surface: var(--lesson-personalized-surface);
+
+  /* Show missing data with a text label and a gap. Render measured zero on the axis. */
+  --analytics-missing: var(--muted-foreground);
+  --analytics-selected: var(--selection-indicator);
+}

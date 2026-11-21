@@ -37,7 +37,7 @@ function planBlockers(input: SemesterEligibility): string[] {
   const plan = input.plan;
   if (!plan) return ["Escolha uma turma planejada"];
   const blockers: string[] = [];
-  if (!plan.teacherReady) blockers.push("Professor pendente na data de entrada");
+  if (!plan.teacherReady) blockers.push("Docente pendente na data de entrada");
   if (!plan.active) blockers.push("Turma de destino indisponível");
   if (plan.scheduleType === "REGULAR" && plan.sharedStageId !== input.stage?.id)
     blockers.push("Estágio diferente do estágio da turma regular");

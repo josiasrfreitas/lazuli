@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { RecordTabs, RecordTabsList } from "~/components/record-tabs";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import {
   BookOpen,
   LayoutDashboard,
@@ -8,7 +9,7 @@ import {
   ChartNoAxesCombined,
 } from "lucide-react";
 import { parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
-import { Button, Tabs, TabsList, TabsPanel, TabsTab } from "@lazuli/ui";
+import { Button, TabsPanel, TabsTab } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
 import { useSectionCarousel } from "~/lib/use-section-carousel";
@@ -118,7 +119,7 @@ function ClassSections({
     parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION),
   );
   const pendingLessons = usePendingLessonCount(detail.id);
-  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "classCarousel" });
+  const switchSection = useSectionCarousel({ order: SECTIONS, scope: "recordCarousel" });
   const changeSection = (value: string): void => {
     const selected = SECTIONS.find((candidate) => candidate === value) ?? OVERVIEW_SECTION;
     switchSection(activeSection, { next: selected, update: () => void setSection(selected) });
@@ -128,21 +129,6 @@ function ClassSections({
     section === "alunos" || (section === "planejamento" && detail.scheduleType !== "REGULAR")
       ? OVERVIEW_SECTION
       : section;
-  const navigation = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const element = navigation.current;
-    if (!element) return;
-    const revealSelection = (): void => {
-      element.querySelector('[role="tab"][aria-selected="true"]')?.scrollIntoView({
-        block: "nearest",
-        inline: "nearest",
-      });
-    };
-    revealSelection();
-    const observer = new ResizeObserver(revealSelection);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [activeSection]);
   return (
     <div
       className={styles.sections}
@@ -150,28 +136,28 @@ function ClassSections({
       data-lessons={section === "aulas" || undefined}
       data-overview={activeSection === OVERVIEW_SECTION || undefined}
     >
-      <Tabs value={activeSection} variant="underline" size="md" onValueChange={changeSection}>
+      <RecordTabs value={activeSection} onValueChange={changeSection}>
         <div className={styles.header}>
           <ClassIdentityHeader
             detail={detail}
             onAssign={onAssign}
             navigation={
-              <div ref={navigation} className={styles.tabNavigation}>
-                <ClassTabs
-                  regular={detail.scheduleType === "REGULAR"}
-                  pendingLessons={pendingLessons}
-                />
-                {detail.canDissolve && (
-                  <Button variant="destructive-ghost" size="sm" onClick={onDissolve}>
-                    Desfazer turma
-                  </Button>
-                )}
-              </div>
+              <ClassTabs
+                regular={detail.scheduleType === "REGULAR"}
+                pendingLessons={pendingLessons}
+                action={
+                  detail.canDissolve && (
+                    <Button variant="destructive-ghost" size="sm" onClick={onDissolve}>
+                      Desfazer turma
+                    </Button>
+                  )
+                }
+              />
             }
           />
         </div>
         <ClassSectionPanels detail={detail} editCapacity={editCapacity} />
-      </Tabs>
+      </RecordTabs>
     </div>
   );
 }
@@ -225,12 +211,14 @@ function ClassPlanningPanel({ classId }: { classId: string }): ReactElement {
 function ClassTabs({
   regular,
   pendingLessons,
+  action,
 }: {
   regular: boolean;
   pendingLessons: number;
+  action: ReactNode;
 }): ReactElement {
   return (
-    <TabsList aria-label="Seções da turma">
+    <RecordTabsList label="Seções da turma" action={action}>
       <TabsTab value={OVERVIEW_SECTION}>
         <LayoutDashboard aria-hidden="true" />
         Visão geral
@@ -250,7 +238,7 @@ function ClassTabs({
           Planejamento
         </TabsTab>
       )}
-    </TabsList>
+    </RecordTabsList>
   );
 }
 
