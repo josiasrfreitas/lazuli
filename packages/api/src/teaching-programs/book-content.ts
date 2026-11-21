@@ -43,21 +43,7 @@ export async function saveBookContent(tx: Tx, input: BookContentCommand): Promis
     select: { id: true },
   });
   if (!lesson) throw badRequest("Escolha uma lição deste livro.");
-  if (input.action === "pages") {
-    const { start, end } = input;
-    if (end < start) throw badRequest("A página final deve ser igual ou maior que a inicial.");
-    if (end - start >= 5000) throw badRequest("Adicione até 5.000 páginas por vez.");
-    const existing = await tx.bookLessonPage.findMany({
-      where: { lessonId, number: { gte: start, lte: end } },
-      select: { number: true },
-    });
-    const found = new Set(existing.map((page) => page.number));
-    const data = [];
-    for (let number = start; number <= end; number++)
-      if (!found.has(number)) data.push({ lessonId, number });
-    if (data.length) await tx.bookLessonPage.createMany({ data });
-    return { id: lessonId };
-  }
+  if (input.action === "pages") return savePages(tx, input);
   if (input.action === "part") return savePart(tx, input);
   if (
     input.partId &&
@@ -68,6 +54,35 @@ export async function saveBookContent(tx: Tx, input: BookContentCommand): Promis
   )
     throw badRequest("Escolha uma parte desta lição.");
   if (input.action === "page") return savePage(tx, input);
+  return savePageActivity(tx, input);
+}
+
+const MAX_PAGES_PER_WRITE = 5000;
+async function savePages(
+  tx: Tx,
+  input: Extract<BookContentCommand, { action: "pages" }>,
+): Promise<{ id: string }> {
+  const { lessonId } = input;
+  const { start, end } = input;
+  if (end < start) throw badRequest("A página final deve ser igual ou maior que a inicial.");
+  if (end - start >= MAX_PAGES_PER_WRITE) throw badRequest("Adicione até 5.000 páginas por vez.");
+  const existing = await tx.bookLessonPage.findMany({
+    where: { lessonId, number: { gte: start, lte: end } },
+    select: { number: true },
+  });
+  const found = new Set(existing.map((page) => page.number));
+  const data = [];
+  for (let number = start; number <= end; number++)
+    if (!found.has(number)) data.push({ lessonId, number });
+  if (data.length > 0) await tx.bookLessonPage.createMany({ data });
+  return { id: lessonId };
+}
+
+async function savePageActivity(
+  tx: Tx,
+  input: Extract<BookContentCommand, { action: "pageActivity" }>,
+): Promise<{ id: string }> {
+  const { lessonId } = input;
   const page = await tx.bookLessonPage.findFirst({
     where: { id: input.pageId, lessonId, ...(input.partId ? { partId: input.partId } : {}) },
     select: { id: true },

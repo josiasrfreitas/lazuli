@@ -9,7 +9,8 @@ import {
 import type { Context } from "../trpc/context.js";
 import { adminProcedure } from "../trpc/init.js";
 
-const EXPORT_LIFETIME_MS = 24 * 60 * 60 * 1000;
+const MILLISECONDS_PER_DAY = 86_400_000;
+const EXPORT_LIFETIME_MS = MILLISECONDS_PER_DAY;
 
 export const requestTableExport = adminProcedure
   .input(tableExportSchema)

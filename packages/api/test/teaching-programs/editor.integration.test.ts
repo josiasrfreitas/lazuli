@@ -130,29 +130,34 @@ void it("links whole and partial book passages in either program and rejects a m
   const foreign = await catalog.editCatalog({ action: "lesson", stageId, title: "Outro livro" });
   const lesson = await catalog.editCatalog({ action: "lesson", ...bookStage, title: "Lição 3" });
   const parent = { ...bookStage, lessonId: lesson.id };
-  const a = await catalog.editCatalog({ action: "part", ...parent, title: "Parte A" });
-  const b = await catalog.editCatalog({ action: "part", ...parent, title: "Parte B" });
+  const partA = await catalog.editCatalog({ action: "part", ...parent, title: "Parte A" });
+  const partB = await catalog.editCatalog({ action: "part", ...parent, title: "Parte B" });
   await assert.rejects(
     catalog.editCatalog({ action: "part", ...parent, title: "parte a" }),
     /já tem uma parte/,
   );
   await assert.rejects(
-    catalog.editCatalog({ action: "page", ...parent, stageId, partId: a.id, number: 18 }),
+    catalog.editCatalog({ action: "page", ...parent, stageId, partId: partA.id, number: 18 }),
     /lição deste livro/,
   );
-  const page = await catalog.editCatalog({ action: "page", ...parent, partId: a.id, number: 18 });
-  await catalog.editCatalog({ action: "page", ...parent, partId: a.id, number: 19 });
+  const page = await catalog.editCatalog({
+    action: "page",
+    ...parent,
+    partId: partA.id,
+    number: 18,
+  });
+  await catalog.editCatalog({ action: "page", ...parent, partId: partA.id, number: 19 });
   const otherPage = await catalog.editCatalog({
     action: "page",
     ...parent,
-    partId: b.id,
+    partId: partB.id,
     number: 18,
   });
   await assert.rejects(
-    catalog.editCatalog({ action: "page", ...parent, partId: a.id, number: 18 }),
+    catalog.editCatalog({ action: "page", ...parent, partId: partA.id, number: 18 }),
     /já existe/,
   );
-  const onPage = { ...parent, partId: a.id, pageId: page.id };
+  const onPage = { ...parent, partId: partA.id, pageId: page.id };
   const one = await catalog.editCatalog({
     action: "pageActivity",
     ...onPage,
@@ -164,7 +169,12 @@ void it("links whole and partial book passages in either program and rejects a m
     title: "Exercício 2",
   });
   await assert.rejects(
-    catalog.editCatalog({ action: "pageActivity", ...onPage, partId: b.id, title: "Incompatível" }),
+    catalog.editCatalog({
+      action: "pageActivity",
+      ...onPage,
+      partId: partB.id,
+      title: "Incompatível",
+    }),
     /página desta parte/,
   );
   for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
@@ -176,7 +186,7 @@ void it("links whole and partial book passages in either program and rejects a m
       assessmentTitle: "Prova",
     });
     const unit = (await catalog.detail({ id: nextStageId }))!.programs.find(
-      (p) => p.id === program.id,
+      (entry) => entry.id === program.id,
     )!.units[0]!;
     await catalog.editProgram({
       action: "hour",
@@ -186,7 +196,7 @@ void it("links whole and partial book passages in either program and rejects a m
       title: "Leitura",
     });
   }
-  const read = () => catalog.detail({ id: nextStageId });
+  const read = (): ReturnType<typeof catalog.detail> => catalog.detail({ id: nextStageId });
   const book = await read();
   assert.deepEqual(
     book?.lessons[0]?.parts.map((item) => [
@@ -205,8 +215,8 @@ void it("links whole and partial book passages in either program and rejects a m
     ],
   );
   const base = { id: lesson.id, part: "" };
-  const full = { ...base, partId: a.id, pageId: page.id, pageActivityId: two.id };
-  for (const program of book!.programs) {
+  const full = { ...base, partId: partA.id, pageId: page.id, pageActivityId: two.id };
+  for (const program of book.programs) {
     const hour = program.units[0]!.teachingHours[0]!;
     const insert = {
       action: "activity" as const,
@@ -225,13 +235,13 @@ void it("links whole and partial book passages in either program and rejects a m
     };
     for (const [reference, reason] of [
       [{ ...full, id: foreign.id }, /lição deste livro/],
-      [{ ...full, partId: b.id }, /página desta parte/],
-      [{ ...full, partId: b.id, pageId: otherPage.id }, /atividade desta página/],
+      [{ ...full, partId: partB.id }, /página desta parte/],
+      [{ ...full, partId: partB.id, pageId: otherPage.id }, /atividade desta página/],
       [{ ...base, pageId: foreign.id }, /página/],
     ] as const)
       await assert.rejects(catalog.editProgram({ ...insert, lessons: [reference] }), reason);
     await assert.rejects(catalog.editProgram({ ...insert, lessons: [full, full] }), /repetida/);
-    const untouched = (await read())!.programs.find((p) => p.id === program.id)!.units[0]!
+    const untouched = (await read())!.programs.find((entry) => entry.id === program.id)!.units[0]!
       .teachingHours[0]!;
     assert.deepEqual(
       [
@@ -244,8 +254,8 @@ void it("links whole and partial book passages in either program and rejects a m
       ...insert,
       lessons: [
         base,
-        { ...base, partId: b.id },
-        { ...base, partId: a.id, pageId: page.id },
+        { ...base, partId: partB.id },
+        { ...base, partId: partA.id, pageId: page.id },
         { ...full, pageActivityId: one.id },
         full,
         { ...base, part: "Parte livre" },
@@ -262,12 +272,12 @@ void it("links whole and partial book passages in either program and rejects a m
   await catalog.editCatalog({
     action: "page",
     ...parent,
-    partId: a.id,
+    partId: partA.id,
     pageId: page.id,
     number: 20,
   });
   const updated = await read();
-  assert.deepEqual(updated!.programs.map((p) => p.scheduleType).sort(), [
+  assert.deepEqual(updated!.programs.map((entry) => entry.scheduleType).toSorted(), [
     "PERSONALIZED",
     "REGULAR",
   ]);
@@ -286,7 +296,7 @@ void it("links whole and partial book passages in either program and rejects a m
           .filter(Boolean)
           .join(" / "),
       )
-      .sort();
+      .toSorted();
     assert.deepEqual(references, [
       "Lição 3",
       "Lição 3 / Parte A / 20",
@@ -300,7 +310,7 @@ void it("links whole and partial book passages in either program and rejects a m
       context
         .get(activities[0]!.id)
         ?.lessons.map((row) => row.part)
-        .sort(),
+        .toSorted(),
       ["", "Parte A", "Parte B", "Parte livre"],
     );
   }
@@ -316,14 +326,19 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     assessmentTitle: "Prova escrita",
   });
   type Program = NonNullable<Awaited<ReturnType<typeof catalog.detail>>>["programs"][number];
-  const load = async (): Promise<Program> => {
+  const loadProgram = async (): Promise<Program> => {
     const stage = await catalog.detail({ id: stageId });
-    const record = stage?.programs.find((candidate) => candidate.id === program.id);
+    assert.ok(stage);
+    const record = stage.programs.find((candidate) => candidate.id === program.id);
     assert.ok(record);
     return record;
   };
+  const load = async (): Promise<Program["units"][number]> => {
+    const current = await loadProgram();
+    return current.units[0]!;
+  };
   const currentProgram = await load();
-  const unitId = currentProgram.units[0]!.id;
+  const unitId = currentProgram.id;
   const common = { stageId, programId: program.id, unitId };
   await catalog.editProgram({ action: "hour", ...common, lessonId: lesson.id, title: "Leitura" });
   await catalog.editCatalog({
@@ -333,9 +348,9 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     title: "Greetings and introductions",
   });
   const withLesson = await load();
-  let hour = withLesson.units[0]!.teachingHours[0]!;
+  let hour = withLesson.teachingHours[0]!;
   const first = hour.activities[0]!;
-  assert.equal(first.lessons[0]?.title, "Greetings and introductions");
+  assert.equal(first.lessons[0]!.title, "Greetings and introductions");
   const add = {
     action: "activity",
     stageId,
@@ -354,7 +369,7 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
   } as const;
   await catalog.editProgram({ ...add, lessons: [], others: [...add.others] });
   const withTwoActivities = await load();
-  hour = withTwoActivities.units[0]!.teachingHours[0]!;
+  hour = withTwoActivities.teachingHours[0]!;
   const last = hour.activities[1]!;
   const insert = {
     ...add,
@@ -373,15 +388,13 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
   await assert.rejects(catalog.editProgram({ ...insert, durationMinutes: 9 }), /60 minutos/);
   const afterRejectedInsert = await load();
   assert.deepEqual(
-    afterRejectedInsert.units[0]!.teachingHours[0]!.activities.map(
-      (activity) => activity.durationMinutes,
-    ),
+    afterRejectedInsert.teachingHours[0]!.activities.map((activity) => activity.durationMinutes),
     [30, 30],
   );
   await catalog.editProgram(insert);
   await assert.rejects(catalog.editProgram(insert), /mudou/);
   const withThreeActivities = await load();
-  hour = withThreeActivities.units[0]!.teachingHours[0]!;
+  hour = withThreeActivities.teachingHours[0]!;
   assert.deepEqual(
     hour.activities.map((activity) => [
       activity.bookTitle,
@@ -431,8 +444,9 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
       { id: saved.id, minutes: 10 },
     ],
   });
-  hour = (await load()).units[0]!.teachingHours[0]!;
-  assert.equal(hour.activities[2]!.lessons[0]?.pageActivity?.id, exercise.id);
+  const resolvedPages = await load();
+  hour = resolvedPages.teachingHours[0]!;
+  assert.equal(hour.activities[2]!.lessons[0]!.pageActivity!.id, exercise.id);
   const move = {
     action: "moveActivity" as const,
     stageId,
@@ -444,7 +458,8 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
   };
   await catalog.editProgram(move);
   await assert.rejects(catalog.editProgram(move), /mudou/);
-  hour = (await load()).units[0]!.teachingHours[0]!;
+  const reordered = await load();
+  hour = reordered.teachingHours[0]!;
   assert.deepEqual(
     hour.activities.map((row) => [row.id, row.durationMinutes]),
     [
@@ -496,7 +511,8 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     pageEnd: null,
     expectedChange: hour.lastChange,
   });
-  hour = (await load()).units[0]!.teachingHours[0]!;
+  const edited = await load();
+  hour = edited.teachingHours[0]!;
   assert.equal(
     hour.activities.find((row) => row.id === saved.id)?.instructions,
     "Trabalhar em duplas.",
@@ -522,7 +538,8 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
   );
   await catalog.editProgram(remove);
   await assert.rejects(catalog.editProgram(remove), /mudou/);
-  hour = (await load()).units[0]!.teachingHours[0]!;
+  const deleted = await load();
+  hour = deleted.teachingHours[0]!;
   assert.deepEqual(
     hour.activities.map((row) => [row.id, row.durationMinutes]),
     [
@@ -551,7 +568,7 @@ void it("writes lesson references, pages and a full 60-minute distribution atomi
     lessonId: null,
     title: "Continuação da prova escrita",
   });
-  const withExamContinuation = await load();
+  const withExamContinuation = await loadProgram();
   const units = withExamContinuation.units;
   assert.deepEqual(
     units.map((unit) => unit.teachingHours.map((teachingHour) => teachingHour.sequence)),

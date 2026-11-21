@@ -7,6 +7,7 @@ import { lockProgramStage } from "./import.js";
 import { bookPageNumber, id, MAX_PART_LENGTH, title } from "./catalog-editor.js";
 import { bookLessonSelect } from "./book-content.js";
 
+const MAX_INSTRUCTIONS_LENGTH = 5000;
 const EDIT_TIMEOUT_MS = 15_000;
 type Tx = Prisma.TransactionClient;
 const newUnit = { unitTitle: title, assessmentTitle: title };
@@ -44,7 +45,7 @@ export const programCommand = z.discriminatedUnion("action", [
     hourId: id,
     activityId: id,
     expectedChange: z.string(),
-    others: z.array(z.object({ id, minutes: minute })).max(60),
+    others: z.array(z.object({ id, minutes: minute })).max(TEACHING_HOUR_MINUTES),
   }),
   z.object({
     action: z.literal("moveActivity"),
@@ -58,7 +59,7 @@ export const programCommand = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("activity"),
     resolvePages: z.boolean().optional(),
-    instructions: z.string().trim().max(5000).nullable().optional(),
+    instructions: z.string().trim().max(MAX_INSTRUCTIONS_LENGTH).nullable().optional(),
     stageId: id,
     programId: id,
     hourId: id,
@@ -260,7 +261,7 @@ function validateActivityReferences(input: ActivityCommand): void {
 }
 
 async function assertBookReferences(tx: Tx, { stageId, lessons }: ActivityCommand): Promise<void> {
-  if (!lessons.length) return;
+  if (lessons.length === 0) return;
   const book = await tx.bookLesson.findMany({
     where: { stageId, id: { in: lessons.map((link) => link.id) } },
     select: bookLessonSelect,
@@ -268,15 +269,27 @@ async function assertBookReferences(tx: Tx, { stageId, lessons }: ActivityComman
   for (const link of lessons) {
     const lesson = book.find((entry) => entry.id === link.id);
     if (!lesson) throw badRequest("Escolha uma lição deste livro.");
-    const part = lesson.parts.find((entry) => entry.id === link.partId);
-    const page = (link.partId ? part?.pages : lesson.pages)?.find(
-      (entry) => entry.id === link.pageId,
-    );
-    if (link.partId && (!part || link.part)) throw badRequest("Escolha uma parte desta lição.");
-    if (link.pageId && !page) throw badRequest("Escolha uma página desta parte.");
-    if (link.pageActivityId && !page?.activities.some((entry) => entry.id === link.pageActivityId))
-      throw badRequest("Escolha uma atividade desta página.");
+    validateBookPath(lesson, link);
   }
+}
+
+type CatalogLesson = Prisma.BookLessonGetPayload<{ select: typeof bookLessonSelect }>;
+
+function validateBookPath(lesson: CatalogLesson, link: ActivityCommand["lessons"][number]): void {
+  const page = referencedPages(lesson, link).find((entry) => entry.id === link.pageId);
+  if (link.pageId && !page) throw badRequest("Escolha uma página desta parte.");
+  if (link.pageActivityId && !page?.activities.some((entry) => entry.id === link.pageActivityId))
+    throw badRequest("Escolha uma atividade desta página.");
+}
+
+function referencedPages(
+  lesson: CatalogLesson,
+  link: ActivityCommand["lessons"][number],
+): CatalogLesson["pages"] {
+  if (!link.partId) return lesson.pages;
+  const part = lesson.parts.find((entry) => entry.id === link.partId);
+  if (!part || link.part) throw badRequest("Escolha uma parte desta lição.");
+  return part.pages;
 }
 
 function activitySlot(rows: HourActivity[], input: ActivityCommand): ActivitySlot {
@@ -346,7 +359,7 @@ async function writeActivity(
       : null;
   const data = {
     title: input.title,
-    ...(input.instructions !== undefined ? { instructions: input.instructions || null } : {}),
+    ...(input.instructions === undefined ? {} : { instructions: input.instructions || null }),
     kind,
     durationMinutes: input.durationMinutes,
     pageStart,
@@ -419,33 +432,38 @@ async function moveActivity(
     throw badRequest("A hora mudou. Confira a ordem atual.");
   const rows = hour.activities;
   const from = rows.findIndex((row) => row.id === input.activityId);
-  if (from < 0 || input.position >= rows.length) throw badRequest("Posição inválida nesta hora.");
+  if (from === -1 || input.position >= rows.length)
+    throw badRequest("Posição inválida nesta hora.");
   if (from === input.position) return;
-  const ordered = rows.slice();
+  const ordered = [...rows];
   ordered.splice(input.position, 0, ordered.splice(from, 1)[0]!);
-  const exam = ordered.findIndex((row) => row.kind === "ASSESSMENT");
-  if (exam >= 0 && ordered.slice(exam).some((row) => row.kind !== "ASSESSMENT"))
-    throw badRequest("A prova precisa encerrar a unidade.");
+  assertAssessmentOrder(ordered);
   const max = await tx.programActivity.aggregate({
     where: { programId: input.programId, deletedAt: {} },
     _max: { sequence: true },
   });
-  const changed = ordered.filter((row, i) => row.id !== rows[i]!.id);
+  const changed = ordered.filter((row, index) => row.id !== rows[index]!.id);
   await tx.programActivity.updateMany({
     where: { id: { in: changed.map((row) => row.id) } },
     data: { sequence: { increment: (max._max.sequence ?? 0) + 1 } },
   });
-  for (const [i, row] of ordered.entries())
-    if (row.id !== rows[i]!.id)
+  for (const [index, row] of ordered.entries())
+    if (row.id !== rows[index]!.id)
       await tx.programActivity.update({
         where: { id: row.id },
-        data: { sequence: rows[i]!.sequence },
+        data: { sequence: rows[index]!.sequence },
       });
   await tx.teachingHour.update({
     where: { id: hour.id },
     data: { updatedAt: new Date(Math.max(Date.now(), hour.updatedAt.getTime() + 1)) },
   });
 }
+function assertAssessmentOrder(ordered: ReadonlyArray<{ kind: string }>): void {
+  const exam = ordered.findIndex((row) => row.kind === "ASSESSMENT");
+  if (exam !== -1 && ordered.slice(exam).some((row) => row.kind !== "ASSESSMENT"))
+    throw badRequest("A prova precisa encerrar a unidade.");
+}
+
 async function saveActivity(tx: Tx, input: ActivityCommand): Promise<void> {
   const hour = await tx.teachingHour.findFirst({
     where: { id: input.hourId, programId: input.programId },
@@ -461,7 +479,7 @@ async function saveActivity(tx: Tx, input: ActivityCommand): Promise<void> {
     });
     const matches = bookPageRange(book, input.pageStart, input.pageEnd ?? input.pageStart);
     const lessons = matches.flatMap(({ lessonId, page }) =>
-      (page.activities.length ? page.activities.map((a) => a.id) : [null]).map(
+      (page.activities.length > 0 ? page.activities.map((activity) => activity.id) : [null]).map(
         (pageActivityId) => ({
           id: lessonId,
           part: "",
@@ -472,7 +490,7 @@ async function saveActivity(tx: Tx, input: ActivityCommand): Promise<void> {
       ),
     );
     if (input.kind !== "ASSESSMENT")
-      input = { ...input, kind: lessons.length ? "LESSON" : "ACTIVITY", lessons };
+      input = { ...input, kind: lessons.length > 0 ? "LESSON" : "ACTIVITY", lessons };
   }
   validateActivityReferences(input);
   const slot = activitySlot(hour.activities, input);

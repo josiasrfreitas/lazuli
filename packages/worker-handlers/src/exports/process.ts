@@ -42,7 +42,7 @@ export async function processTableExport(
           select: { id: true },
         });
         if (!user) throw new Error("EXPORT_ACCESS_DENIED");
-        return readExport(tx, request.source, actor, artifact.requestedAt);
+        return readExport(tx, { source: request.source, actor, now: artifact.requestedAt });
       },
       { isolationLevel: "RepeatableRead", timeout: 180_000 },
     );
@@ -82,7 +82,7 @@ export async function removeExpiredTableExports(db: DatabaseClient): Promise<voi
       take: 50,
       orderBy: { id: "asc" },
     });
-    if (!rows.length) return;
+    if (rows.length === 0) return;
     for (const row of rows) {
       if (row.storageBucket && row.storageObject) {
         await getStorage().remove({ bucket: row.storageBucket, key: row.storageObject });

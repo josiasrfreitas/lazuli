@@ -6,8 +6,16 @@ export type Tone = "success" | "warning" | "danger" | "muted";
 type Value = { value: string | number; format?: string; tone?: Tone };
 export type ExportValue = string | number | Value;
 export type ExportTable = { headings: string[]; rows: ExportValue[][] };
+const CENTS_PER_REAL = 100;
+const MIN_COLUMN_WIDTH = 15;
+const MAX_COLUMN_WIDTH = 60;
+const HEADING_PADDING = 4;
+const CELL_PADDING = 3;
 const colors = { success: "#176046", warning: "#865500", danger: "#9C3434", muted: "#536376" };
-export const money = (cents: number): Value => ({ value: cents / 100, format: '"R$" #,##0.00' });
+export const money = (cents: number): Value => ({
+  value: cents / CENTS_PER_REAL,
+  format: '"R$" #,##0.00',
+});
 export const percent = (value: number): Value => ({ value, format: "0%" });
 export function buildWorkbook(request: TableExportRequest, table: ExportTable): Promise<Buffer> {
   const header = (labels: string[]): Row =>
@@ -35,14 +43,16 @@ export function buildWorkbook(request: TableExportRequest, table: ExportTable): 
     ],
     header(table.headings),
   ];
-  const widths = table.headings.map((label) => Math.max(15, label.length + 4));
+  const widths = table.headings.map((label) =>
+    Math.max(MIN_COLUMN_WIDTH, label.length + HEADING_PADDING),
+  );
   for (const [index, values] of table.rows.entries()) {
     data.push(
       values.map((entry, column) => {
         const cell = typeof entry === "object" ? entry : { value: entry };
         widths[column] = Math.min(
-          60,
-          Math.max(widths[column] ?? 15, String(cell.value).length + 3),
+          MAX_COLUMN_WIDTH,
+          Math.max(widths[column] ?? MIN_COLUMN_WIDTH, String(cell.value).length + CELL_PADDING),
         );
         return {
           value: cell.value,

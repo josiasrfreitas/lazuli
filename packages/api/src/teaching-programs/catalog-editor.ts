@@ -10,7 +10,8 @@ import { saveBookContent } from "./book-content.js";
 const MAX_TITLE_LENGTH = 180;
 const MAX_CODE_LENGTH = 40;
 export const MAX_PART_LENGTH = 80;
-export const bookPageNumber = z.number().int().positive().max(2_147_483_647);
+const MAX_PAGE_NUMBER = 2_147_483_647;
+export const bookPageNumber = z.number().int().positive().max(MAX_PAGE_NUMBER);
 export const id = z.string().uuid();
 export const title = z.string().trim().min(1, "Informe um nome.").max(MAX_TITLE_LENGTH);
 const code = z.string().trim().min(1, "Informe o código.").max(MAX_CODE_LENGTH);
@@ -150,24 +151,25 @@ export function editCatalog(db: DatabaseClient, input: Command): Promise<{ id: s
         return move(tx, input);
       }
       case "legacy": {
-        const where = { id: input.id, deletedAt: null };
-        const data = { status: "LEGACY" as const };
-        return input.target === "track"
-          ? tx.track.update({ where, data, select: { id: true } })
-          : tx.stage.update({ where, data, select: { id: true } });
+        return archive(tx, input);
       }
       case "lesson": {
         return saveLesson(tx, input);
       }
-      case "pages":
-      case "part":
-      case "page":
-      case "pageActivity": {
+      default: {
         return saveBookContent(tx, input);
       }
     }
   });
 }
+function archive(tx: Tx, input: Extract<Command, { action: "legacy" }>): Promise<{ id: string }> {
+  const where = { id: input.id, deletedAt: null };
+  const data = { status: "LEGACY" as const };
+  return input.target === "track"
+    ? tx.track.update({ where, data, select: { id: true } })
+    : tx.stage.update({ where, data, select: { id: true } });
+}
+
 async function move(tx: Tx, input: Extract<Command, { action: "move" }>): Promise<{ id: string }> {
   const visibility = input.showLegacy ? {} : { status: "ACTIVE" as const };
   const delta = input.direction === "up" ? -1 : 1;
