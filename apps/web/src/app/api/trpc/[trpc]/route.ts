@@ -39,7 +39,7 @@ function handleTRPCRequest(request: Request): Promise<Response> {
             procedure: path,
             procedure_type: type,
             operation: request.method,
-            user_id: ctx?.staffUser?.id,
+            user_id: ctx?.staffUser?.viewer?.id ?? ctx?.staffUser?.id,
             error_code: error.code,
             error_cause_name: cause.error_name,
             ...(cause.error_code ? { error_cause_code: cause.error_code } : {}),

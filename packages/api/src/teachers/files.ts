@@ -22,7 +22,7 @@ const fileSelect = {
   createdAt: true,
 } as const;
 function requireAdmin(ctx: Context): void {
-  if (!ctx.staffUser || !["ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
+  if (!ctx.staffUser || !["ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
     throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito à administração." });
 }
 export async function listTeacherFiles(

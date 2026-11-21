@@ -49,7 +49,7 @@ export const teacherUpdateInputSchema = teacherFields.extend({ id });
 export const employeeFields = teacherFields.extend({
   area: z.enum(["SECRETARIAT", "MANAGEMENT", "PEDAGOGY", "COMMERCIAL"]),
   jobTitle: z.string().trim().min(1, "Informe o cargo.").max(MAX_JOB_TITLE_LENGTH),
-  role: z.enum(["SYSTEM_ADMIN", "ADMIN", "SECRETARY", "TEACHER", "FINANCE"]),
+  role: z.enum(["SUPER_ADMIN", "SYSTEM_ADMIN", "ADMIN", "SECRETARY", "TEACHER", "FINANCE"]),
   teaches: z.boolean(),
 });
 export const teacherFileUploadSchema = z

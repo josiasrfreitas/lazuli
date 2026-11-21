@@ -34,7 +34,14 @@ export type ClientError = TRPCClientErrorLike<AppRouter>;
 export type TRPCClient = ReturnType<typeof trpc.createClient>;
 
 export function createTRPCClient(): TRPCClient {
+  const teacher = new URLSearchParams(globalThis.location?.search).get("docente");
   return trpc.createClient({
-    links: [httpBatchLink({ url: TRPC_ENDPOINT, transformer: superjson })],
+    links: [
+      httpBatchLink({
+        url: TRPC_ENDPOINT,
+        headers: teacher ? { "x-lazuli-teacher": teacher } : {},
+        transformer: superjson,
+      }),
+    ],
   });
 }

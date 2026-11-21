@@ -27,9 +27,13 @@ export async function attendanceStatus(
   return {
     sessionId,
     format: session.class.format,
-    restriction: openingRestriction(session, context.now),
-    confirmationRestriction:
-      windows.length > 0
+    readOnly: Boolean(context.staffUser.viewer),
+    restriction: context.staffUser.viewer
+      ? "Visualização somente leitura."
+      : openingRestriction(session, context.now),
+    confirmationRestriction: context.staffUser.viewer
+      ? "Visualização somente leitura."
+      : windows.length > 0
         ? "Confira as declarações e confirme presença e conteúdo pelo registro da aula."
         : attendanceReviewRestriction(context, session),
     windows,

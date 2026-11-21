@@ -1,5 +1,5 @@
 import type { JSX as ReactJSX } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { ClassRecordTrigger } from "~/features/class-records/class-record-trigger";
 import { CalendarDays, History, MapPin, UserRound } from "lucide-react";
 import { Button, DialogDescription, DialogHeader, DialogTitle } from "@lazuli/ui";

@@ -167,6 +167,7 @@ function TeacherAccess({ row, today }: TeacherAccessInput): ReactElement {
   const enabled =
     row.isEnabled &&
     (row.role === "ADMIN" ||
+      row.role === "SUPER_ADMIN" ||
       row.role === "SYSTEM_ADMIN" ||
       !row.teacherProfile?.departureDate ||
       row.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > today);

@@ -1,7 +1,7 @@
 "use client";
 import { StudentAttendanceSection } from "~/features/student-attendance/staff-section";
 import { useState, type ReactElement } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { Alert, Badge, Button, type BadgeVariant } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { ClassRecordEditor } from "./editor";

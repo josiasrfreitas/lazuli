@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { AcademicCalendar } from "~/features/academic-calendar/calendar";
 import type { JSX as ReactJSX } from "react";
 import type { Metadata } from "next";
@@ -14,7 +15,7 @@ export default async function Page({
 }): Promise<ReactJSX.Element> {
   const identity = await requireRole(["ADMIN", "SYSTEM_ADMIN", "TEACHER"]);
   const teacherView = identity.role === "TEACHER";
-  const admin = identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN";
+  const admin = isAdministrativeRole(identity.role);
   const params = await searchParams;
   if (admin && params.visao === "academico") return <AcademicCalendar />;
   if (Object.keys(params).length > 0)
@@ -23,7 +24,7 @@ export default async function Page({
   const today = schoolToday();
   const from = monday(today);
   const to = shiftDate(from, LAST_WEEKDAY_OFFSET);
-  const caller = await createPageCaller(identity.email);
+  const caller = await createPageCaller(identity.viewer?.email ?? identity.email);
   const [lessons, appointments, experiments] = await Promise.all([
     caller.classRecords.list({ from, to }).then(
       (data) => ({ data, updatedAt: Date.now() }),

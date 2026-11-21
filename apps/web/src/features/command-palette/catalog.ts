@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import type { StaffRole } from "@lazuli/auth";
 import type { RouterOutputs } from "@lazuli/api";
 import { navSectionsFor } from "~/components/app-shell/nav-items";
@@ -89,7 +90,7 @@ export function studentActions(id: string): CommandAction[] {
 }
 
 export function contextCommands(role: StaffRole, pathname: string): Command[] {
-  if (role !== "ADMIN" && role !== "SYSTEM_ADMIN") return [];
+  if (!isAdministrativeRole(role)) return [];
   const student = /^\/alunos\/([\da-f-]+)$/i.exec(pathname)?.[1];
   if (!student) return [];
   return studentActions(student).map((action) => ({

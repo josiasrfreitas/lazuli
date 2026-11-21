@@ -87,7 +87,12 @@ export async function loadPlanningScope(
   }
   assertReadableEnrollment(context, { progress, today });
   return {
-    ...scopeFor({ classRow, progress, today, substituteOnly }),
+    ...scopeFor({
+      classRow,
+      progress,
+      today,
+      substituteOnly: substituteOnly || Boolean(context.staffUser.viewer),
+    }),
     canAdjust: context.staffUser.role !== "TEACHER",
   };
 }

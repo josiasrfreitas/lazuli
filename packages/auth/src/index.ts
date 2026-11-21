@@ -31,3 +31,5 @@ export type {
   StaffIdentity,
   StaffRole,
 } from "./staff-access.js";
+
+export { requestStaffIdentity, teacherAccessFields } from "./teacher-view.js";

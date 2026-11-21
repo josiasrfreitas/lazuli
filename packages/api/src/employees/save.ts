@@ -41,7 +41,13 @@ function validateAccount(account: Account | null, { input, actor }: ActorInput):
     if (!input.id || input.role === account.role) return;
   }
   // Linking a pre-provisioned account keeps all of its login settings.
-  if (input.role === "SYSTEM_ADMIN" || account?.role === "SYSTEM_ADMIN" || account?.id === actor.id)
+  if (
+    input.role === "SUPER_ADMIN" ||
+    input.role === "SYSTEM_ADMIN" ||
+    account?.role === "SUPER_ADMIN" ||
+    account?.role === "SYSTEM_ADMIN" ||
+    account?.id === actor.id
+  )
     throw badRequest("Este papel de acesso não pode ser alterado por aqui.");
 }
 

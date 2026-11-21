@@ -27,6 +27,19 @@ export function AssessmentWorkspace({
   const [notice, setNotice] = useState("");
   const unidentified = files.data?.filter((file) => !file.competence) ?? [];
 
+  if (data.readOnly)
+    return (
+      <div className={styles.workspace}>
+        <AssessmentResults data={data} />
+        <details>
+          <summary>Recuperação</summary>
+          <AssessmentResults data={data} recovery />
+        </details>
+        {files.data && (
+          <FileList rows={files.data} allowRemove={false} refresh={() => void files.refetch()} />
+        )}
+      </div>
+    );
   return (
     <div className={styles.workspace}>
       <p className={styles.hint}>

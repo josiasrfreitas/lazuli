@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { ArrowLeft, ArrowUpRight, ClipboardCheck, Pencil, X } from "lucide-react";
 import {
   Alert,

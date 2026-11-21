@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactElement, type ReactNode } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { ArrowUpRight, Check, ChevronDown, ChevronRight, RefreshCw, X } from "lucide-react";
 import { Button, InlineSkeleton, PencilLoader } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";

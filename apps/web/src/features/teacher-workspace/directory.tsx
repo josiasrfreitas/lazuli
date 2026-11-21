@@ -1,6 +1,6 @@
 import { StudentAvatar } from "~/components/student-avatar";
 import type { JSX as ReactJSX } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { Badge, Button, Input } from "@lazuli/ui";
 import { History } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";

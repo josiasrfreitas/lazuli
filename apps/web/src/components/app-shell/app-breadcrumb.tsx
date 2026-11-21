@@ -1,7 +1,7 @@
 "use client";
 import type { ReactElement, ReactNode, MouseEvent } from "react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
 import type { StaffRole } from "@lazuli/auth/server";
 import { navBreadcrumbFor, navReturnFor } from "./nav-items";

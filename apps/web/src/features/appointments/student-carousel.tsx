@@ -1,7 +1,7 @@
 "use client";
 import { type ReactElement } from "react";
 import { parseAsString, useQueryState } from "nuqs";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";

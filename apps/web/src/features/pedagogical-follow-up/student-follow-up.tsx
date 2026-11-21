@@ -1,4 +1,5 @@
 "use client";
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { ArrowLeft, ClipboardList, Plus } from "lucide-react";
@@ -36,7 +37,7 @@ export function StudentFollowUp({
   const [record, setRecord] = useQueryState("registro", parseAsString.withDefault(""));
   const [action, setAction] = useState<Action>(null);
   const me = trpc.me.useQuery();
-  const admin = me.data?.role === "ADMIN" || me.data?.role === "SYSTEM_ADMIN";
+  const admin = isAdministrativeRole(me.data?.role);
   const selection = parseFollowUpSelection(record);
   const select: SelectFollowUp = (next) => {
     void setRecord(`${next.kind}:${next.id}`);

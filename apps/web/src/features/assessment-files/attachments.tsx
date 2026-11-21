@@ -1,7 +1,11 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
-import { useState } from "react";
-import Link from "next/link";
+import { useContext, useState } from "react";
+import {
+  ExperienceLink as Link,
+  TeacherViewContext,
+  teacherViewHref,
+} from "~/lib/teacher-view-navigation";
 import { ArrowLeft, ArrowUpRight, Check, FileText, Trash2 } from "lucide-react";
 import { ToastAlert, Badge, Button, Input, PencilLoader } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -128,7 +132,11 @@ export function FileList({
     removePending: remove.isPending,
     identifyPending: identifyFile.isPending,
     canManage: (row) =>
-      Boolean(me.data && (me.data.role !== "TEACHER" || row.uploadedById === me.data.id)),
+      Boolean(
+        me.data &&
+        !me.data.viewer &&
+        (me.data.role !== "TEACHER" || row.uploadedById === me.data.id),
+      ),
     beginRemove: (id) => {
       setReason("");
       remove.reset();
@@ -278,6 +286,7 @@ function FileIdentity({
   removePending: boolean;
   onBeginRemove: () => void;
 }): ReactJSX.Element {
+  const teacher = useContext(TeacherViewContext);
   return (
     <div className={styles.file}>
       <FileText aria-hidden="true" />
@@ -285,7 +294,7 @@ function FileIdentity({
         {row.status === "READY" ? (
           <a
             className={styles.filename}
-            href={`/api/assessment-files/${row.id}`}
+            href={teacherViewHref(`/api/assessment-files/${row.id}`, teacher)}
             aria-label={`Baixar ${row.fileName}`}
           >
             {row.fileName}

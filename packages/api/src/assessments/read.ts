@@ -43,6 +43,7 @@ export type AssessmentView = {
   decisionReason: string | null;
   confirmedAt: Date | null;
   confirmedBy: string | null;
+  readOnly?: boolean;
   canConfirm: boolean;
   today: string;
 };
@@ -66,6 +67,7 @@ export function assessmentView(progress: Progress, context: AssessmentContext): 
     grades,
     results,
     status: assessmentStatus(results),
+    readOnly: Boolean(context.staffUser.viewer),
     canConfirm: context.staffUser.role !== "TEACHER",
     today,
   };

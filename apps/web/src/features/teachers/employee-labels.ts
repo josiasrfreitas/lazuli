@@ -9,5 +9,6 @@ export const ROLE_LABELS = {
   TEACHER: "Docente",
   SECRETARY: "Secretaria",
   FINANCE: "Financeiro",
+  SUPER_ADMIN: "Super administrador",
   SYSTEM_ADMIN: "Administração do sistema",
 };

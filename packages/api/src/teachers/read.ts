@@ -299,7 +299,7 @@ function teacherListWhere(
   };
   const enabled: Prisma.UserWhereInput = {
     isEnabled: true,
-    OR: [{ role: { in: ["ADMIN", "SYSTEM_ADMIN"] } }, eligible],
+    OR: [{ role: { in: ["ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"] } }, eligible],
   };
   const where: Prisma.UserWhereInput = {
     deletedAt: null,

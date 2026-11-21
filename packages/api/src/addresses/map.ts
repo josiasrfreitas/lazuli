@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { readSchoolMapAsset } from "@lazuli/integrations/school-map";
 import { createServiceLogger, safeError } from "@lazuli/logging";
 import type { Context } from "../trpc/context.js";
@@ -7,8 +8,7 @@ const BASE_PATH = "/api/school-map/";
 
 export async function schoolMapResponse(context: Context, request: Request): Promise<Response> {
   if (!context.staffUser) return new Response(null, { status: 401 });
-  if (context.staffUser.role !== "ADMIN" && context.staffUser.role !== "SYSTEM_ADMIN")
-    return new Response(null, { status: 403 });
+  if (!isAdministrativeRole(context.staffUser.role)) return new Response(null, { status: 403 });
   const url = new URL(request.url);
   try {
     const asset = await readSchoolMapAsset({

@@ -24,13 +24,15 @@ export async function requireRole(allowed: readonly StaffRole[]): Promise<StaffI
   );
 
   if (identity === null) {
-    redirect("/login");
+    redirect(requestHeaders.has("x-lazuli-teacher") ? "/403" : "/login");
   }
 
   const roles = identity.roles ?? [identity.role];
-  const role = allowed.includes(identity.role)
-    ? identity.role
-    : allowed.find((candidate) => roles.includes(candidate));
+  const role =
+    allowed.includes(identity.role) ||
+    (identity.role === "SUPER_ADMIN" && allowed.includes("SYSTEM_ADMIN"))
+      ? identity.role
+      : allowed.find((candidate) => roles.includes(candidate));
   if (!role) redirect("/403");
 
   if (role !== identity.role)

@@ -10,6 +10,7 @@ import { AccountMenu } from "./account-menu";
 import { useSignOut } from "~/lib/use-sign-out";
 
 const ROLE_LABELS: Record<StaffRole, string> = {
+  SUPER_ADMIN: "Super administrador",
   SYSTEM_ADMIN: "Administração do sistema",
   ADMIN: "Administração",
   SECRETARY: "Secretaria",

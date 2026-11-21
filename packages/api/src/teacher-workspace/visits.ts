@@ -72,7 +72,7 @@ export async function assignedVisit(context: RecordContext, id: string): Promise
     format: visit.format,
     notes: visit.notes,
     assessment: visit.assessment,
-    canRecord: canRecordVisit(visit, context.now),
+    canRecord: !context.staffUser.viewer && canRecordVisit(visit, context.now),
   };
 }
 

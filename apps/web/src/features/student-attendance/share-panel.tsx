@@ -116,6 +116,7 @@ export function AttendanceSharePanel(props: Props): ReactElement {
           expiresAt: current.expiresAt,
         }
       : null;
+  if (props.status.readOnly) return <p>{props.status.restriction}</p>;
   return (
     <AttendanceShareControls
       {...actions}
