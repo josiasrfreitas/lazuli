@@ -109,7 +109,7 @@
   --icon-active: var(--selection-indicator);
 
   /* The top bar blends into the light canvas; the sidebar anchors navigation. */
-  --navigation: var(--lz-ref-blue-700);
+  --navigation: var(--primary);
   --navigation-bar: var(--background);
   --conversion-panel: var(--lz-ref-blue-800);
   --pending-panel: var(--card);
@@ -220,6 +220,7 @@
   --selection-indicator: #83acff;
   --icon-active: var(--selection-indicator);
 
+  --navigation: #020619;
   --navigation-bar: var(--background);
   --conversion-panel: #213e7b;
   --pending-panel: var(--card);
@@ -231,7 +232,7 @@
   --navigation-marker: var(--selection-indicator);
   --navigation-focus: var(--lz-ref-blue-200);
   --navigation-foreground: var(--foreground);
-  --navigation-muted: var(--muted-foreground);
+  --navigation-muted: var(--lz-ref-blue-100);
   --navigation-active: #233c6b;
   --navigation-border: var(--border-subtle);
   --navigation-icon: var(--icon);
