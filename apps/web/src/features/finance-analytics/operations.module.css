@@ -1,0 +1,212 @@
+.page {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 2vw, 2rem);
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.page h1 {
+  font-size: var(--lz-text-h2);
+  font-weight: 600;
+  color: var(--heading);
+}
+.panel {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  display: grid;
+  gap: 0.75rem;
+}
+.panel h2 {
+  font-size: var(--lz-text-panel-title);
+  font-weight: 600;
+  color: var(--heading);
+}
+.panel p {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.header label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.header input[type="number"] {
+  width: 5.5rem;
+  padding: 0.4rem 0.65rem;
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.scroll {
+  overflow-x: auto;
+}
+.scroll table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.scroll th,
+.scroll td {
+  padding: 0.7rem 0.65rem;
+  text-align: right;
+  white-space: nowrap;
+}
+.scroll th:first-child {
+  text-align: left;
+  white-space: normal;
+}
+.scroll thead {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.scroll th {
+  font-weight: 500;
+}
+.scroll tbody tr + tr {
+  border-top: 1px solid var(--border);
+}
+.scroll tbody tr:hover {
+  background: var(--muted);
+}
+.rate {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  color: var(--info);
+}
+.rate meter {
+  width: clamp(2rem, 10vw, 9rem);
+  height: 0.65rem;
+  appearance: none;
+  background: var(--info-muted);
+  border-radius: 0.2rem;
+}
+.rate meter::-webkit-meter-bar {
+  background: var(--info-muted);
+  border: 0;
+}
+.rate meter::-webkit-meter-optimum-value {
+  background: var(--info);
+}
+.rate meter::-moz-meter-bar {
+  background: var(--info);
+}
+.headline {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+}
+.strip {
+  overflow: hidden;
+  border-radius: 0.25rem;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+}
+.legend span::before {
+  content: "";
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: var(--success);
+}
+.legend span:nth-child(2)::before {
+  background: var(--destructive);
+}
+.legend span:nth-child(3)::before {
+  background: var(--warning);
+}
+.warning {
+  color: var(--warning);
+}
+.filterFields,
+.filterFields label {
+  display: grid;
+  gap: 0.35rem;
+}
+.filterFields {
+  gap: 0.85rem;
+}
+.filterFields select {
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.45rem;
+}
+@media (max-width: 40rem) {
+  .scroll thead th {
+    white-space: normal;
+  }
+  .page h1 {
+    font-size: 1.25rem;
+  }
+  .page > .header {
+    gap: 0.5rem;
+  }
+  .header input[type="number"] {
+    width: 4.75rem;
+  }
+
+  .scroll th,
+  .scroll td {
+    padding: 0.55rem 0.35rem;
+  }
+  .rate meter {
+    display: none;
+  }
+}
+
+.summary {
+  padding-block: 0.25rem 0.85rem;
+}
+.summary strong {
+  color: var(--info);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.scroll tfoot {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+.filterFields label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.page header :is(input, select):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.attendanceValue {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--info);
+  font-variant-numeric: tabular-nums;
+}

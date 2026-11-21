@@ -75,7 +75,7 @@ function BusinessFigures({ data }: { data: BusinessData }): ReactElement {
         />
       </div>
       <div className={styles.businessFacts}>
-        <Link href="/financeiro">
+        <Link href="/comercial/analytics">
           <span>Contratos celebrados</span>
           <strong>{data.agreements.value.toLocaleString("pt-BR")}</strong>
           <small>

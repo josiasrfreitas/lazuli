@@ -38,6 +38,13 @@ export function closingSummary(data: Closings): {
   }
   return { totals, period: `em ${data.year}` };
 }
+export function averageContractCents(
+  totals: Omit<ClosingMonth, "month">,
+  incomplete: number,
+): number | null {
+  const complete = totals.count - incomplete;
+  return complete > 0 ? Math.round(totals.projectedCents / complete) : null;
+}
 export function closingValue(
   row: ClosingMonth | Omit<ClosingMonth, "month">,
   measure: ClosingMeasure,

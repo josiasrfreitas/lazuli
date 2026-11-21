@@ -9,7 +9,6 @@ import { EnrollmentChart, ReceiptsChart } from "./home-summary-charts";
 import { LeadConversion, StudentAgeChart } from "./home-audience";
 import styles from "./home-summary.module.css";
 
-const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -29,7 +28,7 @@ export function HomeSummary({
   businessError: boolean;
 }): ReactElement {
   const school = data.school;
-  const month = monthName.format(date(`${school.month}-01`));
+
   const through = new Intl.DateTimeFormat("pt-BR", {
     day: "numeric",
     month: "numeric",
@@ -40,7 +39,7 @@ export function HomeSummary({
     <section aria-label="Indicadores da escola">
       <div className={`${styles.composition} ${styles.ready}`}>
         {data.canViewFinance ? (
-          <ReceiptsStory data={business} error={businessError} through={through} month={month} />
+          <ReceiptsStory data={business} error={businessError} through={through} />
         ) : (
           <SchoolStory school={school} />
         )}
@@ -61,7 +60,7 @@ export function HomeAudience({ data }: { data: HomeData }): ReactElement {
         )}
       </article>
       <article className={styles.conversion}>
-        <StoryHeading title="Conversão" href="/interessados?situacao=ALL" />
+        <StoryHeading title="Conversão" href="/comercial/analytics" />
         {data.leadConversion ? (
           <LeadConversion data={data.leadConversion} />
         ) : (
@@ -89,16 +88,14 @@ function ReceiptsStory({
   data,
   error,
   through,
-  month,
 }: {
   data: BusinessData | undefined;
   error: boolean;
   through: string;
-  month: string;
 }): ReactElement {
   return (
     <article className={styles.receipts}>
-      <StoryHeading title="Receita e contratos" href="/financeiro" />
+      <StoryHeading title="Recebimentos e previsão" href="/financeiro" />
       {data ? (
         <>
           <dl className={styles.cashFigures}>
@@ -110,17 +107,8 @@ function ReceiptsStory({
               <dt>Previsto para o mês</dt>
               <dd>{money.format(data.expectedCents / CENTS_PER_REAL)}</dd>
             </div>
-            <div>
-              <dt>
-                <Link href="/contratos">
-                  Contratos em {month}{" "}
-                  <ArrowUpRight className={styles.inlineArrow} aria-hidden="true" />
-                </Link>
-              </dt>
-              <dd>{number(data.agreements.value)}</dd>
-            </div>
           </dl>
-          <ReceiptsChart months={data.months} contracts={data.agreements.series} />
+          <ReceiptsChart months={data.months} />
         </>
       ) : (
         <ReceiptsFeedback error={error} />

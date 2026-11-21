@@ -1,3 +1,5 @@
+import { teacherAttendanceTrend } from "../dashboard/attendance-trend.js";
+import { teacherAttendanceAnalytics } from "./analytics.js";
 import { formationRiskSchema } from "@lazuli/validators";
 import { teacherPlacements, appendCaseEvent } from "../semester-organization/case-events.js";
 import { z, civilDateSchema } from "@lazuli/validators";
@@ -42,6 +44,8 @@ const context = (ctx: {
 }): RecordContext => ({ database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() });
 const target = z.object({ id: z.string().uuid() }).strict();
 export const teacherWorkspaceRouter = router({
+  weeklyAttendance: teacherAttendanceTrend,
+  analytics: teacherAttendanceAnalytics,
   formationCases: teacherProcedure
     .input(z.object({ studentId: z.string().uuid() }))
     .query(({ ctx, input }) =>

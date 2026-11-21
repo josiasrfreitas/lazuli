@@ -12,21 +12,21 @@ import {
   formatDateOnlyBR,
   toDateOnlySaoPaulo,
 } from "~/lib/format";
+import { AnalyticsSections } from "./analytics-sections";
 import { RevenueChart } from "./revenue-chart";
-import { ContractClosings } from "./contract-closings";
-import type { Closings } from "./contract-closings-model";
+import { ClassTickets } from "./class-tickets";
+
 import { AnalyticsDetails } from "./analytics-details";
 import { type Analytics, monthLabel } from "./chart-shared";
 import { AnalyticsLoading } from "./finance-analytics-loading";
+
 const MONTH_KEY_LENGTH = 7;
 const MIN_YEAR = 2000;
 const MAX_YEAR = 2100;
 export function FinanceAnalyticsPage({
   initial,
-  initialClosings,
 }: {
   initial?: { data: Analytics; updatedAt: number } | undefined;
-  initialClosings?: { data: Closings; updatedAt: number } | undefined;
 }): ReactElement {
   const [year, setYear] = useState(
     () => initial?.data.year ?? Number(toDateOnlySaoPaulo(new Date()).split("-")[0]),
@@ -64,7 +64,7 @@ export function FinanceAnalyticsPage({
       )}
       {query.data && (
         <div aria-busy={query.isFetching} className="space-y-5">
-          <AnalyticsContent data={query.data} initialClosings={initialClosings} />
+          <AnalyticsContent data={query.data} />
         </div>
       )}
     </div>
@@ -80,9 +80,9 @@ function AnalyticsHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-heading">Visão financeira</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-heading">Visão financeira</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Contratos, recebimentos e valores em atraso.
+          Recebimentos, cobranças e mensalidades por turma.
         </p>
       </div>
       <YearSelector year={year} setYear={setYear} />
@@ -137,20 +137,24 @@ function YearSelector({
     </div>
   );
 }
-function AnalyticsContent({
-  data,
-  initialClosings,
-}: {
-  data: Analytics;
-  initialClosings: { data: Closings; updatedAt: number } | undefined;
-}): ReactElement {
+function AnalyticsContent({ data }: { data: Analytics }): ReactElement {
+  const [tab, setTab] = useState("cash");
   return (
     <>
-      <ContractClosings data={data} initial={initialClosings} />
-      <AnalyticsMetrics data={data} />
-      <RevenueChart data={data} />
-      <MonthlyTable data={data} />
-      <AnalyticsDetails data={data} />
+      <AnalyticsSections
+        active={tab}
+        setActive={setTab}
+        sections={{ cash: "Caixa", classes: "Mensalidades por turma", debt: "Cobrança" }}
+      />
+      {tab === "cash" && (
+        <>
+          <AnalyticsMetrics data={data} />
+          <RevenueChart data={data} />
+          <MonthlyTable data={data} />
+        </>
+      )}
+      {tab === "classes" && <ClassTickets key={data.year} year={data.year} />}
+      {tab === "debt" && <AnalyticsDetails data={data} />}
       <p className="pb-4 text-caption text-muted-foreground">
         Posição em {formatDateOnlyBR(data.asOf)}. Cobranças consideram ajustes registrados e excluem
         pedidos cancelados e parcelas isentas. Recebimentos incluem pagamentos registrados até esta
@@ -216,7 +220,7 @@ function MonthlyTable({ data }: { data: Analytics }): ReactElement {
   return (
     <section>
       <Button variant="ghost" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-        Consultar valores mês a mês
+        Consultar valores mês a mês · ano completo
       </Button>
       {expanded && (
         <div className="mt-3 h-96">

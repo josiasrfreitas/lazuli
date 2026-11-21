@@ -1,3 +1,14 @@
+import { overdueStudents } from "../finance/internal/overdue-students.js";
+import { schoolAttendanceTrend } from "./attendance-trend.js";
+import {
+  classTickets,
+  leadPerformance,
+  enrollmentProduction,
+  schoolRetention,
+  teachingActivity,
+  receiptTypes,
+  placementDemand,
+} from "./operational-analytics.js";
 import { z } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 import { canAccess } from "../trpc/rbac.js";
@@ -26,6 +37,17 @@ const homePeriodInput = z
   .optional();
 
 export const dashboardRouter = router({
+  overdueStudents: adminProcedure.query(({ ctx }) =>
+    overdueStudents(ctx.db, ctx.now ?? new Date()),
+  ),
+  weeklyAttendance: schoolAttendanceTrend,
+  classTickets,
+  leadPerformance,
+  enrollmentProduction,
+  schoolRetention,
+  teachingActivity,
+  receiptTypes,
+  placementDemand,
   home: adminProcedure.input(homePeriodInput).query(({ ctx, input }) =>
     readAdminHome({
       database: ctx.db,

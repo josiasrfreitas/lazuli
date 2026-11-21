@@ -7,9 +7,10 @@ import {
   SegmentedControlItem,
   type DataTableColumn,
 } from "@lazuli/ui";
-import { monthLabel, type Analytics } from "./chart-shared";
+import { monthLabel } from "./chart-shared";
 import { ContractClosingsChart } from "./contract-closings-chart";
 import {
+  averageContractCents,
   closingMeasures,
   closingValue,
   closingSummary,
@@ -39,9 +40,10 @@ function ClosingSummary({
   measure: ClosingChartMeasure;
 }): ReactElement {
   const { totals, period } = closingSummary(data);
+  const ticket = averageContractCents(totals, data.incompleteCount);
   const growth = closingGrowth(data, measure);
   return (
-    <dl className="my-5 grid grid-cols-2 gap-5 border-y border-border py-4 sm:grid-cols-3">
+    <dl className="my-5 grid grid-cols-2 gap-5 border-y border-border py-4 sm:grid-cols-4">
       <div>
         <dt className="text-caption text-muted-foreground">Volume contratado {period}</dt>
         <dd className="mt-1 font-numeric text-2xl font-semibold tabular-nums text-heading">
@@ -52,6 +54,15 @@ function ClosingSummary({
         <dt className="text-caption text-muted-foreground">Contratos fechados</dt>
         <dd className="mt-1 font-numeric text-2xl font-semibold tabular-nums text-heading">
           {totals.count}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-caption text-muted-foreground">Ticket médio por contrato</dt>
+        <dd className="mt-1 font-numeric text-2xl font-semibold tabular-nums text-heading">
+          {ticket === null ? "—" : formatBRLFromCents(ticket)}
+        </dd>
+        <dd className="text-caption text-muted-foreground">
+          Volume contratado ÷ contratos com valor e prazo
         </dd>
       </div>
       <div className="col-span-2 sm:col-span-1">
@@ -168,19 +179,8 @@ function ClosingBasis({ incompleteCount }: { incompleteCount: number }): ReactEl
   );
 }
 
-export function ContractClosings({
-  data,
-  initial,
-}: {
-  data: Analytics;
-  initial?: { data: Closings; updatedAt: number } | undefined;
-}): ReactElement {
-  const query = trpc.finance.contractClosings.useQuery(
-    { year: data.year },
-    initial?.data.year === data.year
-      ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt }
-      : {},
-  );
+export function ContractClosings({ year }: { year: number }): ReactElement {
+  const query = trpc.finance.contractClosings.useQuery({ year });
   if (query.isError)
     return (
       <div role="alert">

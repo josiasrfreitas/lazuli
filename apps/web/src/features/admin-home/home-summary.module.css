@@ -161,10 +161,11 @@
 
 .chartLegend i {
   width: 1rem;
-  border-top: 2px solid currentColor;
+  border-top: 2px solid var(--success);
 }
 
 .chartLegend span:nth-child(2) i {
+  border-color: var(--info);
   border-top-style: dashed;
   opacity: 0.5;
 }

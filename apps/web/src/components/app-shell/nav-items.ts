@@ -61,6 +61,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: "Pedagógico",
     // students.* is adminProcedure; staffProcedure is deferred debt (PR #46).
     items: [
+      {
+        href: "/pedagogico/analytics",
+        label: "Analytics",
+        icon: ChartNoAxesCombined,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       { href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/professores",
@@ -93,6 +99,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: "Comercial e Pessoas",
     items: [
       {
+        href: "/comercial/analytics",
+        label: "Analytics",
+        icon: ChartNoAxesCombined,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+      {
         href: "/colaboradores",
         label: "Colaboradores",
         icon: Users,
@@ -112,7 +124,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       {
         href: "/financeiro",
-        label: "Visão financeira",
+        label: "Analytics financeiro",
         icon: ChartNoAxesCombined,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
@@ -160,6 +172,12 @@ export function navSectionsFor(role: StaffRole): NavSection[] {
             roles: ["TEACHER"],
           },
           { href: "/professor/turmas", label: "Minhas turmas", icon: BookOpen, roles: ["TEACHER"] },
+          {
+            href: "/professor/analytics",
+            label: "Analytics",
+            icon: ChartNoAxesCombined,
+            roles: ["TEACHER"],
+          },
           { href: "/professor/alunos", label: "Meus alunos", icon: Users, roles: ["TEACHER"] },
           {
             href: "/professor/acompanhamento",
