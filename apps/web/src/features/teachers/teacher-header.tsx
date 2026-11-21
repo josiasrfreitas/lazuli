@@ -88,6 +88,7 @@ function teacherHasAccess(teacher: TeacherHeaderInput["teacher"]): boolean {
   return (
     teacher.isEnabled &&
     (teacher.role === "ADMIN" ||
+      teacher.role === "SUPER_ADMIN" ||
       teacher.role === "SYSTEM_ADMIN" ||
       !teacher.teacherProfile?.departureDate ||
       teacher.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > teacher.today)

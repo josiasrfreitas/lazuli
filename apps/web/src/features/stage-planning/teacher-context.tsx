@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import type { ReactElement } from "react";
 import { BookOpen } from "lucide-react";
 import { DetailHeader, EmptyState, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";

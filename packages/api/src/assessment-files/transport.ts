@@ -25,7 +25,10 @@ function staffContext(ctx: Context): {
   staffUser: NonNullable<Context["staffUser"]>;
   now: Date;
 } {
-  if (!ctx.staffUser || !["TEACHER", "ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
+  if (
+    !ctx.staffUser ||
+    !["TEACHER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role)
+  )
     throw new TRPCError({ code: "UNAUTHORIZED" });
   return { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() };
 }
@@ -133,6 +136,7 @@ async function completeUpload(
 export async function receiveAssessmentFile(ctx: Context, request: Request): Promise<Response> {
   let claim: PreparedFileClaim | undefined;
   try {
+    if (ctx.staffUser?.viewer) throw new TRPCError({ code: "FORBIDDEN" });
     const context = staffContext(ctx);
     assertSameOrigin(request);
     const input = readUploadInput(request);

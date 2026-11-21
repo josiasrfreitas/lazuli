@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { useCalendarSelection, type CalendarSelection } from "./use-calendar-selection";
 import { useState } from "react";
 import type { SearchSelectOption } from "@lazuli/ui";
@@ -23,7 +24,7 @@ type LessonCalendarModel = CalendarSelection & {
 
 export function useLessonCalendarModel(lessons: CalendarLesson[]): LessonCalendarModel {
   const me = trpc.me.useQuery();
-  const admin = me.data?.role === "ADMIN" || me.data?.role === "SYSTEM_ADMIN";
+  const admin = isAdministrativeRole(me.data?.role);
   const selection = useCalendarSelection();
   const [types, setTypes] = useState<string[]>(() => Object.keys(EVENT_LABELS));
   const [teacherSearch, setTeacherSearch] = useState("");

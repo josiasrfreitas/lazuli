@@ -9,7 +9,7 @@ import {
   type ReactElement,
   type RefObject,
 } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import type { NavItem } from "./nav-items";

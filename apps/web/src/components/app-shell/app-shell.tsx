@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import type { ReactNode } from "react";
 
 import type { StaffIdentity } from "@lazuli/auth/server";
@@ -12,6 +13,7 @@ import { MobileNavigation } from "./mobile-navigation";
 import { Sidebar } from "./sidebar";
 import styles from "./app-shell.module.css";
 import { ThemeToggle } from "./theme-toggle";
+import { TeacherViewProvider } from "~/lib/teacher-view-navigation";
 import { SessionSync } from "./session-sync";
 import { AccountMenu } from "./account-menu";
 import { TeacherNavigation } from "~/features/teacher-workspace/navigation";
@@ -31,21 +33,46 @@ export function AppShell({
   identity: StaffIdentity;
   isMobileDevice: boolean;
 }): ReactNode {
-  return (
-    <div className={`${styles.shell} flex h-svh bg-background text-foreground`}>
-      <SessionSync renderedEmail={identity.email} />
-      {(identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") && (
-        <AdminMobileNotice key={identity.id} userId={identity.id} isMobileDevice={isMobileDevice} />
+  const surface = (
+    <>
+      <TopBar identity={identity} />
+      {identity.viewer && (
+        <aside className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted px-4 py-2 text-sm">
+          <span>
+            Visualizando como <strong>{identity.name}</strong> · Somente leitura
+          </span>
+          <a className="underline" href="/perfil?perfil=SUPER_ADMIN&retorno=/alunos">
+            Voltar à administração
+          </a>
+        </aside>
       )}
-      <Sidebar identity={identity} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <AssessmentUploadProvider userId={identity.id} email={identity.email}>
-          <TopBar identity={identity} />
-          <main className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto">{children}</main>
-          {identity.role === "TEACHER" && <TeacherNavigation />}
-        </AssessmentUploadProvider>
+      <main className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto">{children}</main>
+      {identity.role === "TEACHER" && <TeacherNavigation />}
+    </>
+  );
+  return (
+    <TeacherViewProvider value={identity.viewer ? identity.id : null}>
+      <div className={`${styles.shell} flex h-svh bg-background text-foreground`}>
+        <SessionSync renderedEmail={identity.viewer?.email ?? identity.email} />
+        {isAdministrativeRole(identity.role) && (
+          <AdminMobileNotice
+            key={identity.id}
+            userId={identity.id}
+            isMobileDevice={isMobileDevice}
+          />
+        )}
+        <Sidebar identity={identity} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          {identity.viewer ? (
+            surface
+          ) : (
+            <AssessmentUploadProvider userId={identity.id} email={identity.email}>
+              {surface}
+            </AssessmentUploadProvider>
+          )}
+        </div>
       </div>
-    </div>
+    </TeacherViewProvider>
   );
 }
 

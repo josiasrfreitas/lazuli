@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import type { Prisma } from "@lazuli/db";
 export { evidenceSourceApplicable as sourceApplicable } from "@lazuli/db/appointment-evidence";
 import { TRPCError } from "@trpc/server";
@@ -62,6 +63,7 @@ export function appointmentRestriction(
   context: AppointmentContext,
   row: AppointmentRow,
 ): string | null {
+  if (context.staffUser.viewer) return "Visualização somente leitura.";
   if (row.status === "CANCELLED")
     return row.rescheduledTo
       ? "Este atendimento foi reagendado. Consulte o novo agendamento."
@@ -95,6 +97,6 @@ export async function loadAppointment(
   return row;
 }
 export function requireAppointmentAdmin(context: AppointmentContext): void {
-  if (context.staffUser.role !== "ADMIN" && context.staffUser.role !== "SYSTEM_ADMIN")
+  if (!isAdministrativeRole(context.staffUser.role))
     throw new TRPCError({ code: "FORBIDDEN", message: "Esta operação é da administração." });
 }

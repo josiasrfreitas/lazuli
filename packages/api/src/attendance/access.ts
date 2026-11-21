@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { TRPCError } from "@trpc/server";
 
 import { isSameDayInSaoPaulo } from "@lazuli/domain";
@@ -10,7 +11,7 @@ export function assertAttendanceWriteWindow(input: {
   sessionDate: Date;
   now: Date;
 }): void {
-  if (input.staffUser.role === "ADMIN" || input.staffUser.role === "SYSTEM_ADMIN") {
+  if (isAdministrativeRole(input.staffUser.role)) {
     return;
   }
   if (

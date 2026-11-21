@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import {
   type LucideIcon,
   ChartNoAxesCombined,
@@ -39,6 +40,7 @@ export type NavSection = {
 export type NavBreadcrumb = { section: string; page: string };
 
 const EVERY_ROLE: readonly StaffRole[] = [
+  "SUPER_ADMIN",
   "SYSTEM_ADMIN",
   "ADMIN",
   "SECRETARY",
@@ -177,7 +179,9 @@ export function navSectionsFor(role: StaffRole): NavSection[] {
       },
     ];
   return NAV_SECTIONS.flatMap((section) => {
-    const items = section.items.filter((item) => item.roles.includes(role));
+    const items = section.items.filter((item) =>
+      item.roles.includes(role === "SUPER_ADMIN" ? "SYSTEM_ADMIN" : role),
+    );
 
     return items.length === 0 ? [] : [{ ...section, items }];
   });
@@ -208,7 +212,7 @@ export function navBreadcrumbFor(pathname: string, role: StaffRole): NavBreadcru
 
 /** Administrative home or the role workspace; null when no workspace is enabled. */
 export function homeHrefFor(role: StaffRole): string | null {
-  if (role === "ADMIN" || role === "SYSTEM_ADMIN") return "/";
+  if (isAdministrativeRole(role)) return "/";
   const vertical = navItemsFor(role).find((item) => item.href !== "/");
 
   return vertical?.href ?? null;

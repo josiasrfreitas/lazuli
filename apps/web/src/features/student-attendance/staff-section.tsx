@@ -1,6 +1,7 @@
 "use client";
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { useState, type ReactElement } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { QrCode } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -38,7 +39,11 @@ export function StudentAttendanceSection({ sessionId }: { sessionId: string }): 
           {count} {count === 1 ? "declaração recebida" : "declarações recebidas"} · confirme
           presença e relato no registro da aula.
         </p>
-        <Button variant="secondary" onClick={() => setOpen(true)} disabled={!query.data}>
+        <Button
+          variant="secondary"
+          onClick={() => setOpen(true)}
+          disabled={!query.data || query.data.readOnly}
+        >
           <QrCode aria-hidden /> QR e link
         </Button>
       </div>
@@ -105,7 +110,7 @@ function DeclarationEvidence({
 
 function AttendanceSettingsLink(): ReactElement | null {
   const me = trpc.me.useQuery();
-  if (me.data?.role !== "ADMIN" && me.data?.role !== "SYSTEM_ADMIN") return null;
+  if (!isAdministrativeRole(me.data?.role)) return null;
   return (
     <Link
       href="/ajustes?secao=localizacao"

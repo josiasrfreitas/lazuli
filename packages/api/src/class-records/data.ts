@@ -44,6 +44,7 @@ export function canRead(context: RecordContext, session: RecordSession): boolean
   );
 }
 export function writeRestriction(context: RecordContext, session: RecordSession): string | null {
+  if (context.staffUser.viewer) return "Visualização somente leitura.";
   if (session.status === "CANCELLED") return "Esta aula foi cancelada.";
   if (sessionEndInstant(session) > context.now)
     return "A baixa fica disponível após o término da aula.";

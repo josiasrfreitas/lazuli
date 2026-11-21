@@ -1,6 +1,6 @@
 import type { JSX as ReactJSX } from "react";
 import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { Button, DataTable, type DataTableColumn } from "@lazuli/ui";
 import { KIND_LABELS, dateLabel, type Planning } from "./shared";
 import styles from "./planning.module.css";

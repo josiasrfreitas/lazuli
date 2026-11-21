@@ -1,7 +1,9 @@
+import { availableStaffRoles, teacherAccessFields } from "@lazuli/auth";
+import { TRPCError } from "@trpc/server";
 import { formationRiskSchema } from "@lazuli/validators";
 import { teacherPlacements, appendCaseEvent } from "../semester-organization/case-events.js";
 import { z, civilDateSchema } from "@lazuli/validators";
-import { router, teacherProcedure } from "../trpc/init.js";
+import { router, protectedProcedure, teacherProcedure } from "../trpc/init.js";
 import {
   workspaceClasses,
   workspaceClass,
@@ -42,6 +44,22 @@ const context = (ctx: {
 }): RecordContext => ({ database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() });
 const target = z.object({ id: z.string().uuid() }).strict();
 export const teacherWorkspaceRouter = router({
+  viewProfiles: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.staffUser.role !== "SUPER_ADMIN" && !ctx.staffUser.viewer)
+      throw new TRPCError({ code: "FORBIDDEN" });
+    const users = await ctx.db.user.findMany({
+      where: {
+        isEnabled: true,
+        deletedAt: null,
+        OR: [{ role: "TEACHER" }, { teacherProfile: { isNot: null } }],
+      },
+      select: teacherAccessFields,
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    });
+    return users
+      .filter((user) => availableStaffRoles(user, ctx.now).includes("TEACHER"))
+      .map(({ id, name }) => ({ id, name }));
+  }),
   formationCases: teacherProcedure
     .input(z.object({ studentId: z.string().uuid() }))
     .query(({ ctx, input }) =>

@@ -1,5 +1,5 @@
 import type { JSX as ReactJSX } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import type { RouterOutputs } from "@lazuli/api";
 import { cn } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";

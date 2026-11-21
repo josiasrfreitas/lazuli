@@ -13,6 +13,11 @@ export function proxy(request: NextRequest): NextResponse {
     destination.searchParams.delete("_rsc");
     requestHeaders.set("x-lazuli-page-url", `${destination.pathname}${destination.search}`);
   }
+  const api = request.nextUrl.pathname.startsWith("/api/");
+  const selected = request.nextUrl.searchParams.get("docente");
+  const target = api ? (requestHeaders.get("x-lazuli-teacher") ?? selected) : selected;
+  requestHeaders.delete("x-lazuli-teacher");
+  if (target !== null) requestHeaders.set("x-lazuli-teacher", target);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("x-request-id", requestId);
   return response;

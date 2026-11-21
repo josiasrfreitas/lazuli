@@ -16,7 +16,9 @@ export async function readEmployee(
 }
 
 export function requireEmployeeEditor(targetRole: string, actorRole?: string): void {
-  if (targetRole === "SYSTEM_ADMIN" && actorRole !== "SYSTEM_ADMIN")
+  if (targetRole === "SUPER_ADMIN" && actorRole !== "SUPER_ADMIN")
+    throw new TRPCError({ code: "FORBIDDEN" });
+  if (targetRole === "SYSTEM_ADMIN" && actorRole !== "SUPER_ADMIN" && actorRole !== "SYSTEM_ADMIN")
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Somente um administrador do sistema pode alterar este cadastro.",

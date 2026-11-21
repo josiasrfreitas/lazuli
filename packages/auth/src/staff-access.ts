@@ -26,8 +26,18 @@ export function isStaffAccessDeniedCode(code: string): boolean {
   return code === STAFF_ACCESS_DENIED_CODE || code === SOCIAL_SIGNUP_DISABLED_CODE;
 }
 
-export type StaffRole = "SYSTEM_ADMIN" | "ADMIN" | "SECRETARY" | "TEACHER" | "FINANCE";
-const ENABLED_ROLES = new Set<StaffRole>(["SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
+export type StaffRole =
+  | "SUPER_ADMIN"
+  | "SYSTEM_ADMIN"
+  | "ADMIN"
+  | "SECRETARY"
+  | "TEACHER"
+  | "FINANCE";
+const ENABLED_ROLES = new Set<StaffRole>(["SUPER_ADMIN", "SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
+
+export function isAdministrativeRole(role: StaffRole | null | undefined): boolean {
+  return role === "ADMIN" || role === "SYSTEM_ADMIN" || role === "SUPER_ADMIN";
+}
 
 export type StaffAccessUser = {
   email: string;
@@ -57,6 +67,7 @@ export type StaffIdentity = {
   email: string;
   role: StaffRole;
   roles?: StaffRole[];
+  viewer?: { id: string; name: string; email: string };
   isEnabled: boolean;
 };
 

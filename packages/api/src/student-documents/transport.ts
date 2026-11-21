@@ -187,7 +187,7 @@ async function readCaptureStatus(ctx: Context, sessionId: string): Promise<Respo
   });
 }
 export async function downloadStudentDocument(ctx: Context, id: string): Promise<Response> {
-  if (!ctx.staffUser || !["ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
+  if (!ctx.staffUser || !["ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
     return json({ code: "FORBIDDEN" }, HTTP.forbidden);
   const row = await ctx.db.studentDocumentFile.findFirst({
     where: {

@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -47,7 +48,7 @@ export default async function HomePage({
     redirect(experienceActivationHref("TEACHER", "/professor"));
   }
 
-  if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") {
+  if (isAdministrativeRole(identity.role)) {
     const params = await searchParams;
     const initial = await loadDashboardInitialData(identity.email, requestLogger);
     return (

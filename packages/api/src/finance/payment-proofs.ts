@@ -17,7 +17,7 @@ const PAYMENT_PAGE_SIZE = 20;
 export function paymentProofStaff(ctx: Context): StaffUser {
   if (!ctx.staffUser)
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Entre no sistema novamente." });
-  if (!["ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
+  if (!["ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Sem acesso aos comprovantes de pagamento.",

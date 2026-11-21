@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { studentFollowUpHref } from "./student-navigation";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";

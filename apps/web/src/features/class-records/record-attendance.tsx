@@ -2,7 +2,7 @@
 
 import { StudentAvatar } from "~/components/student-avatar";
 import type { JSX as ReactJSX } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { useId, useState, type ReactNode } from "react";
 import {
   Check,

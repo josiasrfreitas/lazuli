@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, type ReactElement } from "react";
+import { useContext } from "react";
+import { TeacherViewContext, teacherViewHref } from "~/lib/teacher-view-navigation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
@@ -10,13 +12,14 @@ import { PlanningState } from "./shared";
 export function PlanningPage(): ReactElement {
   const params = useSearchParams();
   const router = useRouter();
+  const teacher = useContext(TeacherViewContext);
   const query = trpc.planning.contexts.useQuery();
   const classId = params.get("turma");
   const progressId = params.get("percurso");
   const destination = planningDestination({ classId, progressId, contexts: query.data });
   useEffect(() => {
-    if (destination) router.replace(destination);
-  }, [destination, router]);
+    if (destination) router.replace(teacherViewHref(destination, teacher));
+  }, [destination, router, teacher]);
   return (
     <>
       <PlanningState

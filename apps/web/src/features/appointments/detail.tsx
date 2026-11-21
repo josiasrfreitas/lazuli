@@ -1,7 +1,8 @@
 "use client";
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import type { JSX as ReactJSX } from "react";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { ArrowLeft, CalendarClock, Pencil, X } from "lucide-react";
 import { Alert, Button, Tabs, TabsList, TabsTab } from "@lazuli/ui";
 import { appointmentCancelSchema, type AppointmentSnapshot } from "@lazuli/validators";
@@ -43,7 +44,7 @@ export function AppointmentDetailPage({ id }: { id: string }): ReactJSX.Element 
     },
   );
   const me = trpc.me.useQuery();
-  const admin = me.data?.role === "ADMIN" || me.data?.role === "SYSTEM_ADMIN";
+  const admin = isAdministrativeRole(me.data?.role);
   return (
     <div className="mx-auto grid h-full w-full max-w-6xl content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <div>

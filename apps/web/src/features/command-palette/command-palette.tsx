@@ -1,5 +1,8 @@
 "use client";
+import { useContext } from "react";
+import { TeacherViewContext, teacherViewHref } from "~/lib/teacher-view-navigation";
 
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import type { JSX as ReactJSX, Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -158,10 +161,7 @@ export function CommandPalette({ role }: { role: StaffRole }): ReactJSX.Element 
   const controls = usePaletteControls(pathname, studentSection);
   const { open, query, scope } = controls;
   const intent = searchIntent(query);
-  const lookup = useCommandSearch(
-    intent.entityQuery,
-    open && !scope && (role === "ADMIN" || role === "SYSTEM_ADMIN"),
-  );
+  const lookup = useCommandSearch(intent.entityQuery, open && !scope && isAdministrativeRole(role));
   const commands = useRankedPaletteCommands({
     role,
     pathname,
@@ -186,6 +186,7 @@ function PaletteMenuView({
   lookup: ReturnType<typeof useCommandSearch>;
 }): ReactJSX.Element {
   const router = useRouter();
+  const teacher = useContext(TeacherViewContext);
   const { open, query, scope, setQuery, setScope, changeOpen } = controls;
   return (
     <CommandMenu
@@ -205,7 +206,7 @@ function PaletteMenuView({
         const command = commands.find((item) => item.id === id);
         if (command) {
           changeOpen(false);
-          router.push(command.href);
+          router.push(teacherViewHref(command.href, teacher));
         }
       }}
       onExpand={(id) => {

@@ -7,6 +7,7 @@ import type { StaffIdentity, StaffRole } from "@lazuli/auth/server";
 import { Avatar, Button, Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@lazuli/ui";
 import { activateExperience, experienceHome } from "~/lib/staff-experience";
 import { useSignOut } from "~/lib/use-sign-out";
+import { TeacherViewPicker } from "./teacher-view-picker";
 import styles from "./account-menu.module.css";
 
 export function AccountMenu({ identity }: { identity: StaffIdentity }): ReactJSX.Element {
@@ -73,7 +74,7 @@ function AccountTrigger({
 }): ReactJSX.Element {
   return (
     <PopoverTrigger
-      aria-label={`Conta de ${identity.name} · ${identity.role === "TEACHER" ? "Docente" : "Administração"}`}
+      aria-label={`Conta de ${identity.viewer?.name ?? identity.name} · ${identity.role === "TEACHER" ? "Docente" : "Administração"}`}
       title="Conta e perfis"
       data-keyboard={keyboard}
       data-account-trigger
@@ -83,7 +84,10 @@ function AccountTrigger({
       render={<Button variant="ghost" size="icon-compact-responsive" />}
     >
       <span className={styles.avatar}>
-        <Avatar className="bg-navigation-active text-navigation-foreground" name={identity.name} />
+        <Avatar
+          className="bg-navigation-active text-navigation-foreground"
+          name={identity.viewer?.name ?? identity.name}
+        />
         <span className={styles.chevron} aria-hidden="true">
           <ChevronDown className="size-3" />
         </span>
@@ -120,10 +124,11 @@ function AccountMenuPanel(props: AccountMenuPanelProps): ReactJSX.Element {
       onKeyDown={() => setKeyboard(true)}
     >
       <div className={styles.identity} data-menu-item>
-        <PopoverTitle>{identity.name}</PopoverTitle>
-        <p className={styles.email}>{identity.email}</p>
+        <PopoverTitle>{identity.viewer?.name ?? identity.name}</PopoverTitle>
+        <p className={styles.email}>{identity.viewer?.email ?? identity.email}</p>
       </div>
-      <AccountRoles {...props} />
+      {!identity.viewer && <AccountRoles {...props} />}
+      {(identity.role === "SUPER_ADMIN" || identity.viewer) && <TeacherViewPicker />}
       <AccountFooter {...props} />
     </PopoverContent>
   );

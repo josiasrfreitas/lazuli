@@ -268,15 +268,15 @@ function TeacherFormBody(props: TeacherFormBodyProps): ReactElement {
             </span>
           }
         >
-          {props.draft.role === "SYSTEM_ADMIN" ? (
-            <p>{ROLE_LABELS.SYSTEM_ADMIN}</p>
+          {props.draft.role === "SUPER_ADMIN" || props.draft.role === "SYSTEM_ADMIN" ? (
+            <p>{ROLE_LABELS[props.draft.role]}</p>
           ) : (
             <SelectControl
               name="role"
               label="Papel de acesso"
               value={props.draft.role}
               choices={Object.entries(ROLE_LABELS)
-                .filter(([role]) => role !== "SYSTEM_ADMIN")
+                .filter(([role]) => role !== "SUPER_ADMIN" && role !== "SYSTEM_ADMIN")
                 .map(([value, label]) => ({ value, label }))}
               onChange={(value) => props.change("role", value as TeacherDraft["role"])}
             />

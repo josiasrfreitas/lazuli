@@ -2,7 +2,7 @@
 
 import { useId, type ReactNode } from "react";
 
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { AgendaNavGroup } from "./agenda-nav-group";
 import { usePathname } from "next/navigation";
 

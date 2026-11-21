@@ -1,6 +1,6 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { usePathname } from "next/navigation";
 import { Home, CalendarDays, BookOpen, Users, MessageSquareText } from "lucide-react";
 import styles from "./navigation.module.css";

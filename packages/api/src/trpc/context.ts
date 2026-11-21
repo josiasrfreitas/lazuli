@@ -1,9 +1,5 @@
-import {
-  resolveStaffIdentity,
-  staffRoleFromHeaders,
-  type StaffIdentity,
-  type StaffSession,
-} from "@lazuli/auth";
+import { TRPCError } from "@trpc/server";
+import { requestStaffIdentity, type StaffIdentity, type StaffSession } from "@lazuli/auth";
 import {
   createLocalReportGenerateQueue,
   type ReportGenerateQueue,
@@ -66,16 +62,11 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
   try {
     const db = input.db ?? (await resolveDefaultDb());
     const session = input.session;
-    const staffUser =
-      session === null
-        ? null
-        : await resolveStaffUser({
-            db,
-            email: session.user.email,
-            now: input.now ?? new Date(),
-            role: staffRoleFromHeaders(input.headers),
-          });
-
+    const staffUser = session
+      ? await requestStaffIdentity(db, session.user.email, input.headers, input.now)
+      : null;
+    if (input.headers?.has("x-lazuli-teacher") && !staffUser)
+      throw new TRPCError({ code: "FORBIDDEN" });
     const context: Context = {
       db,
       ...(input.now === undefined ? {} : { now: input.now }),
@@ -111,22 +102,4 @@ function requestIdForContext(input: CreateTRPCContextInput): string | undefined 
 async function resolveDefaultDb(): Promise<DbClient> {
   const { db } = await import("@lazuli/db");
   return db;
-}
-
-async function resolveStaffUser(input: {
-  role?: string | undefined;
-  db: DbClient;
-  email: string;
-  now: Date;
-}): Promise<StaffUser | null> {
-  return resolveStaffIdentity(
-    await input.db.user.findUnique({
-      where: { email: input.email },
-      include: {
-        employeeProfile: { select: { userId: true } },
-        teacherProfile: { select: { departureDate: true, deletedAt: true } },
-      },
-    }),
-    { now: input.now, requestedRole: input.role },
-  );
 }

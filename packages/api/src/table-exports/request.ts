@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { TRPCError } from "@trpc/server";
 import { dispatchTableExport } from "@lazuli/integrations/hatchet";
 import { getStorage } from "@lazuli/storage";
@@ -52,8 +53,7 @@ export const tableExportStatus = adminProcedure
 
 export async function downloadTableExport(ctx: Context, id: string): Promise<Response> {
   const user = ctx.staffUser;
-  if (!user || (user.role !== "ADMIN" && user.role !== "SYSTEM_ADMIN"))
-    return new Response(null, { status: 403 });
+  if (!user || !isAdministrativeRole(user.role)) return new Response(null, { status: 403 });
   if (!getArtifactInputSchema.safeParse({ id }).success) return new Response(null, { status: 404 });
   const row = await ctx.db.generatedArtifact.findFirst({
     where: {

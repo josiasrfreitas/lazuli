@@ -41,8 +41,8 @@ export function TeacherStudentTabs({
       </TabsList>
       <TabsPanel value="acompanhamento">
         <div className="grid gap-4 pt-4">
-          {detail.current && <TeacherFormationRisk studentId={id} name={detail.name} />}
-          <StudentFollowUp studentId={id} studentName={detail.name} canRecord={detail.current} />
+          {detail.canRecord && <TeacherFormationRisk studentId={id} name={detail.name} />}
+          <StudentFollowUp studentId={id} studentName={detail.name} canRecord={detail.canRecord} />
         </div>
       </TabsPanel>
       <TabsPanel value="aulas">

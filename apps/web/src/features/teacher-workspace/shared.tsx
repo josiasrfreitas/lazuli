@@ -1,7 +1,7 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { ArrowLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { ToastAlert, Button } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";

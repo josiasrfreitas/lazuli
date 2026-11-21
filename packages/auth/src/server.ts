@@ -1,5 +1,6 @@
+import { requestStaffIdentity } from "./teacher-view.js";
 import type { AuthInstance } from "./auth.js";
-import { resolveStaffIdentity, staffRoleFromHeaders, type StaffIdentity } from "./staff-access.js";
+import type { StaffIdentity } from "./staff-access.js";
 export { STAFF_ROLE_COOKIE } from "./staff-access.js";
 
 export type { StaffIdentity, StaffRole } from "./staff-access.js";
@@ -46,14 +47,5 @@ export async function getStaffIdentity(input: { headers: Headers }): Promise<Sta
 
   const { db } = await import("@lazuli/db");
 
-  return resolveStaffIdentity(
-    await db.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        employeeProfile: { select: { userId: true } },
-        teacherProfile: { select: { departureDate: true, deletedAt: true } },
-      },
-    }),
-    { now: new Date(), requestedRole: staffRoleFromHeaders(input.headers) },
-  );
+  return requestStaffIdentity(db, session.user.email, input.headers);
 }

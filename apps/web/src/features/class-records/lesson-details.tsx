@@ -1,4 +1,5 @@
 "use client";
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { recordedActivities } from "@lazuli/domain";
 
 import type { JSX as ReactJSX } from "react";
@@ -31,7 +32,7 @@ export function LessonDetails({
   const [appointment, setAppointment] = useState<string | null>(null);
   const [experimental, setExperimental] = useState<string | null>(null);
   const me = trpc.me.useQuery();
-  const admin = me.data?.role === "ADMIN" || me.data?.role === "SYSTEM_ADMIN";
+  const admin = isAdministrativeRole(me.data?.role);
   const visit = data.leadGuests.find((item) => item.id === experimental);
   return (
     <div className={styles.body}>

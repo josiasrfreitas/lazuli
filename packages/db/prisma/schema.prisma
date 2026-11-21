@@ -15,6 +15,7 @@ datasource db {
 
 enum UserRole {
   SYSTEM_ADMIN
+  SUPER_ADMIN
   ADMIN
   SECRETARY
   TEACHER

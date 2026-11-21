@@ -37,6 +37,8 @@ export const router = trpc.router;
 export const createCallerFactory = trpc.createCallerFactory;
 
 const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
+  if (ctx.staffUser?.viewer && type !== "query" && path !== "teacherWorkspace.placementDownload")
+    throw new TRPCError({ code: "FORBIDDEN", message: "Visualização somente leitura." });
   const started = performance.now();
   try {
     const result = await withDevelopmentTiming({
@@ -47,13 +49,13 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
     });
     const fields = {
       request_id: ctx.requestId,
-      user_id: ctx.staffUser?.id,
+      user_id: ctx.staffUser?.viewer?.id ?? ctx.staffUser?.id,
       resource: path,
       operation: httpOperation(type),
       procedure: path,
       procedure_type: type,
       duration_ms: Math.round(performance.now() - started),
-      staff_user_id: ctx.staffUser?.id,
+      staff_user_id: ctx.staffUser?.viewer?.id ?? ctx.staffUser?.id,
     };
     if (result.ok) {
       const label = procedureOutcomeLabel(path);
@@ -85,7 +87,7 @@ const timingMiddleware = trpc.middleware(async ({ next, path, type, ctx }) => {
     logger.error(
       {
         request_id: ctx.requestId,
-        user_id: ctx.staffUser?.id,
+        user_id: ctx.staffUser?.viewer?.id ?? ctx.staffUser?.id,
         resource: path,
         operation: httpOperation(type),
         procedure: path,
@@ -130,7 +132,7 @@ function assertRole(role: StaffRole, allowed: readonly StaffRole[]): void {
 
 /** Ordinary administrative operations are available to ADMIN and SYSTEM_ADMIN. */
 export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  assertRole(ctx.staffUser.role, ["ADMIN", "SYSTEM_ADMIN"]);
+  assertRole(ctx.staffUser.role, ["ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]);
   return next();
 });
 
@@ -145,7 +147,7 @@ export const teacherProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 export const systemAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  assertRole(ctx.staffUser.role, ["SYSTEM_ADMIN"]);
+  assertRole(ctx.staffUser.role, ["SUPER_ADMIN", "SYSTEM_ADMIN"]);
   return next();
 });
 
@@ -154,7 +156,7 @@ export const systemAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
  * resources in-resolver via `assertResourceScope`; both administrator roles have full access.
  */
 export const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
-  assertRole(ctx.staffUser.role, ["SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
+  assertRole(ctx.staffUser.role, ["SUPER_ADMIN", "SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
   return next();
 });
 

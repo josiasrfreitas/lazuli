@@ -1,3 +1,4 @@
+import { requireEmployeeEditor } from "../employees/read.js";
 import { assertUniqueIdentity } from "../employees/identity.js";
 import { attachTeacherUploads } from "./upload-sessions.js";
 import type { teacherCreateInputSchema, z } from "@lazuli/validators";
@@ -25,9 +26,12 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
     where: { email: { equals: input.values.email, mode: "insensitive" }, deletedAt: null },
     select: { id: true, role: true, teacherProfile: { select: { userId: true, deletedAt: true } } },
   });
-  if (existing && !existing.teacherProfile && ["ADMIN", "SYSTEM_ADMIN"].includes(existing.role)) {
-    if (existing.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN")
-      throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
+  if (
+    existing &&
+    !existing.teacherProfile &&
+    ["ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"].includes(existing.role)
+  ) {
+    requireEmployeeEditor(existing.role, input.actorRole);
     await assertUniqueIdentity({
       database: input.database,
       values: input.values,
@@ -80,8 +84,8 @@ export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: st
   });
   if (!current || !hasTeacherIdentity(current) || current.deletedAt)
     throw notFound("Docente não encontrado.");
-  if (current.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN")
-    throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
+
+  requireEmployeeEditor(current.role, input.actorRole);
   await assertUniqueIdentity({
     database: input.database,
     values: input.values,

@@ -1,3 +1,4 @@
+import { isAdministrativeRole } from "@lazuli/auth/roles";
 import { TRPCError } from "@trpc/server";
 
 import type { StaffRole } from "@lazuli/auth";
@@ -46,6 +47,20 @@ function deniedAll(): Record<RouterName, RouterAccess> {
   };
 }
 
+const administrativeAccess: Record<RouterName, RouterAccess> = {
+  users: "full",
+  students: "full",
+  catalog: "full",
+  classes: "full",
+  calendar: "full",
+  enrollment: "full",
+  attendance: "full",
+  portal: "full",
+  finance: "full",
+  reports: "full",
+  dashboard: "full",
+};
+
 /**
  * The §5.2 RBAC matrix as data — the single source of truth consumed by the
  * role-based menu (GRE-16) and asserted by tests. It encodes router-level
@@ -55,32 +70,9 @@ function deniedAll(): Record<RouterName, RouterAccess> {
  * the expense/bank modules enable them.
  */
 export const ROLE_MATRIX: Record<StaffRole, Record<RouterName, RouterAccess>> = {
-  SYSTEM_ADMIN: {
-    users: "full",
-    students: "full",
-    catalog: "full",
-    classes: "full",
-    calendar: "full",
-    enrollment: "full",
-    attendance: "full",
-    portal: "full",
-    finance: "full",
-    reports: "full",
-    dashboard: "full",
-  },
-  ADMIN: {
-    users: "full",
-    students: "full",
-    catalog: "full",
-    classes: "full",
-    calendar: "full",
-    enrollment: "full",
-    attendance: "full",
-    portal: "full",
-    finance: "full",
-    reports: "full",
-    dashboard: "full",
-  },
+  SUPER_ADMIN: administrativeAccess,
+  SYSTEM_ADMIN: administrativeAccess,
+  ADMIN: administrativeAccess,
   TEACHER: {
     users: "none",
     students: "scoped",
@@ -118,7 +110,7 @@ export function assertResourceScope(
   staffUser: StaffUser,
   resource: { teacherId: string | null },
 ): void {
-  if (staffUser.role === "ADMIN" || staffUser.role === "SYSTEM_ADMIN") {
+  if (isAdministrativeRole(staffUser.role)) {
     return;
   }
   if (staffUser.role === "TEACHER" && resource.teacherId === staffUser.id) {

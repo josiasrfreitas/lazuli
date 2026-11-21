@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import Link from "next/link";
+import { ExperienceLink as Link } from "~/lib/teacher-view-navigation";
 import { ArrowUpRight, CalendarDays, Check, MapPin, Pencil, UserRound, X } from "lucide-react";
 import {
   ToastAlert,

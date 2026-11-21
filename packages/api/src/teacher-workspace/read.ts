@@ -38,6 +38,7 @@ type WorkspaceStudent = {
   }>;
 };
 type WorkspaceStudentDetail = WorkspaceStudent & {
+  canRecord: boolean;
   attendance: Array<{
     id: string;
     sessionId: string;
@@ -350,6 +351,7 @@ export async function workspaceStudent(
   });
   return {
     ...student,
+    canRecord: student.current && !context.staffUser.viewer,
     attendance: attendance.map((row) => ({
       id: row.id,
       sessionId: row.classSession.id,
