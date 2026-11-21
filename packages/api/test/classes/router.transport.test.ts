@@ -45,10 +45,7 @@ void it("creates a regular class through the HTTP adapter", async () => {
   const payload = (await response.json()) as {
     result: { data: { json: { portalClassName: string; status: string } } };
   };
-  assert.equal(
-    payload.result.data.json.portalClassName,
-    "REG GRE29S1 TER/14:00-16:00 GRE-29 Class Teacher",
-  );
+  assert.equal(payload.result.data.json.portalClassName, "GRE29S1-TER-14");
 });
 
 void it("clones a class through the HTTP adapter", async () => {

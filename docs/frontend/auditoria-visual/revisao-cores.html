@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="pt-BR">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  /><title>Lazuli · revisão dos temas</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: auto;
+      max-width: 78rem;
+      padding: clamp(1rem, 4vw, 3rem);
+      color: #0f1b33;
+      background: #f6f8fa;
+      font:
+        1rem/1.55 system-ui,
+        sans-serif;
+    }
+    h1,
+    h2,
+    h3 {
+      font-family: Georgia, serif;
+      line-height: 1.2;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin: 0;
+    }
+    h2 {
+      margin: 2.2rem 0 0.7rem;
+    }
+    h3 {
+      margin: 0 0 1rem;
+    }
+    p {
+      max-width: 84ch;
+    }
+    a {
+      color: #234266;
+    }
+    section {
+      padding: 1.15rem;
+      background: white;
+      border: 1px solid #c3ceda;
+      border-radius: 0.4rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+      gap: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      font-variant-numeric: tabular-nums;
+    }
+    td,
+    th {
+      text-align: left;
+      vertical-align: middle;
+      padding: 0.42rem 0.25rem;
+      border-bottom: 1px solid #d9e1e9;
+    }
+    td i {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 1px solid #66788b;
+      margin-right: 0.45rem;
+      vertical-align: middle;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0.75rem 0;
+    }
+    details {
+      margin-top: 0.8rem;
+    }
+    .sim span {
+      display: inline-block;
+      padding: 0.1rem 0.4rem;
+      margin: 0.12rem;
+      border-radius: 0.2rem;
+    }
+    .sim b {
+      display: block;
+    }
+    figure {
+      margin: 0;
+    }
+    figure img {
+      display: block;
+      width: 100%;
+      height: 13rem;
+      object-fit: contain;
+      background: #e8eef5;
+    }
+    figcaption {
+      font-size: 0.87rem;
+    }
+    code {
+      overflow-wrap: anywhere;
+    }
+    small {
+      display: block;
+    }
+    li {
+      margin: 0.4rem 0;
+    }
+    @media print {
+      details::details-content {
+        display: block;
+      }
+      section {
+        break-inside: avoid;
+      }
+    }
+  </style>
+  <main>
+    <h1>Revisão dos temas Lazuli</h1>
+    <p>
+      O modo claro usa uma página azul acinzentada e uma superfície de leitura
+      quase branca. No escuro, a tabela, a agenda e a navegação compartilham uma
+      base marinho. O botão principal recebe dourado com texto escuro.
+    </p>
+    <p>
+      <strong
+        >Aguardando capturas comparáveis no Orca e avaliação da escola nos dois
+        modos.</strong
+      >
+      A base do checkout é <code>1841bd0f</code>, que contém
+      <code>11ef682e</code>. A proposta foi servida pelo Next local com as
+      alterações desta branch. O manifesto registra <code>c4d3a924</code> para
+      as imagens históricas de staging.
+    </p>
+    <h2>Comparação dos papéis de cor</h2>
+    <p>
+      As amostras da base vêm do CSS versionado, incluindo os valores locais de
+      botão e diálogo escuros. O claro da base é uma referência técnica, pois a
+      aplicação iniciava em escuro. A cor de página escura anterior indica o
+      token por baixo do gradiente do shell. As amostras são cálculos de estilo.
+    </p>
+    <div class="grid">
+      <section>
+        <h3>Claro</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Superfície ou ação</th>
+              <th>Base</th>
+              <th>Proposta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Página</th>
+              <td><i style="background: #f5f6f7"></i><code>#F5F6F7</code></td>
+              <td><i style="background: #e8eef5"></i><code>#E8EEF5</code></td>
+            </tr>
+            <tr>
+              <th>Leitura</th>
+              <td><i style="background: #ffffff"></i><code>#FFFFFF</code></td>
+              <td><i style="background: #f6f8fa"></i><code>#F6F8FA</code></td>
+            </tr>
+            <tr>
+              <th>Diálogo</th>
+              <td><i style="background: #ffffff"></i><code>#FFFFFF</code></td>
+              <td><i style="background: #ffffff"></i><code>#FFFFFF</code></td>
+            </tr>
+            <tr>
+              <th>Campo</th>
+              <td><i style="background: #ffffff"></i><code>#FFFFFF</code></td>
+              <td><i style="background: #f0f4f8"></i><code>#F0F4F8</code></td>
+            </tr>
+            <tr>
+              <th>Seleção</th>
+              <td><i style="background: #eaf0f8"></i><code>#EAF0F8</code></td>
+              <td><i style="background: #dae5f3"></i><code>#DAE5F3</code></td>
+            </tr>
+            <tr>
+              <th>Ação principal</th>
+              <td><i style="background: #0f1e3d"></i><code>#0F1E3D</code></td>
+              <td><i style="background: #0f1b33"></i><code>#0F1B33</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <details>
+          <summary>Contrastes por estado</summary>
+          <table>
+            <thead>
+              <tr>
+                <th>Par contextual</th>
+                <th>Base</th>
+                <th>Proposta</th>
+                <th>Mínimo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Texto da ficha</th>
+                <td>12.15</td>
+                <td>14.68</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Metadado da ficha</th>
+                <td>5.34</td>
+                <td>6.05</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Cabeçalho da tabela</th>
+                <td>14.38</td>
+                <td>13.73</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Linha selecionada</th>
+                <td>4.66</td>
+                <td>5.06</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Metadado na seleção em hover</th>
+                <td>4.19</td>
+                <td>4.86</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Atraso na seleção em hover</th>
+                <td>4.87</td>
+                <td>4.67</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Divisa da seleção</th>
+                <td>1.44</td>
+                <td>5.70</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Navegação ativa</th>
+                <td>14.38</td>
+                <td>11.48</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Texto do diálogo</th>
+                <td>13.15</td>
+                <td>17.14</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Campo no diálogo</th>
+                <td>1.65</td>
+                <td>4.54</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Borda sobre o campo</th>
+                <td>1.65</td>
+                <td>4.11</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Placeholder</th>
+                <td>5.34</td>
+                <td>5.83</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Borda de erro</th>
+                <td>6.20</td>
+                <td>5.61</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Botão em repouso</th>
+                <td>16.49</td>
+                <td>17.14</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Botão em hover</th>
+                <td>10.28</td>
+                <td>10.28</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Botão em pressionado</th>
+                <td>13.12</td>
+                <td>13.12</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Confirmação em hover (90%)</th>
+                <td>4.71</td>
+                <td>6.03</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Confirmação pressionada (80%)</th>
+                <td>3.75</td>
+                <td>4.61</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Indicador do filtro</th>
+                <td>1.14</td>
+                <td>5.88</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre background</th>
+                <td>1.77</td>
+                <td>4.46</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre card</th>
+                <td>1.80</td>
+                <td>4.90</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre popover</th>
+                <td>1.80</td>
+                <td>5.21</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre field</th>
+                <td>1.80</td>
+                <td>4.72</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre accent</th>
+                <td>1.73</td>
+                <td>4.09</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Estado success</th>
+                <td>5.94</td>
+                <td>7.89</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado warning</th>
+                <td>5.34</td>
+                <td>5.34</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado info</th>
+                <td>6.33</td>
+                <td>6.33</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado destructive</th>
+                <td>5.41</td>
+                <td>5.41</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado over-capacity</th>
+                <td>6.29</td>
+                <td>6.29</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · Regular</th>
+                <td>8.97</td>
+                <td>8.07</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · PPT</th>
+                <td>6.29</td>
+                <td>6.29</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · Atendimento</th>
+                <td>5.96</td>
+                <td>5.96</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · Experimental</th>
+                <td>5.82</td>
+                <td>5.82</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Painel acadêmico · foreground</th>
+                <td>18.25</td>
+                <td>17.21</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Painel acadêmico · muted</th>
+                <td>11.04</td>
+                <td>11.41</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Painel acadêmico · accent</th>
+                <td>8.69</td>
+                <td>8.20</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Entrada institucional</th>
+                <td>8.11</td>
+                <td>8.43</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Gráfico · barra a 65%</th>
+                <td>3.18</td>
+                <td>3.07</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série info</th>
+                <td>7.26</td>
+                <td>6.82</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série success</th>
+                <td>6.74</td>
+                <td>8.41</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série warning</th>
+                <td>6.01</td>
+                <td>5.64</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série muted-foreground</th>
+                <td>5.34</td>
+                <td>6.05</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · legenda de contratos</th>
+                <td>2.10</td>
+                <td>5.21</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Gráfico · barra do mês em andamento</th>
+                <td>1.92</td>
+                <td>6.05</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Login · borda de campo</th>
+                <td>1.10</td>
+                <td>3.87</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>QR · módulos e margem</th>
+                <td>21.00</td>
+                <td>21.00</td>
+                <td>3</td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
+        <details class="sim">
+          <summary>Categorias da agenda sob simulação</summary>
+          <p>
+            <b>Original</b>
+            <span style="color: #234266; background: #dae5f3">Regular</span
+            ><span style="color: #763c98; background: #f3ebf8">PPT</span
+            ><span style="color: #824c34; background: #f6ece6">Atendimento</span
+            ><span style="color: #24665c; background: #e3f2ee"
+              >Experimental</span
+            >
+          </p>
+          <p>
+            <b>Protanopia</b>
+            <span style="color: #334468; background: #e0e5f4">Regular</span
+            ><span style="color: #1b539b; background: #e9edf9">PPT</span
+            ><span style="color: #5a5332; background: #efede6">Atendimento</span
+            ><span style="color: #61605c; background: #f1f0ee"
+              >Experimental</span
+            >
+          </p>
+          <p>
+            <b>Deuteranopia</b>
+            <span style="color: #2a3e65; background: #dee3f3">Regular</span
+            ><span style="color: #345796; background: #ebeef8">PPT</span
+            ><span style="color: #675e34; background: #f1efe6">Atendimento</span
+            ><span style="color: #57595d; background: #eeeeee"
+              >Experimental</span
+            >
+          </p>
+        </details>
+      </section>
+      <section>
+        <h3>Escuro</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Superfície ou ação</th>
+              <th>Base</th>
+              <th>Proposta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Página</th>
+              <td><i style="background: #12151d"></i><code>#12151D</code></td>
+              <td><i style="background: #0a1120"></i><code>#0A1120</code></td>
+            </tr>
+            <tr>
+              <th>Leitura</th>
+              <td><i style="background: #12151d"></i><code>#12151D</code></td>
+              <td><i style="background: #141d2a"></i><code>#141D2A</code></td>
+            </tr>
+            <tr>
+              <th>Diálogo</th>
+              <td><i style="background: #12151d"></i><code>#12151D</code></td>
+              <td><i style="background: #202b39"></i><code>#202B39</code></td>
+            </tr>
+            <tr>
+              <th>Campo</th>
+              <td><i style="background: #192638"></i><code>#192638</code></td>
+              <td><i style="background: #101926"></i><code>#101926</code></td>
+            </tr>
+            <tr>
+              <th>Seleção</th>
+              <td><i style="background: #213149"></i><code>#213149</code></td>
+              <td><i style="background: #25354a"></i><code>#25354A</code></td>
+            </tr>
+            <tr>
+              <th>Ação principal</th>
+              <td><i style="background: #305985"></i><code>#305985</code></td>
+              <td><i style="background: #d4a349"></i><code>#D4A349</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <details>
+          <summary>Contrastes por estado</summary>
+          <table>
+            <thead>
+              <tr>
+                <th>Par contextual</th>
+                <th>Base</th>
+                <th>Proposta</th>
+                <th>Mínimo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Texto da ficha</th>
+                <td>15.56</td>
+                <td>17.21</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Metadado da ficha</th>
+                <td>8.61</td>
+                <td>6.61</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Cabeçalho da tabela</th>
+                <td>6.67</td>
+                <td>6.10</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Linha selecionada</th>
+                <td>6.19</td>
+                <td>4.86</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Metadado na seleção em hover</th>
+                <td>5.13</td>
+                <td>4.66</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Atraso na seleção em hover</th>
+                <td>5.10</td>
+                <td>5.60</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Divisa da seleção</th>
+                <td>1.68</td>
+                <td>7.05</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Navegação ativa</th>
+                <td>9.94</td>
+                <td>11.36</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Texto do diálogo</th>
+                <td>15.56</td>
+                <td>13.07</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Campo no diálogo</th>
+                <td>2.33</td>
+                <td>4.45</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Borda sobre o campo</th>
+                <td>1.95</td>
+                <td>5.49</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Placeholder</th>
+                <td>7.20</td>
+                <td>6.89</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Borda de erro</th>
+                <td>8.02</td>
+                <td>8.28</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Botão em repouso</th>
+                <td>7.26</td>
+                <td>7.46</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Botão em hover</th>
+                <td>5.21</td>
+                <td>8.95</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Botão em pressionado</th>
+                <td>10.28</td>
+                <td>5.94</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Confirmação em hover (90%)</th>
+                <td>5.98</td>
+                <td>5.97</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Confirmação pressionada (80%)</th>
+                <td>5.03</td>
+                <td>5.03</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Indicador do filtro</th>
+                <td>2.21</td>
+                <td>8.11</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre background</th>
+                <td>2.26</td>
+                <td>5.83</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre card</th>
+                <td>2.26</td>
+                <td>5.25</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre popover</th>
+                <td>2.09</td>
+                <td>4.43</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre field</th>
+                <td>2.22</td>
+                <td>5.47</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Anel de foco sobre accent</th>
+                <td>2.02</td>
+                <td>3.85</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Estado success</th>
+                <td>7.03</td>
+                <td>7.03</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado warning</th>
+                <td>7.04</td>
+                <td>7.04</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado info</th>
+                <td>8.65</td>
+                <td>8.65</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado destructive</th>
+                <td>6.52</td>
+                <td>6.52</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Estado over-capacity</th>
+                <td>6.92</td>
+                <td>6.92</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · Regular</th>
+                <td>9.89</td>
+                <td>10.67</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · PPT</th>
+                <td>6.92</td>
+                <td>7.40</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · Atendimento</th>
+                <td>7.01</td>
+                <td>7.75</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Agenda · Experimental</th>
+                <td>6.91</td>
+                <td>7.96</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Painel acadêmico · foreground</th>
+                <td>18.25</td>
+                <td>17.21</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Painel acadêmico · muted</th>
+                <td>11.04</td>
+                <td>11.41</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Painel acadêmico · accent</th>
+                <td>8.69</td>
+                <td>8.20</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Entrada institucional</th>
+                <td>8.11</td>
+                <td>8.43</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Gráfico · barra a 65%</th>
+                <td>5.00</td>
+                <td>4.81</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série info</th>
+                <td>10.34</td>
+                <td>9.60</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série success</th>
+                <td>9.81</td>
+                <td>9.11</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série warning</th>
+                <td>10.04</td>
+                <td>9.32</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · série muted-foreground</th>
+                <td>8.61</td>
+                <td>6.61</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Gráfico · legenda de contratos</th>
+                <td>8.69</td>
+                <td>7.37</td>
+                <td>4.5</td>
+              </tr>
+              <tr>
+                <th>Gráfico · barra do mês em andamento</th>
+                <td>2.66</td>
+                <td>6.61</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>Login · borda de campo</th>
+                <td>1.10</td>
+                <td>3.87</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <th>QR · módulos e margem</th>
+                <td>21.00</td>
+                <td>21.00</td>
+                <td>3</td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
+        <details class="sim">
+          <summary>Categorias da agenda sob simulação</summary>
+          <p>
+            <b>Original</b>
+            <span style="color: #d2e1f5; background: #1c2c40">Regular</span
+            ><span style="color: #cdabe3; background: #2c2535">PPT</span
+            ><span style="color: #e6b39a; background: #302824">Atendimento</span
+            ><span style="color: #92d0c2; background: #1c302d"
+              >Experimental</span
+            >
+          </p>
+          <p>
+            <b>Protanopia</b>
+            <span style="color: #dae1f6; background: #242d41">Regular</span
+            ><span style="color: #a3b6e5; background: #222836">PPT</span
+            ><span style="color: #c0b898; background: #2a2924">Atendimento</span
+            ><span style="color: #cbc9c1; background: #2e2e2d"
+              >Experimental</span
+            >
+          </p>
+          <p>
+            <b>Deuteranopia</b>
+            <span style="color: #d7def5; background: #202940">Regular</span
+            ><span style="color: #aab8e1; background: #232835">PPT</span
+            ><span style="color: #ccc29a; background: #2c2a24">Atendimento</span
+            ><span style="color: #c0c1c3; background: #2b2b2d"
+              >Experimental</span
+            >
+          </p>
+        </details>
+      </section>
+    </div>
+    <p>
+      Razões de luminância sRGB, com composição no fundo indicado para botão de
+      confirmação, anel de foco antigo e barras translúcidas. Os resultados usam
+      as declarações do CSS servido e os papéis específicos dos componentes. A
+      inspeção do estilo computado, das fotografias, das camadas sobrepostas e
+      dos pixels no Orca está pendente. As simulações usam RGB linear e as
+      matrizes de Machado a 100%. Os nomes das modalidades acompanham cada
+      amostra. <a href="contraste-cores.csv">Pares, cores e razões</a> ·
+      <a
+        href="https://raw.githubusercontent.com/njsmith/colorspacious/master/colorspacious/cvd.py"
+        >Matrizes de simulação</a
+      >
+    </p>
+    <h2>Decisões por família</h2>
+    <ul>
+      <li>
+        <strong>Alunos e Recebíveis.</strong> O cabeçalho usa uma divisória
+        neutra. A linha selecionada tem fundo próprio e marca de seleção. O
+        atraso conserva o rótulo e a cor destrutiva. O diálogo recebe superfície
+        elevada e campos com borda opaca.
+      </li>
+      <li>
+        <strong>Fichas.</strong> A hierarquia tipográfica e o arranjo das abas
+        permanecem os da base componentizada. Painéis acadêmicos mantêm a
+        superfície escura, com texto claro e valores da turma em dourado.
+      </li>
+      <li>
+        <strong>Agenda.</strong> Regular, PPT, atendimento e experimental
+        conservam rótulos e cores distintas. A marca do período selecionado e a
+        situação da chamada têm papéis separados.
+      </li>
+      <li>
+        <strong>Gráficos.</strong> A legenda, as barras de contratos e os
+        números do eixo usam dourado de leitura adaptado ao tema. As linhas
+        contínua e tracejada diferenciam recebido e previsto. O mês em andamento
+        usa a tinta secundária opaca. As séries financeiras mantêm legenda e
+        valores.
+      </li>
+      <li>
+        <strong>Login, recuperação e 403.</strong> Mantêm o marinho
+        institucional nos dois modos. Os controles de acesso herdam a borda
+        legível e a ação primária do tema escuro.
+      </li>
+      <li>
+        <strong>Projeção.</strong> O componente gera módulos pretos em branco,
+        com margem de quatro módulos e contraste de 21:1. A decodificação física
+        do QR atual está pendente.
+      </li>
+    </ul>
+    <h2>Referências públicas de staging</h2>
+    <div class="grid">
+      <figure>
+        <a href="publico/login-d.png"
+          ><img
+            src="publico/login-d.png"
+            alt="Login de staging em desktop, com formulário ao lado da fotografia"
+        /></a>
+        <figcaption>Login · desktop · staging anterior ao refactor</figcaption>
+      </figure>
+      <figure>
+        <a href="publico/presenca-previa-projecao-m.png"
+          ><img
+            src="publico/presenca-previa-projecao-m.png"
+            alt="Projeção de prévia em tela estreita, com QR preto e branco"
+        /></a>
+        <figcaption>
+          Projeção de prévia · celular · staging anterior ao refactor
+        </figcaption>
+      </figure>
+    </div>
+    <p>
+      Os 43 PNGs públicos são idênticos aos fornecidos. Os 44 JSONs têm conteúdo
+      equivalente. As oito amostras RGB foram conferidas nos fluxos dos dois
+      PDFs. <a href="paleta_light_mode.pdf">Paleta clara</a> ·
+      <a href="paleta_dark_mode.pdf">Paleta escura</a> ·
+      <a href="evidencias-cores.json">SHAs, HTTP local e fixtures</a>
+    </p>
+    <h2>Verificação técnica</h2>
+    <p>
+      O teste de estilos passou. Os 92 pares registrados atingem o mínimo
+      indicado no CSV. Para a confirmação semitransparente, o fundo de
+      composição é o painel elevado. O anel de foco da proposta é opaco. Login,
+      403 e projeção de prévia responderam por HTTP com o script de preferência
+      no cabeçalho do documento.
+    </p>
+    <p>
+      Passaram 21 testes de tema, controles, tabelas e agenda, a checagem de
+      tipos de web e UI e o limite de linhas dos componentes. O lint dos
+      arquivos alterados registrou um aviso em <code>text-caption</code> no
+      gráfico de contratos. O JSON de evidências contém os comandos.
+    </p>
+    <h2>Coleta pendente no Orca</h2>
+    <p>
+      <code>orca-ide skills get orca-cli --json</code> retornou código 127 e
+      <code>orca-ide: command not found</code>. Nenhum par de capturas da base
+      componentizada e da proposta foi coletado. Repetir cada percurso no claro
+      e no escuro, na base e na proposta, a <strong>1440 × 900</strong> e
+      <strong>390 × 844</strong>. Confirmar a revisão servida, reusar a mesma
+      base de fixtures, data, filtros, registro, aba e foco. Anonimizar
+      registros antes de salvar os PNGs.
+    </p>
+    <ol>
+      <li>
+        <strong>Começar por Recebíveis e agenda semanal.</strong> Nas listas de
+        Alunos e Recebíveis, comparar linha normal, seleção, atraso, busca vazia
+        e diálogo sobre a tabela. Conferir rolagem horizontal e foco.
+      </li>
+      <li>
+        Nas agendas de Administração e Professor, fixar a semana de
+        23–29/11/2026, abrir o mesmo dia e uma aula correspondente da fixture.
+        Comparar seleção, quatro tipos de evento e chamada.
+      </li>
+      <li>
+        Nas fichas de aluno, turma e professor, localizar nome e ação principal,
+        percorrer abas pelo teclado e inspecionar metadados, painéis e gráficos.
+      </li>
+      <li>
+        Em Novo professor, conferir campo inicial, foco, erro e ação principal.
+        No login e na recuperação, verificar entrada, erro e fundo fotográfico.
+        Na 403 conferir ação de retorno. Na projeção, ler o QR de prévia em
+        tela.
+      </li>
+      <li>
+        Usar Tab e Enter/Espaço no alternador nos dois contextos. Recarregar,
+        navegar e trocar de contexto em cada modo. Conferir a primeira pintura e
+        os estilos computados, incluindo overlays, botões pressionados e foco
+        sobre a tabela.
+      </li>
+    </ol>
+    <p>
+      Fixtures locais verificadas em 20/11/2026, com 252 alunos, 7 professores,
+      23 turmas e 22 contratos inadimplentes entre 220 contratos. A semana de
+      23–29/11 contém 39 aulas regulares, seis personalizadas, seis atendimentos
+      agendados e oito visitas individuais de introdução. O código e os testes
+      estão disponíveis no checkout para repetir a coleta sem alterar esses
+      registros.
+    </p>
+    <h2>Avaliação reservada à escola</h2>
+    <p>
+      <strong>Claro · pendente.</strong> Em Recebíveis, indique onde pesquisar e
+      qual parcela está selecionada. Ao abrir o formulário, descreva como você
+      distingue o campo, o painel e a lista ao fundo.
+    </p>
+    <p>
+      <strong>Escuro · pendente.</strong> Na agenda semanal, localize uma aula,
+      a ação principal e uma pendência. Registre quais elementos ajudaram ou
+      disputaram sua atenção.
+    </p>
+  </main>
+</html>

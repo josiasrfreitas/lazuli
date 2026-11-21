@@ -9,6 +9,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
+.attachment-panel[data-variant="card"] {
+  background: var(--card);
+  color: var(--card-foreground);
+}
 .attachment-panel__header,
 .attachment-panel__row {
   display: flex;

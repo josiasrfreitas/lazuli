@@ -184,12 +184,12 @@ function CurrentSummary({
           {row.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}
         </Badge>
       </div>
-      <EnrollmentFacts row={row} back={back} />
       <p className={styles.enrollmentPeriod}>
         {row.class.semester} · {row.class.format === "IN_PERSON" ? "Presencial" : "Online"} · Desde{" "}
         {formatDateOnlyBR(row.entryDate)}
         {row.exitDate && ` · Saída em ${formatDateOnlyBR(row.exitDate)}`}
       </p>
+      <EnrollmentFacts row={row} back={back} />
     </article>
   );
 }
@@ -253,6 +253,9 @@ function EnrollmentSummaryLoading(): ReactElement {
         <InlineSkeleton shape="block" className="h-7 w-48 max-w-full" />
         <InlineSkeleton shape="block" className="h-5 w-16" />
       </div>
+      <p className={styles.enrollmentPeriod}>
+        <InlineSkeleton className="w-72 max-w-full" />
+      </p>
       <dl className={styles.enrollmentFacts}>
         <div>
           <dt>
@@ -271,9 +274,6 @@ function EnrollmentSummaryLoading(): ReactElement {
           </dd>
         </div>
       </dl>
-      <p className={styles.enrollmentPeriod}>
-        <InlineSkeleton className="w-72 max-w-full" />
-      </p>
     </div>
   );
 }

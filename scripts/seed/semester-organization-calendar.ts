@@ -89,6 +89,7 @@ export async function publishedOrganizationClass(
     slots: group.slots,
   });
   const portalClassName = await resolvePortalClassName(database, {
+    format: group.format,
     scheduleType: group.scheduleType,
     slots: group.slots,
     teacherId,

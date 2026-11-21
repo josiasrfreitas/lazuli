@@ -99,7 +99,11 @@ function StudentSearchResults({
               <strong>{student.name}</strong>
               <span className={styles.small}>
                 {student.current
-                  .map((current) => `${current.stageCode} · ${current.className}`)
+                  .map((current) =>
+                    current.scheduleType === "PERSONALIZED"
+                      ? `${current.className} · ${current.stageCode}`
+                      : current.className,
+                  )
                   .join(" / ") || "Sem turma atual"}
               </span>
             </span>

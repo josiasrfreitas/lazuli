@@ -302,13 +302,15 @@ async function applyClassSearch(
   where: Prisma.ClassWhereInput,
 ): Promise<void> {
   if (!input.values.search) return;
-  const [classes, teachers] = await Promise.all([
+  const [classes, teachers, stages] = await Promise.all([
     searchIds(input.database, { table: "Class", query: input.values.search }),
     searchIds(input.database, { table: "User", query: input.values.search }),
+    searchIds(input.database, { table: "Stage", query: input.values.search }),
   ]);
-  if (classes && teachers)
+  if (classes && teachers && stages)
     where.OR = [
       { id: classes },
+      { sharedStageId: stages },
       { teacher: { id: teachers } },
       { teacherAssignments: { some: { teacher: { id: teachers } } } },
     ];

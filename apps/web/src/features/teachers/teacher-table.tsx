@@ -6,7 +6,8 @@ import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, DataTable, type DataTableColumn, type DataTableState } from "@lazuli/ui";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
-import { hoursLabel, metricNumber } from "./format";
+import { hoursLabel } from "./format";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-table.module.css";
 import { TeacherStatus } from "./teacher-status";
 
@@ -60,11 +61,11 @@ export function TeacherTable({
 function scoreLabel(
   query: { isError: boolean; data: Record<string, number | null> | undefined },
   id: string,
-): string {
+): ReactElement | string {
   if (query.isError) return "Indisponível";
   if (!query.data) return "…";
   const value = query.data[id];
-  return typeof value === "number" ? metricNumber(value) : "Sem dados";
+  return typeof value === "number" ? <HealthScoreValue value={value} /> : "Sem dados";
 }
 
 type TeacherRow = RouterOutputs["teachers"]["list"]["rows"][number];
@@ -80,8 +81,8 @@ function teacherTableState({
 }
 const appointmentHoursColumn: DataTableColumn<TeacherRow> = {
   id: "appointmentHours",
-  header: <span className="whitespace-nowrap">Horas de atendimento</span>,
-  width: "wide",
+  header: <span className="whitespace-normal">Horas de atendimento</span>,
+  width: "standard",
   cell: (row) => (
     <div
       className="grid gap-1"
@@ -118,7 +119,7 @@ function teacherColumns({
     {
       id: "email",
       header: "E-mail",
-      width: "wide",
+      width: "medium",
       cell: (row) => (
         <span title={row.email} className="block truncate text-muted-foreground">
           {row.email}
@@ -141,7 +142,7 @@ function teacherColumns({
     },
     {
       id: "score",
-      header: "Score médio dos alunos",
+      header: <span className="whitespace-normal">Score médio</span>,
       width: "standard",
       numeric: true,
       cell: (row) => score(row.id),
@@ -156,8 +157,8 @@ function teacherColumns({
     },
     {
       id: "access",
-      header: "Acesso ao sistema",
-      width: "medium",
+      header: <span className="whitespace-normal">Acesso ao sistema</span>,
+      width: "standard",
       cell: (row) => <TeacherAccess row={row} today={today} />,
     },
   ];
@@ -192,7 +193,7 @@ type TeacherTableStateInput = {
   filtered: boolean;
 };
 type TeacherColumnsInput = {
-  score: (id: string) => string;
+  score: (id: string) => ReactElement | string;
   href: (id: string) => string;
   today: string;
 };

@@ -11,6 +11,7 @@ import { AdminMobileNotice } from "./admin-mobile-notice";
 import { MobileNavigation } from "./mobile-navigation";
 import { Sidebar } from "./sidebar";
 import styles from "./app-shell.module.css";
+import { ThemeToggle } from "./theme-toggle";
 import { SessionSync } from "./session-sync";
 import { AccountMenu } from "./account-menu";
 import { TeacherNavigation } from "~/features/teacher-workspace/navigation";
@@ -31,9 +32,7 @@ export function AppShell({
   isMobileDevice: boolean;
 }): ReactNode {
   return (
-    <div
-      className={`${styles.shell} flex h-svh bg-background text-foreground dark:bg-gradient-to-br dark:from-marquee dark:via-navigation-active dark:to-marquee`}
-    >
+    <div className={`${styles.shell} flex h-svh bg-background text-foreground`}>
       <SessionSync renderedEmail={identity.email} />
       {(identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") && (
         <AdminMobileNotice key={identity.id} userId={identity.id} isMobileDevice={isMobileDevice} />
@@ -55,10 +54,11 @@ export function AppShell({
 function TopBar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
     <header
+      data-top-bar=""
       className={
         identity.role === "TEACHER"
-          ? "flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-2 sm:px-4"
-          : "flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 dark:bg-transparent sm:gap-4 sm:px-6"
+          ? "flex h-12 shrink-0 items-center gap-2 border-b border-border bg-navigation-bar text-foreground px-2 sm:px-4"
+          : "flex h-14 shrink-0 items-center gap-3 border-b border-border bg-navigation-bar text-foreground px-3 sm:gap-4 sm:px-6"
       }
     >
       <MobileNavigation identity={identity} />
@@ -76,6 +76,7 @@ function TopBar({ identity }: { identity: StaffIdentity }): ReactNode {
             {formatLongDateSaoPaulo(new Date())}
           </p>
         )}
+        <ThemeToggle />
         <AccountMenu identity={identity} />
       </div>
     </header>

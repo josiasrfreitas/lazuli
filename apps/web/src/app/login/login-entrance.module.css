@@ -32,6 +32,10 @@
   overflow: hidden;
 }
 
+:global(.dark) .photo {
+  filter: brightness(0.88);
+}
+
 .photo {
   object-fit: cover;
   object-position: center 42%;
@@ -126,7 +130,6 @@
 
 .access {
   --field: var(--navigation-active);
-  --input: var(--navigation-border);
   --foreground: var(--marquee-foreground);
   --muted-foreground: var(--marquee-muted);
   --ring: var(--brand);

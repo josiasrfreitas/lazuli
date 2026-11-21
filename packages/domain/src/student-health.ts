@@ -26,7 +26,7 @@ const OCCURRENCE_PENALTY = 10;
 const HEALTHY_SCORE = 80;
 const ATTENTION_SCORE = 60;
 
-function healthLevel(score: number | null): StudentHealthLevel {
+export function studentHealthLevel(score: number | null): StudentHealthLevel {
   if (score === null) return "INSUFFICIENT_DATA";
   if (score >= HEALTHY_SCORE) return "HEALTHY";
   if (score >= ATTENTION_SCORE) return "ATTENTION";
@@ -68,7 +68,7 @@ export function calculateStudentHealth(input: StudentHealthInput): StudentHealth
       : null;
   return {
     score,
-    level: healthLevel(score),
+    level: studentHealthLevel(score),
     indicators,
     availableIndicators: available.length,
   };

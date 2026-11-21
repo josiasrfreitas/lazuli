@@ -17,11 +17,23 @@ export const employeesRouter = router({
     .input(teacherIdInputSchema)
     .query(({ ctx, input }) => readEmployee(ctx.db, input.id)),
   list: adminProcedure
-    .input(teacherListInputSchema.pick({ search: true, page: true, pageSize: true }))
+    .input(
+      teacherListInputSchema.pick({ search: true, page: true, pageSize: true }).extend({
+        areas: employeeFields.shape.area.array().optional(),
+        hasTeacherProfile: z.boolean().optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const where = {
         deletedAt: null,
-        employeeProfile: { is: { deletedAt: null } },
+        employeeProfile: {
+          is: { deletedAt: null, ...(input.areas?.length && { area: { in: input.areas } }) },
+        },
+        ...(input.hasTeacherProfile !== undefined && {
+          teacherProfile: input.hasTeacherProfile
+            ? { is: { deletedAt: null } }
+            : { isNot: { deletedAt: null } },
+        }),
         id: (await searchIds(ctx.db, { table: "User", query: input.search })) ?? {},
       };
       const total = await ctx.db.user.count({ where });

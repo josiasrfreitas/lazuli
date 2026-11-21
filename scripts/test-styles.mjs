@@ -6,7 +6,14 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/postcss";
 import postcss from "postcss";
 
-import { assertContrast, getBlock, getDeclarations, resolveColor } from "./style-test-utils.mjs";
+import {
+  assertContrast,
+  compositeColor,
+  contrastRatio,
+  getBlock,
+  getDeclarations,
+  resolveColor,
+} from "./style-test-utils.mjs";
 import { assertComponentContracts } from "./test-component-contracts.mjs";
 
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,6 +29,15 @@ const nonTextContrastMinimum = 3;
 const primaryForegroundRole = "primary-foreground";
 const accentForegroundRole = "accent-foreground";
 const destructiveForegroundRole = "destructive-foreground";
+const mutedForegroundRole = "muted-foreground";
+const interactiveHoverRole = "interactive-hover";
+const successMutedRole = "success-muted";
+const academicPanelSurfaceRole = "academic-panel-surface";
+const successHoverOpacity = 0.9;
+const successPressedOpacity = 0.8;
+const revenueBarOpacity = 0.65;
+const accentHoverRole = "accent-hover";
+const accentActiveRole = "accent-active";
 const semanticColorRoles = [
   "background",
   "foreground",
@@ -36,10 +52,10 @@ const semanticColorRoles = [
   "secondary",
   "secondary-foreground",
   "muted",
-  "muted-foreground",
+  mutedForegroundRole,
   "accent",
-  "accent-hover",
-  "accent-active",
+  accentHoverRole,
+  accentActiveRole,
   accentForegroundRole,
   "destructive",
   "destructive-hover",
@@ -52,10 +68,10 @@ const semanticColorRoles = [
   "brand",
   "brand-foreground",
   "interactive",
-  "interactive-hover",
+  interactiveHoverRole,
   "interactive-active",
   "success",
-  "success-muted",
+  successMutedRole,
   "warning",
   "warning-muted",
   "info",
@@ -200,12 +216,13 @@ for (const [theme, tokens, expected] of [
     "light",
     lightTokens,
     {
-      background: "#f5f6f7",
-      foreground: "#27313f",
-      primary: "#0f1e3d",
+      background: "#e7dedb",
+      card: "#fcf5f3",
+      foreground: "#2e2727",
+      primary: "#305985",
       interactive: "#305985",
       ring: "#456f9f",
-      brand: "#d8ad4a",
+      brand: "#305985",
       destructive: "#ad354b",
     },
   ],
@@ -213,13 +230,14 @@ for (const [theme, tokens, expected] of [
     "dark",
     darkTokens,
     {
-      background: "#12151d",
-      foreground: "#e9edf6",
-      primary: "#e9edf6",
-      interactive: "#adc5e5",
-      ring: "#6b91c7",
-      brand: "#d8ad4a",
-      destructive: "#ee9aab",
+      background: "#0d1428",
+      [mutedForegroundRole]: "#aebcda",
+      foreground: "#e5ebfa",
+      primary: "#295fc9",
+      interactive: "#95bdff",
+      ring: "#81a9ff",
+      brand: "#d0b786",
+      destructive: "#dfa2af",
     },
   ],
 ]) {
@@ -230,33 +248,95 @@ for (const [theme, tokens, expected] of [
   for (const [foreground, background] of [
     ["foreground", "background"],
     ["card-foreground", "card"],
+    [mutedForegroundRole, "field"],
+    ["field", "interactive"],
+    ["field", interactiveHoverRole],
+    [mutedForegroundRole, "card"],
+    [mutedForegroundRole, "accent"],
+    [mutedForegroundRole, accentHoverRole],
+    [mutedForegroundRole, accentActiveRole],
+    ["destructive", accentHoverRole],
+    ["table-heading-foreground", "table-heading"],
+    ["chart-gold", "card"],
+    ["navigation-muted", "navigation"],
+    ["navigation-foreground", "navigation-active"],
+    ["academic-panel-foreground", academicPanelSurfaceRole],
+    ["academic-panel-muted", academicPanelSurfaceRole],
+    ["academic-panel-accent", academicPanelSurfaceRole],
+    ["marquee-muted", "marquee"],
+    ["marquee-foreground", "marquee"],
+    ["lesson-regular-foreground", "lesson-regular-surface"],
+    ["lesson-personalized-foreground", "lesson-personalized-surface"],
+    ["appointment-foreground", "appointment-surface"],
+    ["experimental-foreground", "experimental-surface"],
     ["popover-foreground", "popover"],
     [primaryForegroundRole, "primary"],
     [primaryForegroundRole, "primary-hover"],
     [primaryForegroundRole, "primary-active"],
     ["secondary-foreground", "secondary"],
-    ["muted-foreground", "muted"],
+    [mutedForegroundRole, "muted"],
     [accentForegroundRole, "accent"],
-    [accentForegroundRole, "accent-hover"],
-    [accentForegroundRole, "accent-active"],
+    [accentForegroundRole, accentHoverRole],
+    [accentForegroundRole, accentActiveRole],
     [destructiveForegroundRole, "destructive"],
     [destructiveForegroundRole, "destructive-hover"],
     [destructiveForegroundRole, "destructive-active"],
     ["brand-foreground", "brand"],
     ["interactive", "background"],
-    ["interactive-hover", "background"],
+    [interactiveHoverRole, "background"],
     ["interactive-active", "background"],
-    ["success", "success-muted"],
+    ["success", successMutedRole],
     ["warning", "warning-muted"],
     ["info", "info-muted"],
     ["destructive", "destructive-muted"],
   ]) {
     assertContrast(tokens, { foreground, background, minimum: normalTextContrastMinimum });
   }
-  assertContrast(tokens, {
-    foreground: "ring",
-    background: "background",
+  const card = resolveColor(tokens, "card");
+  const successInk = resolveColor(tokens, successMutedRole);
+  const successFill = resolveColor(tokens, "success");
+  for (const surface of [card, resolveColor(tokens, "popover")]) {
+    for (const opacity of [successHoverOpacity, successPressedOpacity]) {
+      assert.ok(
+        contrastRatio(successInk, compositeColor(successFill, { backdrop: surface, opacity })) >=
+          normalTextContrastMinimum,
+        `${theme} success button over ${surface} at opacity ${opacity}`,
+      );
+    }
+  }
+  const bar = compositeColor(resolveColor(tokens, "info"), {
+    backdrop: card,
+    opacity: revenueBarOpacity,
+  });
+  assert.ok(contrastRatio(bar, card) >= nonTextContrastMinimum, `${theme} expected revenue bar`);
+  for (const background of ["background", "card", "popover", "field", "accent", "muted"]) {
+    for (const foreground of ["input", "ring"]) {
+      assertContrast(tokens, { foreground, background, minimum: nonTextContrastMinimum });
+    }
+  }
+}
+
+// The public entrance keeps its own dark panel even inside a light document.
+const loginStyles = await readFile(
+  path.join(repositoryRoot, "apps/web/src/app/login/login-entrance.module.css"),
+  "utf8",
+);
+const login = new Map([...darkTokens, ...getDeclarations(loginStyles, ".access")]);
+for (const surface of ["field", "navigation-active", "marquee"]) {
+  assertContrast(login, {
+    foreground: "input",
+    background: surface,
     minimum: nonTextContrastMinimum,
+  });
+  assertContrast(login, {
+    foreground: "ring",
+    background: surface,
+    minimum: nonTextContrastMinimum,
+  });
+  assertContrast(login, {
+    foreground: mutedForegroundRole,
+    background: surface,
+    minimum: normalTextContrastMinimum,
   });
 }
 
@@ -317,7 +397,10 @@ for (const shadow of ["sm", "md", "lg", "focus"]) {
     new RegExp(`--shadow-${shadow}: var\\(--lz-shadow-${shadow}\\);`, "u"),
   );
 }
-assert.match(effectsTokens, /--lz-shadow-focus: 0 0 0 3px /u);
+for (const effects of [rootEffects, darkEffects]) {
+  assert.equal(effects.get("--lz-shadow-focus"), "0 0 0 3px var(--ring)");
+  assert.equal(effects.get("--lz-shadow-focus-invalid"), "0 0 0 3px var(--destructive)");
+}
 assert.match(tailwindBridge, /--ease-standard: var\(--lz-ease-standard\);/u);
 for (const duration of ["fast", "base", "slow"]) {
   assert.match(effectsTokens, new RegExp(`--lz-duration-${duration}:`, "u"));

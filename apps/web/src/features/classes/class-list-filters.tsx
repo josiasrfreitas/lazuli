@@ -22,7 +22,7 @@ export function ClassFilters({
         <TableSearch
           label="Buscar turmas"
           name="busca"
-          placeholder="Turma ou docente"
+          placeholder="Turma, estágio ou docente"
           value={params.busca}
           onCommit={(busca) => change({ busca, pagina: 1 })}
         />

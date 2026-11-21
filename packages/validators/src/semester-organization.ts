@@ -7,7 +7,6 @@ import {
   classScheduleTypeSchema,
 } from "./class.js";
 
-const MAX_PLAN_NAME_LENGTH = 80;
 const MAX_SLOTS = 21;
 const MAX_PLACEMENTS = 100;
 const MAX_LEADS = 100;
@@ -20,8 +19,6 @@ export const semesterPlanSchema = semesterScopeSchema
   .extend({
     id: id.optional(),
     version: z.number().int().nonnegative().default(0),
-    // Older clients submit a label. The server derives the stored name from the plan.
-    name: z.string().trim().min(2).max(MAX_PLAN_NAME_LENGTH).optional(),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     sharedStageId: id.nullable(),

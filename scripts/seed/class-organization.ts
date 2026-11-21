@@ -283,7 +283,7 @@ async function seedDrafts(context: SeedContext): Promise<void> {
       ...closedClass,
       id: organizationId("plan", { semesterName: semester.name, key: "closed-current" }),
       semesterId: semester.id,
-      name: await plannedClassName(database, closedClass),
+      name: await plannedClassName(database, { ...closedClass, format: "IN_PERSON" }),
       format: "IN_PERSON",
       closedAt: now,
       recordedById: staffUser.id,

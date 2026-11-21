@@ -8,6 +8,31 @@ a[href]:not([data-slot="button"]):is(:hover, :focus-visible) {
   color: var(--brand-link-hover);
 }
 
+.light [data-top-bar] {
+  --border-strong: var(--muted-foreground);
+  --muted-foreground: var(--foreground);
+}
+
+/* Portaled account dialogs keep the document theme. The mobile navigation popup
+   opts into the same navigation surface as its trigger and the desktop sidebar. */
+[data-navigation-surface],
+.dark [data-top-bar] {
+  --foreground: var(--navigation-foreground);
+  --muted-foreground: var(--navigation-muted);
+  --popover: var(--navigation);
+  --popover-foreground: var(--navigation-foreground);
+  --muted: var(--navigation-active);
+  --accent: var(--navigation-active);
+  --accent-active: var(--navigation-active);
+  --accent-foreground: var(--navigation-foreground);
+  --border: var(--navigation-border);
+  --brand-link-hover: var(--navigation-focus);
+  --icon-active: var(--navigation-marker);
+  --selection-indicator: var(--icon-active);
+  --ring: var(--navigation-focus);
+  --lz-shadow-focus: 0 0 0 3px var(--ring);
+}
+
 [data-slot="app-sidebar"] a[href]:is(:hover, :focus-visible) {
   color: var(--icon-active);
 }

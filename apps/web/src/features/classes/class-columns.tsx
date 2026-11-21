@@ -4,7 +4,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { Badge, Tooltip, TooltipTrigger, TooltipContent, type DataTableColumn } from "@lazuli/ui";
 import {
   classOccupancyIndicator,
-  formatClassSchedule,
+  classScheduleGroups,
   formatClassScheduleTime,
   formatFormat,
   formatScheduleType,
@@ -13,9 +13,8 @@ import { classListReturnUrl, type ClassListParams } from "./class-list-model";
 
 export type ClassRow = RouterOutputs["classes"]["list"]["rows"][number];
 const COLUMN_WIDTHS = {
-  code: "wide",
   teacher: "standard",
-  schedule: "standard",
+  schedule: "wide",
   occupancy: "narrow",
 } as const satisfies Record<string, NonNullable<DataTableColumn<ClassRow>["width"]>>;
 const WIDE_STAGE_LENGTH = 24;
@@ -33,10 +32,10 @@ export function classColumns(
   const stageWidth = classStageWidth(longestStage);
   return [
     {
-      id: "code",
-      header: "Turma",
-      width: COLUMN_WIDTHS.code,
-      cell: (row: ClassRow) => <ClassCodeLink row={row} back={back} />,
+      id: "stage",
+      header: "Estágio",
+      width: stageWidth,
+      cell: (row: ClassRow) => <ClassStageLink row={row} back={back} />,
     },
     {
       id: "type",
@@ -49,12 +48,6 @@ export function classColumns(
       header: "Docente",
       width: COLUMN_WIDTHS.teacher,
       cell: (row: ClassRow) => row.currentTeacher?.name ?? "Sem docente",
-    },
-    {
-      id: "stage",
-      header: "Estágio",
-      width: stageWidth,
-      cell: (row: ClassRow) => row.sharedStage?.name ?? "Individual",
     },
     {
       id: "schedule",
@@ -77,13 +70,15 @@ function classStageWidth(length: number): "wide" | "medium" | "standard" {
   return length > MEDIUM_STAGE_LENGTH ? "medium" : "standard";
 }
 
-function ClassCodeLink({ row, back }: { row: ClassRow; back: string }): ReactElement {
+function ClassStageLink({ row, back }: { row: ClassRow; back: string }): ReactElement {
+  const stage = row.sharedStage?.name ?? "Individual";
   return (
     <Link
-      className="whitespace-nowrap font-medium text-primary underline-offset-2 hover:underline focus-visible:shadow-focus"
+      aria-label={`Abrir turma ${stage} (${row.portalClassName})`}
+      className="font-medium text-primary underline-offset-2 hover:underline focus-visible:shadow-focus"
       href={`/turmas/${row.id}?voltar=${encodeURIComponent(back)}`}
     >
-      {row.portalClassName}
+      {stage}
     </Link>
   );
 }
@@ -92,10 +87,14 @@ function scheduleCell(row: ClassRow): ReactElement {
   return (
     <Tooltip>
       <TooltipTrigger
-        render={<span tabIndex={0} />}
+        render={<span tabIndex={0} className="block max-w-full overflow-x-auto" />}
         aria-label={formatClassScheduleTime(row.scheduleSlots)}
       >
-        {formatClassSchedule(row.scheduleSlots)}
+        {classScheduleGroups(row.scheduleSlots).map((interval) => (
+          <span key={interval} className="block whitespace-nowrap">
+            {interval}
+          </span>
+        ))}
       </TooltipTrigger>
       <TooltipContent>{formatClassScheduleTime(row.scheduleSlots)}</TooltipContent>
     </Tooltip>

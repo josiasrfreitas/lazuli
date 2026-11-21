@@ -83,7 +83,7 @@ function AccountTrigger({
       render={<Button variant="ghost" size="icon-compact-responsive" />}
     >
       <span className={styles.avatar}>
-        <Avatar colorKey={identity.id} name={identity.name} />
+        <Avatar className="bg-navigation-active text-navigation-foreground" name={identity.name} />
         <span className={styles.chevron} aria-hidden="true">
           <ChevronDown className="size-3" />
         </span>

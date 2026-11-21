@@ -238,7 +238,7 @@ function LeadSuggestions({
           disabled={ended || mutation.isPending}
           onClick={() => mutation.mutate({ leadId: lead.id, planId: plan.id })}
         >
-          {plan.scheduleType === "PERSONALIZED" ? "PPT" : plan.stageCode} · {plan.name}
+          {plan.name}
         </Button>
       ))}
       {plans.length === 0 && (

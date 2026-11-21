@@ -6,7 +6,7 @@ import { ReturnBreadcrumb } from "~/components/app-shell/app-breadcrumb";
 import type { ClassPlan } from "./model";
 
 export function formationPlanTitle(plan: ClassPlan): string {
-  if (plan.scheduleType === "PERSONALIZED") return plan.name;
+  if (plan.scheduleType === "PERSONALIZED") return "PPT";
   return plan.stageName ?? plan.stageCode ?? plan.name;
 }
 

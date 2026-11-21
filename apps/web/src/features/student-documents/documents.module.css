@@ -486,14 +486,14 @@
   flex-direction: column;
   gap: 0.5rem;
   min-width: 0;
-  min-height: 16rem;
+  min-height: var(--document-preview-min-height, 16rem);
   width: 100%;
 }
 .pdfPage {
   position: relative;
   flex: 1;
   width: 100%;
-  min-height: 12rem;
+  min-height: var(--document-preview-min-height, 12rem);
 }
 .pdfPage canvas {
   position: absolute;

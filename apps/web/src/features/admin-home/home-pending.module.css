@@ -1,5 +1,5 @@
 .pending {
-  --pending-surface: var(--card);
+  --pending-surface: var(--pending-panel);
   --pending-ink: var(--card-foreground);
   --pending-muted: var(--muted-foreground);
   --pending-row: var(--secondary);
@@ -74,7 +74,11 @@
   height: 2.25rem;
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--brand) 18%, var(--pending-row));
-  color: var(--brand);
+  color: var(--brand-link);
+}
+.placementIcon {
+  color: var(--info);
+  background: var(--info-muted);
 }
 .icon svg {
   width: 1.125rem;
@@ -665,11 +669,45 @@
   color: var(--warning);
   background: var(--warning-muted);
 }
-.placementIcon {
-  color: var(--info);
-  background: var(--info-muted);
+
+:global(.dark) .icon {
+  background: var(--info);
+  color: var(--info-muted);
+}
+:global(.dark) :is(.pendingActionIcon, .placementIcon, .healthIcon, .recordIcon, .planningIcon) {
+  background: var(--warning);
+  color: var(--warning-muted);
+}
+:global(.dark) .contractIcon {
+  background: var(--contract-foreground);
+  color: var(--contract-surface);
+}
+:global(.dark) :is(.financeIcon, .coverageIcon) {
+  background: var(--destructive);
+  color: var(--destructive-muted);
+}
+:global(.dark) .icon > .iconAttention {
+  color: var(--foreground);
+  background: var(--field);
+  fill: var(--field);
 }
 
 .pending[data-sticky="false"] {
   position: static;
+}
+
+:global(.light)
+  .icon:where(
+    :not(
+      .financeIcon,
+      .coverageIcon,
+      .healthIcon,
+      .recordIcon,
+      .planningIcon,
+      .contractIcon,
+      .placementIcon
+    )
+  ) {
+  background: transparent;
+  color: var(--pending-ink);
 }

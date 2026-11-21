@@ -46,7 +46,7 @@ void it("creates a regular class with generated portal name", async () => {
   assert.equal(stored.capacity, 25);
   assert.equal(stored.year, 2026);
   assert.equal(stored.startDate?.toISOString().slice(0, 10), "2026-03-01");
-  assert.equal(created.portalClassName, "REG GRE29S1 TER/14:00-16:00 GRE-29 Class Teacher");
+  assert.equal(created.portalClassName, "GRE29S1-TER-14");
   assert.equal(created.status, "ACTIVE");
 });
 
@@ -68,7 +68,7 @@ void it("rejects a class start date outside its period", async () => {
   );
 });
 
-void it("distinguishes personalized classes by day and teacher", async () => {
+void it("disambiguates online personalized classes with the same start time", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
@@ -94,12 +94,12 @@ void it("distinguishes personalized classes by day and teacher", async () => {
     slots: [{ weekday: "THURSDAY", startTime: "10:00", endTime: "11:00" }],
   });
 
-  assert.equal(created.portalClassName, "PPT SEX/10:00-11:00 GRE-29 Class Teacher");
-  assert.equal(second.portalClassName, "PPT SEX/10:00-11:00 GRE-29 Class Second Teacher");
-  assert.equal(third.portalClassName, "PPT QUI/10:00-11:00 GRE-29 Class Second Teacher");
+  assert.equal(created.portalClassName, "PPT/ON-SEX-10:00");
+  assert.equal(second.portalClassName, "PPT/ON-SEX-10:00 · 2");
+  assert.equal(third.portalClassName, "PPT/ON-QUI-10:00");
   assert.equal(created.sharedStageId, null);
   const stored = await db.class.findUniqueOrThrow({ where: { id: created.id } });
-  assert.equal(stored.originalPortalClassName, "PPT SEX/10:00-11:00 GRE-29 Class Teacher");
+  assert.equal(stored.originalPortalClassName, "PPT/ON-SEX-10:00");
 });
 
 void it("adds a suffix only when the complete active class name is occupied", async () => {
@@ -116,7 +116,7 @@ void it("adds a suffix only when the complete active class name is occupied", as
     startDate: "2026-08-01",
     slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
   });
-  assert.equal(otherPeriod.portalClassName, "REG GRE29S1 TER/14:00-16:00 GRE-29 Class Teacher · 2");
+  assert.equal(otherPeriod.portalClassName, "GRE29S1-TER-14 · 2");
 });
 
 void it("lists created classes with current occupancy and reads their roster", async () => {
@@ -196,12 +196,18 @@ void it("unions selected class filters and intersects different filter fields", 
   assert.equal(personalizedStage.total, 0);
 });
 
-void it("finds classes by teacher name while preserving selected filters", async () => {
+void it("finds classes by the displayed stage and teacher while preserving selected filters", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
   const regular = await createRegularFixture(fixtures);
   const teacher = await db.user.findUniqueOrThrow({ where: { id: TEACHER_USER_ID } });
+  const stage = await db.stage.findUniqueOrThrow({ where: { id: fixtures.stageId } });
+  const byStage = await caller().classes.list({ search: stage.name });
+  assert.deepEqual(
+    byStage.rows.map((row) => row.id),
+    [regular.id],
+  );
   const found = await caller().classes.list({ search: teacher.name.toLowerCase() });
   assert.deepEqual(
     found.rows.map((row) => row.id),
@@ -256,10 +262,7 @@ void it("clones a regular class for the next period preserving lineage", async (
   assert.equal(result.source.status, "ARCHIVED");
   assert.equal(result.successor.previousClassId, source.id);
   assert.equal(result.successor.sharedStageId, fixtures.nextStageId);
-  assert.equal(
-    result.successor.portalClassName,
-    "REG GRE29S2 TER/14:00-16:00 GRE-29 Class Teacher",
-  );
+  assert.equal(result.successor.portalClassName, "GRE29S2-TER-14");
 });
 
 void it("enqueues session generation without creating sessions inline", async () => {

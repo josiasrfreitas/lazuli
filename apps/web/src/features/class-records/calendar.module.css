@@ -8,6 +8,9 @@
   color: var(--foreground);
 }
 .pageHeader {
+  padding: 0.5rem 0.75rem;
+  background: var(--toolbar);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -83,6 +86,7 @@
   padding-inline: 0.25rem;
 }
 .day[aria-pressed="true"] {
+  --ring: var(--primary-foreground);
   background: var(--primary);
   color: var(--primary-foreground);
 }

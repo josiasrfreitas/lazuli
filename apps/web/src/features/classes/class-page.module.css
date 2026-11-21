@@ -32,7 +32,7 @@
   flex-shrink: 0;
   padding: 0.875rem 1.125rem;
   border: 1px solid var(--border);
-  background: var(--accent);
+  background: var(--record-summary-surface);
   container-type: inline-size;
 }
 .identityFacts {

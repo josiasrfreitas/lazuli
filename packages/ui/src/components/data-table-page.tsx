@@ -26,14 +26,14 @@ export const DataTablePage = forwardRef<HTMLDivElement, DataTablePageProps>(
     <div
       {...props}
       className={cn(
-        "mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-4 overflow-hidden p-6",
+        "mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-2 overflow-hidden p-3 sm:p-6",
         className,
       )}
       data-slot="data-table-page"
       ref={ref}
     >
       <div
-        className="flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-3"
+        className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-toolbar px-3 py-2.5 dark:bg-transparent"
         data-slot="data-table-page-toolbar"
       >
         <div
@@ -45,7 +45,11 @@ export const DataTablePage = forwardRef<HTMLDivElement, DataTablePageProps>(
             <p className="text-caption text-muted-foreground">{summary}</p>
           )}
         </div>
-        {controls === undefined ? null : <div data-slot="data-table-page-controls">{controls}</div>}
+        {controls === undefined ? null : (
+          <div className="min-w-0 max-w-full" data-slot="data-table-page-controls">
+            {controls}
+          </div>
+        )}
       </div>
       <div className="min-h-0 flex-1" data-slot="data-table-page-content">
         {children}

@@ -15,6 +15,7 @@ import { Badge, Button, EmptyState, Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { metricNumber } from "./teacher-metric-details";
 import { TeacherStudentsLoading } from "./teacher-students-loading";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-students.module.css";
 
 type Metrics = RouterOutputs["teachers"]["metrics"];
@@ -208,7 +209,10 @@ function StudentsGroup({ group }: { group: StudentGroup }): ReactElement {
           </span>
         </div>
         <p>
-          Score médio <strong>{metricNumber(group.score)}</strong>
+          Score médio{" "}
+          <strong>
+            <HealthScoreValue value={group.score} />
+          </strong>
           <span>de 100</span>
         </p>
       </header>

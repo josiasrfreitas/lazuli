@@ -16,6 +16,7 @@ import {
   SegmentedControlItem,
   type DataTableColumn,
 } from "@lazuli/ui";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-overview.module.css";
 import { formatClassSchedule } from "~/features/classes/labels";
 export type MetricDetail = "health" | "learning" | "attendance" | "followup";
@@ -102,7 +103,9 @@ function metricRows(
   if (group === "classes")
     return data.classes.map((row) => ({
       id: row.id,
-      name: [row.name, row.stages.join(", ")].filter(Boolean).join(" · "),
+      name:
+        row.stages.join(", ") ||
+        (row.scheduleType === "PERSONALIZED" ? "PPT" : "Estágio a definir"),
       href: `/turmas/${row.id}`,
       score: row.score,
       grades: row.grades,
@@ -152,7 +155,7 @@ function metricColumns({
             id: "score",
             header: group === "classes" ? "Score médio" : "Score individual",
             numeric: true,
-            cell: (row: Row) => metricNumber(row.score),
+            cell: (row: Row) => <HealthScoreValue value={row.score} />,
           },
         ]
       : []),

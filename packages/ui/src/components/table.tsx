@@ -243,7 +243,7 @@ export function TableActionRow({
       interactive={Boolean(onActivate)}
       selected={selected}
       className={cn(
-        selected && "outline outline-1 -outline-offset-1 outline-border-strong",
+        selected && "outline outline-1 -outline-offset-1 outline-interactive",
         onActivate &&
           "cursor-pointer hover:bg-muted/60 focus-within:bg-muted/60 data-[selected]:focus-within:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
       )}

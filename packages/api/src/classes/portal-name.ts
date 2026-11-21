@@ -5,7 +5,7 @@ import { PORTAL_NAME_COLLISION_MESSAGE } from "./errors.js";
 
 const MAX_PORTAL_NAME_ATTEMPTS = 50;
 type NamingDatabase = Pick<Prisma.TransactionClient, "stage" | "user" | "class">;
-type ClassNameFields = Pick<ClassNameInput, "scheduleType" | "slots"> & {
+type ClassNameFields = Pick<ClassNameInput, "scheduleType" | "format" | "slots"> & {
   sharedStageId?: string | null | undefined;
   teacherId: string | null;
 };
@@ -18,16 +18,18 @@ async function namingDetails(
     fields.scheduleType === "REGULAR" && fields.sharedStageId
       ? database.stage.findUnique({
           where: { id: fields.sharedStageId },
-          select: { internalCode: true },
+          select: { internalCode: true, track: { select: { name: true } } },
         })
       : null,
-    fields.teacherId
+    fields.scheduleType === "PERSONALIZED" && fields.format === "IN_PERSON" && fields.teacherId
       ? database.user.findUnique({ where: { id: fields.teacherId }, select: { name: true } })
       : null,
   ]);
   return {
     scheduleType: fields.scheduleType,
     slots: fields.slots,
+    format: fields.format,
+    trackName: stage?.track.name,
     stageInternalCode: stage?.internalCode,
     teacherName: teacher?.name,
   };

@@ -8,6 +8,7 @@ const searchColumns = {
   Student: ["full_name"],
   User: ["name"],
   Class: ["internal_code", "portal_class_name"],
+  Stage: ["name", "internal_code"],
   Payer: ["name"],
   ActivityEvent: ["title", "subject_name", "actor_name", "description"],
   AdmissionCandidate: ["full_name", "phone", "email", "contact_name"],

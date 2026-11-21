@@ -24,6 +24,7 @@ import {
   type TeacherClassDirection,
   type TeacherMetricClass,
 } from "./teacher-class-order";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-class-metrics.module.css";
 
 type Metrics = RouterOutputs["teachers"]["metrics"];
@@ -244,7 +245,7 @@ function ClassReadings({
           Score médio
         </dt>
         <dd data-empty={row.score === null || undefined}>
-          {row.score === null ? "Sem score" : metricNumber(row.score)}
+          {row.score === null ? "Sem score" : <HealthScoreValue value={row.score} />}
         </dd>
         <dd className={styles.evidence}>
           {covered} de {row.studentCount} com dados

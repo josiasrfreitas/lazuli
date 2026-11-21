@@ -22,7 +22,10 @@ export function CurrentEnrollment({
     (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
   );
   return (
-    <article aria-label="Matrícula vigente" className="min-w-0 border border-border bg-accent">
+    <article
+      aria-label="Matrícula vigente"
+      className="min-w-0 border border-border bg-record-summary-surface"
+    >
       <div className="grid gap-5 px-5 py-4 lg:grid-cols-2 lg:gap-8">
         <div className="grid content-start gap-3">
           <EnrollmentHeading enrollment={enrollment} today={today} />
@@ -107,7 +110,7 @@ function EnrollmentSchedule({
           className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-interactive hover:underline sm:min-h-0 sm:text-sm"
           href={`/turmas/${enrollment.class.id}?voltar=${back}`}
         >
-          {enrollment.class.name} <ArrowUpRight aria-hidden="true" className="size-3.5" />
+          Ver turma <ArrowUpRight aria-hidden="true" className="size-3.5" />
         </Link>
         {enrollment.class.teacher && (
           <Link

@@ -71,6 +71,7 @@ export async function cloneClassForNextPeriod(
   const portalClassName = await resolvePortalClassName(input.database, {
     scheduleType: source.scheduleType,
     sharedStageId: successorStageId,
+    format: source.format,
     teacherId: source.teacherId,
     slots: source.scheduleSlots.map(databaseSlotToCandidate),
   });

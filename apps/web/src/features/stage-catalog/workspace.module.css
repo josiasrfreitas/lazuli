@@ -400,15 +400,16 @@
 .grip,
 .addRow {
   touch-action: none;
-  cursor: grab;
   color: var(--foreground);
 }
 .grip {
+  cursor: grab;
   display: grid;
   place-items: center;
   min-height: 2rem;
 }
 .addRow {
+  cursor: pointer;
   margin-block-start: 0.75rem;
   width: 100%;
   display: flex;
@@ -424,6 +425,7 @@
   margin-block-start: 0.5rem;
 }
 .addRow svg:last-child {
+  cursor: grab;
   margin-inline-start: auto;
 }
 .activity[data-drop],

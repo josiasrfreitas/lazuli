@@ -57,7 +57,9 @@ data and actions; the shared component owns the frame, density, states and pagin
 - Keep source code, technical documentation, and Storybook examples in English unless a work item
   explicitly identifies user-facing content that must be localized.
 
-See [semantic colors](semantic-colors.md) for status meanings, attention hierarchy, and badge usage.
+See [semantic colors](semantic-colors.md) for the school palettes, status meanings and badge usage.
+The [theme review](auditoria-visual/revisao-cores.html) tracks contrast measurements and the
+remaining desktop and mobile comparisons for the school.
 
 Use the shared [file attachment components](file-attachments.md) for file selection and
 event-bound uploads, including placement and academic assessment proofs.
@@ -103,10 +105,10 @@ including event rendering, interval selection, availability boundaries, and Stor
 
 ## Record pages
 
-The administrative student, class and teacher records use `DetailHeader`. Student and class
-records use `RecordTabs` and `RecordTabsList` for tab-strip overflow and panel transitions.
-Each owns the selected URL section, its allowed tabs and edit locks. The teacher record shows
-its sections on one page and supports anchor navigation and existing `?secao=` links.
+The administrative student, class and teacher records use `DetailHeader`, `RecordTabs` and
+`RecordTabsList` for the header, tab-strip overflow and panel transitions.
+Each owns the selected URL section, its allowed tabs and edit locks. The teacher record opens
+on the overview and accepts both `?secao=` links and previous section fragments.
 The compact record title and operational listing title use `--lz-text-h2`.
 Section headings using the 18px panel scale read `--lz-text-panel-title` in
 `packages/ui/src/styles/tokens/typography.css`.

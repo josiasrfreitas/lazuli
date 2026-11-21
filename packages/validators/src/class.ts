@@ -73,7 +73,6 @@ export const classCreateInputSchema = z
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE).nullish(),
     startDate: civilDateSchema,
-    portalClassName: requiredText.optional(),
     slots: classScheduleSlotsInputSchema,
   })
   .strict()
@@ -99,7 +98,6 @@ export const classCloneForNextPeriodInputSchema = z
     id: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE),
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").optional(),
-    portalClassName: requiredText.optional(),
   })
   .strict();
 
@@ -152,7 +150,6 @@ type ClassCreateInput = {
   scheduleType: z.infer<typeof classScheduleTypeSchema>;
   sharedStageId?: string | null | undefined;
   semesterId?: string | null | undefined;
-  portalClassName?: string | null | undefined;
 };
 
 function validateClassCreateInput(input: ClassCreateInput, context: z.RefinementCtx): void {
@@ -165,13 +162,6 @@ function validateClassCreateInput(input: ClassCreateInput, context: z.Refinement
 }
 
 function validateRegularClassInput(input: ClassCreateInput, context: z.RefinementCtx): void {
-  if (input.portalClassName !== null && input.portalClassName !== undefined) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Turma regular nao aceita nome Portal manual.",
-      path: ["portalClassName"],
-    });
-  }
   if (input.sharedStageId === null || input.sharedStageId === undefined) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
@@ -194,14 +184,6 @@ function validatePersonalizedClassInput(input: ClassCreateInput, context: z.Refi
       code: z.ZodIssueCode.custom,
       message: "Turma personalizada nao pode ter etapa compartilhada.",
       path: ["sharedStageId"],
-    });
-  }
-
-  if (input.portalClassName !== null && input.portalClassName !== undefined) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "O nome da turma PPT é gerado automaticamente.",
-      path: ["portalClassName"],
     });
   }
 

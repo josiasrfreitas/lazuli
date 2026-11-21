@@ -94,7 +94,7 @@ function ReceiptsStory({
   through: string;
 }): ReactElement {
   return (
-    <article className={styles.receipts}>
+    <article className={`${styles.receipts} ${styles.financialPanel}`}>
       <StoryHeading title="Recebimentos e previsão" href="/financeiro" />
       {data ? (
         <>

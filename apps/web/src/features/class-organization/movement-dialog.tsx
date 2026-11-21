@@ -2,7 +2,7 @@
 import { useState, type JSX as ReactJSX } from "react";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
-import { dateOnly, scheduleLabel } from "~/features/class-organization/shared";
+import { dateOnly } from "~/features/class-organization/shared";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import { useMovementModel, type MovementModel, type MovementProps } from "./movement-model";
 import { Button } from "@lazuli/ui";
@@ -145,7 +145,7 @@ function MovementDestination({
           )
           .map((plan) => ({
             value: plan.id,
-            label: `${plan.name} · ${scheduleLabel(plan.slots)}`,
+            label: plan.name,
           }))}
         error={model.errors.planId}
       />

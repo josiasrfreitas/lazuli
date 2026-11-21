@@ -88,7 +88,7 @@ export const SegmentedControlItem = forwardRef<HTMLButtonElement, SegmentedContr
           "text-caption font-medium text-muted-foreground outline-none",
           "transition-[background-color,color,box-shadow] duration-fast ease-standard motion-reduce:transition-none",
           "hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-          "data-pressed:bg-card data-pressed:text-card-foreground data-pressed:shadow-sm",
+          "data-pressed:bg-accent data-pressed:font-semibold data-pressed:text-accent-foreground data-pressed:inset-ring data-pressed:inset-ring-interactive",
           "data-disabled:pointer-events-none",
           "group-data-[size=sm]/segmented:min-h-6 group-data-[size=md]/segmented:min-h-8",
           "group-data-[size=md]/segmented:px-4",

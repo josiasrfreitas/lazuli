@@ -165,7 +165,7 @@
 }
 @media (hover: hover) {
   .lessonButton:hover,
-  .pageToggle:hover {
+  .pageHead:hover {
     background: var(--accent);
     color: var(--heading);
   }

@@ -1,5 +1,5 @@
 "use client";
-import { type ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Pencil, UserRound, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@lazuli/ui";
@@ -15,11 +15,17 @@ type Teacher = RouterOutputs["teachers"]["byId"];
 export function TeacherRegistration({
   teacher,
   onEdit,
+  onBusyChange,
 }: {
   teacher: Teacher;
   onEdit: () => void;
+  onBusyChange: (busy: boolean) => void;
 }): ReactElement {
   const documents = useTeacherDocuments(teacher.id);
+  useEffect(() => {
+    onBusyChange(documents.busy);
+    return () => onBusyChange(false);
+  }, [documents.busy, onBusyChange]);
   return (
     <div className={registration.layout}>
       <section className={layout.registrationFacts} aria-label="Informações de cadastro">
@@ -27,7 +33,7 @@ export function TeacherRegistration({
         <EmploymentDetails teacher={teacher} onEdit={onEdit} />
       </section>
       <div className={registration.documents}>
-        <TeacherDocumentPanel documents={documents} showGuidance hidePhoto />
+        <TeacherDocumentPanel documents={documents} inRecord />
       </div>
     </div>
   );
