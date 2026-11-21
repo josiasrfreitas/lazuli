@@ -1,3 +1,6 @@
+import { pedagogicalRetention, pedagogicalPeriods } from "./pedagogical-retention.js";
+import { pedagogicalDemand } from "./pedagogical-demand.js";
+import { pedagogicalIndicators } from "./pedagogical-indicators.js";
 import { overdueStudents } from "../finance/internal/overdue-students.js";
 import { schoolAttendanceTrend } from "./attendance-trend.js";
 import {
@@ -37,6 +40,10 @@ const homePeriodInput = z
   .optional();
 
 export const dashboardRouter = router({
+  pedagogicalPeriods,
+  pedagogicalRetention,
+  pedagogicalDemand,
+  pedagogicalIndicators,
   overdueStudents: adminProcedure.query(({ ctx }) =>
     overdueStudents(ctx.db, ctx.now ?? new Date()),
   ),
