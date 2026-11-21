@@ -99,11 +99,18 @@ async function createWorker(
         return { status: "COMPLETED" };
       }),
   });
-  const worker = await hatchet.worker("school", {
+  const exports = hatchet.task<{ artifactId: string }, { status: string }>({
+    name: TABLE_EXPORT_WORKFLOW,
+    retries: 0,
+    executionTimeout: "5m",
+    scheduleTimeout: "10m",
+    fn: runTableExport,
+  });
+  return hatchet.worker("school", {
     slots: 1,
     durableSlots: 1,
     workflows: [
-      tableExportTask(hatchet),
+      exports,
       sessions,
       files,
       documents,
@@ -113,21 +120,11 @@ async function createWorker(
     ],
     handleKill: false,
   });
-  return worker;
 }
-function tableExportTask(
-  hatchet: Awaited<ReturnType<typeof getHatchetClient>>,
-): ReturnType<typeof hatchet.task<{ artifactId: string }, { status: string }>> {
-  return hatchet.task<{ artifactId: string }, { status: string }>({
-    name: TABLE_EXPORT_WORKFLOW,
-    retries: 0,
-    executionTimeout: "5m",
-    scheduleTimeout: "10m",
-    fn: (payload) =>
-      runJob(TABLE_EXPORT_WORKFLOW, () =>
-        processTableExport(db, tableExportPayloadSchema.parse(payload).artifactId),
-      ),
-  });
+function runTableExport(payload: { artifactId: string }): Promise<{ status: string }> {
+  return runJob(TABLE_EXPORT_WORKFLOW, () =>
+    processTableExport(db, tableExportPayloadSchema.parse(payload).artifactId),
+  );
 }
 async function processStudentDocumentPayload(
   input: StudentDocumentPayload,
