@@ -1,4 +1,5 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
+import { confirmedTeacherId } from "../attendance/confirmed-teacher.js";
 import { teacherPeriod } from "../dashboard/attendance-trend.js";
 import { workspaceClasses, currentEnrollment } from "./read.js";
 import { teacherProcedure } from "../trpc/init.js";
@@ -40,10 +41,10 @@ export const teacherAttendanceAnalytics = teacherProcedure
  SELECT st.id AS "studentId",st.full_name AS name,c.id AS "classId",c.portal_class_name AS "className",
    count(*) FILTER(WHERE a.status='PRESENT')::int AS present,
    count(*) FILTER(WHERE a.status='ABSENT')::int AS absent
- FROM "ClassSessionRecord" r JOIN "ClassSession" s ON s.id=r.class_session_id
+ FROM "ClassSession" s LEFT JOIN "ClassSessionRecord" r ON r.class_session_id=s.id AND r.deleted_at IS NULL
  JOIN "Class" c ON c.id=s.class_id JOIN "Attendance" a ON a.class_session_id=s.id
  JOIN "Enrollment" e ON e.id=a.enrollment_id AND e.class_id=c.id JOIN "Student" st ON st.id=e.student_id
- WHERE r.teaching_teacher_id=${ctx.staffUser.id}::uuid AND r.deleted_at IS NULL AND s.deleted_at IS NULL
+ WHERE ${confirmedTeacherId}=${ctx.staffUser.id}::uuid AND s.deleted_at IS NULL
    AND c.deleted_at IS NULL AND e.deleted_at IS NULL AND a.deleted_at IS NULL AND st.deleted_at IS NULL
    AND s.status <> 'CANCELLED' AND s.attendance_confirmed_at IS NOT NULL
    AND s.date BETWEEN ${until}::date-(${input.days}::int-1) AND ${until}::date

@@ -1,5 +1,6 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { z } from "@lazuli/validators";
+import { confirmedTeacherId } from "../attendance/confirmed-teacher.js";
 import type { Context } from "../trpc/context.js";
 import { adminProcedure, teacherProcedure } from "../trpc/init.js";
 
@@ -32,7 +33,7 @@ function weeklyAttendance(
    WHERE c.deleted_at IS NULL AND s.deleted_at IS NULL AND a.deleted_at IS NULL
      AND e.deleted_at IS NULL AND st.deleted_at IS NULL AND s.status <> 'CANCELLED'
      AND s.attendance_confirmed_at IS NOT NULL AND s.date BETWEEN ${start}::date AND ${end}::date
-     AND (${teacherId}::uuid IS NULL OR r.teaching_teacher_id=${teacherId}::uuid)
+     AND (${teacherId}::uuid IS NULL OR ${confirmedTeacherId}=${teacherId}::uuid)
    GROUP BY week,c.id ORDER BY week,c.portal_class_name`;
 }
 export const schoolAttendanceTrend = adminProcedure

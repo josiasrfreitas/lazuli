@@ -19,7 +19,8 @@ export const leadSourceLabels: Record<z.infer<typeof leadSourceSchema>, string> 
   OTHER: "Outro",
 };
 
-export const sourceDetailSchema = z.string().trim().max(160).nullish();
+const MAX_SOURCE_DETAIL_LENGTH = 160;
+export const sourceDetailSchema = z.string().trim().max(MAX_SOURCE_DETAIL_LENGTH).nullish();
 
 export function validateLeadSource(
   value: { source?: string | null | undefined; sourceDetail?: string | null | undefined },

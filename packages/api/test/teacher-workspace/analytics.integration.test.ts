@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { db } from "@lazuli/db";
+import { confirmSession } from "../../src/attendance/confirm.js";
 import {
   ADMIN,
   TEACHER,
@@ -43,6 +44,10 @@ void it("counts confirmed attendance only for the teacher who taught the lesson"
         date,
         attendanceConfirmedAt: confirmed ? now : null,
       });
+      await db.classSession.update({
+        where: { id: session },
+        data: { usualTeacherId: TEACHER.id },
+      });
       await db.classSessionRecord.create({
         data: { classSessionId: session, teachingTeacherId: teacher.id, snapshot: {} },
       });
@@ -50,6 +55,15 @@ void it("counts confirmed attendance only for the teacher who taught the lesson"
         data: { classSessionId: session, enrollmentId: enrollment.id, status },
       });
     }
+    const standalone = await seedSession({ classId: group, date: "2084-04-27" });
+    await db.$transaction((database) =>
+      confirmSession({
+        database,
+        staffUser: ADMIN,
+        values: { sessionId: standalone, rows: [] },
+        now,
+      }),
+    );
     const unmarked = await seedStudent({ suffix: "Analytics sem chamada", createdAt: now });
     await db.enrollment.create({
       data: {
@@ -66,7 +80,7 @@ void it("counts confirmed attendance only for the teacher who taught the lesson"
     assert.deepEqual(
       actual.map((row) => [row.studentId, row.present, row.absent]),
       [
-        [student, 1, 0],
+        [student, 2, 0],
         [unmarked, 0, 0],
       ],
     );
@@ -80,7 +94,7 @@ void it("counts confirmed attendance only for the teacher who taught the lesson"
     const weeks = await teacher.weeklyAttendance({ days: 30 });
     assert.deepEqual(
       weeks.map((row) => [row.classId, row.marked, row.present]),
-      [[group, 1, 1]],
+      [[group, 2, 2]],
     );
     await assert.rejects(caller(TEACHER, now).dashboard.classTickets({ year: 2084 }), {
       code: "FORBIDDEN",

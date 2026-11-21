@@ -31,12 +31,12 @@ Dois limites concretos para a primeira tentativa. No claro, o dourado sobre o qu
 
 Repetir a matriz no claro e no escuro, no navegador embutido do Orca, a **1440 × 900** e **390 × 844**. Manter dados, aba, dia e estado de interação iguais no antes e no depois. Usar fixtures ou capturas anonimizadas. Começar a revisão humana por Recebíveis e pela agenda semanal, onde muitos elementos disputam atenção ao mesmo tempo.
 
-| Família                                | Percurso que deve continuar legível                                                                                                                                |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Fichas de aluno, turma e professor     | Encontrar o nome, a aba ativa e a ação principal. Mover o foco entre as abas de aluno e turma e percorrer as âncoras da ficha docente pelo teclado. Conferir metadados, gráficos e painéis de leitura.                      |
-| Alunos e Recebíveis                    | Comparar uma linha normal, uma selecionada, um vencimento em atraso e uma busca vazia. Verificar larguras estreitas e abertura de modal sobre a tabela.            |
-| Agenda de Administração e de Professor | Alternar dia e semana, reconhecer os tipos de evento também pelos rótulos e abrir uma aula. Distinguir seleção, evento comum e estado de chamada.                  |
-| Formulários e superfícies públicas     | Abrir Novo professor e comparar campo, foco, erro e botão principal. Exercitar login, recuperação de senha e projeção de presença. Conferir leitura do QR em tela. |
+| Família                                | Percurso que deve continuar legível                                                                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Fichas de aluno, turma e professor     | Encontrar o nome, a aba ativa e a ação principal. Mover o foco entre as abas de aluno e turma e percorrer as âncoras da ficha docente pelo teclado. Conferir metadados, gráficos e painéis de leitura. |
+| Alunos e Recebíveis                    | Comparar uma linha normal, uma selecionada, um vencimento em atraso e uma busca vazia. Verificar larguras estreitas e abertura de modal sobre a tabela.                                                |
+| Agenda de Administração e de Professor | Alternar dia e semana, reconhecer os tipos de evento também pelos rótulos e abrir uma aula. Distinguir seleção, evento comum e estado de chamada.                                                      |
+| Formulários e superfícies públicas     | Abrir Novo professor e comparar campo, foco, erro e botão principal. Exercitar login, recuperação de senha e projeção de presença. Conferir leitura do QR em tela.                                     |
 
 **Aceite técnico.** Ambos os temas podem ser escolhidos pelo teclado, sobrevivem à recarga e carregam com a preferência correta. Os pares de texto comum atingem pelo menos 4,5:1 e o indicador de foco e os limites indispensáveis de controles atingem 3:1 contra a superfície adjacente. Os estados continuam reconhecíveis por rótulo, forma ou ícone. Rodar `pnpm test:styles`, os testes dos controles alterados e `git diff --check`. Cada nova cor aplicada ao produto deve ser rastreável ao papel correspondente no Design System.
 
