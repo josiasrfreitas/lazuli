@@ -246,7 +246,12 @@ function RangePreview({
 }: {
   matches: ReturnType<typeof bookPageRange>;
 }): React.JSX.Element {
-  const groups = Map.groupBy(matches, (match) => match.lessonId);
+  const groups = new Map<string, typeof matches>();
+  for (const match of matches) {
+    const lesson = groups.get(match.lessonId);
+    if (lesson) lesson.push(match);
+    else groups.set(match.lessonId, [match]);
+  }
   return (
     <>
       {Array.from(groups, ([id, rows]) => {

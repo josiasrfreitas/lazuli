@@ -16,10 +16,10 @@ export function LeadSourceFields({
 }: {
   draft: SourceFields;
   errors: Record<string, string>;
-  change: <Key extends keyof SourceFields>(
-    key: Key,
-    value: NonNullable<SourceFields[Key]> | null,
-  ) => void;
+  change: {
+    (key: "source", value: NonNullable<SourceFields["source"]> | null): void;
+    (key: "sourceDetail", value: string | null): void;
+  };
 }): ReactElement {
   return (
     <div className="grid min-w-0 content-start gap-2">
