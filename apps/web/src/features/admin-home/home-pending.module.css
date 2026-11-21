@@ -671,8 +671,8 @@
 }
 
 :global(.dark) .icon {
-  background: var(--info-muted);
-  color: var(--interactive);
+  background: var(--info);
+  color: var(--info-muted);
 }
 :global(.dark) :is(.pendingActionIcon, .placementIcon, .healthIcon, .recordIcon, .planningIcon) {
   background: var(--warning);
