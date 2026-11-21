@@ -401,7 +401,7 @@ function UnscheduledPlans({
           aria-controls="formation-panel"
           onClick={(event) => onSelect(plan, event.currentTarget)}
         >
-          {gridStageLabel(plan, "Estágio a definir")} · {plan.name}
+          {gridStageLabel(plan, "Estágio a definir")} · {plan.teacherName ?? "Docente a definir"}
         </Button>
       ))}
     </section>
@@ -446,8 +446,8 @@ function TeachingSlot({
       onBlur={() => onFocusPlan(null)}
       data-ppt={plan.scheduleType === "PERSONALIZED"}
       aria-pressed={selected}
-      aria-label={`${title} · ${plan.name} · ${professor} · ${weekdayLabel(day)} ${interval} · ${confirmed} confirmados na turma, ${preconfirmed} pré-confirmados${risk ? ", turma em risco" : ""}`}
-      title={`${plan.name} · ${interval} · ${professor}`}
+      aria-label={`${title} · ${professor} · ${weekdayLabel(day)} ${interval} · ${confirmed} confirmados na turma, ${preconfirmed} pré-confirmados${risk ? ", turma em risco" : ""}`}
+      title={`${title} · ${interval} · ${professor}`}
       aria-controls="formation-panel"
       data-formation-focus={`slot-${plan.id}-${day}-${start}`}
       onClick={(event) => onSelect(plan, event.currentTarget)}

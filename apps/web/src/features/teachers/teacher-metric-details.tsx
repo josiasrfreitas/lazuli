@@ -102,7 +102,9 @@ function metricRows(
   if (group === "classes")
     return data.classes.map((row) => ({
       id: row.id,
-      name: [row.name, row.stages.join(", ")].filter(Boolean).join(" · "),
+      name:
+        row.stages.join(", ") ||
+        (row.scheduleType === "PERSONALIZED" ? "PPT" : "Estágio a definir"),
       href: `/turmas/${row.id}`,
       score: row.score,
       grades: row.grades,

@@ -80,8 +80,8 @@ function teacherTableState({
 }
 const appointmentHoursColumn: DataTableColumn<TeacherRow> = {
   id: "appointmentHours",
-  header: <span className="whitespace-nowrap">Horas de atendimento</span>,
-  width: "wide",
+  header: <span className="whitespace-normal">Horas de atendimento</span>,
+  width: "standard",
   cell: (row) => (
     <div
       className="grid gap-1"
@@ -118,7 +118,7 @@ function teacherColumns({
     {
       id: "email",
       header: "E-mail",
-      width: "wide",
+      width: "medium",
       cell: (row) => (
         <span title={row.email} className="block truncate text-muted-foreground">
           {row.email}
@@ -141,7 +141,7 @@ function teacherColumns({
     },
     {
       id: "score",
-      header: "Score médio dos alunos",
+      header: <span className="whitespace-normal">Score médio dos alunos</span>,
       width: "standard",
       numeric: true,
       cell: (row) => score(row.id),
@@ -156,8 +156,8 @@ function teacherColumns({
     },
     {
       id: "access",
-      header: "Acesso ao sistema",
-      width: "medium",
+      header: <span className="whitespace-normal">Acesso ao sistema</span>,
+      width: "standard",
       cell: (row) => <TeacherAccess row={row} today={today} />,
     },
   ];

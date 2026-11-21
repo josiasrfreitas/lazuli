@@ -361,9 +361,6 @@
 .healthBands [data-level="PRIORITY"] strong {
   color: var(--destructive);
 }
-.metricCard[data-attention] {
-  background: color-mix(in srgb, var(--warning-muted) 18%, var(--card));
-}
 .cardHeading {
   display: flex;
   align-items: center;
@@ -422,11 +419,7 @@
   color: var(--warning);
 }
 .occurrenceCard {
-  background: var(--academic-panel-surface);
   container-type: inline-size;
-}
-.metricCard.occurrenceCard[data-attention] {
-  background: var(--academic-panel-surface);
 }
 .occurrenceSlide {
   display: flex;
@@ -761,18 +754,19 @@
     font-size: var(--lz-text-micro);
   }
   .sectionContent[data-overview] {
-    height: 100%;
+    display: grid;
+    min-height: 100%;
   }
-  .overview:not([data-expanded]) {
-    height: 100%;
-    grid-template-rows: minmax(0, 1fr);
+  .overview[data-expanded] {
+    grid-template-rows: auto 1fr;
   }
   .overviewGrid {
-    grid-template-rows: minmax(18rem, 1fr) max-content;
-    min-height: 0;
+    grid-template-rows: minmax(min-content, 7fr) minmax(min-content, 3fr);
   }
-  .overview[data-expanded] .overviewGrid {
-    grid-template-rows: 22rem auto;
+  .occurrenceCard {
+    /* Keep rotating reports within the row sized by the health summary. */
+    container-type: size;
+    min-height: 18rem;
   }
 }
 @media (max-width: 900px), (max-height: 699px) {
@@ -828,8 +822,5 @@
   }
   .metricCard[data-health] .cardAction {
     padding-top: 0;
-  }
-  .metricCard[data-health] .healthCoverage {
-    display: none;
   }
 }

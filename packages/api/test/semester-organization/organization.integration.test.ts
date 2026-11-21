@@ -133,7 +133,6 @@ async function fixture(): Promise<Fixture> {
   });
   const plan = await caller().semesterOrganization.savePlan({
     semesterId: semester.id,
-    name: `${config.prefix}PPT`,
     scheduleType: "PERSONALIZED",
     format: "IN_PERSON",
     sharedStageId: null,
@@ -213,7 +212,7 @@ void it("presumes continuity and accepts legacy stay input without creating a co
   const [initialPlacement] = initial.placements;
   assert.ok(initialPlan);
   assert.ok(initialPlacement);
-  assert.equal(initialPlan.name, "PPT SEG/14:00-15:00 Semester185 Teacher");
+  assert.equal(initialPlan.name, "PPT/SEMESTER185-SEG-14:00");
   assert.equal(initialPlan.startDate.toISOString().slice(0, 10), "2085-07-01");
   assert.equal(initialPlacement.confirmation, "PRECONFIRMED");
 
@@ -764,7 +763,6 @@ void it("dissolves an operational class before preparation and clears only the c
   assert.ok(firstRow.blockers.includes("Impedimento sinalizado pela equipe"));
   const otherPlan = await caller().semesterOrganization.savePlan({
     semesterId,
-    name: config.prefix + "Alternativa",
     scheduleType: "PERSONALIZED",
     format: "IN_PERSON",
     sharedStageId: null,

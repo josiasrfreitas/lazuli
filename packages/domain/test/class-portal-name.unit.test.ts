@@ -2,58 +2,56 @@ import assert from "node:assert/strict";
 import { it } from "node:test";
 import { generatePortalClassName, type ClassNameInput } from "../src/class-portal-name.js";
 
+const wednesday = { weekday: "WEDNESDAY", startTime: "19:00", endTime: "20:00" } as const;
+const monday = { ...wednesday, weekday: "MONDAY" } as const;
 const regular: ClassNameInput = {
   scheduleType: "REGULAR",
-  stageInternalCode: "MWR",
-  teacherName: "Rafael Mendes",
-  slots: [
-    { weekday: "THURSDAY", startTime: "14:00", endTime: "15:30" },
-    { weekday: "TUESDAY", startTime: "14:00", endTime: "15:30" },
-  ],
+  format: "IN_PERSON",
+  trackName: "Teens Connect",
+  stageInternalCode: "C1",
+  teacherName: "Iago Santos",
+  slots: [wednesday],
 };
 
-void it("groups meeting days with the same hours in calendar order", () => {
-  assert.equal(generatePortalClassName(regular), "REG MWR TER/QUI/14:00-15:30 Rafael Mendes");
-});
-
-void it("retains different end times and multiple meetings on the same day", () => {
-  const name = generatePortalClassName({
-    scheduleType: "PERSONALIZED",
-    slots: [
-      { weekday: "SUNDAY", startTime: "09:00", endTime: "11:00" },
-      { weekday: "SATURDAY", startTime: "14:00", endTime: "15:00" },
-      { weekday: "MONDAY", startTime: "09:00", endTime: "10:00" },
-      { weekday: "SATURDAY", startTime: "09:00", endTime: "11:00" },
-    ],
-  });
-  assert.equal(name, "PPT SEG/09:00-10:00 + SÁB/DOM/09:00-11:00 + SÁB/14:00-15:00");
-});
-
-void it("omits an inapplicable stage and a missing teacher without leaving separators", () => {
+void it("formats book codes, online delivery and single or grouped days", () => {
+  assert.equal(generatePortalClassName(regular), "TC1-QUA-19");
   assert.equal(
-    generatePortalClassName({ ...regular, scheduleType: "PERSONALIZED", teacherName: null }),
-    "PPT TER/QUI/14:00-15:30",
+    generatePortalClassName({ ...regular, slots: [wednesday, monday] }),
+    "TC1-SEG/QUA-19:00",
   );
+  assert.equal(generatePortalClassName({ ...regular, format: "ONLINE" }), "TC1/ON-QUA-19:00");
+  assert.equal(generatePortalClassName({ ...regular, trackName: "Outro" }), "C1-QUA-19");
 });
 
-void it("includes the whole teacher at the length limit and makes room for a collision suffix", () => {
-  const base = "REG MWR TER/QUI/14:00-15:30";
-  const teacher = "Á".repeat(80 - base.length - 1);
-  assert.equal(generatePortalClassName({ ...regular, teacherName: teacher }), base + " " + teacher);
-  assert.equal(generatePortalClassName({ ...regular, teacherName: teacher }, 2), base + " · 2");
-  assert.equal(generatePortalClassName({ ...regular, teacherName: teacher + "x" }), base);
+void it("uses the first name for in-person PPT and ON for online PPT", () => {
+  const ppt = { ...regular, scheduleType: "PERSONALIZED", slots: [monday] } as const;
+  assert.equal(generatePortalClassName(ppt), "PPT/IAGO-SEG-19:00");
+  const saturday = { weekday: "SATURDAY", startTime: "08:00", endTime: "09:00" } as const;
+  assert.equal(
+    generatePortalClassName({ ...ppt, format: "ONLINE", slots: [saturday] }),
+    "PPT/ON-SAB-08:00",
+  );
+  assert.equal(
+    generatePortalClassName({
+      ...ppt,
+      teacherName: " Mauren Souza ",
+      slots: [{ ...saturday, startTime: "10:00", endTime: "11:00" }],
+    }),
+    "PPT/MAUREN-SAB-10:00",
+  );
+  assert.equal(generatePortalClassName({ ...ppt, teacherName: null }), "PPT-SEG-19:00");
 });
 
-void it("keeps all required meeting times even when their combined label exceeds the teacher budget", () => {
+void it("groups by start, preserves minutes, and only adds a suffix for collisions", () => {
   const slots = [
-    { weekday: "MONDAY", startTime: "07:00", endTime: "08:00" },
-    { weekday: "TUESDAY", startTime: "09:00", endTime: "10:00" },
-    { weekday: "WEDNESDAY", startTime: "11:00", endTime: "12:00" },
-    { weekday: "THURSDAY", startTime: "13:00", endTime: "14:00" },
-    { weekday: "FRIDAY", startTime: "15:00", endTime: "16:00" },
-  ] as const;
+    wednesday,
+    { ...monday, endTime: "20:30" },
+    { ...wednesday, startTime: "20:15", endTime: "21:15" },
+  ];
   assert.equal(
-    generatePortalClassName({ ...regular, slots }),
-    "REG MWR SEG/07:00-08:00 + TER/09:00-10:00 + QUA/11:00-12:00 + QUI/13:00-14:00 + SEX/15:00-16:00",
+    generatePortalClassName({ ...regular, slots }, 2),
+    "TC1-SEG/QUA-19:00+QUA-20:15 · 2",
   );
+  assert.equal(generatePortalClassName({ ...regular, slots: [slots[2]!] }), "TC1-QUA-20:15");
+  assert.equal(generatePortalClassName({ ...regular, slots: [] }), "TC1");
 });

@@ -216,17 +216,13 @@ function PersonDetail({
     );
   return null;
 }
-function planContext(
-  plan: ClassPlan,
-  { title, destination, semester }: { title: string; destination: string; semester: string },
-): string {
+function planContext(plan: ClassPlan, semester: string): string {
   return [
-    title === destination ? "Turma seguinte" : null,
-    plan.scheduleType === "PERSONALIZED" ? "PPT" : "Regular",
+    plan.scheduleType === "REGULAR" && "Regular",
+    plan.format === "ONLINE" ? "Online" : "Presencial",
     semester,
     !plan.active && "Desfeita",
     plan.active && !plan.classId && "Planejada",
-    plan.name !== title && plan.name !== destination ? plan.name : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -252,8 +248,7 @@ function PlanDetail({
     leads.length > 0 || board.placements.some((row) => reviewGroupPlanId(row, origins) === plan.id);
   const reviewHref = useFormationReviewHref(board.semester.id, plan.id);
   const title = formationPlanTitle(plan);
-  const destination = plan.className ?? plan.name;
-  const context = planContext(plan, { title, destination, semester: board.semester.name });
+  const context = planContext(plan, board.semester.name);
   return (
     <div className={styles.panelScroll} data-formation-scroll="">
       <div className={sheet.content}>
@@ -282,7 +277,6 @@ function PlanDetail({
           </div>
           <PlanFacts
             plan={plan}
-            destination={title === destination ? null : destination}
             confirmed={metrics.expected}
             riskLimit={board.semester.formationRiskLimit}
           />
@@ -301,24 +295,16 @@ function PlanDetail({
 
 function PlanFacts({
   plan,
-  destination,
   confirmed,
   riskLimit,
 }: {
   plan: ClassPlan;
-  destination: string | null;
   confirmed: number;
   riskLimit: number;
 }): ReactElement {
   return (
     <>
       <dl className={sheet.facts}>
-        {destination && (
-          <div>
-            <dt>Turma seguinte</dt>
-            <dd>{destination}</dd>
-          </div>
-        )}
         <div>
           <dt>Horário</dt>
           <dd>{compactSchedule(plan.slots) || "A definir"}</dd>

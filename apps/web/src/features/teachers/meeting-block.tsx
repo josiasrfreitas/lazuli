@@ -18,7 +18,7 @@ export function MeetingBlock({
     meeting.scheduleType === "PERSONALIZED" ? "PPT" : (meeting.stageName ?? meeting.classCode);
   const format = meeting.format === "ONLINE" ? "Online" : "Presencial";
   const interval = `${meeting.startTime}–${meeting.endTime}`;
-  const description = `${meeting.className} · ${label} · ${format} · ${interval}`;
+  const description = `${label} · ${format} · ${interval}`;
   return (
     <Link
       href={`/turmas/${meeting.classId}?voltar=${encodeURIComponent(back)}`}

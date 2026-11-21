@@ -602,7 +602,7 @@ function studentAgendaEvents(data: Agenda | undefined): StudentEvent[] {
     date: lesson.date,
     startTime: lesson.startTime,
     endTime: lesson.endTime,
-    title: lesson.scheduleType === "PERSONALIZED" ? `PPT · ${lesson.className}` : lesson.className,
+    title: lesson.className,
     subtitle: lesson.teacher ?? TEACHER_UNASSIGNED,
     statusLabel: lessonStatus(lesson),
     cancelled: lesson.state === "CANCELLED",

@@ -19,7 +19,6 @@
 
 .toolbar {
   flex-wrap: wrap;
-  justify-content: space-between;
   gap: 0.5rem 1rem;
   border-bottom: 1px solid var(--border);
   padding: 0.75rem 1rem;

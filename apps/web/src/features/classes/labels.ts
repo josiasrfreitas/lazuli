@@ -33,7 +33,7 @@ export function formatClassScheduleTime(
 }
 
 export type ScheduleSlot = { weekday: string; startTime: Date; endTime: Date };
-export function formatClassSchedule(slots: readonly ScheduleSlot[]): string {
+export function classScheduleGroups(slots: readonly ScheduleSlot[]): string[] {
   const groups = new Map<string, string[]>();
   for (const slot of slots) {
     const start = slot.startTime.toISOString().slice(TIME_START, TIME_END);
@@ -44,7 +44,11 @@ export function formatClassSchedule(slots: readonly ScheduleSlot[]): string {
     if (!days.includes(day)) days.push(day);
     groups.set(interval, days);
   }
-  return [...groups].map(([interval, days]) => `${days.join("/")} • ${interval}`).join(", ");
+  return [...groups].map(([interval, days]) => `${days.join("/")} • ${interval}`);
+}
+
+export function formatClassSchedule(slots: readonly ScheduleSlot[]): string {
+  return classScheduleGroups(slots).join(", ");
 }
 
 const OCCUPANCY_INDICATORS = {

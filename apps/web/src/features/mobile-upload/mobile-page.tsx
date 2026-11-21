@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
-import { ArrowLeft, Check, FileText } from "lucide-react";
+import { ArrowLeft, Check, FileText, Plus } from "lucide-react";
 import { Button, ToastAlert } from "@lazuli/ui";
+import { AttachmentEmpty } from "./attachment-empty";
 import { CapturePageFrame } from "~/features/mobile-upload/capture-page-frame";
 import { MobileFileEditor, type UploadCategory, type MobileFileInput } from "./file-editor";
 export type MobileUploadReceipt = { id: string; label: string; fileName: string };
@@ -186,6 +187,7 @@ function MobileUploadList({
   categories: UploadCategory[];
   onSelect: (category: UploadCategory) => void;
 }): ReactElement {
+  const [choosing, setChoosing] = useState(false);
   return (
     <>
       {received && (
@@ -193,18 +195,27 @@ function MobileUploadList({
           <Check /> Arquivo recebido no cadastro.
         </p>
       )}
-      <div className="grid gap-2">
-        {categories.map((category) => (
-          <Button key={category.id} variant="secondary" onClick={() => onSelect(category)}>
-            <FileText />
-            {category.label}
+      {!choosing && files.length === 0 ? (
+        <AttachmentEmpty>
+          <Button onClick={() => setChoosing(true)}>
+            <Plus />
+            Adicionar primeiro anexo
           </Button>
-        ))}
-      </div>
+        </AttachmentEmpty>
+      ) : (
+        <div className="grid gap-2">
+          {categories.map((category) => (
+            <Button key={category.id} variant="secondary" onClick={() => onSelect(category)}>
+              <FileText />
+              {category.label}
+            </Button>
+          ))}
+        </div>
+      )}
       {files.length > 0 && (
         <section className="grid gap-2">
-          <h2 className="text-h3">Enviados por este celular</h2>
-          <ul className="divide-y">
+          <h2 className="text-h3">Arquivos no cadastro</h2>
+          <ul className="max-h-80 divide-y overflow-y-auto overscroll-contain scrollbar-subtle">
             {files.map((file) => (
               <li key={file.id} className="break-words py-3 text-body">
                 <span>{file.label}</span>

@@ -54,10 +54,11 @@ export function AppShell({
 function TopBar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
     <header
+      data-top-bar=""
       className={
         identity.role === "TEACHER"
-          ? "flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-2 sm:px-4"
-          : "flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:gap-4 sm:px-6"
+          ? "flex h-12 shrink-0 items-center gap-2 border-b border-border bg-navigation-bar text-foreground px-2 sm:px-4"
+          : "flex h-14 shrink-0 items-center gap-3 border-b border-border bg-navigation-bar text-foreground px-3 sm:gap-4 sm:px-6"
       }
     >
       <MobileNavigation identity={identity} />

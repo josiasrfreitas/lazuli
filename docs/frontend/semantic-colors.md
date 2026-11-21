@@ -6,28 +6,32 @@ should not branch on the theme to choose colors.
 
 ## Surfaces and emphasis
 
-| Role                                         | Use                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `background`, `card`, `popover`              | Page canvas, working surface, and elevated panels                                    |
-| `field`                                      | Editable input surfaces, including selects and textareas                             |
-| `heading`, `foreground`, `muted-foreground`  | Headings, content, and supporting information                                        |
-| `navigation-*`                               | The theme-aware navigation surface and its readable labels, icons, and active items  |
-| `table-heading-*`                            | Light blue column headers with navy text in light mode; neutral headers in dark mode |
-| `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                        |
-| `primary`, `primary-foreground`              | The main action: navy in light mode and gold with navy ink in dark mode              |
-| `accent`, `accent-foreground`                | Selected controls and contextual blue surfaces                                       |
-| `interactive`, `icon`                        | Links and supporting interface icons                                                 |
-| `brand`, `brand-rule`, `selection-indicator` | Identity accent, quiet dividers and current-position markers                         |
+| Role                                         | Use                                                                          |
+| -------------------------------------------- | ---------------------------------------------------------------------------- |
+| `background`, `card`, `popover`              | Page canvas, working surface, and elevated panels                            |
+| `record-summary-surface`                     | Filled summaries on student and class records                                |
+| `field`                                      | Editable input surfaces, including selects and textareas                     |
+| `heading`, `foreground`, `muted-foreground`  | Headings, content, and supporting information                                |
+| `navigation-*`                               | Dark lateral navigation with pale icons, active markers and focus indicators |
+| `table-heading-*`                            | Column and calendar headings on tinted surfaces in both themes               |
+| `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                |
+| `primary`, `primary-foreground`              | The main action, blue in light mode and pale with navy ink in dark mode      |
+| `accent`, `accent-foreground`                | Selected controls and contextual surfaces                                    |
+| `interactive`, `icon`                        | Links and supporting interface icons                                         |
+| `brand`, `brand-rule`, `selection-indicator` | Identity accent, quiet dividers and current-position markers                 |
 
-The school’s light palette places near-white work surfaces (`#F6F8FA`) on a blue-gray canvas
-(`#E8EEF5`). Navy (`#0F1B33`) carries text and the primary action. Gold (`#B38838`) appears in
-the signature, with darker ink for small interactive details. Fields use an opaque input border.
-A selected table row uses the accent fill and its selection control or outline.
+The light-theme trial uses blush paper (`#FCF5F3`) for reading surfaces, espresso
+(`#2E2727`) for text, and blue (`#305985`) for the primary action,
+links and selection. The light top bar shares the warm stone canvas, with navy reserved for the sidebar. Search and calendar headers use warm tints. Lesson types keep their own labeled colors.
 
-The dark canvas is deep navy (`#0A1120`). Cards, navigation and raised dialogs use distinct,
-low-saturation surfaces. Body text is `#F1F5F9` and supporting text is `#94A3B8`. Primary buttons
-use gold (`#D4A349`) with navy ink through hover and press. Table headers and dividers use neutral
-roles. Calendar categories, status labels and line markers keep their operational meanings.
+On the light Home page, receipts and forecast share a paper plot. Blue connects
+the receipts total to its solid line, espresso connects the contract count to its bars, and
+the forecast keeps its dashed line. Conversion uses a deep blue surface with blush text.
+Pending tasks use individually tinted rows with explicit status indicators.
+
+The dark theme uses graphite for the canvas (#1C1D20), cards (#26272B), and floating
+surfaces (#323338). Main actions use muted blue with navy text. Ghost actions
+remain transparent. Use the destructive variants for destructive actions.
 
 Both staff contexts share the header theme button. A fresh browser starts in dark mode. An explicit
 choice is stored under `lazuli-theme` and applied in the document head before paint. With storage
@@ -39,9 +43,9 @@ See the [color review and technical measurements](auditoria-visual/revisao-cores
 
 ### Academic reading panels
 
-The class page retains its blue overview summary and uses shared dark reading panels for recent
-occurrences, performance, and lessons. These panel roles retain the same values in light and dark
-mode. The compact, responsive composition uses shared UI controls with their dark-theme variants.
+Filled record summaries use the paper card surface in light mode and the slate accent in dark mode.
+The class page uses shared dark reading panels for recent occurrences, performance, and lessons.
+These reading panels retain the same values in both themes.
 
 | Role                        | Use                                                                        |
 | --------------------------- | -------------------------------------------------------------------------- |

@@ -1,29 +1,29 @@
 "use client";
 import { useState, type ReactElement, type Dispatch, type SetStateAction } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ChevronDown, Download, FileText, Plus, X } from "lucide-react";
 import {
   AttachmentPanel,
-  AttachmentRow,
+  FileUpload,
   AttachmentUploadRow,
   AttachmentAdd,
   Button,
   ToastAlert,
 } from "@lazuli/ui";
+import { AttachmentEmpty } from "~/features/mobile-upload/attachment-empty";
 import { MobileUploadLink } from "~/features/mobile-upload/session-link";
 import { type UploadCategory } from "~/features/mobile-upload/file-editor";
 import type { TeacherDocuments } from "./use-teacher-documents";
+import { TEACHER_UPLOAD_CATEGORIES } from "./upload-categories";
 import { TeacherAttachmentsLoading } from "./teacher-section-loading";
 
 export function TeacherDocumentPanel({
   documents,
   onClose,
-  showGuidance,
-  hidePhoto = false,
+  inRecord = false,
 }: {
   documents: TeacherDocuments;
   onClose?: () => void;
-  showGuidance?: boolean;
-  hidePhoto?: boolean;
+  inRecord?: boolean;
 }): ReactElement {
   const { qr, setQr, error, setError, preparing, openQr } = useCapturePreparation(documents);
   const [extras, setExtras] = useState<UploadCategory[]>([]);
@@ -33,6 +33,7 @@ export function TeacherDocumentPanel({
   if (documents.loadError) return <AttachmentLoadError documents={documents} />;
   return (
     <AttachmentPanel
+      variant="card"
       title={qr ? "Enviar pelo celular" : "Anexos"}
       busy={documents.busy}
       onClose={onClose}
@@ -44,14 +45,14 @@ export function TeacherDocumentPanel({
           documents={documents}
           preparing={preparing}
           error={error}
-          hidePhoto={hidePhoto}
+          hidePhoto={inRecord}
           onRetry={() => void openQr()}
         />
       ) : (
         <>
-          <AttachmentGuidance show={Boolean(showGuidance)} />
+          <AttachmentGuidance show={inRecord} />
           <TeacherAttachmentList
-            hidePhoto={hidePhoto}
+            inRecord={inRecord}
             extras={extras}
             setExtras={setExtras}
             documents={documents}
@@ -89,13 +90,13 @@ function AttachmentLoadError({ documents }: { documents: TeacherDocuments }): Re
 }
 
 function TeacherAttachmentList({
-  hidePhoto,
+  inRecord,
   documents,
   onRemove,
   extras,
   setExtras,
 }: {
-  hidePhoto: boolean;
+  inRecord: boolean;
   extras: UploadCategory[];
   setExtras: import("react").Dispatch<import("react").SetStateAction<UploadCategory[]>>;
   documents: TeacherDocuments;
@@ -120,16 +121,45 @@ function TeacherAttachmentList({
   );
   return (
     <>
-      <ul>
-        <SavedAttachments documents={documents} hidePhoto={hidePhoto} onRemove={onRemove} />
+      <ul className="max-h-80 overflow-y-auto overscroll-contain scrollbar-subtle empty:hidden">
+        {inRecord &&
+          TEACHER_UPLOAD_CATEGORIES.filter(
+            (category) =>
+              (category.id === "ID" || category.id === "CONTRACT") &&
+              !documents.files.some((file) => file.kind === category.id),
+          ).map((category) => row(category, category.id))}
+        <SavedAttachments documents={documents} hidePhoto={inRecord} onRemove={onRemove} />
         {extras.map((item, index) => row(item, `extra-${index}`))}
       </ul>
-      <AttachmentAdd
-        disabled={documents.busy}
-        onAdd={({ title, subtitle }) =>
-          setExtras((previous) => [...previous, { id: "OTHER", label: title, subtitle }])
-        }
-      />
+      {!inRecord && !documents.files.length && !extras.length ? (
+        <AttachmentEmpty>
+          <FileUpload
+            compact
+            accept="image/jpeg,image/png,application/pdf"
+            acceptLabel="JPG, PNG ou PDF"
+            maxSize={5_242_880}
+            value={[]}
+            disabled={documents.busy}
+            onValueChange={(files) => {
+              const file = files[0];
+              if (file) void send({ id: "OTHER", label: file.name.slice(0, 100) }, file);
+            }}
+            renderTrigger={({ open, disabled }) => (
+              <Button type="button" size="sm" disabled={disabled} onClick={open}>
+                <Plus />
+                Adicionar primeiro anexo
+              </Button>
+            )}
+          />
+        </AttachmentEmpty>
+      ) : (
+        <AttachmentAdd
+          disabled={documents.busy}
+          onAdd={({ title, subtitle }) =>
+            setExtras((previous) => [...previous, { id: "OTHER", label: title, subtitle }])
+          }
+        />
+      )}
       {error && <ToastAlert variant="destructive">{error}</ToastAlert>}
     </>
   );
@@ -269,27 +299,71 @@ function SavedAttachments({
     <>
       {documents.files
         .filter((file) => !hidePhoto || file.kind !== "PHOTO")
-        .map((file) => (
-          <AttachmentRow key={file.id} title={file.label} subtitle={file.subtitle ?? file.fileName}>
-            <a
-              href={`/api/teacher-files/${file.id}`}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Abrir ${file.label}`}
-            >
-              <ExternalLink className="size-4" />
-            </a>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="ghost"
-              aria-label={`Remover ${file.label}`}
-              onClick={() => onRemove(file.id)}
-            >
-              <X />
-            </Button>
-          </AttachmentRow>
-        ))}
+        .map((file) => {
+          const url = `/api/teacher-files/${file.id}`;
+          const image = file.contentType.startsWith("image/");
+          return (
+            <li key={file.id} className="border-b border-border py-2">
+              <details>
+                <summary className="flex cursor-pointer items-center gap-3 rounded-sm p-1 hover:bg-accent">
+                  {image ? (
+                    <img
+                      src={url}
+                      alt=""
+                      loading="lazy"
+                      className="size-10 rounded-sm object-cover"
+                    />
+                  ) : (
+                    <FileText aria-hidden="true" className="size-10 p-2" />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <strong className="block break-words">{file.label}</strong>
+                    <small className="text-muted-foreground">
+                      {image ? file.contentType.split("/")[1]?.toUpperCase() : "PDF"} ·{" "}
+                      {new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(
+                        new Date(file.createdAt),
+                      )}
+                    </small>
+                  </span>
+                  <ChevronDown aria-hidden="true" className="size-4" />
+                </summary>
+                <div className="grid gap-2 p-2 text-caption">
+                  {image && (
+                    <img
+                      src={url}
+                      alt={file.label}
+                      loading="lazy"
+                      className="max-h-56 max-w-full rounded-sm object-contain"
+                    />
+                  )}
+                  <p className="break-all">{file.fileName}</p>
+                  {file.subtitle && <p>{file.subtitle}</p>}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      nativeButton={false}
+                      render={<a href={url} download={file.fileName} />}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      <Download />
+                      Baixar arquivo
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      disabled={documents.busy}
+                      aria-label={`Remover ${file.label}`}
+                      onClick={() => onRemove(file.id)}
+                    >
+                      <X />
+                    </Button>
+                  </div>
+                </div>
+              </details>
+            </li>
+          );
+        })}
     </>
   );
 }
@@ -308,6 +382,7 @@ function useCapturePreparation(documents: TeacherDocuments): {
   async function openQr(): Promise<void> {
     setQr(true);
     setPreparing(true);
+    documents.setBusy(true);
     setError("");
     try {
       await documents.ensureSession();
@@ -315,6 +390,7 @@ function useCapturePreparation(documents: TeacherDocuments): {
       setError("Não foi possível gerar o QR code. Tente novamente.");
     } finally {
       setPreparing(false);
+      documents.setBusy(false);
     }
   }
   return { qr, setQr, error, setError, preparing, openQr };

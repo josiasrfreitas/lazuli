@@ -7,7 +7,8 @@ import {
   Button,
   DataTable,
   DataTablePage,
-  Input,
+  TableFilters,
+  type TableFilterField,
   Dialog,
   DialogPortal,
   DialogBackdrop,
@@ -23,18 +24,58 @@ import { useUrlPagination, tablePaginationPropsFor } from "~/lib/pagination";
 import { TeacherDialog } from "./teacher-dialog";
 import { TeacherStatus } from "./teacher-status";
 import { AREA_LABELS } from "./employee-labels";
-import { useSearchDraft } from "~/lib/use-search-draft";
+import { TableSearch } from "~/components/table-search";
 
 export function EmployeesPage(): ReactElement {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const pagination = useUrlPagination(studentPaginationPolicy);
-  const [draft, setDraft] = useSearchDraft(search, (value) => {
-    setSearch(value);
-    pagination.setPage(1);
-  });
+  const [areas, setAreas] = useState<(keyof typeof AREA_LABELS)[]>([]);
+  const [profile, setProfile] = useState<string[]>([]);
+  const fields: TableFilterField[] = [
+    {
+      id: "area",
+      label: "Área",
+      kind: "options",
+      options: Object.entries(AREA_LABELS).map(([id, label]) => ({ id, label })),
+      selected: areas,
+      onChange: (values) => {
+        setAreas(
+          values.filter((value): value is keyof typeof AREA_LABELS =>
+            Object.hasOwn(AREA_LABELS, value),
+          ),
+        );
+        pagination.setPage(1);
+      },
+      onClear: () => {
+        setAreas([]);
+        pagination.setPage(1);
+      },
+    },
+    {
+      id: "profile",
+      label: "Perfil docente",
+      kind: "options",
+      selectionMode: "single",
+      options: [
+        { id: "with", label: "Com perfil docente" },
+        { id: "without", label: "Sem perfil docente" },
+      ],
+      selected: profile,
+      onChange: (values) => {
+        setProfile(values);
+        pagination.setPage(1);
+      },
+      onClear: () => {
+        setProfile([]);
+        pagination.setPage(1);
+      },
+    },
+  ];
   const query = trpc.employees.list.useQuery({
     search,
+    areas,
+    hasTeacherProfile: profile.length ? profile[0] === "with" : undefined,
     page: pagination.page,
     pageSize: pagination.pageSize,
   });
@@ -46,14 +87,25 @@ export function EmployeesPage(): ReactElement {
         summary={data ? `${data.total} colaboradores` : undefined}
         controls={
           <div className="flex flex-wrap items-center gap-2">
-            <Input
-              name="employee-search"
-              aria-label="Buscar colaborador"
-              placeholder="Buscar por nome"
-              autoComplete="off"
-              size="compact-responsive"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+            <div className="w-full sm:w-56">
+              <TableSearch
+                name="employee-search"
+                label="Buscar colaborador"
+                placeholder="Buscar por nome"
+                value={search}
+                onCommit={(value) => {
+                  setSearch(value);
+                  pagination.setPage(1);
+                }}
+              />
+            </div>
+            <TableFilters
+              fields={fields}
+              onClearAll={() => {
+                setAreas([]);
+                setProfile([]);
+                pagination.setPage(1);
+              }}
             />
             <Button size="compact-responsive" onClick={() => setSelected("new")}>
               <Plus />
@@ -67,7 +119,11 @@ export function EmployeesPage(): ReactElement {
           label="Colaboradores"
           columns={employeeColumns({ setSelected, today: data?.today ?? "" })}
           onRowClick={(row) => setSelected(row.id)}
-          state={employeeState({ data, search, isError: query.isError })}
+          state={employeeState({
+            data,
+            filtered: Boolean(search || areas.length || profile.length),
+            isError: query.isError,
+          })}
           empty={{
             title: "Nenhum colaborador cadastrado",
             description: "Cadastre a primeira pessoa da equipe.",
@@ -90,17 +146,17 @@ type EmployeeList = RouterOutputs["employees"]["list"];
 type EmployeeRow = EmployeeList["rows"][number];
 function employeeState({
   data,
-  search,
+  filtered,
   isError,
 }: {
   data: EmployeeList | undefined;
-  search: string;
+  filtered: boolean;
   isError: boolean;
 }): DataTableState<EmployeeRow> {
   if (isError) return { kind: "error" };
   if (!data) return { kind: "loading" };
   if (data.rows.length > 0) return { kind: "data", rows: data.rows };
-  return { kind: search ? "noResults" : "empty" };
+  return { kind: filtered ? "noResults" : "empty" };
 }
 function employeeColumns({
   setSelected,

@@ -338,6 +338,7 @@ async function reopenClassPlan(
   const portalClassName = collision
     ? await resolvePortalClassName(context.database, {
         scheduleType: plan.scheduleType,
+        format: plan.format,
         sharedStageId: plan.sharedStageId,
         teacherId,
         slots,

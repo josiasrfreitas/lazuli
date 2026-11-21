@@ -39,14 +39,7 @@ export function StagesPage(): React.JSX.Element {
       <div className={styles.page}>
         <CatalogHeader data={data} tracks={tracks} open={setDialog} />
         <TableContainer>
-          <div className="flex flex-wrap items-center gap-2">
-            <TableExportButton
-              source={{ listing: "Estágios", filters: { search, legacy } }}
-              search={search}
-              criteria={[["Incluir legados", legacy ? "Sim" : "Não"]]}
-            />
-            <CatalogToolbar search={search} legacy={legacy} order={order} setOrder={setOrder} />
-          </div>
+          <CatalogToolbar search={search} legacy={legacy} order={order} setOrder={setOrder} />
           <span role="status" className="sr-only">
             {notice}
           </span>
@@ -216,6 +209,11 @@ function CatalogToolbar({
         {order ? <Check /> : <ArrowUpDown />}
         {order ? "Concluir ordem" : "Reordenar"}
       </Button>
+      <TableExportButton
+        source={{ listing: "Estágios", filters: { search, legacy } }}
+        search={search}
+        criteria={[["Incluir legados", legacy ? "Sim" : "Não"]]}
+      />
     </div>
   );
 }

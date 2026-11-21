@@ -14,6 +14,7 @@ type AttachmentPanelProps = {
   className?: string | undefined;
   id?: string;
   open?: boolean;
+  variant?: "sidebar" | "card";
 };
 export function AttachmentPanel({
   title = "Anexos",
@@ -25,11 +26,13 @@ export function AttachmentPanel({
   className = "",
   id,
   open,
+  variant = "sidebar",
 }: AttachmentPanelProps): ReactElement {
   return (
     <aside
       id={id}
-      className={`dark attachment-panel ${className}`}
+      className={`attachment-panel ${variant === "sidebar" ? "dark" : ""} ${className}`}
+      data-variant={variant}
       aria-label={title}
       data-open={open}
       inert={open === false}

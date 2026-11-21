@@ -106,7 +106,9 @@ function PlacementSourceControls({
     ...Object.fromEntries(
       data.progress.map((item) => [
         item.id,
-        `${item.enrollment.class.portalClassName} · ${item.stage.name} · ${item.enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}`,
+        item.enrollment.class.scheduleType === "PERSONALIZED"
+          ? `${item.enrollment.class.portalClassName} · ${item.stage.name}`
+          : item.enrollment.class.portalClassName,
       ]),
     ),
     new: "Nova turma",

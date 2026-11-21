@@ -2,7 +2,7 @@
 
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Download, Paperclip } from "lucide-react";
+import { Download, Paperclip, ReceiptText } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogPortal,
   DialogTitle,
+  EmptyState,
   FileUpload,
   ToastAlert,
 } from "@lazuli/ui";
@@ -43,8 +44,6 @@ export function InstallmentProofDialog({
     setError("");
     try {
       await uploadPaymentProof({ id: crypto.randomUUID(), paymentEntryId, file });
-      setFile(undefined);
-      setSelectedPaymentId(null);
       await Promise.allSettled([
         query.refetch(),
         utils.finance.installments.invalidate(),
@@ -52,6 +51,8 @@ export function InstallmentProofDialog({
         utils.finance.studentPayments.invalidate(),
         utils.finance.studentSummary.invalidate(),
       ]);
+      setFile(undefined);
+      setSelectedPaymentId(null);
     } catch (error_) {
       setError(error_ instanceof Error ? error_.message : "Não foi possível anexar o comprovante.");
     } finally {
@@ -211,6 +212,8 @@ function PaymentProofRow({
   setError: (error: string) => void;
   onAttach: (paymentEntryId: string) => Promise<void>;
 }): ReactElement {
+  const selectedFile = selectedPaymentId === payment.id ? file : undefined;
+  const showEmptyState = payment.proofs.length === 0 && !selectedFile;
   return (
     <section className="grid gap-3 rounded-md border border-border p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -219,10 +222,18 @@ function PaymentProofRow({
           {formatBRLFromCents(payment.amountCents)} nesta parcela
         </span>
       </div>
-      <PaymentProofLinks proofs={payment.proofs} />
+      {payment.proofs.length > 0 && <PaymentProofLinks proofs={payment.proofs} />}
+      {showEmptyState && (
+        <EmptyState
+          className="py-3"
+          icon={<ReceiptText />}
+          title="Pagamento registrado"
+          description="O comprovante ainda não deu o ar da graça."
+        />
+      )}
       <FileUpload
         compact
-        value={selectedPaymentId === payment.id && file ? [file] : []}
+        value={selectedFile ? [selectedFile] : []}
         onValueChange={(files) => {
           setSelectedPaymentId(payment.id);
           setFile(files[0]);
@@ -235,12 +246,18 @@ function PaymentProofRow({
         disabled={uploading}
         status={uploading && selectedPaymentId === payment.id ? "uploading" : "idle"}
         renderTrigger={(picker) => (
-          <Button variant="ghost" size="sm" disabled={picker.disabled} onClick={picker.open}>
+          <Button
+            variant={showEmptyState ? "primary" : "ghost"}
+            size="sm"
+            className="justify-self-center"
+            disabled={picker.disabled}
+            onClick={picker.open}
+          >
             <Paperclip aria-hidden="true" /> Anexar comprovante
           </Button>
         )}
       />
-      {selectedPaymentId === payment.id && file && (
+      {selectedFile && (
         <Button
           size="sm"
           loading={uploading}
@@ -255,8 +272,6 @@ function PaymentProofRow({
 }
 
 function PaymentProofLinks({ proofs }: { proofs: PaymentProof["proofs"] }): ReactElement {
-  if (proofs.length === 0)
-    return <p className="text-caption text-muted-foreground">Sem comprovante.</p>;
   return (
     <div className="grid gap-2">
       {proofs.map((proof) => (

@@ -178,3 +178,11 @@
     padding-bottom: 0;
   }
 }
+
+@media (min-width: 901px) {
+  .sections[data-registration] .tabContent {
+    height: 100%;
+    min-height: 0;
+    padding-block: 0.75rem;
+  }
+}

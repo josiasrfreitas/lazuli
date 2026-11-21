@@ -25,7 +25,7 @@ export function TeacherClassIndicators({ kind, data, pending, onDetails }: Props
     <section className={styles.card} aria-label={title} aria-busy={pending}>
       <IndicatorHeader learning={learning} pending={pending} value={value} />
       <div className={styles.columns}>
-        <span>Turma · estágio e horário</span>
+        <span>Estágio e horário</span>
         {!learning && <span>Chamadas</span>}
         <span>{learning ? "Média /100" : "Faltas"}</span>
       </div>
@@ -84,10 +84,7 @@ function IndicatorRow({ row, learning }: { row: MetricClass; learning: boolean }
         aria-label={`Abrir turma ${row.name}`}
       >
         <div className={styles.identity}>
-          <span>
-            <b title={row.name}>{row.name}</b>
-            <span title={stage}>{stage}</span>
-          </span>
+          <b title={stage}>{stage}</b>
           <small title={schedule}>{schedule}</small>
         </div>
         {!learning && (

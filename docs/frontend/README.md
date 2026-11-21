@@ -105,10 +105,10 @@ including event rendering, interval selection, availability boundaries, and Stor
 
 ## Record pages
 
-The administrative student, class and teacher records use `DetailHeader`. Student and class
-records use `RecordTabs` and `RecordTabsList` for tab-strip overflow and panel transitions.
-Each owns the selected URL section, its allowed tabs and edit locks. The teacher record shows
-its sections on one page and supports anchor navigation and existing `?secao=` links.
+The administrative student, class and teacher records use `DetailHeader`, `RecordTabs` and
+`RecordTabsList` for the header, tab-strip overflow and panel transitions.
+Each owns the selected URL section, its allowed tabs and edit locks. The teacher record opens
+on the overview and accepts both `?secao=` links and previous section fragments.
 The compact record title and operational listing title use `--lz-text-h2`.
 Section headings using the 18px panel scale read `--lz-text-panel-title` in
 `packages/ui/src/styles/tokens/typography.css`.

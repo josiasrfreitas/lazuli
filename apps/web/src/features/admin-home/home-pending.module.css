@@ -1,5 +1,5 @@
 .pending {
-  --pending-surface: var(--card);
+  --pending-surface: var(--pending-panel);
   --pending-ink: var(--card-foreground);
   --pending-muted: var(--muted-foreground);
   --pending-row: var(--secondary);
@@ -672,4 +672,20 @@
 
 .pending[data-sticky="false"] {
   position: static;
+}
+
+:global(.light)
+  .icon:where(
+    :not(
+      .financeIcon,
+      .coverageIcon,
+      .healthIcon,
+      .recordIcon,
+      .planningIcon,
+      .contractIcon,
+      .placementIcon
+    )
+  ) {
+  background: transparent;
+  color: var(--pending-ink);
 }

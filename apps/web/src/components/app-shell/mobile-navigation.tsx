@@ -35,6 +35,7 @@ export function MobileNavigation({ identity }: { identity: StaffIdentity }): Rea
           </span>
         </PopoverTrigger>
         <PopoverContent
+          data-navigation-surface=""
           size="menu"
           motion={keyboard ? "instant" : "unfold"}
           align="start"

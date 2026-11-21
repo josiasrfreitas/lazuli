@@ -32,6 +32,10 @@
   overflow: hidden;
 }
 
+:global(.dark) .photo {
+  filter: brightness(0.88);
+}
+
 .photo {
   object-fit: cover;
   object-position: center 42%;
@@ -370,6 +374,10 @@
   .signature {
     width: 220px;
     max-width: 72%;
+  }
+
+  :global(.dark) .photo {
+    filter: brightness(0.88);
   }
 
   .photo {

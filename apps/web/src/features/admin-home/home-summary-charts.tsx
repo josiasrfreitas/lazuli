@@ -234,7 +234,7 @@ function receiptMarks(animate: boolean): ReactElement[] {
       dataKey="expectedCents"
       name="Previsto"
       type="linear"
-      stroke="var(--muted-foreground)"
+      stroke="var(--financial-muted)"
       strokeDasharray="4 5"
       strokeWidth={1.5}
       dot={false}
@@ -246,10 +246,10 @@ function receiptMarks(animate: boolean): ReactElement[] {
       dataKey="receivedCents"
       name="Recebido"
       type="monotone"
-      stroke="currentColor"
+      stroke="var(--financial-received)"
       strokeWidth={2.5}
-      dot={{ ["r"]: 3, fill: "currentColor", strokeWidth: 0 }}
-      activeDot={{ ["r"]: 5 }}
+      dot={{ ["r"]: 3, fill: "var(--financial-received)", strokeWidth: 0 }}
+      activeDot={{ ["r"]: 5, fill: "var(--financial-received)", stroke: "var(--financial-panel)" }}
       isAnimationActive={false}
     />,
   ];

@@ -41,7 +41,12 @@ function TeacherClassCard(props: TeacherClassCardProps): ReactElement {
         <div className="grid min-w-0 flex-1 gap-2">
           <TeacherClassSummary {...props} />
           <p className="break-words text-control text-muted-foreground">
-            {formatFormat(props.row.format)} · {teacherClassStage(props.row)}
+            {[
+              formatFormat(props.row.format),
+              props.row.sharedStage && formatTrackName(props.row.sharedStage.track.name),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
           <p className="flex items-start gap-2 text-control">
             <Clock3 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -58,7 +63,9 @@ type TeacherClassSummaryProps = TeacherClassCardProps;
 function TeacherClassSummary(props: TeacherClassSummaryProps): ReactElement {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <h3 className="break-words text-body font-semibold">{props.row.portalClassName}</h3>
+      <h3 className="break-words text-body font-semibold">
+        {props.row.sharedStage?.name ?? "PPT"}
+      </h3>
       <Badge variant={props.row.status === "ACTIVE" ? "success" : "neutral"}>
         {props.row.status === "ACTIVE" ? "Ativa" : "Arquivada"}
       </Badge>
@@ -123,11 +130,4 @@ function TeacherClassResults({
       )}
     </>
   );
-}
-
-function teacherClassStage(row: TeacherClassCardProps["row"]): string {
-  if (row.scheduleType === "PERSONALIZED") return "Trilha e estágio individuais por aluno";
-  if (row.sharedStage)
-    return `${formatTrackName(row.sharedStage.track.name)} · ${row.sharedStage.name}`;
-  return "Trilha e estágio não informados";
 }

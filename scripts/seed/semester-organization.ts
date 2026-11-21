@@ -142,7 +142,7 @@ async function createOrganizationPlan(
     teacherId: group.teacherKey ? teachers.get(group.teacherKey)! : null,
     slots: group.slots,
   };
-  const name = await plannedClassName(database, fields);
+  const name = await plannedClassName(database, { ...fields, format: group.format });
   await database.semesterClassPlan.create({
     data: {
       ...fields,

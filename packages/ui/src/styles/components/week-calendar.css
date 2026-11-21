@@ -25,6 +25,10 @@
 .lz-week-calendar .rbc-time-header.rbc-overflowing {
   border-right-color: var(--border);
 }
+.lz-week-calendar .rbc-time-header {
+  background: var(--table-heading);
+  color: var(--table-heading-foreground);
+}
 .lz-week-calendar .rbc-time-header-cell {
   min-height: 2.5rem;
 }

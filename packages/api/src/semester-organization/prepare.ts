@@ -143,7 +143,7 @@ async function preparationPlan(
       classId: scope.current ? group.id : null,
       name: scope.current
         ? group.portalClassName
-        : await plannedClassName(context.database, fields),
+        : await plannedClassName(context.database, { ...fields, format: group.format }),
       format: group.format,
       recordedById: context.staffUser.id,
     },

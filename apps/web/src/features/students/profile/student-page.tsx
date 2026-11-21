@@ -172,6 +172,7 @@ function StudentSectionsView({
   return (
     <div
       className={styles.sections}
+      data-registration={activeSection === "cadastro" || undefined}
       data-overview={activeSection === OVERVIEW_SECTION || undefined}
       data-ready={Boolean(profile) || undefined}
       data-entering={profile && !entranceComplete ? true : undefined}
