@@ -376,10 +376,6 @@
     max-width: 72%;
   }
 
-  :global(.dark) .photo {
-    filter: brightness(0.88);
-  }
-
   .photo {
     object-position: 42% top;
   }
