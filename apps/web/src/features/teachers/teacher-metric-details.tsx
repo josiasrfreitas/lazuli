@@ -16,6 +16,7 @@ import {
   SegmentedControlItem,
   type DataTableColumn,
 } from "@lazuli/ui";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-overview.module.css";
 import { formatClassSchedule } from "~/features/classes/labels";
 export type MetricDetail = "health" | "learning" | "attendance" | "followup";
@@ -154,7 +155,7 @@ function metricColumns({
             id: "score",
             header: group === "classes" ? "Score médio" : "Score individual",
             numeric: true,
-            cell: (row: Row) => metricNumber(row.score),
+            cell: (row: Row) => <HealthScoreValue value={row.score} />,
           },
         ]
       : []),

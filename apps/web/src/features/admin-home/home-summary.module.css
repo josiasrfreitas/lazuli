@@ -495,7 +495,7 @@
   color: var(--financial-muted);
 }
 
-:global(.light) .composition > .conversion {
+.composition > .conversion {
   background: var(--conversion-panel);
   border-color: var(--conversion-panel);
   color: var(--primary-foreground);

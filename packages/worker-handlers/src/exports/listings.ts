@@ -168,7 +168,7 @@ export async function readExport(
           "Docente",
           "E-mail",
           "Turmas",
-          "Score médio dos alunos",
+          "Score médio",
           "Horas realizadas",
           "Horas planejadas",
           "Atendimento realizado (h)",

@@ -10,7 +10,8 @@ import { TeacherHealthInfo } from "./teacher-health-info";
 import { TeacherHealthContext } from "./teacher-health-context";
 import { TeacherHealthDistribution } from "./teacher-health-distribution";
 import { trpc } from "~/lib/trpc";
-import { TeacherMetricDetails, type MetricDetail, metricNumber } from "./teacher-metric-details";
+import { TeacherMetricDetails, type MetricDetail } from "./teacher-metric-details";
+import { HealthScoreValue } from "./health-score-value";
 import styles from "./teacher-overview.module.css";
 
 export function TeacherMetrics({
@@ -44,8 +45,8 @@ export function TeacherMetrics({
         >
           <MetricReading
             pending={pending}
-            value={metricNumber(data?.score)}
-            label="score médio dos alunos"
+            value={<HealthScoreValue value={data?.score} />}
+            label="Score médio"
           />
           <p>
             {data
@@ -128,7 +129,7 @@ function MetricReading({
   label,
 }: {
   pending: boolean;
-  value: string;
+  value: ReactNode;
   suffix?: string;
   label: string;
 }): ReactElement {

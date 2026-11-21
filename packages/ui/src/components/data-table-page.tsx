@@ -33,7 +33,7 @@ export const DataTablePage = forwardRef<HTMLDivElement, DataTablePageProps>(
       ref={ref}
     >
       <div
-        className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-toolbar px-3 py-2.5"
+        className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-toolbar px-3 py-2.5 dark:bg-transparent"
         data-slot="data-table-page-toolbar"
       >
         <div

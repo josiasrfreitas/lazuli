@@ -15,7 +15,7 @@ should not branch on the theme to choose colors.
 | `navigation-*`                               | Dark lateral navigation with pale icons, active markers and focus indicators |
 | `table-heading-*`                            | Column and calendar headings on tinted surfaces in both themes               |
 | `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                |
-| `primary`, `primary-foreground`              | The main action, blue in light mode and pale with navy ink in dark mode      |
+| `primary`, `primary-foreground`              | The main action, blue in light mode and cobalt with pale text in dark mode   |
 | `accent`, `accent-foreground`                | Selected controls and contextual surfaces                                    |
 | `interactive`, `icon`                        | Links and supporting interface icons                                         |
 | `brand`, `brand-rule`, `selection-indicator` | Identity accent, quiet dividers and current-position markers                 |
@@ -29,8 +29,10 @@ the receipts total to its solid line, espresso connects the contract count to it
 the forecast keeps its dashed line. Conversion uses a deep blue surface with blush text.
 Pending tasks use individually tinted rows with explicit status indicators.
 
-The dark theme uses graphite for the canvas (#1C1D20), cards (#26272B), and floating
-surfaces (#323338). Main actions use muted blue with navy text. Ghost actions
+The dark canvas (#0D1428), cards (#151F38), and floating surfaces (#1E2D4B) form a navy scale.
+Cobalt identifies the primary action. Lighter blues mark links, keyboard focus, and navigation
+selection. In finance, blue connects receipts to their line and lavender connects contracts to
+their bars. Ghost actions
 remain transparent. Use the destructive variants for destructive actions.
 
 Both staff contexts share the header theme button. A fresh browser starts in dark mode. An explicit
@@ -43,9 +45,9 @@ See the [color review and technical measurements](auditoria-visual/revisao-cores
 
 ### Academic reading panels
 
-Filled record summaries use the paper card surface in light mode and the slate accent in dark mode.
+Filled record summaries use the paper card surface in light mode and the navy card surface in dark mode.
 The class page uses shared dark reading panels for recent occurrences, performance, and lessons.
-These reading panels retain the same values in both themes.
+In dark mode they share the navy card surface.
 
 | Role                        | Use                                                                        |
 | --------------------------- | -------------------------------------------------------------------------- |

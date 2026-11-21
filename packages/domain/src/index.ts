@@ -6,6 +6,7 @@
 export const DOMAIN_PACKAGE = "@lazuli/domain" as const;
 export {
   calculateStudentHealth,
+  studentHealthLevel,
   STUDENT_HEALTH_WEIGHTS,
   type StudentHealthIndicator,
   type StudentHealthInput,

@@ -70,16 +70,11 @@ function StudentsSummary({
   total: number;
   kind: "students" | "contracts" | "documents" | "materials";
 }): ReactElement {
-  const { Icon, title, detail } = STUDENT_SUMMARIES[kind];
+  const { Icon, title, detail, iconClass } = STUDENT_SUMMARIES[kind];
   const financial = kind === "contracts";
   return (
     <>
-      <PendingIcon
-        icon={Icon}
-        className={financial ? styles.contractIcon : ""}
-        missing={!financial}
-        attention={financial}
-      >
+      <PendingIcon icon={Icon} className={iconClass} missing={!financial} attention={financial}>
         {financial && <DollarSign className={styles.contractCurrency} aria-hidden="true" />}
       </PendingIcon>
       <span className={styles.identity}>
@@ -97,19 +92,27 @@ function StudentsSummary({
 }
 
 const STUDENT_SUMMARIES = {
-  materials: { Icon: BookOpen, title: "Próximos livros a adquirir", detail: "Fim do estágio" },
+  materials: {
+    Icon: BookOpen,
+    iconClass: "",
+    title: "Próximos livros a adquirir",
+    detail: "Fim do estágio",
+  },
   contracts: {
     Icon: File,
+    iconClass: styles.contractIcon,
     title: "Contratos a criar",
     detail: null,
   },
   documents: {
     Icon: FolderOpen,
+    iconClass: styles.pendingActionIcon,
     title: "Aluno com anexos cadastrais ausentes ou incompletos",
     detail: "com anexos a completar",
   },
   students: {
     Icon: UserRoundPlus,
+    iconClass: styles.pendingActionIcon,
     title: "Alunos sem turma",
     detail: "entrada neste semestre",
   },
