@@ -18,12 +18,12 @@ export function programLabel(program: TeachingProgram, programs: TeachingProgram
 
 export function compactPages(pages: number[]): string {
   const runs: { start: number; end: number }[] = [];
-  for (const n of pages) {
+  for (const number of pages) {
     const last = runs.at(-1);
-    if (last && last.end + 1 === n) last.end = n;
-    else runs.push({ start: n, end: n });
+    if (last && last.end + 1 === number) last.end = number;
+    else runs.push({ start: number, end: number });
   }
-  return pages.length
+  return pages.length > 0
     ? (pages.length === 1 ? "Pág. " : "Págs. ") +
         runs.map(({ start, end }) => (start === end ? String(start) : start + "–" + end)).join(", ")
     : "";

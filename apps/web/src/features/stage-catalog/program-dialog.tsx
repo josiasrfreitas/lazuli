@@ -33,6 +33,7 @@ export function ProgramDialog({
     renameUnit: "Editar unidade",
     hour: "Nova hora-aula",
   };
+  const saveLabel = item.action === "hour" ? "Criar hora-aula" : "Salvar";
   return (
     <EditorForm
       title={headings[item.action]}
@@ -42,9 +43,7 @@ export function ProgramDialog({
           ? stage.programs.find((program) => program.id === item.programId)
           : undefined,
       )}
-      saveLabel={
-        starting ? "Criar programação" : item.action === "hour" ? "Criar hora-aula" : "Salvar"
-      }
+      saveLabel={starting ? "Criar programação" : saveLabel}
       onClose={onClose}
       onSave={async (data) => {
         const result = await mutation.mutateAsync(programInput({ stageId: stage.id, item }, data));

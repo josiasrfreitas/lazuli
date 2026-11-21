@@ -37,29 +37,7 @@ export function ProgramMap({ stage, program, programSelector, open }: Props): Re
   const visibleUnits = program.units.filter((entry) => !exams || entry.teachingHours.some(hasExam));
   return (
     <div className={styles.curriculum}>
-      <div className={styles.mapToolbar}>
-        <div className={styles.programControls}>
-          {programSelector}
-          <Button
-            type="button"
-            size="sm"
-            aria-pressed={exams}
-            variant={exams ? "secondary" : "ghost"}
-            onClick={() => setExams(!exams)}
-          >
-            <ClipboardCheck /> Provas ({program.assessmentCount})
-          </Button>
-        </div>
-        {unit && (
-          <Button
-            size="sm"
-            className="ms-auto"
-            onClick={() => open({ action: "hour", programId: program.id, unit })}
-          >
-            <Plus /> Nova hora-aula (+60 min)
-          </Button>
-        )}
-      </div>
+      <ProgramMapToolbar {...{ program, programSelector, open, unit, exams, setExams }} />
       {!unit && !exams && (
         <EmptyState
           title="Nenhuma unidade"
@@ -92,20 +70,22 @@ export function ProgramMap({ stage, program, programSelector, open }: Props): Re
               />
             ))}
           </div>
-          {!entry.teachingHours.length && <EmptyState title="Nenhuma hora-aula nesta unidade" />}
+          {entry.teachingHours.length === 0 && (
+            <EmptyState title="Nenhuma hora-aula nesta unidade" />
+          )}
         </section>
       ))}
-      {selection && selectedUnit && selectedHour && (
+      {selectedHour && (
         <HourDialog
           stage={stage}
           program={program}
-          unitTitle={selectedUnit.title}
+          unitTitle={selectedUnit!.title}
           hour={selectedHour}
-          origin={selection.origin}
+          origin={selection!.origin}
           onClose={() => setSelection(null)}
         />
       )}
-      {exams && !visibleUnits.length && (
+      {exams && visibleUnits.length === 0 && (
         <EmptyState
           title="Nenhuma prova nesta programação"
           description="Desative o filtro Provas para consultar toda a programação."
@@ -187,5 +167,44 @@ function HourToggle({
       </span>
       <span className={styles.preview}>{preview || "Nenhuma atividade"}</span>
     </button>
+  );
+}
+
+function ProgramMapToolbar({
+  program,
+  programSelector,
+  open,
+  unit,
+  exams,
+  setExams,
+}: Omit<Props, "stage"> & {
+  unit: ProgramUnit | undefined;
+  exams: boolean;
+  setExams: (value: boolean) => void;
+}): React.JSX.Element {
+  return (
+    <div className={styles.mapToolbar}>
+      <div className={styles.programControls}>
+        {programSelector}
+        <Button
+          type="button"
+          size="sm"
+          aria-pressed={exams}
+          variant={exams ? "secondary" : "ghost"}
+          onClick={() => setExams(!exams)}
+        >
+          <ClipboardCheck /> Provas ({program.assessmentCount})
+        </Button>
+      </div>
+      {unit && (
+        <Button
+          size="sm"
+          className="ms-auto"
+          onClick={() => open({ action: "hour", programId: program.id, unit })}
+        >
+          <Plus /> Nova hora-aula (+60 min)
+        </Button>
+      )}
+    </div>
   );
 }

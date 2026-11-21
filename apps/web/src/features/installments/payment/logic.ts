@@ -19,6 +19,7 @@ import {
   type PreviewRow,
 } from "./draft";
 
+const RECEIPT_READ_TIMEOUT_MS = 45_000;
 export type PaymentFormState = {
   methods: RouterOutputs["finance"]["paymentMethods"];
   methodsLoading: boolean;
@@ -195,19 +196,19 @@ function usePaymentProofEditor(
           return proof?.id === id ? { ...current, [receiptId]: { ...proof, fields } } : current;
         });
       };
-      const timer = window.setTimeout(() => {
+      const timer = globalThis.setTimeout(() => {
         reader.abort();
         readers.current.delete(receiptId);
         finish({});
-      }, 45_000);
-      reader.signal.addEventListener("abort", () => window.clearTimeout(timer), { once: true });
+      }, RECEIPT_READ_TIMEOUT_MS);
+      reader.signal.addEventListener("abort", () => globalThis.clearTimeout(timer), { once: true });
       void import("./read-receipt")
         .then((module) => module.readReceipt(file, reader.signal))
         .catch(() => ({}))
         .then((fields) => {
           if (reader.signal.aborted) return;
           readers.current.delete(receiptId);
-          window.clearTimeout(timer);
+          globalThis.clearTimeout(timer);
           finish(fields);
         });
     },

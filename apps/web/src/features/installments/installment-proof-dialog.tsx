@@ -216,12 +216,7 @@ function PaymentProofRow({
   const showEmptyState = payment.proofs.length === 0 && !selectedFile;
   return (
     <section className="grid gap-3 rounded-md border border-border p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-medium">Pago em {formatDateOnlyBR(payment.date)}</h3>
-        <span className="font-numeric tabular-nums">
-          {formatBRLFromCents(payment.amountCents)} nesta parcela
-        </span>
-      </div>
+      <PaymentProofHeading payment={payment} />
       {payment.proofs.length > 0 && <PaymentProofLinks proofs={payment.proofs} />}
       {showEmptyState && (
         <EmptyState
@@ -286,6 +281,17 @@ function PaymentProofLinks({ proofs }: { proofs: PaymentProof["proofs"] }): Reac
           <span className="min-w-0 break-all">{proof.fileName}</span>
         </a>
       ))}
+    </div>
+  );
+}
+
+function PaymentProofHeading({ payment }: { payment: PaymentProof }): ReactElement {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 className="font-medium">Pago em {formatDateOnlyBR(payment.date)}</h3>
+      <span className="font-numeric tabular-nums">
+        {formatBRLFromCents(payment.amountCents)} nesta parcela
+      </span>
     </div>
   );
 }

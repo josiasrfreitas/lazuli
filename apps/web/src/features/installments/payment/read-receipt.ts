@@ -1,3 +1,4 @@
+import type { PDFPageProxy } from "pdfjs-dist";
 import { parseReceipt, type ReceiptFields } from "./receipt-fields";
 
 async function recognize(image: File | HTMLCanvasElement, signal: AbortSignal): Promise<string> {
@@ -10,17 +11,18 @@ async function recognize(image: File | HTMLCanvasElement, signal: AbortSignal): 
     workerBlobURL: false,
     errorHandler: () => {},
   });
-  const stop = () => {
+  const stop = (): void => {
     void worker.terminate();
   };
   try {
     signal.throwIfAborted();
     signal.addEventListener("abort", stop, { once: true });
-    return (await worker.recognize(image)).data.text;
+    const result = await worker.recognize(image);
+    return result.data.text;
   } finally {
     signal.removeEventListener("abort", stop);
-    if (!signal.aborted) await worker.terminate();
-    else stop();
+    if (signal.aborted) stop();
+    else await worker.terminate();
   }
 }
 
@@ -34,30 +36,36 @@ export async function readReceipt(file: File, signal: AbortSignal): Promise<Rece
   const task = engine.getDocument({ data: await file.arrayBuffer() });
   try {
     const pdf = await task.promise;
-    if (pdf.numPages > 3) return {};
+    if (pdf.numPages > MAX_OCR_PAGES) return {};
     const pages: string[] = [];
     for (let number = 1; number <= pdf.numPages; number++) {
       signal.throwIfAborted();
       const page = await pdf.getPage(number);
-      const content = await page.getTextContent();
-      let text = content.items
-        .map((item) => ("str" in item ? item.str + (item.hasEOL ? "\n" : " ") : ""))
-        .join("");
-      if (text.trim().length < 20) {
-        const natural = page.getViewport({ scale: 1 });
-        const viewport = page.getViewport({
-          scale: Math.min(3, 2200 / Math.max(natural.width, natural.height)),
-        });
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.ceil(viewport.width);
-        canvas.height = Math.ceil(viewport.height);
-        await page.render({ canvas, viewport }).promise;
-        text += "\n" + (await recognize(canvas, signal));
-      }
-      pages.push(text);
+      pages.push(await readPageText(page, signal));
     }
     return parseReceipt(pages.join("\n"));
   } finally {
     await task.destroy();
   }
+}
+
+const MAX_OCR_PAGES = 3;
+const MIN_EMBEDDED_TEXT_LENGTH = 20;
+const MAX_RENDER_SCALE = 3;
+const MAX_RENDER_EDGE = 2200;
+async function readPageText(page: PDFPageProxy, signal: AbortSignal): Promise<string> {
+  const content = await page.getTextContent();
+  const text = content.items
+    .map((item) => ("str" in item ? item.str + (item.hasEOL ? "\n" : " ") : ""))
+    .join("");
+  if (text.trim().length >= MIN_EMBEDDED_TEXT_LENGTH) return text;
+  const natural = page.getViewport({ scale: 1 });
+  const viewport = page.getViewport({
+    scale: Math.min(MAX_RENDER_SCALE, MAX_RENDER_EDGE / Math.max(natural.width, natural.height)),
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  await page.render({ canvas, viewport }).promise;
+  return text + "\n" + (await recognize(canvas, signal));
 }

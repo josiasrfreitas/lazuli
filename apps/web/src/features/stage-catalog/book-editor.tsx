@@ -17,7 +17,7 @@ import { stageContext } from "./labels";
 import type { BookLesson, BookPage, StageDetail } from "./types";
 import styles from "./book-editor.module.css";
 
-const count = (value: number, singular: string, plural: string): string =>
+const count = (value: number, [singular, plural]: [string, string]): string =>
   value + " " + (value === 1 ? singular : plural);
 
 export function BookEditor({
@@ -66,86 +66,24 @@ export function BookEditor({
   return (
     <>
       {lesson ? (
-        <div className={styles.book} data-reading={reading}>
-          <nav ref={index} className={styles.index} aria-label="Índice de lições">
-            <header className={styles.indexHead}>
-              <h2>Índice do livro</h2>
-              <Button size="compact-responsive" variant="ghost" onClick={addLesson}>
-                <Plus /> Adicionar lição
-              </Button>
-            </header>
-            <ol className={styles.indexList}>
-              {book.map((entry) => (
-                <li key={entry.id}>
-                  <button
-                    className={styles.lessonButton}
-                    type="button"
-                    aria-current={entry.id === lesson.id ? "true" : undefined}
-                    onClick={() => openLesson(entry.id)}
-                  >
-                    <span className={styles.ordinal}>
-                      {String(entry.sequence).padStart(2, "0")}
-                    </span>
-                    <span>{entry.title}</span>
-                    <ChevronRight size={15} aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
-          <section aria-labelledby="book-lesson-title" className={styles.reader}>
-            <div className={styles.mobileBack}>
-              <Button
-                size="compact-responsive"
-                variant="ghost"
-                onClick={() => {
-                  setReading(false);
-                  requestAnimationFrame(() =>
-                    index.current
-                      ?.querySelector<HTMLButtonElement>("button[aria-current]")
-                      ?.focus(),
-                  );
-                }}
-              >
-                <ArrowLeft /> Índice do livro
-              </Button>
-            </div>
-            <header className={styles.lessonHead}>
-              <div>
-                <h2 id="book-lesson-title" ref={heading} tabIndex={-1}>
-                  {lesson.title}
-                </h2>
-                <p className={styles.facts}>{count(lesson.pages.length, "página", "páginas")}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon-compact-responsive"
-                aria-label={"Editar " + lesson.title}
-                title="Editar lição"
-                onClick={() => openDialog({ action: "lesson", stageId: stage.id, lesson })}
-              >
-                <Pencil />
-              </Button>
-            </header>
-            <LessonPages
-              key={lesson.id}
-              lesson={lesson}
-              stageId={stage.id}
-              pageId={pageId}
-              setPage={setPage}
-            />
-          </section>
-        </div>
-      ) : (
-        <EmptyState
-          icon={<BookOpen />}
-          title="O livro ainda não tem lições"
-          action={
-            <Button size="compact-responsive" onClick={addLesson}>
-              <Plus /> Adicionar lição
-            </Button>
-          }
+        <BookReader
+          {...{
+            book,
+            lesson,
+            reading,
+            index,
+            heading,
+            addLesson,
+            openLesson,
+            openDialog,
+            pageId,
+            setPage,
+          }}
+          stageId={stage.id}
+          showIndex={() => setReading(false)}
         />
+      ) : (
+        <BookEmpty addLesson={addLesson} />
       )}
       {dialog && (
         <CatalogDialog
@@ -195,7 +133,7 @@ function LessonPages({
                 <FileText size={17} aria-hidden />
                 <strong>{label}</strong>
                 <span className={styles.facts}>
-                  {count(page.activities.length, "atividade", "atividades")}
+                  {count(page.activities.length, ["atividade", "atividades"])}
                 </span>
                 {expanded ? (
                   <ChevronDown size={16} aria-hidden />
@@ -239,6 +177,88 @@ function PageActivities({
   stageId: string;
   lessonId: string;
 }): React.JSX.Element {
+  const state = usePageActivityEditor({ page, stageId, lessonId });
+  const {
+    editing,
+    draft,
+    newTitle,
+    feedback,
+    finish,
+    save,
+    saving,
+    input,
+    setDraft,
+    setNewTitle,
+    open,
+  } = state;
+  return (
+    <>
+      <ol className={styles.activityList}>
+        {page.activities.map((activity) => (
+          <li key={activity.id}>
+            <span className={styles.ordinal}>{String(activity.sequence).padStart(2, "0")}</span>
+            {editing === activity.id ? (
+              <PageActivityEntry
+                edit
+                input={input}
+                value={draft}
+                finish={finish}
+                update={setDraft}
+                save={() => save({ value: draft, pageActivityId: activity.id })}
+                saving={saving}
+              />
+            ) : (
+              <>
+                <span>{activity.title}</span>
+                <Button
+                  size="icon-compact-responsive"
+                  variant="ghost"
+                  id={activity.id + "-book-edit"}
+                  aria-label={"Editar " + activity.title}
+                  onClick={(event) => open(activity, event.currentTarget.id)}
+                >
+                  <Pencil />
+                </Button>
+              </>
+            )}
+          </li>
+        ))}
+      </ol>
+      <PageActivityEntry
+        input={input}
+        value={newTitle}
+        finish={finish}
+        update={setNewTitle}
+        save={() => save({ value: newTitle })}
+        saving={saving}
+      />
+      <span role="status" className={styles.facts}>
+        {feedback}
+      </span>
+    </>
+  );
+}
+
+type PageActivitiesInput = { page: BookPage; stageId: string; lessonId: string };
+type PageActivityEditor = {
+  editing: string | null;
+  draft: string;
+  newTitle: string;
+  feedback: string;
+  finish: () => void;
+  save: (entry: PageActivitySave) => Promise<void>;
+  saving: boolean;
+  input: React.RefObject<HTMLInputElement | null>;
+  setDraft: (value: string) => void;
+  setNewTitle: (value: string) => void;
+  open: (activity: BookPage["activities"][number], id: string) => void;
+};
+type PageActivitySave = { value: string; pageActivityId?: string };
+function usePageActivityEditor({
+  page,
+  stageId,
+  lessonId,
+}: PageActivitiesInput): PageActivityEditor {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [newTitle, setNewTitle] = useState("");
@@ -248,114 +268,60 @@ function PageActivities({
   const mutation = trpc.teachingPrograms.editCatalog.useMutation();
   const input = useRef<HTMLInputElement>(null);
   const trigger = useRef<string | null>(null);
-  function finish() {
+  function finish(): void {
     setEditing(null);
     requestAnimationFrame(() => {
-      if (trigger.current) document.getElementById(trigger.current)?.focus();
+      if (trigger.current)
+        document.querySelector<HTMLElement>(`#${CSS.escape(trigger.current)}`)?.focus();
     });
   }
-  function entry(edit: boolean) {
-    const value = edit ? draft : newTitle;
-    return (
-      <form
-        className={styles.activityEntry}
-        aria-label={edit ? "Editar atividade" : "Adicionar atividade à página"}
-        onSubmit={async (event) => {
-          event.preventDefault();
-          if (!value.trim() || lock.current) return;
-          lock.current = true;
-          setFeedback("");
-          try {
-            await mutation.mutateAsync({
-              action: "pageActivity",
-              stageId,
-              lessonId,
-              pageId: page.id,
-              ...(edit && editing ? { pageActivityId: editing } : {}),
-              title: value.trim(),
-            });
-            await utils.teachingPrograms.detail.invalidate({ id: stageId });
-            if (edit) finish();
-            else {
-              setNewTitle("");
-              input.current?.focus();
-            }
-            setFeedback(edit ? "Atividade atualizada." : "Atividade adicionada.");
-          } catch (error) {
-            setFeedback(
-              error instanceof Error ? error.message : "Não foi possível salvar a atividade.",
-            );
-          } finally {
-            lock.current = false;
-          }
-        }}
-      >
-        <Input
-          size="sm"
-          ref={edit ? undefined : input}
-          autoFocus={edit}
-          name="title"
-          aria-label="Título da atividade"
-          placeholder="Título da atividade"
-          autoComplete="off"
-          maxLength={180}
-          required
-          value={value}
-          onChange={(event) => (edit ? setDraft : setNewTitle)(event.target.value)}
-          onKeyDown={(event) => {
-            if (edit && event.key === "Escape") {
-              event.preventDefault();
-              finish();
-            }
-          }}
-        />
-        <Button size="sm" type="submit" disabled={mutation.isPending || !value.trim()}>
-          {edit ? "Salvar" : "Adicionar"}
-        </Button>
-        {edit && (
-          <Button size="sm" variant="ghost" onClick={finish}>
-            Cancelar
-          </Button>
-        )}
-      </form>
-    );
+  async function save({ value, pageActivityId }: PageActivitySave): Promise<void> {
+    const edit = pageActivityId !== undefined;
+    if (!value.trim() || lock.current) return;
+    lock.current = true;
+    setFeedback("");
+    try {
+      await mutation.mutateAsync({
+        action: "pageActivity",
+        stageId,
+        lessonId,
+        pageId: page.id,
+        pageActivityId,
+        title: value.trim(),
+      });
+      await utils.teachingPrograms.detail.invalidate({ id: stageId });
+      if (edit) finish();
+      else {
+        setNewTitle("");
+        input.current?.focus();
+      }
+      setFeedback(edit ? "Atividade atualizada." : "Atividade adicionada.");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Não foi possível salvar a atividade.");
+    } finally {
+      lock.current = false;
+    }
   }
-  return (
-    <>
-      <ol className={styles.activityList}>
-        {page.activities.map((activity) => (
-          <li key={activity.id}>
-            <span className={styles.ordinal}>{String(activity.sequence).padStart(2, "0")}</span>
-            {editing === activity.id ? (
-              entry(true)
-            ) : (
-              <>
-                <span>{activity.title}</span>
-                <Button
-                  size="icon-compact-responsive"
-                  variant="ghost"
-                  id={activity.id + "-book-edit"}
-                  aria-label={"Editar " + activity.title}
-                  onClick={(event) => {
-                    trigger.current = event.currentTarget.id;
-                    setDraft(activity.title);
-                    setEditing(activity.id);
-                    setFeedback("");
-                  }}
-                >
-                  <Pencil />
-                </Button>
-              </>
-            )}
-          </li>
-        ))}
-      </ol>
-      {entry(false)}
-      <span role="status" className={styles.facts}>
-        {feedback}
-      </span>
-    </>
-  );
+
+  function open(activity: BookPage["activities"][number], id: string): void {
+    trigger.current = id;
+    setDraft(activity.title);
+    setEditing(activity.id);
+    setFeedback("");
+  }
+  return {
+    editing,
+    draft,
+    newTitle,
+    feedback,
+    finish,
+    save,
+    saving: mutation.isPending,
+    input,
+    setDraft,
+    setNewTitle,
+    open,
+  };
 }
 
 function PageEntry({
@@ -374,13 +340,10 @@ function PageEntry({
   const [busy, setBusy] = useState(false);
   const utils = trpc.useUtils();
   const mutation = trpc.teachingPrograms.editCatalog.useMutation();
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
+  async function submit(): Promise<void> {
     if (busy) return;
-    const match = /^\s*(\d+)\s*(?:[-–—]\s*(\d+))?\s*$/.exec(value);
-    const start = Number(match?.[1]),
-      end = Number(match?.[2] ?? match?.[1]);
-    if (!match || start < 1 || end < start || end > 2147483647 || (page && start !== end)) {
+    const range = pageRange(value, Boolean(page));
+    if (!range) {
       setMessage(
         page
           ? "Informe o número da página."
@@ -388,18 +351,15 @@ function PageEntry({
       );
       return;
     }
+    const { start, end } = range;
     setBusy(true);
     setMessage("");
     try {
-      if (page)
-        await mutation.mutateAsync({
-          action: "page",
-          stageId,
-          lessonId,
-          pageId: page.id,
-          number: start,
-        });
-      else await mutation.mutateAsync({ action: "pages", stageId, lessonId, start, end });
+      await mutation.mutateAsync(
+        page
+          ? { action: "page", stageId, lessonId, pageId: page.id, number: start }
+          : { action: "pages", stageId, lessonId, start, end },
+      );
       await utils.teachingPrograms.detail.invalidate({ id: stageId });
       setValue("");
       setMessage(
@@ -415,9 +375,216 @@ function PageEntry({
     }
   }
   return (
+    <PageEntryForm
+      {...{ page, value, busy, message, close, submit }}
+      update={(next) => {
+        setValue(next);
+        setMessage("");
+      }}
+    />
+  );
+}
+
+type BookIndexProps = {
+  index: React.RefObject<HTMLElement | null>;
+  addLesson: () => void;
+  book: BookLesson[];
+  openLesson: (id: string) => void;
+};
+function BookReader({
+  book,
+  lesson,
+  reading,
+  index,
+  heading,
+  addLesson,
+  openLesson,
+  openDialog,
+  pageId,
+  setPage,
+  showIndex,
+  stageId,
+}: BookIndexProps & {
+  lesson: BookLesson;
+  reading: boolean;
+  heading: React.RefObject<HTMLHeadingElement | null>;
+  openDialog: (item: BookDialogState) => void;
+  pageId: string | null;
+  setPage: (value: string | null) => void;
+  showIndex: () => void;
+  stageId: string;
+}): React.JSX.Element {
+  return (
+    <div className={styles.book} data-reading={reading}>
+      <BookIndex {...{ index, addLesson, book, openLesson }} current={lesson.id} />
+      <section aria-labelledby="book-lesson-title" className={styles.reader}>
+        <div className={styles.mobileBack}>
+          <Button
+            size="compact-responsive"
+            variant="ghost"
+            onClick={() => {
+              showIndex();
+              requestAnimationFrame(() =>
+                index.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus(),
+              );
+            }}
+          >
+            <ArrowLeft /> Índice do livro
+          </Button>
+        </div>
+        <header className={styles.lessonHead}>
+          <div>
+            <h2 id="book-lesson-title" ref={heading} tabIndex={-1}>
+              {lesson.title}
+            </h2>
+            <p className={styles.facts}>{count(lesson.pages.length, ["página", "páginas"])}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-compact-responsive"
+            aria-label={"Editar " + lesson.title}
+            title="Editar lição"
+            onClick={() => openDialog({ action: "lesson", stageId: stageId, lesson })}
+          >
+            <Pencil />
+          </Button>
+        </header>
+        <LessonPages
+          key={lesson.id}
+          lesson={lesson}
+          stageId={stageId}
+          pageId={pageId}
+          setPage={setPage}
+        />
+      </section>
+    </div>
+  );
+}
+function BookIndex({
+  index,
+  addLesson,
+  book,
+  openLesson,
+  current,
+}: BookIndexProps & { current: string }): React.JSX.Element {
+  return (
+    <nav ref={index} className={styles.index} aria-label="Índice de lições">
+      <header className={styles.indexHead}>
+        <h2>Índice do livro</h2>
+        <Button size="compact-responsive" variant="ghost" onClick={addLesson}>
+          <Plus /> Adicionar lição
+        </Button>
+      </header>
+      <ol className={styles.indexList}>
+        {book.map((entry) => (
+          <li key={entry.id}>
+            <button
+              className={styles.lessonButton}
+              type="button"
+              aria-current={entry.id === current ? "true" : undefined}
+              onClick={() => openLesson(entry.id)}
+            >
+              <span className={styles.ordinal}>{String(entry.sequence).padStart(2, "0")}</span>
+              <span>{entry.title}</span>
+              <ChevronRight size={15} aria-hidden />
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+function PageActivityEntry({
+  edit = false,
+  input,
+  value,
+  finish,
+  update,
+  save,
+  saving,
+}: {
+  edit?: boolean;
+  input: React.RefObject<HTMLInputElement | null>;
+  value: string;
+  finish: () => void;
+  update: (value: string) => void;
+  save: () => Promise<void>;
+  saving: boolean;
+}): React.JSX.Element {
+  return (
+    <form
+      className={styles.activityEntry}
+      aria-label={edit ? "Editar atividade" : "Adicionar atividade à página"}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save();
+      }}
+    >
+      <Input
+        size="sm"
+        ref={edit ? undefined : input}
+        autoFocus={edit}
+        name="title"
+        aria-label="Título da atividade"
+        placeholder="Título da atividade"
+        autoComplete="off"
+        maxLength={180}
+        required
+        value={value}
+        onChange={(event) => update(event.target.value)}
+        onKeyDown={(event) => {
+          if (edit && event.key === "Escape") {
+            event.preventDefault();
+            finish();
+          }
+        }}
+      />
+      <Button size="sm" type="submit" disabled={saving || !value.trim()}>
+        {edit ? "Salvar" : "Adicionar"}
+      </Button>
+      {edit && (
+        <Button size="sm" variant="ghost" onClick={finish}>
+          Cancelar
+        </Button>
+      )}
+    </form>
+  );
+}
+
+const MAX_PAGE_NUMBER = 2_147_483_647;
+function pageRange(value: string, single: boolean): { start: number; end: number } | null {
+  const match = /^\s*(\d+)\s*(?:[-–—]\s*(\d+))?\s*$/.exec(value);
+  if (!match) return null;
+  const start = Number(match[1]);
+  const end = Number(match[2] ?? match[1]);
+  if (start < 1 || end < start || end > MAX_PAGE_NUMBER || (single && start !== end)) return null;
+  return { start, end };
+}
+function PageEntryForm({
+  page,
+  value,
+  busy,
+  message,
+  close,
+  submit,
+  update,
+}: {
+  page: BookPage | undefined;
+  value: string;
+  busy: boolean;
+  message: string;
+  close: (() => void) | undefined;
+  submit: () => Promise<void>;
+  update: (value: string) => void;
+}): React.JSX.Element {
+  return (
     <form
       className={styles.pageEntry}
-      onSubmit={submit}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void submit();
+      }}
       aria-label={page ? "Renumerar página" : "Adicionar páginas"}
     >
       <Input
@@ -431,8 +598,7 @@ function PageEntry({
         value={value}
         disabled={busy}
         onChange={(event) => {
-          setValue(event.target.value);
-          setMessage("");
+          update(event.target.value);
         }}
       />
       <Button size="sm" type="submit" disabled={busy}>
@@ -445,5 +611,19 @@ function PageEntry({
       )}
       {message && <p role="status">{message}</p>}
     </form>
+  );
+}
+
+function BookEmpty({ addLesson }: { addLesson: () => void }): React.JSX.Element {
+  return (
+    <EmptyState
+      icon={<BookOpen />}
+      title="O livro ainda não tem lições"
+      action={
+        <Button size="compact-responsive" onClick={addLesson}>
+          <Plus /> Adicionar lição
+        </Button>
+      }
+    />
   );
 }

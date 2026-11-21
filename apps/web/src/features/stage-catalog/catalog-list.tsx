@@ -392,11 +392,7 @@ function TrackHeading({
           aria-expanded={expanded}
           aria-controls={expanded ? "stages-" + track.id : undefined}
         >
-          {expanded ? (
-            <ChevronDown size={16} aria-hidden="true" />
-          ) : (
-            <ChevronRight size={16} aria-hidden="true" />
-          )}
+          <TrackChevron expanded={expanded} />
           <span className={styles.trackIdentity}>
             <span className={styles.trackName}>
               <span id={nameId}>{track.name}</span>
@@ -441,4 +437,9 @@ function TrackHeading({
       )}
     </header>
   );
+}
+
+function TrackChevron({ expanded }: { expanded: boolean }): React.JSX.Element {
+  const Icon = expanded ? ChevronDown : ChevronRight;
+  return <Icon size={16} aria-hidden="true" />;
 }

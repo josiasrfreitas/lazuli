@@ -21,7 +21,9 @@ export function TrackListLoading(): React.JSX.Element {
           <div className={styles.loadingTrack}>
             <InlineSkeleton shape="block" className="size-3" />
             <div className={styles.loadingIdentity}>
-              <InlineSkeleton shape="block" className={width} />
+              <div className={width}>
+                <InlineSkeleton shape="block" className="w-full" />
+              </div>
               <InlineSkeleton className="h-2 w-24" />
             </div>
             <InlineSkeleton className="h-2 w-10" />

@@ -123,7 +123,7 @@ function ReceiptAttachment({
 function receiptReadingLabel(fields: import("./receipt-fields").ReceiptFields | undefined): string {
   if (!fields) return "Lendo comprovante…";
   const values = [fields.date, fields.cents && money(fields.cents)].filter(Boolean);
-  return values.length
+  return values.length > 0
     ? `Confira os dados do comprovante: ${values.join(" · ")}.`
     : "Leitura inconclusiva. Confira os campos manualmente.";
 }
